@@ -31,7 +31,6 @@ public class FileMetadataBuilder {
         .userId(fileMetadata.getUserId())
         .roomId(fileMetadata.getRoomId())
         .messageId(fileMetadata.getMessageId())
-        .stanzaId(fileMetadata.getStanzaId())
         .createdAt(fileMetadata.getCreatedAt())
         .updatedAt(fileMetadata.getUpdatedAt());
   }
@@ -73,11 +72,6 @@ public class FileMetadataBuilder {
 
   public FileMetadataBuilder messageId(String messageId) {
     fileMetadata.messageId(messageId);
-    return this;
-  }
-
-  public FileMetadataBuilder stanzaId(String stanzaId) {
-    fileMetadata.stanzaId(stanzaId);
     return this;
   }
 

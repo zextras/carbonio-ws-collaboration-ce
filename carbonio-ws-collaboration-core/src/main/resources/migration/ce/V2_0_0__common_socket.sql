@@ -1,0 +1,115 @@
+-- SPDX-FileCopyrightText: 2024 Zextras <https://www.zextras.com>
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+-- ============================================================================
+-- common-socket: native messaging, presence, pins, reactions, read markers,
+--                system events, multi-instance session tracking.
+-- ============================================================================
+
+-- MESSAGE
+CREATE TABLE IF NOT EXISTS CHATS.MESSAGE
+(
+    ID                  VARCHAR(64)  PRIMARY KEY,
+    ROOM_ID             VARCHAR(64)  NOT NULL,
+    SENDER_ID           VARCHAR(64)  NOT NULL,
+    TEXT                TEXT         NOT NULL DEFAULT '',
+    REPLY_TO_ID         VARCHAR(64),
+    FORWARDED           BOOLEAN      NOT NULL DEFAULT FALSE,
+    FORWARDED_TEXT      TEXT,
+    FORWARDED_SENDER_ID VARCHAR(64),
+    FORWARDED_AT        TIMESTAMP,
+    ATTACHMENT_ID       VARCHAR(64),
+    EDITED              BOOLEAN      NOT NULL DEFAULT FALSE,
+    DELETED             BOOLEAN      NOT NULL DEFAULT FALSE,
+    DELETED_AT          TIMESTAMP,
+    CREATED_AT          TIMESTAMP    NOT NULL DEFAULT NOW(),
+    UPDATED_AT          TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- MESSAGE_REACTION (single reaction per user per message)
+CREATE TABLE IF NOT EXISTS CHATS.MESSAGE_REACTION
+(
+    MESSAGE_ID VARCHAR(64) NOT NULL,
+    USER_ID    VARCHAR(64) NOT NULL,
+    REACTION   VARCHAR(32) NOT NULL,
+    CREATED_AT TIMESTAMP   NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (MESSAGE_ID, USER_ID),
+    CONSTRAINT FK_REACTION_MESSAGE FOREIGN KEY (MESSAGE_ID) REFERENCES CHATS.MESSAGE (ID) ON DELETE CASCADE
+);
+
+-- READ_MARKER (Smart Markers)
+CREATE TABLE IF NOT EXISTS CHATS.READ_MARKER
+(
+    USER_ID      VARCHAR(64) NOT NULL,
+    ROOM_ID      VARCHAR(64) NOT NULL,
+    ITEM_CREATED_AT TIMESTAMP   NOT NULL,
+
+    PRIMARY KEY (USER_ID, ROOM_ID),
+    CONSTRAINT FK_READ_ROOM FOREIGN KEY (ROOM_ID) REFERENCES CHATS.ROOM (ID) ON DELETE CASCADE
+);
+
+-- MESSAGE_PIN (single pin per room)
+CREATE TABLE IF NOT EXISTS CHATS.MESSAGE_PIN
+(
+    ROOM_ID    VARCHAR(64) NOT NULL,
+    MESSAGE_ID VARCHAR(64) NOT NULL,
+    PINNED_BY  VARCHAR(64) NOT NULL,
+    PINNED_AT  TIMESTAMP   NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (ROOM_ID),
+    CONSTRAINT FK_MESSAGE_PIN_MESSAGE FOREIGN KEY (MESSAGE_ID) REFERENCES CHATS.MESSAGE (ID) ON DELETE CASCADE
+);
+
+-- SYSTEM_EVENT (timeline events: pin/unpin, member add/remove, etc.)
+CREATE TABLE IF NOT EXISTS CHATS.SYSTEM_EVENT
+(
+    ID         VARCHAR(64)  PRIMARY KEY,
+    ROOM_ID    VARCHAR(64)  NOT NULL,
+    TYPE       VARCHAR(64)  NOT NULL,
+    ACTOR_ID   VARCHAR(64)  NOT NULL,
+    CONTENT    TEXT,
+    CREATED_AT TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- WS_SESSION: one row per active WebSocket session. Row exists = session online; DELETE on disconnect.
+CREATE TABLE IF NOT EXISTS CHATS.WS_SESSION
+(
+    SESSION_ID VARCHAR(64) PRIMARY KEY,
+    USER_ID    VARCHAR(64) NOT NULL,
+    SERVICE_ID VARCHAR(64) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS WS_SESSION_USER_IDX    ON CHATS.WS_SESSION (USER_ID);
+CREATE INDEX IF NOT EXISTS WS_SESSION_SERVICE_IDX ON CHATS.WS_SESSION (SERVICE_ID);
+
+-- USER_LAST_SEEN: one row per user. UPSERTed when user's last session disconnects.
+CREATE TABLE IF NOT EXISTS CHATS.USER_LAST_SEEN
+(
+    USER_ID      VARCHAR(64) PRIMARY KEY,
+    LAST_SEEN_AT TIMESTAMP NOT NULL
+);
+
+-- USER_CONTACT (roster)
+CREATE TABLE IF NOT EXISTS CHATS.USER_CONTACT
+(
+    USER_ID    VARCHAR(64) NOT NULL,
+    CONTACT_ID VARCHAR(64) NOT NULL,
+    CREATED_AT TIMESTAMP   NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (USER_ID, CONTACT_ID)
+);
+
+-- BUG-2: room_id lookups on subscription and room_user_settings
+-- (subscription PK starts with user_id, so room_id queries do a seq scan otherwise)
+CREATE INDEX IF NOT EXISTS SUBSCRIPTION_ROOM_ID_IDX       ON CHATS.SUBSCRIPTION       (ROOM_ID);
+CREATE INDEX IF NOT EXISTS ROOM_USER_SETTINGS_ROOM_ID_IDX ON CHATS.ROOM_USER_SETTINGS (ROOM_ID);
+
+-- Disable synchronous_commit for write throughput (chat messages are loss-tolerant
+-- within the ~200ms WAL flush window in case of a PostgreSQL crash).
+ALTER ROLE "carbonio-ws-collaboration-db" SET synchronous_commit = off;
+ALTER ROLE "carbonio-ws-collaboration-db" SET jit = off;
+
+ALTER TABLE CHATS.FILE_METADATA ADD COLUMN IF NOT EXISTS AREA VARCHAR(64);
+ALTER TABLE CHATS.FILE_METADATA ADD COLUMN IF NOT EXISTS CHAT_MESSAGE_ID VARCHAR(64);

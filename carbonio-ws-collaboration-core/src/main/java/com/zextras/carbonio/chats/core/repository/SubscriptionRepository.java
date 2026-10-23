@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,15 @@ public interface SubscriptionRepository {
    * @return an {@link Optional} with the {@link Subscription} required if it exists
    */
   Optional<Subscription> getById(String roomId, String userId);
+
+  /**
+   * Gets, in one query, the visibility floor of a room member
+   *
+   * @param roomId room identifier
+   * @param userId user identifier
+   * @return the {@link VisibilityFloor}, empty when the user is not a member of the room
+   */
+  Optional<VisibilityFloor> getVisibilityFloor(String roomId, String userId);
 
   /**
    * Updates a subscription
@@ -58,4 +68,12 @@ public interface SubscriptionRepository {
    * @return {@link List} of users identifier {@link String}
    */
   List<String> getContacts(String userId);
+
+  /**
+   * Gets the identifiers of the users subscribed to the room
+   *
+   * @param roomId room identifier
+   * @return {@link List} of users identifier {@link String}
+   */
+  List<String> getUserIdsByRoomId(String roomId);
 }

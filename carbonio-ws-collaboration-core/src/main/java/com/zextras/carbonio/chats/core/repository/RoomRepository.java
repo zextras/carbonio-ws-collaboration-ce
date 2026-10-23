@@ -67,4 +67,12 @@ public interface RoomRepository {
    * @param roomId room identifier
    */
   void delete(String roomId);
+
+  /**
+   * Gets the user IDs, currently online, who share at least one room with the given user
+   *
+   * @param userId user identifier
+   * @return list of online user IDs who share a room with this user
+   */
+  List<String> getOnlineUserIdsSharingRoomWith(String userId);
 }

@@ -5,14 +5,13 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
-import com.zextras.carbonio.chats.model.IdDto;
+import com.zextras.carbonio.chats.model.MessageDto;
 import jakarta.annotation.Nullable;
 import java.io.InputStream;
 import java.util.List;
@@ -69,10 +68,12 @@ public interface AttachmentService {
    * @param messageId identifier of XMPP message to create
    * @param replyId identifier of the message being replied to
    * @param area attachment's area
+   * @param tempId client-generated temporary identifier for optimistic UI matching
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The added file identifier {@link IdDto}
+   * @return The created message DTO (with attachmentId, metadata, and WS event already broadcast)
+   *     {@link MessageDto}
    */
-  IdDto addAttachment(
+  MessageDto addAttachment(
       UUID roomId,
       InputStream file,
       String mimeType,
@@ -82,18 +83,8 @@ public interface AttachmentService {
       @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area,
+      @Nullable String tempId,
       UserPrincipal currentUser);
-
-  /**
-   * Copies an attachment in a destinationRoom
-   *
-   * @param destinationRoom destination room {@link Room}
-   * @param originalAttachmentId identifier of the attachment to copy {@link UUID}
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The new file data {@link FileMetadata}
-   */
-  FileMetadata copyAttachment(
-      Room destinationRoom, UUID originalAttachmentId, UserPrincipal currentUser);
 
   /**
    * Deletes a room's attachment file
@@ -123,4 +114,15 @@ public interface AttachmentService {
    */
   BulkDeleteAttachmentsResponseDto bulkDeleteRoomAttachments(
       UUID roomId, List<UUID> fileIds, UserPrincipal currentUser);
+
+  /**
+   * Copies the preview frame of a video attachment to its copy in the preview service, off the
+   * request thread; a missing source preview or any failure is ignored (the copy's preview is then
+   * generated lazily on first view).
+   *
+   * @param source metadata of the copied attachment
+   * @param copyId identifier of the copy
+   * @param copyOwnerId owner of the copy
+   */
+  void copyVideoPreview(FileMetadata source, String copyId, String copyOwnerId);
 }

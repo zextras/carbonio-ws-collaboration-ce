@@ -10,6 +10,8 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import io.ebean.Database;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,16 @@ import java.util.Optional;
 
 @Singleton
 public class EbeanRoomUserSettingsRepository implements RoomUserSettingsRepository {
+
+  private static final String SET_CLEARED_AT_NOW_SQL =
+      """
+      WITH ts AS (SELECT clock_timestamp() AS t)
+      INSERT INTO chats.room_user_settings (user_id, room_id, cleared_at, created_at, updated_at)
+      SELECT :userId, :roomId, ts.t, ts.t, ts.t FROM ts
+      ON CONFLICT (user_id, room_id)
+      DO UPDATE SET cleared_at = EXCLUDED.cleared_at, updated_at = EXCLUDED.updated_at
+      RETURNING cleared_at
+      """;
 
   private final Database db;
 
@@ -66,5 +78,26 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   @Override
   public void save(Collection<RoomUserSettings> roomUserSettingsList) {
     db.saveAll(roomUserSettingsList);
+  }
+
+  @Override
+  public OffsetDateTime setClearedAtNow(String roomId, String userId) {
+    return db.sqlQuery(SET_CLEARED_AT_NOW_SQL)
+        .setParameter("roomId", roomId)
+        .setParameter("userId", userId)
+        .findOne()
+        .getTimestamp("cleared_at")
+        .toInstant()
+        .atOffset(ZoneOffset.UTC);
+  }
+
+  @Override
+  public List<String> getUserIdsClearedAtOrAfter(String roomId, OffsetDateTime createdAt) {
+    return db.find(RoomUserSettings.class)
+        .select("userId")
+        .where()
+        .eq("id.roomId", roomId)
+        .ge("clearedAt", createdAt)
+        .findSingleAttributeList();
   }
 }

@@ -14,7 +14,7 @@ import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.exception.*;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
@@ -31,18 +31,18 @@ public class PreviewServiceImpl implements PreviewService {
   private static final String SERVICE_TYPE_CHATS = "chats";
 
   private final PreviewClient previewClient;
-  private final RoomService roomService;
+  private final AttachmentAccessValidator attachmentAccessValidator;
   private final FileMetadataRepository fileMetadataRepository;
   private final AppConfig appConfig;
 
   @Inject
   public PreviewServiceImpl(
-      RoomService roomService,
+      AttachmentAccessValidator attachmentAccessValidator,
       FileMetadataRepository fileMetadataRepository,
       PreviewClient previewClient,
       AppConfig appConfig) {
     this.previewClient = previewClient;
-    this.roomService = roomService;
+    this.attachmentAccessValidator = attachmentAccessValidator;
     this.fileMetadataRepository = fileMetadataRepository;
     this.appConfig = appConfig;
   }
@@ -64,7 +64,7 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageTypeEnumDto> outputFormat,
       Option<Boolean> crop) {
     FileMetadata metadata = getValidMetadata(fileId);
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
+    attachmentAccessValidator.validate(metadata, user);
 
     QueryBuilder parameters =
         new QueryBuilder()
@@ -93,7 +93,7 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageTypeEnumDto> outputFormat,
       Option<ImageShapeEnumDto> shape) {
     FileMetadata metadata = getValidMetadata(fileId);
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
+    attachmentAccessValidator.validate(metadata, user);
 
     QueryBuilder parameters =
         new QueryBuilder()
@@ -116,7 +116,7 @@ public class PreviewServiceImpl implements PreviewService {
   @Override
   public FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage) {
     FileMetadata metadata = getValidMetadata(fileId);
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
+    attachmentAccessValidator.validate(metadata, user);
 
     QueryBuilder parameters =
         new QueryBuilder()
@@ -143,7 +143,7 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageTypeEnumDto> outputFormat,
       Option<ImageShapeEnumDto> shape) {
     FileMetadata metadata = getValidMetadata(fileId);
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
+    attachmentAccessValidator.validate(metadata, user);
 
     QueryBuilder parameters =
         new QueryBuilder()
@@ -172,7 +172,7 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageTypeEnumDto> outputFormat,
       Option<Boolean> crop) {
     FileMetadata metadata = getValidMetadata(fileId);
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
+    attachmentAccessValidator.validate(metadata, user);
 
     // Q2 size gate: WSC rejects over-size videos before hitting preview.
     checkVideoSizeGate(metadata);
@@ -204,7 +204,7 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageTypeEnumDto> outputFormat,
       Option<ImageShapeEnumDto> shape) {
     FileMetadata metadata = getValidMetadata(fileId);
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
+    attachmentAccessValidator.validate(metadata, user);
 
     // Q2 size gate: WSC rejects over-size videos before hitting preview.
     checkVideoSizeGate(metadata);

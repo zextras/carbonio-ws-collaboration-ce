@@ -15,5 +15,23 @@ public interface EventDispatcher extends HealthIndicator {
 
   void sendToUserQueue(String userId, String queueId, DomainEvent event);
 
+  /**
+   * Sends a raw JSON string to a user's RabbitMQ exchange. Used by the unified WebSocket protocol
+   * to deliver custom event payloads (messaging, presence, reactions) that are not DomainEvent
+   * subtypes.
+   *
+   * @param userId user identifier
+   * @param jsonPayload raw JSON string to deliver to the user's WebSocket
+   */
+  void sendRawToUserExchange(String userId, String jsonPayload);
+
+  /**
+   * Sends a raw JSON string to multiple users' RabbitMQ exchanges.
+   *
+   * @param usersIds list of user identifiers
+   * @param jsonPayload raw JSON string to deliver
+   */
+  void sendRawToUserExchange(List<String> usersIds, String jsonPayload);
+
   void stop();
 }

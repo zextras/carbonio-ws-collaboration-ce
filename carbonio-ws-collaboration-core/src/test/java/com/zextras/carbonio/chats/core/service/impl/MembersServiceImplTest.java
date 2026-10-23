@@ -10,12 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.async.model.RoomMemberAdded;
 import com.zextras.carbonio.async.model.RoomMemberRemoved;
 import com.zextras.carbonio.async.model.RoomOwnerDemoted;
@@ -26,20 +30,22 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -50,6 +56,7 @@ import jakarta.ws.rs.core.Response.Status;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -67,10 +74,11 @@ class MembersServiceImplTest {
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
   private final UserService userService;
-  private final MessageDispatcher messageDispatcher;
   private final MembersService membersService;
   private final MeetingService meetingService;
   private final ParticipantService participantService;
+  private final ChatMessageService chatMessageService;
+  private final DatabaseClock databaseClock;
 
   public MembersServiceImplTest(SubscriptionMapper subscriptionMapper) {
     this.roomService = mock(RoomService.class);
@@ -78,9 +86,11 @@ class MembersServiceImplTest {
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.userService = mock(UserService.class);
-    this.messageDispatcher = mock(MessageDispatcher.class);
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
+    this.chatMessageService = mock(ChatMessageService.class);
+    this.databaseClock = mock(DatabaseClock.class);
+    when(databaseClock.now()).thenReturn(OffsetDateTime.parse("2026-01-01T10:00:00Z"));
     this.membersService =
         new MembersServiceImpl(
             roomService,
@@ -89,11 +99,16 @@ class MembersServiceImplTest {
             eventDispatcher,
             subscriptionMapper,
             userService,
-            messageDispatcher,
             meetingService,
-            participantService);
+            participantService,
+            chatMessageService,
+            databaseClock,
+            new SystemEventContentFactory(new ObjectMapper()));
   }
 
+  private static final OffsetDateTime JOINED_AT = OffsetDateTime.parse("2026-01-01T10:00:00Z");
+  private static final OffsetDateTime PERSISTED_AT =
+      OffsetDateTime.parse("2026-10-23T09:00:00.123456Z");
   private static UUID user1Id;
   private static UUID user2Id;
   private static UUID user3Id;
@@ -117,9 +132,9 @@ class MembersServiceImplTest {
         roomUserSettingsRepository,
         eventDispatcher,
         userService,
-        messageDispatcher,
         meetingService,
-        participantService);
+        participantService,
+        chatMessageService);
   }
 
   protected Room generateRoom(RoomTypeDto type) {
@@ -129,6 +144,17 @@ class MembersServiceImplTest {
         .name("room1")
         .description("Room one")
         .subscriptions(new ArrayList<>());
+  }
+
+  private void insertSetsCreatedAt() {
+    when(chatMessageService.insertSystemEvent(any(SystemEvent.class)))
+        .thenAnswer(i -> i.<SystemEvent>getArgument(0).createdAt(PERSISTED_AT));
+  }
+
+  private SystemEvent capturedSystemEvent() {
+    ArgumentCaptor<SystemEvent> captor = ArgumentCaptor.forClass(SystemEvent.class);
+    verify(chatMessageService).insertSystemEvent(captor.capture());
+    return captor.getValue();
   }
 
   @Nested
@@ -296,6 +322,7 @@ class MembersServiceImplTest {
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()));
+      insertSetsCreatedAt();
 
       List<MemberInsertedDto> members =
           membersService.insertRoomMembers(
@@ -309,19 +336,22 @@ class MembersServiceImplTest {
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
-      verify(messageDispatcher, times(1))
-          .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      SystemEvent added = capturedSystemEvent();
+      assertEquals("MEMBER_ADDED", added.getType());
+      assertEquals(user1Id.toString(), added.getActorId());
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
               RoomMemberAdded.create()
                   .roomId(UUID.fromString(room.getId()))
                   .userId(user2Id)
-                  .isOwner(false));
+                  .isOwner(false)
+                  .addedBy(user1Id)
+                  .systemEventId(systemEventId)
+                  .systemEventCreatedAt(PERSISTED_AT));
     }
 
     @Test
@@ -394,8 +424,9 @@ class MembersServiceImplTest {
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user2Id.toString()))
-          .thenReturn(Optional.of(RoomUserSettings.create().clearedAt(OffsetDateTime.now())));
+      OffsetDateTime stored = OffsetDateTime.parse("2026-01-01T10:00:00Z");
+      when(roomUserSettingsRepository.setClearedAtNow(roomId.toString(), user2Id.toString()))
+          .thenReturn(stored);
 
       List<MemberInsertedDto> members =
           membersService.insertRoomMembers(
@@ -406,14 +437,10 @@ class MembersServiceImplTest {
       MemberInsertedDto memberInsertedDto = members.get(0);
       assertNotNull(memberInsertedDto);
       assertEquals(user2Id, memberInsertedDto.getUserId());
+      assertEquals(stored, memberInsertedDto.getClearedAt());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
-      verify(messageDispatcher, times(1))
-          .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
 
       ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
       verify(subscriptionRepository, times(1)).insert(subscriptionCaptor.capture());
@@ -425,15 +452,18 @@ class MembersServiceImplTest {
       assertNotNull(capturedSubscription.getJoinedAt());
 
       verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
-      verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
+          .setClearedAtNow(roomId.toString(), user2Id.toString());
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
               RoomMemberAdded.create()
                   .roomId(UUID.fromString(room.getId()))
                   .userId(user2Id)
-                  .isOwner(false));
+                  .isOwner(false)
+                  .addedBy(user1Id)
+                  .systemEventId(systemEventId));
     }
 
     @Test
@@ -465,11 +495,6 @@ class MembersServiceImplTest {
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
-      verify(messageDispatcher, times(1))
-          .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
 
       ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
       verify(subscriptionRepository, times(1)).insert(subscriptionCaptor.capture());
@@ -480,13 +505,17 @@ class MembersServiceImplTest {
       assertTrue(capturedSubscription.isTemporary());
       assertNotNull(capturedSubscription.getJoinedAt());
 
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
               RoomMemberAdded.create()
                   .roomId(UUID.fromString(room.getId()))
                   .userId(user2Id)
-                  .isOwner(false));
+                  .isOwner(false)
+                  .addedBy(user1Id)
+                  .systemEventId(systemEventId));
     }
 
     @Test
@@ -518,11 +547,6 @@ class MembersServiceImplTest {
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
-      verify(messageDispatcher, times(1))
-          .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
 
       ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
       verify(subscriptionRepository, times(1)).insert(subscriptionCaptor.capture());
@@ -533,13 +557,52 @@ class MembersServiceImplTest {
       assertFalse(capturedSubscription.isTemporary());
       assertNotNull(capturedSubscription.getJoinedAt());
 
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
               RoomMemberAdded.create()
                   .roomId(UUID.fromString(room.getId()))
                   .userId(user2Id)
-                  .isOwner(false));
+                  .isOwner(false)
+                  .addedBy(user1Id)
+                  .systemEventId(systemEventId));
+    }
+
+    @Test
+    @DisplayName("Bulk add sends one event per member, all with the id of the single system event")
+    void insertRoomMembers_bulkSharesSystemEventId() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(
+          new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(userService.userExists(any(UUID.class), any(UserPrincipal.class))).thenReturn(true);
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenReturn(Subscription.create(room, user2Id.toString()));
+
+      membersService.insertRoomMembers(
+          roomId,
+          List.of(
+              MemberToInsertDto.create().userId(user2Id).historyCleared(false),
+              MemberToInsertDto.create().userId(user3Id).historyCleared(false)),
+          principal);
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(userService, times(2)).userExists(any(UUID.class), any(UserPrincipal.class));
+      verify(subscriptionRepository, times(2)).insert(any(Subscription.class));
+      SystemEvent added = capturedSystemEvent();
+      ArgumentCaptor<RoomMemberAdded> events = ArgumentCaptor.forClass(RoomMemberAdded.class);
+      verify(eventDispatcher, times(2)).sendToUserExchange(anyList(), events.capture());
+      assertEquals(2, events.getAllValues().size());
+      events
+          .getAllValues()
+          .forEach(
+              e -> {
+                assertEquals(added.getId(), e.getSystemEventId());
+                assertEquals(added.getActorId(), e.getAddedBy().toString());
+              });
     }
   }
 
@@ -687,20 +750,22 @@ class MembersServiceImplTest {
       membersService.deleteRoomMember(roomId, user2Id, principal);
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(),
-              user1Id.toString(),
-              user2Id.toString(),
-              MessageType.MEMBER_REMOVED);
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      SystemEvent removed = capturedSystemEvent();
+      assertEquals("MEMBER_REMOVED", removed.getType());
+      assertEquals(user1Id.toString(), removed.getActorId());
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create().roomId(roomId).userId(user2Id));
+              RoomMemberRemoved.create()
+                  .roomId(roomId)
+                  .userId(user2Id)
+                  .removedBy(user1Id)
+                  .systemEventId(systemEventId));
     }
 
     @Test
@@ -730,20 +795,19 @@ class MembersServiceImplTest {
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(meetingService, times(1)).getMeetingEntity(meetingId);
       verify(participantService, times(1)).removeMeetingParticipant(meeting, room, user2Id);
-      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(),
-              user1Id.toString(),
-              user2Id.toString(),
-              MessageType.MEMBER_REMOVED);
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create().roomId(roomId).userId(user2Id));
+              RoomMemberRemoved.create()
+                  .roomId(roomId)
+                  .userId(user2Id)
+                  .removedBy(user1Id)
+                  .systemEventId(systemEventId));
     }
 
     @Test
@@ -761,20 +825,22 @@ class MembersServiceImplTest {
       membersService.deleteRoomMember(roomId, user1Id, principal);
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(),
-              user2Id.toString(),
-              user1Id.toString(),
-              MessageType.MEMBER_REMOVED);
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      SystemEvent left = capturedSystemEvent();
+      assertEquals("MEMBER_REMOVED", left.getType());
+      assertEquals(user1Id.toString(), left.getActorId());
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user1Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create().roomId(roomId).userId(user1Id));
+              RoomMemberRemoved.create()
+                  .roomId(roomId)
+                  .userId(user1Id)
+                  .removedBy(user1Id)
+                  .systemEventId(systemEventId));
     }
 
     @Test
@@ -800,21 +866,55 @@ class MembersServiceImplTest {
       membersService.deleteRoomMember(roomId, user1Id, principal);
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString());
-      verify(messageDispatcher, times(1))
-          .sendAffiliationMessage(
-              roomId.toString(),
-              user2Id.toString(),
-              user1Id.toString(),
-              MessageType.MEMBER_REMOVED);
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1)).delete(roomUserSettings);
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
+      String systemEventId = capturedSystemEvent().getId();
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create().roomId(roomId).userId(user1Id));
+              RoomMemberRemoved.create()
+                  .roomId(roomId)
+                  .userId(user1Id)
+                  .removedBy(user1Id)
+                  .systemEventId(systemEventId));
+    }
+
+    @Test
+    @DisplayName("Automatic removal persists MEMBER_REMOVED authored by the first room owner")
+    void deleteRoomMember_automaticRemovalAuthoredByFirstOwner() throws Exception {
+      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user3Id.toString()).owner(false),
+              Subscription.create(room, user1Id.toString()).owner(true),
+              Subscription.create(room, user2Id.toString()).owner(false)));
+      insertSetsCreatedAt();
+
+      membersService.deleteRoomMember(user2Id.toString(), room);
+
+      SystemEvent removed = capturedSystemEvent();
+      assertEquals("MEMBER_REMOVED", removed.getType());
+      assertEquals(roomId.toString(), removed.getRoomId());
+      assertEquals(user1Id.toString(), removed.getActorId());
+      assertEquals(
+          Map.of("removedByUserId", user1Id.toString(), "removedUserId", user2Id.toString()),
+          new ObjectMapper()
+              .readValue(removed.getContent(), new TypeReference<Map<String, String>>() {}));
+      ArgumentCaptor<RoomMemberRemoved> event = ArgumentCaptor.forClass(RoomMemberRemoved.class);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              eq(List.of(user3Id.toString(), user1Id.toString(), user2Id.toString())),
+              event.capture());
+      assertEquals(user2Id, event.getValue().getUserId());
+      assertEquals(user1Id, event.getValue().getRemovedBy());
+      assertEquals(removed.getId(), event.getValue().getSystemEventId());
+      assertEquals(PERSISTED_AT, event.getValue().getSystemEventCreatedAt());
+      verify(roomUserSettingsRepository, times(1))
+          .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
+      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
     }
 
     @Test
@@ -880,7 +980,8 @@ class MembersServiceImplTest {
                   MemberDto.create().userId(user1Id),
                   MemberDto.create().userId(user2Id).owner(true),
                   MemberDto.create().userId(user3Id)),
-              generateRoom(RoomTypeDto.GROUP));
+              generateRoom(RoomTypeDto.GROUP),
+              JOINED_AT);
       assertNotNull(subscriptions);
       assertEquals(3, subscriptions.size());
 
@@ -895,6 +996,7 @@ class MembersServiceImplTest {
       assertEquals(user3Id.toString(), subscriptions.get(2).getUserId());
       assertEquals(roomId.toString(), subscriptions.get(2).getRoom().getId());
       assertFalse(subscriptions.get(2).isOwner());
+      subscriptions.forEach(sub -> assertEquals(JOINED_AT, sub.getJoinedAt()));
     }
 
     @Test
@@ -903,7 +1005,8 @@ class MembersServiceImplTest {
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
               List.of(MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id)),
-              generateRoom(RoomTypeDto.ONE_TO_ONE));
+              generateRoom(RoomTypeDto.ONE_TO_ONE),
+              JOINED_AT);
       assertNotNull(subscriptions);
       assertEquals(2, subscriptions.size());
 

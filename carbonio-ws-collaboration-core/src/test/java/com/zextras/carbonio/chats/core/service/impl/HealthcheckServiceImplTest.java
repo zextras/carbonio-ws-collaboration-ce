@@ -19,7 +19,6 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.Authenticat
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -42,7 +41,6 @@ import org.junit.jupiter.api.Test;
 class HealthcheckServiceImplTest {
 
   private final HealthcheckServiceImpl healthcheckService;
-  private final MessageDispatcher messageDispatcher;
   private final DatabaseInfoService databaseInfoService;
   private final EventDispatcher eventDispatcher;
   private final StoragesService storagesService;
@@ -52,7 +50,6 @@ class HealthcheckServiceImplTest {
   private final VideoServerService videoServerService;
 
   public HealthcheckServiceImplTest() {
-    this.messageDispatcher = mock(MessageDispatcher.class);
     this.databaseInfoService = mock(DatabaseInfoService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.storagesService = mock(StoragesService.class);
@@ -62,7 +59,6 @@ class HealthcheckServiceImplTest {
     this.videoServerService = mock(VideoServerService.class);
     this.healthcheckService =
         new HealthcheckServiceImpl(
-            this.messageDispatcher,
             this.databaseInfoService,
             this.eventDispatcher,
             this.storagesService,
@@ -75,7 +71,6 @@ class HealthcheckServiceImplTest {
   @AfterEach
   public void cleanup() {
     reset(
-        messageDispatcher,
         databaseInfoService,
         eventDispatcher,
         storagesService,
@@ -90,7 +85,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Retrieves the service status")
     public void getServiceStatus_testOk() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -103,24 +97,8 @@ class HealthcheckServiceImplTest {
     }
 
     @Test
-    @DisplayName("Returns error when the message dispatcher is not healthy")
-    public void getServiceStatus_testMessageDispatcherDead() {
-      when(messageDispatcher.isAlive()).thenReturn(false);
-      when(databaseInfoService.isAlive()).thenReturn(true);
-      when(eventDispatcher.isAlive()).thenReturn(true);
-      when(storagesService.isAlive()).thenReturn(true);
-      when(previewService.isAlive()).thenReturn(true);
-      when(authenticationService.isAlive()).thenReturn(true);
-      when(profilingService.isAlive()).thenReturn(true);
-      when(videoServerService.isAlive()).thenReturn(true);
-
-      assertEquals(HealthStatusTypeDto.ERROR, healthcheckService.getServiceStatus());
-    }
-
-    @Test
     @DisplayName("Returns error when the database is not healthy")
     public void getServiceStatus_testDatabaseDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(false);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -135,7 +113,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns warn when the event dispatcher is not healthy")
     public void getServiceStatus_testEventDispatcherDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(false);
       when(storagesService.isAlive()).thenReturn(true);
@@ -150,7 +127,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns warn when storages is not healthy")
     public void getServiceStatus_testStoragesDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(false);
@@ -165,7 +141,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns warn when the previewer is not healthy")
     public void getServiceStatus_testPreviewerDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -180,7 +155,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns error when the authentication is not healthy")
     public void getServiceStatus_testAuthenticationDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -195,7 +169,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns error when the profiling service is not healthy")
     public void getServiceStatus_testProfilingDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -210,7 +183,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns error when the videoserver service is not healthy")
     public void getServiceStatus_testVideoServerDead() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -226,7 +198,6 @@ class HealthcheckServiceImplTest {
     @DisplayName(
         "Returns error when both a non-fundamental service and a fundamental one are not healthy")
     public void getServiceStatus_testErrorOnMoreThanOne() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -245,7 +216,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns the service health status when everything is healthy")
     public void getServiceHealth_testOk() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -256,9 +226,6 @@ class HealthcheckServiceImplTest {
 
       List<DependencyHealthDto> dependencyHealthDto =
           List.of(
-              DependencyHealthDto.create()
-                  .name(DependencyHealthTypeDto.XMPP_SERVER)
-                  .isHealthy(true),
               DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
               DependencyHealthDto.create()
                   .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
@@ -287,7 +254,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns the service health status when a fundamental service is not healthy")
     public void getServiceHealth_testFundamentalNotHealthy() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -298,9 +264,6 @@ class HealthcheckServiceImplTest {
 
       List<DependencyHealthDto> dependencyHealthDto =
           List.of(
-              DependencyHealthDto.create()
-                  .name(DependencyHealthTypeDto.XMPP_SERVER)
-                  .isHealthy(true),
               DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
               DependencyHealthDto.create()
                   .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
@@ -329,7 +292,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Returns the service health status when a fundamental service is not healthy")
     public void getServiceHealth_testNonFundamentalNotHealthy() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -340,9 +302,6 @@ class HealthcheckServiceImplTest {
 
       List<DependencyHealthDto> dependencyHealthDto =
           List.of(
-              DependencyHealthDto.create()
-                  .name(DependencyHealthTypeDto.XMPP_SERVER)
-                  .isHealthy(true),
               DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
               DependencyHealthDto.create()
                   .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
@@ -373,7 +332,6 @@ class HealthcheckServiceImplTest {
         "Returns the service health status when both a non-fundamental and a fundamental service"
             + " are not healthy")
     public void getServiceHealth_testBothNonHealthy() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -384,9 +342,6 @@ class HealthcheckServiceImplTest {
 
       List<DependencyHealthDto> dependencyHealthDto =
           List.of(
-              DependencyHealthDto.create()
-                  .name(DependencyHealthTypeDto.XMPP_SERVER)
-                  .isHealthy(true),
               DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
               DependencyHealthDto.create()
                   .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
@@ -415,7 +370,6 @@ class HealthcheckServiceImplTest {
     @Test
     @DisplayName("Calls isAlive() on each dependency only once per getServiceHealth() invocation")
     public void getServiceHealth_testNoRedundantIsAliveCalls() {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -443,7 +397,6 @@ class HealthcheckServiceImplTest {
         "getServiceHealth() returns ERROR with the auth dependency unhealthy instead of throwing"
             + " (i.e. /health responds 200, not 500) when User Management is unreachable")
     public void getServiceHealth_testUserManagementUnreachable() throws IOException {
-      when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
@@ -461,7 +414,6 @@ class HealthcheckServiceImplTest {
 
       HealthcheckServiceImpl healthcheckServiceWithUnreachableUm =
           new HealthcheckServiceImpl(
-              messageDispatcher,
               databaseInfoService,
               eventDispatcher,
               storagesService,

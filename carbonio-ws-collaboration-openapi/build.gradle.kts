@@ -68,6 +68,10 @@ val generateAsyncApi by tasks.registering(GenerateTask::class) {
             "jsonTypeInfoAs" to "EXISTING_PROPERTY",
         ),
     )
+    typeMappings.set(mapOf("TimelineMessage" to "TimelineMessageDto"))
+    importMappings.set(
+        mapOf("TimelineMessageDto" to "com.zextras.carbonio.chats.model.TimelineMessageDto"),
+    )
 }
 
 // OpenAPI Generator writes Java sources under each output directory's src/main/java.

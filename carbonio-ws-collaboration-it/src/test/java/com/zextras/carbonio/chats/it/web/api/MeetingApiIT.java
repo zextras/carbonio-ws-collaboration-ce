@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
@@ -45,9 +46,11 @@ import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,6 +69,7 @@ class MeetingApiIT {
   private final VideoServerMockServer videoServerMockServer;
   private final com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
       healthMonitor;
+  private final SystemEventRepository systemEventRepository;
 
   public MeetingApiIT(
       MeetingsApi meetingsApi,
@@ -76,7 +80,8 @@ class MeetingApiIT {
       IntegrationTestUtils integrationTestUtils,
       VideoServerMockServer videoServerMockServer,
       com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
-          healthMonitor) {
+          healthMonitor,
+      SystemEventRepository systemEventRepository) {
     this.dispatcher = dispatcher;
     this.participantRepository = participantRepository;
     this.meetingTestUtils = meetingTestUtils;
@@ -84,6 +89,7 @@ class MeetingApiIT {
     this.integrationTestUtils = integrationTestUtils;
     this.videoServerMockServer = videoServerMockServer;
     this.healthMonitor = healthMonitor;
+    this.systemEventRepository = systemEventRepository;
     this.dispatcher.getRegistry().addSingletonResource(meetingsApi);
   }
 
@@ -413,6 +419,100 @@ class MeetingApiIT {
       assertEquals(meeting1Id, meeting.getId());
       assertEquals(false, meeting.isActive());
       assertEquals(0, meeting.getParticipants().size());
+    }
+
+    @Test
+    @DisplayName("Stop a meeting on a temporary room with non-moderator members")
+    void stopMeeting_testOkTemporaryRoomWithNonModeratorMembers() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.TEMPORARY)
+              .name("room1")
+              .description("Room one"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id),
+              RoomMemberField.create().id(user3Id)));
+      UUID meeting1Id =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              MeetingType.SCHEDULED,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue)
+                      .audioStreamOn(true)
+                      .videoStreamOn(true),
+                  ParticipantBuilder.create(user2Id, user2Queue)
+                      .audioStreamOn(false)
+                      .videoStreamOn(true),
+                  ParticipantBuilder.create(user3Id, user3Queue)
+                      .audioStreamOn(false)
+                      .videoStreamOn(false)),
+              true);
+      meetingTestUtils.insertVideoServerMeeting(
+          meeting1Id.toString(),
+          "connectionId",
+          "audioHandleId",
+          "videoHandleId",
+          "audioRoomId",
+          "videoRoomId");
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connectionId/videoHandleId",
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"destroy\",\"room\":\"videoRoomId\",\"permanent\":false},\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"destroyed\"}}}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connectionId/audioHandleId",
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"destroy\",\"room\":\"audioRoomId\",\"permanent\":false},\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"destroyed\"}}}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connectionId/audioHandleId",
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connectionId/videoHandleId",
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connectionId",
+          "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      MockHttpResponse response = dispatcher.post(url(meeting1Id), user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(meeting1Id, meeting.getId());
+      assertEquals(false, meeting.isActive());
+      assertEquals(0, meeting.getParticipants().size());
+      Optional<Room> room = integrationTestUtils.getRoomById(room1Id);
+      assertTrue(room.isPresent());
+      assertEquals(1, room.get().getSubscriptions().size());
+      Subscription subscription = room.get().getSubscriptions().get(0);
+      assertTrue(subscription.isOwner());
+      assertEquals(user1Id.toString(), subscription.getUserId());
+      List<SystemEvent> removals =
+          systemEventRepository.findByRoomId(room1Id.toString()).stream()
+              .filter(event -> "MEMBER_REMOVED".equals(event.getType()))
+              .toList();
+      assertEquals(2, removals.size());
+      assertTrue(removals.stream().allMatch(e -> user1Id.toString().equals(e.getActorId())));
+      Set<String> removedUserIds = new HashSet<>();
+      for (SystemEvent removal : removals) {
+        Map<String, String> content =
+            objectMapper.readValue(removal.getContent(), new TypeReference<>() {});
+        assertEquals(user1Id.toString(), content.get("removedByUserId"));
+        removedUserIds.add(content.get("removedUserId"));
+      }
+      assertEquals(Set.of(user2Id.toString(), user3Id.toString()), removedUserIds);
     }
   }
 

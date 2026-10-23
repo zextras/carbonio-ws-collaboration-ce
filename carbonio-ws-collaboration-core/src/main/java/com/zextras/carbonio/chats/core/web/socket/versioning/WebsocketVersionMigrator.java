@@ -59,7 +59,13 @@ public class WebsocketVersionMigrator {
     Semver apiVersion = new Semver(version);
 
     if (needsDowngrade(apiVersion)) {
-      return downgrade(parseDomainEvent(message), apiVersion);
+      try {
+        return downgrade(parseDomainEvent(message), apiVersion);
+      } catch (JsonProcessingException e) {
+        // Unknown event type (e.g. WsEvent subclasses like message-edited, message-deleted, etc.)
+        // These are not DomainEvent subtypes and don't need version migration — pass through as-is.
+        return message;
+      }
     }
 
     return message;

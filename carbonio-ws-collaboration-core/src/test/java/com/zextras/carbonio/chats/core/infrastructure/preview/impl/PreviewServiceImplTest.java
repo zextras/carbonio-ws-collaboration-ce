@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.preview.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,6 +21,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
+import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.PreviewException;
@@ -29,6 +31,9 @@ import com.zextras.carbonio.chats.core.exception.VideoPreviewTooLargeException;
 import com.zextras.carbonio.chats.core.exception.VideoPreviewUnsupportedException;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageRepository;
+import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
@@ -53,6 +58,7 @@ import org.mockito.ArgumentCaptor;
 class PreviewServiceImplTest {
 
   private final RoomService roomService;
+  private final ChatMessageService chatMessageService;
   private final FileMetadataRepository fileMetadataRepository;
   private final PreviewClient previewClient;
   private final AppConfig appConfig;
@@ -70,8 +76,15 @@ class PreviewServiceImplTest {
     // that don't care about it. Individual tests override as needed.
     when(this.appConfig.get(Long.class, ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB))
         .thenReturn(Optional.of(100_000L));
+    this.chatMessageService = mock(ChatMessageService.class);
+    when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
+        .thenReturn(new VisibilityFloor(null));
     this.previewService =
-        new PreviewServiceImpl(roomService, fileMetadataRepository, previewClient, appConfig);
+        new PreviewServiceImpl(
+            new AttachmentAccessValidator(chatMessageService, mock(MessageRepository.class)),
+            fileMetadataRepository,
+            previewClient,
+            appConfig);
   }
 
   @BeforeAll
@@ -544,7 +557,7 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+    when(chatMessageService.getVisibilityFloor(room1.getId(), currentUser.getId()))
         .thenThrow(new ForbiddenException());
 
     assertThrows(

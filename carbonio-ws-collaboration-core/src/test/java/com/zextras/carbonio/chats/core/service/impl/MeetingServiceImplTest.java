@@ -6,11 +6,16 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zextras.carbonio.async.model.*;
 import com.zextras.carbonio.async.model.MeetingDeleted;
 import com.zextras.carbonio.async.model.MeetingStarted;
@@ -21,16 +26,17 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -62,8 +68,8 @@ class MeetingServiceImplTest {
   private final ParticipantService participantService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final ChatMessageService chatMessageService;
   private final Clock clock;
-  private final MessageDispatcher messageDispatcher;
 
   public MeetingServiceImplTest(MeetingMapper meetingMapper) {
     this.meetingRepository = mock(MeetingRepository.class);
@@ -73,7 +79,8 @@ class MeetingServiceImplTest {
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.clock = mock(Clock.class);
-    this.messageDispatcher = mock(MessageDispatcher.class);
+    this.chatMessageService = mock(ChatMessageService.class);
+    ObjectMapper objectMapper = JsonMapper.builder().addModule(new JavaTimeModule()).build();
     this.meetingService =
         new MeetingServiceImpl(
             meetingRepository,
@@ -83,8 +90,9 @@ class MeetingServiceImplTest {
             participantService,
             videoServerService,
             eventDispatcher,
-            clock,
-            messageDispatcher);
+            chatMessageService,
+            objectMapper,
+            clock);
   }
 
   private UUID user1Id;
@@ -271,6 +279,58 @@ class MeetingServiceImplTest {
     }
 
     @Test
+    @DisplayName("Starts a one-to-one meeting")
+    void startOneToOneMeeting_testOk() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).name("bob");
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(false);
+      Meeting updatedMeeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+              .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(
+              RoomDto.create()
+                  .id(roomId)
+                  .type(RoomTypeDto.ONE_TO_ONE)
+                  .meetingId(meetingId)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+      meetingService.startMeeting(currentUser, meetingId);
+      verify(meetingRepository, times(1)).getById(meetingId.toString());
+      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(videoServerService, times(1)).startMeeting(meetingId.toString());
+      verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
+      org.mockito.ArgumentCaptor<SystemEvent> inserted =
+          org.mockito.ArgumentCaptor.forClass(SystemEvent.class);
+      verify(chatMessageService).insertSystemEvent(inserted.capture());
+      assertEquals(user1Id.toString(), inserted.getValue().getActorId());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString()),
+              MeetingStarted.create()
+                  .meetingId(meetingId)
+                  .starterUser(user1Id)
+                  .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .systemEventId(inserted.getValue().getId()));
+      verifyNoMoreInteractions(videoServerService, meetingRepository);
+    }
+
+    @Test
     @DisplayName("Starts a meeting that does not exist")
     void startMeeting_testErrorMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
@@ -338,7 +398,7 @@ class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString()),
-              MeetingStopped.create().meetingId(meetingId));
+              MeetingStopped.create().meetingId(meetingId).endedBy(user1Id));
       verifyNoMoreInteractions(
           participantService, videoServerService, membersService, meetingRepository);
     }
@@ -386,7 +446,7 @@ class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingStopped.create().meetingId(meetingId));
+              MeetingStopped.create().meetingId(meetingId).endedBy(user1Id));
       verify(membersService, times(1)).deleteRoomMember(user2Id.toString(), room);
       verify(membersService, times(1)).deleteRoomMember(user3Id.toString(), room);
       verifyNoMoreInteractions(
@@ -858,6 +918,235 @@ class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(roomService, membersService, videoServerService, eventDispatcher);
+    }
+  }
+
+  @Nested
+  @DisplayName("System event actor tests")
+  class SystemEventActorTests {
+
+    private final OffsetDateTime persistedAt = OffsetDateTime.parse("2026-10-23T09:00:00.123456Z");
+
+    @BeforeEach
+    void insertSetsCreatedAt() {
+      when(chatMessageService.insertSystemEvent(any(SystemEvent.class)))
+          .thenAnswer(i -> i.<SystemEvent>getArgument(0).createdAt(persistedAt));
+    }
+
+    private <T extends com.zextras.carbonio.async.model.DomainEvent> T dispatched(Class<T> type) {
+      org.mockito.ArgumentCaptor<T> captor = org.mockito.ArgumentCaptor.forClass(type);
+      verify(eventDispatcher).sendToUserExchange(anyList(), captor.capture());
+      return captor.getValue();
+    }
+
+    private SystemEvent capturedEvent() {
+      org.mockito.ArgumentCaptor<SystemEvent> captor =
+          org.mockito.ArgumentCaptor.forClass(SystemEvent.class);
+      verify(chatMessageService).insertSystemEvent(captor.capture());
+      return captor.getValue();
+    }
+
+    @Test
+    @DisplayName("MEETING_STARTED actor is the user who started the meeting")
+    void startedActor() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).name("bob");
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(false);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(
+              RoomDto.create()
+                  .id(roomId)
+                  .type(RoomTypeDto.ONE_TO_ONE)
+                  .meetingId(meetingId)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+
+      meetingService.startMeeting(currentUser, meetingId);
+
+      SystemEvent event = capturedEvent();
+      assertEquals("MEETING_STARTED", event.getType());
+      assertEquals(user1Id.toString(), event.getActorId());
+      assertEquals(roomId.toString(), event.getRoomId());
+      MeetingStarted started = dispatched(MeetingStarted.class);
+      assertEquals(event.getId(), started.getSystemEventId());
+      assertEquals(persistedAt, started.getSystemEventCreatedAt());
+      assertEquals(event.getActorId(), started.getStarterUser().toString());
+    }
+
+    @Test
+    @DisplayName("MEETING_ENDED actor is the user who stopped the meeting")
+    void endedActor() {
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z"))
+              .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .meetingId(meetingId.toString())
+              .type(RoomTypeDto.ONE_TO_ONE)
+              .subscriptions(
+                  List.of(
+                      Subscription.create().userId(user1Id.toString()).owner(true),
+                      Subscription.create().userId(user2Id.toString())));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+
+      meetingService.stopMeeting(currentUser, meetingId);
+
+      SystemEvent event = capturedEvent();
+      assertEquals("MEETING_ENDED", event.getType());
+      assertEquals(user2Id.toString(), event.getActorId());
+      MeetingStopped stopped = dispatched(MeetingStopped.class);
+      assertEquals(event.getId(), stopped.getSystemEventId());
+      assertEquals(persistedAt, stopped.getSystemEventCreatedAt());
+      assertEquals(event.getActorId(), stopped.getEndedBy().toString());
+    }
+
+    @Test
+    @DisplayName("MEETING_DECLINED actor is the user who declined the meeting")
+    void declinedActor() {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .id(meetingId.toString())
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .active(true);
+      meeting.participants(
+          List.of(
+              ParticipantBuilder.create(meeting, user1Id.toString())
+                  .queueId(session1User1Id)
+                  .build(),
+              ParticipantBuilder.create(meeting, user3Id.toString())
+                  .queueId(session1User3Id)
+                  .build()));
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .type(RoomTypeDto.ONE_TO_ONE)
+              .meetingId(meetingId.toString());
+      UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
+
+      meetingService.declineMeeting(meetingId, decliner);
+
+      SystemEvent event = capturedEvent();
+      assertEquals("MEETING_DECLINED", event.getType());
+      assertEquals(user2Id.toString(), event.getActorId());
+      MeetingDeclined declined = dispatched(MeetingDeclined.class);
+      assertEquals(event.getId(), declined.getSystemEventId());
+      assertEquals(persistedAt, declined.getSystemEventCreatedAt());
+      assertEquals(event.getActorId(), declined.getUserId().toString());
+    }
+
+    @Test
+    @DisplayName("Group meeting events carry the author but no system event id")
+    void groupMeetingEventsOmitSystemEventId() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z"))
+              .active(false);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(
+              RoomDto.create()
+                  .id(roomId)
+                  .type(RoomTypeDto.GROUP)
+                  .meetingId(meetingId)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .meetingId(meetingId.toString())
+              .type(RoomTypeDto.GROUP)
+              .subscriptions(
+                  List.of(
+                      Subscription.create().userId(user1Id.toString()).owner(true),
+                      Subscription.create().userId(user2Id.toString())));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+
+      meetingService.startMeeting(currentUser, meetingId);
+      meetingService.stopMeeting(currentUser, meetingId);
+
+      verify(chatMessageService, never()).insertSystemEvent(any(SystemEvent.class));
+      org.mockito.ArgumentCaptor<com.zextras.carbonio.async.model.DomainEvent> events =
+          org.mockito.ArgumentCaptor.forClass(com.zextras.carbonio.async.model.DomainEvent.class);
+      verify(eventDispatcher, times(2)).sendToUserExchange(anyList(), events.capture());
+      MeetingStarted started = (MeetingStarted) events.getAllValues().get(0);
+      MeetingStopped stopped = (MeetingStopped) events.getAllValues().get(1);
+      assertNull(started.getSystemEventId());
+      assertNull(started.getSystemEventCreatedAt());
+      assertEquals(user1Id, started.getStarterUser());
+      assertNull(stopped.getSystemEventId());
+      assertNull(stopped.getSystemEventCreatedAt());
+      assertEquals(user1Id, stopped.getEndedBy());
+    }
+
+    @Test
+    @DisplayName("Group decline carries no system event id")
+    void groupDeclineOmitsSystemEventId() {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .id(meetingId.toString())
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .active(true);
+      meeting.participants(
+          List.of(
+              ParticipantBuilder.create(meeting, user1Id.toString())
+                  .queueId(session1User1Id)
+                  .build()));
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .type(RoomTypeDto.GROUP)
+              .meetingId(meetingId.toString());
+      UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
+
+      meetingService.declineMeeting(meetingId, decliner);
+
+      verify(chatMessageService, never()).insertSystemEvent(any(SystemEvent.class));
+      MeetingDeclined declined = dispatched(MeetingDeclined.class);
+      assertNull(declined.getSystemEventId());
+      assertNull(declined.getSystemEventCreatedAt());
+      assertEquals(user2Id, declined.getUserId());
     }
   }
 }

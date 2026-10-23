@@ -30,6 +30,10 @@ public class PaginationFilter {
     this.order = order;
   }
 
+  public static PaginationFilter create(String id, OffsetDateTime createdAt) {
+    return new PaginationFilter(id, createdAt, null, null, null);
+  }
+
   public static PaginationFilter create(
       String id, @Nullable OffsetDateTime createdAt, @Nullable Long size) {
     return new PaginationFilter(id, createdAt, size, null, null);

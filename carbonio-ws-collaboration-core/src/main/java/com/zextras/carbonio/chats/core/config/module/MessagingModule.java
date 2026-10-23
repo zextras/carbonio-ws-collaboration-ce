@@ -4,9 +4,6 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
-import static com.zextras.carbonio.chats.core.config.module.CoreModule.URL_PATTERN;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -21,13 +18,9 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
-import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
-import java.util.Base64;
 import java.util.concurrent.TimeoutException;
 
 public class MessagingModule extends AbstractModule {
@@ -35,39 +28,25 @@ public class MessagingModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
-    bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
+    bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
   }
 
   @Singleton
   @Provides
   private MessageDispatcherCredentials getMessageDispatcherCredentials(AppConfig appConfig) {
+    String host =
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElse(null);
+    Integer port =
+        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElse(null);
+    String name =
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME).orElse(null);
+    String username =
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME).orElse(null);
+    String password =
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD).orElse(null);
     return new MessageDispatcherCredentials(
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElseThrow(),
-        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElseThrow(),
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME).orElse(null),
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME).orElse(null),
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD).orElse(null));
-  }
-
-  @Singleton
-  @Provides
-  private MessageDispatcherClient getMessageDispatcherClient(
-      AppConfig appConfig, HttpClient httpClient, ObjectMapper objectMapper) {
-    String mongooseimUrl =
-        String.format(
-            URL_PATTERN,
-            appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow());
-    String authToken =
-        Base64.getEncoder()
-            .encodeToString(
-                String.join(
-                        ":",
-                        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-                        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
-                    .getBytes());
-    return new MessageDispatcherHttpClient(httpClient, mongooseimUrl, authToken, objectMapper);
+        host != null ? host : "127.78.0.4", port != null ? port : 20003, name, username, password);
   }
 
   @Provides

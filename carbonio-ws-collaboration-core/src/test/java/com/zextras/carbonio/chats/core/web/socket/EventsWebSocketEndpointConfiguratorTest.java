@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,8 @@ class EventsWebSocketEndpointConfiguratorTest {
             mock(WebsocketVersionMigrator.class),
             mock(CacheVideoServerSession.class),
             mock(ParticipantService.class),
+            mock(WsActionRouter.class),
+            mock(WsPresenceManager.class),
             mock(EventWebSocketSessions.class));
 
     assertDoesNotThrow(() -> new EventsWebSocketEndpointConfigurator(manager));

@@ -27,6 +27,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.OffsetDateTimeParamConverterProvider;
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import java.time.Clock;
@@ -57,6 +58,7 @@ public class WebModule extends AbstractModule {
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
     bind(ValidationExceptionHandler.class);
+    bind(OffsetDateTimeParamConverterProvider.class);
 
     bind(HealthApi.class);
     bind(HealthApiService.class).to(HealthApiServiceImpl.class);

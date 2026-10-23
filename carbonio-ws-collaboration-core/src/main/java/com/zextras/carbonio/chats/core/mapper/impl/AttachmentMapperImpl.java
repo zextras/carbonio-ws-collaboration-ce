@@ -32,7 +32,7 @@ public class AttachmentMapperImpl implements AttachmentMapper {
         .roomId(UUID.fromString(metadata.getRoomId()))
         .createdAt(metadata.getCreatedAt())
         .messageId(metadata.getMessageId())
-        .stanzaId(metadata.getStanzaId());
+        .area(metadata.getArea());
   }
 
   @Override

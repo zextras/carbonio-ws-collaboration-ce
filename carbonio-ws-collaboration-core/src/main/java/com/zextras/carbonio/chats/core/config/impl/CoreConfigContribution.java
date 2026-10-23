@@ -29,8 +29,6 @@ public class CoreConfigContribution implements ConfigContribution {
         ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD,
         "carbonio-ws-collaboration/hikari/leak-detection-threshold");
     mappings.put(ConfigName.HIKARI_MAX_LIFETIME, "carbonio-ws-collaboration/hikari/max-lifetime");
-    mappings.put(ConfigName.XMPP_SERVER_USERNAME, "carbonio-message-dispatcher/api/username");
-    mappings.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
     mappings.put(
         ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/default/username");
     mappings.put(
@@ -126,10 +124,6 @@ public class CoreConfigContribution implements ConfigContribution {
             ConfigName.USER_MANAGEMENT_PORT,
             ConfigName.PREVIEWER_HOST,
             ConfigName.PREVIEWER_PORT,
-            ConfigName.XMPP_SERVER_HOST,
-            ConfigName.XMPP_SERVER_HTTP_PORT,
-            ConfigName.XMPP_SERVER_USERNAME,
-            ConfigName.XMPP_SERVER_PASSWORD,
             ConfigName.EVENT_DISPATCHER_HOST,
             ConfigName.EVENT_DISPATCHER_PORT,
             ConfigName.EVENT_DISPATCHER_USER_USERNAME,
@@ -165,14 +159,12 @@ public class CoreConfigContribution implements ConfigContribution {
     defaults.put(ConfigName.USER_MANAGEMENT_PORT, "20001");
     defaults.put(ConfigName.PREVIEWER_HOST, LOCAL_SERVICE_ADDRESS);
     defaults.put(ConfigName.PREVIEWER_PORT, "20002");
-    defaults.put(ConfigName.XMPP_SERVER_HOST, LOCAL_SERVICE_ADDRESS);
-    defaults.put(ConfigName.XMPP_SERVER_HTTP_PORT, "20004");
     defaults.put(ConfigName.EVENT_DISPATCHER_HOST, LOCAL_SERVICE_ADDRESS);
     defaults.put(ConfigName.EVENT_DISPATCHER_PORT, "20005");
     defaults.put(ConfigName.VIDEO_SERVER_HOST, LOCAL_SERVICE_ADDRESS);
     defaults.put(ConfigName.VIDEO_SERVER_PORT, "20006");
     defaults.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, LOCAL_SERVICE_ADDRESS);
-    defaults.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "20012");
+    defaults.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "20003");
     return toNames(defaults);
   }
 

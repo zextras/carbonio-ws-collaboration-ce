@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.*;
@@ -12,6 +13,7 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -21,27 +23,34 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
+import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
+import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +67,8 @@ public class RoomServiceImpl implements RoomService {
   private final RoomRepository roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final FileMetadataRepository fileMetadataRepository;
+  private final MessageRepository messageRepository;
+  private final SystemEventRepository systemEventRepository;
   private final UserService userService;
   private final MembersService membersService;
   private final MeetingService meetingService;
@@ -67,12 +78,18 @@ public class RoomServiceImpl implements RoomService {
   private final MessageDispatcher messageDispatcher;
   private final RoomMapper roomMapper;
   private final Clock clock;
+  private final ChatMessageService chatMessageService;
+  private final ObjectMapper objectMapper;
+  private final DatabaseClock databaseClock;
+  private final SystemEventContentFactory systemEventContentFactory;
 
   @Inject
   public RoomServiceImpl(
       RoomRepository roomRepository,
       RoomUserSettingsRepository roomUserSettingsRepository,
       FileMetadataRepository fileMetadataRepository,
+      MessageRepository messageRepository,
+      SystemEventRepository systemEventRepository,
       UserService userService,
       MembersService membersService,
       MeetingService meetingService,
@@ -81,10 +98,16 @@ public class RoomServiceImpl implements RoomService {
       EventDispatcher eventDispatcher,
       MessageDispatcher messageDispatcher,
       RoomMapper roomMapper,
-      Clock clock) {
+      Clock clock,
+      ChatMessageService chatMessageService,
+      ObjectMapper objectMapper,
+      DatabaseClock databaseClock,
+      SystemEventContentFactory systemEventContentFactory) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.fileMetadataRepository = fileMetadataRepository;
+    this.messageRepository = messageRepository;
+    this.systemEventRepository = systemEventRepository;
     this.userService = userService;
     this.membersService = membersService;
     this.meetingService = meetingService;
@@ -94,6 +117,10 @@ public class RoomServiceImpl implements RoomService {
     this.messageDispatcher = messageDispatcher;
     this.roomMapper = roomMapper;
     this.clock = clock;
+    this.chatMessageService = chatMessageService;
+    this.objectMapper = objectMapper;
+    this.databaseClock = databaseClock;
+    this.systemEventContentFactory = systemEventContentFactory;
   }
 
   @Override
@@ -128,12 +155,49 @@ public class RoomServiceImpl implements RoomService {
     validateCreateRoom(roomCreationFields, currentUser);
 
     List<MemberDto> members = prepareRoomMembers(roomCreationFields, currentUser.getUUID());
-    Room room = initializeRoom(roomCreationFields);
+    int creationEvents =
+        RoomTypeDto.ONE_TO_ONE.equals(roomCreationFields.getType()) ? 0 : members.size() - 1;
+    OffsetDateTime creationInstant = databaseClock.now().minus(creationEvents, ChronoUnit.MILLIS);
+    Room room = initializeRoom(roomCreationFields).createdAt(creationInstant);
 
     createRoom(room, currentUser, members, true);
 
-    room.subscriptions(membersService.initRoomSubscriptions(members, room));
+    room.subscriptions(
+        membersService.initRoomSubscriptions(
+            members, room, creationInstant.plus(creationEvents, ChronoUnit.MILLIS)));
     room = roomRepository.insert(room);
+
+    String roomCreatedContent;
+    try {
+      roomCreatedContent =
+          objectMapper.writeValueAsString(Map.of("creatorId", currentUser.getId()));
+    } catch (Exception e) {
+      ChatsLogger.warn("Failed to serialize ROOM_CREATED system event content: " + e.getMessage());
+      roomCreatedContent = "{\"creatorId\":\"" + currentUser.getId() + "\"}";
+    }
+    chatMessageService.insertSystemEvent(
+        SystemEvent.create()
+            .id(UUID.randomUUID().toString())
+            .roomId(room.getId())
+            .type("ROOM_CREATED")
+            .actorId(currentUser.getId())
+            .content(roomCreatedContent)
+            .createdAt(creationInstant));
+
+    if (!RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      for (int i = 1; i < members.size(); i++) {
+        chatMessageService.insertSystemEvent(
+            SystemEvent.create()
+                .id(UUID.randomUUID().toString())
+                .roomId(room.getId())
+                .type("MEMBER_ADDED")
+                .actorId(currentUser.getId())
+                .content(
+                    systemEventContentFactory.memberAdded(
+                        currentUser.getId(), List.of(members.get(i).getUserId().toString())))
+                .createdAt(creationInstant.plus(i, ChronoUnit.MILLIS)));
+      }
+    }
 
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
@@ -166,14 +230,6 @@ public class RoomServiceImpl implements RoomService {
       UserPrincipal currentUser,
       List<MemberDto> members,
       boolean sendAffiliationMessages) {
-    List<String> memberIds =
-        members.stream().map(MemberDto::getUserId).map(UUID::toString).toList();
-    messageDispatcher.createRoom(
-        room.getId(),
-        currentUser.getId(),
-        memberIds.stream().filter(member -> !member.equals(currentUser.getId())).toList(),
-        sendAffiliationMessages);
-
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       messageDispatcher.addUsersToContacts(
           members.get(0).getUserId().toString(), members.get(1).getUserId().toString());
@@ -244,16 +300,48 @@ public class RoomServiceImpl implements RoomService {
   public RoomDto updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     Room room = getRoomAndValidateUser(roomId, currentUser, true);
-    boolean isRoomUpdated = updateRoomDetails(room, updateRoomRequestDto, currentUser.getId());
+    boolean nameChanged = isNameChanged(room, updateRoomRequestDto);
+    boolean descriptionChanged = isDescriptionChanged(room, updateRoomRequestDto);
+    boolean isRoomUpdated = updateRoomDetails(room, updateRoomRequestDto);
 
     if (isRoomUpdated) {
       roomRepository.update(room);
+      OffsetDateTime eventInstant = databaseClock.now();
+      Optional<SystemEvent> nameSystemEvent = Optional.empty();
+      Optional<SystemEvent> descriptionSystemEvent = Optional.empty();
+      if (nameChanged) {
+        nameSystemEvent =
+            Optional.of(
+                insertRoomSystemEvent(
+                    room,
+                    "ROOM_NAME_CHANGED",
+                    currentUser.getId(),
+                    systemEventContentFactory.roomNameChanged(currentUser.getId(), room.getName()),
+                    eventInstant));
+      }
+      if (descriptionChanged) {
+        descriptionSystemEvent =
+            Optional.of(
+                insertRoomSystemEvent(
+                    room,
+                    "ROOM_DESCRIPTION_CHANGED",
+                    currentUser.getId(),
+                    systemEventContentFactory.roomDescriptionChanged(
+                        currentUser.getId(), room.getDescription()),
+                    nameChanged ? eventInstant.plus(1, ChronoUnit.MILLIS) : eventInstant));
+      }
       eventDispatcher.sendToUserExchange(
           room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
           RoomUpdated.create()
               .roomId(roomId)
               .name(room.getName())
               .description(room.getDescription())
+              .updatedBy(currentUser.getUUID())
+              .nameSystemEventId(nameSystemEvent.map(SystemEvent::getId).orElse(null))
+              .nameSystemEventCreatedAt(nameSystemEvent.map(SystemEvent::getCreatedAt).orElse(null))
+              .descriptionSystemEventId(descriptionSystemEvent.map(SystemEvent::getId).orElse(null))
+              .descriptionSystemEventCreatedAt(
+                  descriptionSystemEvent.map(SystemEvent::getCreatedAt).orElse(null))
               .type(EventType.ROOM_UPDATED)
               .sentDate(OffsetDateTime.now()));
     }
@@ -268,14 +356,26 @@ public class RoomServiceImpl implements RoomService {
         false);
   }
 
-  private boolean updateRoomDetails(
-      Room room, RoomEditableFieldsDto updateRoomRequestDto, String currentUserId) {
+  private SystemEvent insertRoomSystemEvent(
+      Room room, String type, String actorId, String content, OffsetDateTime createdAt) {
+    SystemEvent event =
+        SystemEvent.create()
+            .id(UUID.randomUUID().toString())
+            .roomId(room.getId())
+            .type(type)
+            .actorId(actorId)
+            .content(content)
+            .createdAt(createdAt);
+    chatMessageService.insertSystemEvent(event);
+    return event;
+  }
+
+  private boolean updateRoomDetails(Room room, RoomEditableFieldsDto updateRoomRequestDto) {
     boolean changed = false;
 
     if (isNameChanged(room, updateRoomRequestDto)) {
       changed = true;
       room.name(updateRoomRequestDto.getName());
-      messageDispatcher.updateRoomName(room.getId(), currentUserId, updateRoomRequestDto.getName());
       if (room.getMeetingId() != null) {
         meetingService
             .getMeetingEntity(UUID.fromString(room.getMeetingId()))
@@ -288,8 +388,6 @@ public class RoomServiceImpl implements RoomService {
     if (isDescriptionChanged(room, updateRoomRequestDto)) {
       changed = true;
       room.description(updateRoomRequestDto.getDescription());
-      messageDispatcher.updateRoomDescription(
-          room.getId(), currentUserId, updateRoomRequestDto.getDescription());
     }
 
     return changed;
@@ -334,9 +432,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   private void deleteRoom(Room room) {
-    room.getSubscriptions().stream()
-        .map(Subscription::getUserId)
-        .forEach(userId -> messageDispatcher.removeRoomMember(room.getId(), userId));
+    // Member removal from XMPP is no longer needed; handled by DomainEvent system.
   }
 
   @Override
@@ -377,19 +473,20 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
+  @Transactional
   public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
     Room room =
         getRoom(roomId)
             .orElseThrow(() -> new NotFoundException(String.format("Room '%s'", roomId)));
 
     if (RoomTypeDto.TEMPORARY.equals(room.getType())) {
-      return clearTemporaryRoomHistory(room, currentUser);
+      return purgeTemporaryRoomHistory(room, currentUser);
     } else {
-      return clearPermanentRoomHistory(room, currentUser);
+      return softClearHistoryForUser(room, currentUser);
     }
   }
 
-  private OffsetDateTime clearTemporaryRoomHistory(Room room, UserPrincipal currentUser) {
+  private OffsetDateTime purgeTemporaryRoomHistory(Room room, UserPrincipal currentUser) {
     boolean isOwner =
         room.getSubscriptions().stream()
             .filter(s -> s.getUserId().equals(currentUser.getId()))
@@ -403,32 +500,37 @@ public class RoomServiceImpl implements RoomService {
               "User '%s' is not an owner of room '%s'", currentUser.getId(), room.getId()));
     }
 
-    List<MemberDto> members =
-        room.getSubscriptions().stream()
-            .map(s -> MemberDto.create().userId(UUID.fromString(s.getUserId())))
-            .toList();
-
-    deleteRoom(room);
     attachmentService.deleteAttachmentsByRoomId(UUID.fromString(room.getId()), currentUser);
-    createRoom(room, currentUser, members, false);
+    // message delete cascades reactions/pin (FK ON DELETE CASCADE); system events don't
+    messageRepository.deleteByRoomId(room.getId());
+    systemEventRepository.deleteByRoomId(room.getId());
+    SystemEvent systemEvent =
+        insertRoomSystemEvent(
+            room,
+            "ROOM_HISTORY_CLEARED",
+            currentUser.getId(),
+            systemEventContentFactory.roomHistoryCleared(currentUser.getId()),
+            null);
 
     List<String> subscribersIds =
         room.getSubscriptions().stream().map(Subscription::getUserId).toList();
 
     OffsetDateTime clearedAt = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
-    messageDispatcher.clearRoomHistory(room.getId(), currentUser.getId(), clearedAt.toString());
     eventDispatcher.sendToUserExchange(
         subscribersIds,
         RoomHistoryCleared.create()
             .roomId(UUID.fromString(room.getId()))
             .clearedAt(clearedAt)
+            .clearedBy(currentUser.getUUID())
+            .systemEventId(systemEvent.getId())
+            .systemEventCreatedAt(systemEvent.getCreatedAt())
             .type(EventType.ROOM_HISTORY_CLEARED)
             .sentDate(OffsetDateTime.now()));
 
     return clearedAt;
   }
 
-  private OffsetDateTime clearPermanentRoomHistory(Room room, UserPrincipal currentUser) {
+  private OffsetDateTime softClearHistoryForUser(Room room, UserPrincipal currentUser) {
     boolean isMember =
         room.getSubscriptions().stream().anyMatch(s -> s.getUserId().equals(currentUser.getId()));
 
@@ -438,14 +540,8 @@ public class RoomServiceImpl implements RoomService {
               "User '%s' is not a member of room '%s'", currentUser.getId(), room.getId()));
     }
 
-    RoomUserSettings settings =
-        roomUserSettingsRepository
-            .getByRoomIdAndUserId(room.getId(), currentUser.getId())
-            .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
-
-    OffsetDateTime clearedAt = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
-
-    roomUserSettingsRepository.save(settings.clearedAt(clearedAt));
+    OffsetDateTime clearedAt =
+        roomUserSettingsRepository.setClearedAtNow(room.getId(), currentUser.getId());
 
     eventDispatcher.sendToUserExchange(
         currentUser.getId(),
@@ -541,12 +637,21 @@ public class RoomServiceImpl implements RoomService {
             .userId(currentUser.getId()));
     roomRepository.update(
         room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
-    messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), fileId, fileName);
+    SystemEvent systemEvent =
+        insertRoomSystemEvent(
+            room,
+            "ROOM_PICTURE_UPDATED",
+            currentUser.getId(),
+            systemEventContentFactory.roomPictureUpdated(currentUser.getId()),
+            null);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureChanged.create()
             .roomId(UUID.fromString(room.getId()))
             .updatedAt(room.getPictureUpdatedAt())
+            .updatedBy(currentUser.getUUID())
+            .systemEventId(systemEvent.getId())
+            .systemEventCreatedAt(systemEvent.getCreatedAt())
             .type(EventType.ROOM_PICTURE_CHANGED)
             .sentDate(OffsetDateTime.now()));
   }
@@ -562,11 +667,20 @@ public class RoomServiceImpl implements RoomService {
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     fileMetadataRepository.delete(metadata);
     roomRepository.update(room.pictureUpdatedAt(null));
-    messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
+    SystemEvent systemEvent =
+        insertRoomSystemEvent(
+            room,
+            "ROOM_PICTURE_DELETED",
+            currentUser.getId(),
+            systemEventContentFactory.roomPictureDeleted(currentUser.getId()),
+            null);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureDeleted.create()
             .roomId(UUID.fromString(room.getId()))
+            .deletedBy(currentUser.getUUID())
+            .systemEventId(systemEvent.getId())
+            .systemEventCreatedAt(systemEvent.getCreatedAt())
             .type(EventType.ROOM_PICTURE_DELETED)
             .sentDate(OffsetDateTime.now()));
   }
@@ -574,24 +688,5 @@ public class RoomServiceImpl implements RoomService {
   @Override
   public void setMeetingIntoRoom(Room room, Meeting meeting) {
     roomRepository.update(room.meetingId(meeting.getId()));
-  }
-
-  @Override
-  public void forwardMessages(
-      UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, false);
-    forwardMessageDto.forEach(
-        messageToForward ->
-            messageDispatcher.forwardMessage(
-                roomId.toString(),
-                currentUser.getId(),
-                messageToForward,
-                messageDispatcher
-                    .getAttachmentIdFromMessage(messageToForward.getOriginalMessage())
-                    .map(
-                        attachmentId ->
-                            attachmentService.copyAttachment(
-                                room, UUID.fromString(attachmentId), currentUser))
-                    .orElse(null)));
   }
 }

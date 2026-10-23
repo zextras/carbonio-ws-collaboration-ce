@@ -181,6 +181,51 @@ public class ResteasyRequestDispatcher {
         preparePutMultiPart(path, fileBytes, formHeaders, fileName, contentType, userToken));
   }
 
+  private MockHttpRequest preparePostMultiPart(
+      String path,
+      byte[] fileBytes,
+      Map<String, String> formHeaders,
+      String fileName,
+      ContentType contentType,
+      @Nullable String userToken)
+      throws URISyntaxException {
+
+    MockHttpRequest request = MockHttpRequest.post(path);
+    Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+
+    try {
+      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+      formHeaders.forEach((key, value) -> builder.addTextBody(key, value, ContentType.TEXT_PLAIN));
+      builder.addBinaryBody("file", fileBytes, contentType, fileName);
+
+      HttpEntity multipartEntity = builder.build();
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      multipartEntity.writeTo(baos);
+
+      request.content(baos.toByteArray());
+      request.header("Content-Type", multipartEntity.getContentType().getValue());
+
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create multipart content", e);
+    }
+
+    request.accept(MediaType.APPLICATION_JSON);
+    return request;
+  }
+
+  public MockHttpResponse postMultipart(
+      String path,
+      byte[] fileBytes,
+      Map<String, String> formHeaders,
+      String fileName,
+      ContentType contentType,
+      @Nullable String userToken)
+      throws URISyntaxException {
+    return sendRequest(
+        preparePostMultiPart(path, fileBytes, formHeaders, fileName, contentType, userToken));
+  }
+
   private MockHttpRequest prepareDelete(
       String path, Map<String, String> requestHeaders, @Nullable String userToken)
       throws URISyntaxException {

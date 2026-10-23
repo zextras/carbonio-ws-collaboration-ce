@@ -34,9 +34,12 @@ import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
+import com.zextras.carbonio.chats.core.web.socket.WsPresenceManager;
+import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
+import com.zextras.carbonio.chats.it.tools.ConsulMockServer;
 import jakarta.servlet.DispatcherType;
 import jakarta.websocket.ClientEndpointConfig;
 import jakarta.websocket.ClientEndpointConfig.Builder;
@@ -63,6 +66,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.websocket.core.exception.UpgradeException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -85,6 +89,8 @@ class VersionedWebsocketIT {
   private final WebsocketVersionMigrator websocketVersionMigrator;
   private final ParticipantService participantService;
   private final CacheVideoServerSession cacheVideoServerSession;
+  private final WsActionRouter wsActionRouter;
+  private final WsPresenceManager wsPresenceManager;
 
   public VersionedWebsocketIT(
       AuthenticationService authenticationService,
@@ -93,7 +99,9 @@ class VersionedWebsocketIT {
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
-      CacheVideoServerSession cacheVideoServerSession) {
+      CacheVideoServerSession cacheVideoServerSession,
+      WsActionRouter wsActionRouter,
+      WsPresenceManager wsPresenceManager) {
     this.authenticationService = authenticationService;
     this.channel = channel;
     this.rabbitPool = rabbitPool;
@@ -101,6 +109,17 @@ class VersionedWebsocketIT {
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
+    this.wsActionRouter = wsActionRouter;
+    this.wsPresenceManager = wsPresenceManager;
+  }
+
+  @BeforeAll
+  static void setUpConsul(ConsulMockServer consulMockServer) {
+    // WsPresenceManager (a constructor dependency of this test) transitively requires
+    // ServiceIdProvider, whose constructor resolves this instance's service_id from the Consul
+    // agent service catalog. This runs before the first test instance is provisioned, and the
+    // resolved value is cached for the singleton's lifetime.
+    consulMockServer.mockServiceIdResponse(UUID.randomUUID());
   }
 
   @AfterEach
@@ -480,6 +499,8 @@ class VersionedWebsocketIT {
             websocketVersionMigrator,
             cacheVideoServerSession,
             participantService,
+            wsActionRouter,
+            wsPresenceManager,
             new EventWebSocketSessions(new SessionPingManager()));
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);

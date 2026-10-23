@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.it.utils;
 
 import com.google.inject.Inject;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
@@ -13,11 +14,13 @@ import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.annotation.Nullable;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,17 +34,23 @@ public class IntegrationTestUtils {
   private final FileMetadataRepository fileMetadataRepository;
   private final UserRepository userRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
+  private final MessageRepository messageRepository;
+  private final Clock clock;
 
   @Inject
   public IntegrationTestUtils(
       RoomRepository roomRepository,
       FileMetadataRepository fileMetadataRepository,
       UserRepository userRepository,
-      RoomUserSettingsRepository roomUserSettingsRepository) {
+      RoomUserSettingsRepository roomUserSettingsRepository,
+      MessageRepository messageRepository,
+      Clock clock) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.userRepository = userRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
+    this.messageRepository = messageRepository;
+    this.clock = clock;
   }
 
   public Room generateAndSaveRoom(
@@ -77,7 +86,7 @@ public class IntegrationTestUtils {
       List<UUID> ownerIds,
       @Nullable List<UUID> mutedIds,
       @Nullable OffsetDateTime pictureUpdateTimestamp) {
-    Room room = Room.create();
+    Room room = Room.create().createdAt(OffsetDateTime.now(clock));
     room.id(id.toString())
         .name(name)
         .description(description)
@@ -120,6 +129,7 @@ public class IntegrationTestUtils {
   }
 
   public Room generateAndSaveRoom(Room room, List<RoomMemberField> members) {
+    room.createdAt(OffsetDateTime.now(clock));
     room.subscriptions(new ArrayList<>());
     room.userSettings(new ArrayList<>());
     members.forEach(
@@ -261,5 +271,18 @@ public class IntegrationTestUtils {
   public RoomUserSettings setRoomUserSettings(RoomUserSettings roomUserSettings) {
     roomUserSettingsRepository.save(roomUserSettings);
     return roomUserSettings;
+  }
+
+  public Message generateAndSaveMessage(String messageId, UUID roomId, UUID senderId, String text) {
+    return messageRepository.insert(
+        Message.create()
+            .id(messageId)
+            .roomId(roomId.toString())
+            .senderId(senderId.toString())
+            .text(text));
+  }
+
+  public Optional<Message> getMessageById(String messageId) {
+    return messageRepository.getById(messageId);
   }
 }

@@ -11,7 +11,6 @@ import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -30,7 +29,6 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
   @Inject
   public HealthcheckServiceImpl(
-      MessageDispatcher messageDispatcher,
       DatabaseInfoService databaseInfoService,
       EventDispatcher eventDispatcher,
       StoragesService storagesService,
@@ -43,7 +41,6 @@ public class HealthcheckServiceImpl implements HealthcheckService {
             HealthDependency.create(databaseInfoService, DependencyType.DATABASE),
             HealthDependency.create(authenticationService, DependencyType.AUTHENTICATION_SERVICE),
             HealthDependency.create(profilingService, DependencyType.PROFILING_SERVICE),
-            HealthDependency.create(messageDispatcher, DependencyType.XMPP_SERVER),
             HealthDependency.create(eventDispatcher, DependencyType.EVENT_DISPATCHER),
             HealthDependency.create(storagesService, DependencyType.STORAGE_SERVICE),
             HealthDependency.create(previewService, DependencyType.PREVIEWER_SERVICE),

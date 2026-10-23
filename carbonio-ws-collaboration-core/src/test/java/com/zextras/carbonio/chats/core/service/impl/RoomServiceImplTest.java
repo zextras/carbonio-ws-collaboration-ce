@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.async.model.RoomCreated;
 import com.zextras.carbonio.async.model.RoomDeleted;
 import com.zextras.carbonio.async.model.RoomHistoryCleared;
@@ -38,6 +40,7 @@ import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -50,16 +53,20 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
+import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
+import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -84,6 +91,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -100,13 +108,19 @@ class RoomServiceImplTest {
   private final MembersService membersService;
   private final MeetingService meetingService;
   private final FileMetadataRepository fileMetadataRepository;
+  private final MessageRepository messageRepository;
+  private final SystemEventRepository systemEventRepository;
   private final StoragesService storagesService;
   private final Clock clock;
+  private final ChatMessageService chatMessageService;
+  private final DatabaseClock databaseClock;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
+    this.messageRepository = mock(MessageRepository.class);
+    this.systemEventRepository = mock(SystemEventRepository.class);
     this.userService = mock(UserService.class);
     this.membersService = mock(MembersService.class);
     this.meetingService = mock(MeetingService.class);
@@ -115,11 +129,16 @@ class RoomServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.clock = mock(Clock.class);
+    this.chatMessageService = mock(ChatMessageService.class);
+    this.databaseClock = mock(DatabaseClock.class);
+    when(databaseClock.now()).thenReturn(OffsetDateTime.parse("2026-01-01T10:00:00Z"));
     this.roomService =
         new RoomServiceImpl(
             this.roomRepository,
             this.roomUserSettingsRepository,
             this.fileMetadataRepository,
+            this.messageRepository,
+            this.systemEventRepository,
             this.userService,
             this.membersService,
             this.meetingService,
@@ -128,7 +147,17 @@ class RoomServiceImplTest {
             this.eventDispatcher,
             this.messageDispatcher,
             roomMapper,
-            this.clock);
+            this.clock,
+            this.chatMessageService,
+            new ObjectMapper(),
+            databaseClock,
+            new SystemEventContentFactory(new ObjectMapper()));
+  }
+
+  private List<SystemEvent> insertedSystemEvents(int expected) {
+    ArgumentCaptor<SystemEvent> captor = ArgumentCaptor.forClass(SystemEvent.class);
+    verify(chatMessageService, times(expected)).insertSystemEvent(captor.capture());
+    return captor.getAllValues();
   }
 
   private UUID user1Id;
@@ -251,7 +280,8 @@ class RoomServiceImplTest {
         messageDispatcher,
         fileMetadataRepository,
         storagesService,
-        meetingService);
+        meetingService,
+        chatMessageService);
   }
 
   @Nested
@@ -481,7 +511,8 @@ class RoomServiceImplTest {
                         MemberDto.create().userId(user1Id).owner(true),
                         MemberDto.create().userId(user2Id),
                         MemberDto.create().userId(user3Id))),
-                any(Room.class)))
+                any(Room.class),
+                any()))
             .thenReturn(
                 List.of(
                     Subscription.create(roomGroup1, user1Id.toString()).owner(true),
@@ -530,17 +561,36 @@ class RoomServiceImplTest {
         assertTrue(user3.isPresent());
         assertFalse(user3.get().isOwner());
 
+        ArgumentCaptor<SystemEvent> eventCaptor = ArgumentCaptor.forClass(SystemEvent.class);
+        verify(chatMessageService, times(3)).insertSystemEvent(eventCaptor.capture());
+        List<SystemEvent> events = eventCaptor.getAllValues();
+        assertEquals("ROOM_CREATED", events.get(0).getType());
+        assertEquals("MEMBER_ADDED", events.get(1).getType());
+        assertEquals("MEMBER_ADDED", events.get(2).getType());
+        ArgumentCaptor<OffsetDateTime> joinedAtCaptor =
+            ArgumentCaptor.forClass(OffsetDateTime.class);
+        verify(membersService)
+            .initRoomSubscriptions(any(), any(Room.class), joinedAtCaptor.capture());
+        assertEquals(events.get(2).getCreatedAt(), joinedAtCaptor.getValue());
+        assertEquals(user1Id.toString(), events.get(0).getActorId());
+        assertEquals(user1Id.toString(), events.get(1).getActorId());
+        assertEquals(user1Id.toString(), events.get(2).getActorId());
+        assertEquals(
+            "{\"addedByUserId\":\"" + user1Id + "\",\"addedUserIds\":[\"" + user2Id + "\"]}",
+            events.get(1).getContent());
+        assertEquals(
+            "{\"addedByUserId\":\"" + user1Id + "\",\"addedUserIds\":[\"" + user3Id + "\"]}",
+            events.get(2).getContent());
+        assertEquals(
+            events.get(0).getCreatedAt().plusNanos(1_000_000), events.get(1).getCreatedAt());
+        assertEquals(
+            events.get(0).getCreatedAt().plusNanos(2_000_000), events.get(2).getCreatedAt());
+
         verify(eventDispatcher, times(1))
             .sendToUserExchange(
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomGroup1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1))
-            .createRoom(
-                roomGroup1Id.toString(),
-                user1Id.toString(),
-                List.of(user2Id.toString(), user3Id.toString()),
-                true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -557,7 +607,8 @@ class RoomServiceImplTest {
                         MemberDto.create().userId(user1Id).owner(true),
                         MemberDto.create().userId(user2Id).owner(true),
                         MemberDto.create().userId(user3Id))),
-                any(Room.class)))
+                any(Room.class),
+                any()))
             .thenReturn(
                 List.of(
                     Subscription.create(roomGroup1, user1Id.toString()).owner(true),
@@ -618,12 +669,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomGroup1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1))
-            .createRoom(
-                roomGroup1Id.toString(),
-                user1Id.toString(),
-                List.of(user2Id.toString(), user3Id.toString()),
-                true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -707,7 +752,9 @@ class RoomServiceImplTest {
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
         when(membersService.initRoomSubscriptions(
-                eq(List.of(MemberDto.create().userId(user1Id).owner(true))), any(Room.class)))
+                eq(List.of(MemberDto.create().userId(user1Id).owner(true))),
+                any(Room.class),
+                any()))
             .thenReturn(
                 List.of(Subscription.create(roomTemporary1, user1Id.toString()).owner(true)));
         when(roomRepository.insert(roomTemporary1)).thenReturn(roomTemporary1);
@@ -740,8 +787,6 @@ class RoomServiceImplTest {
             .sendToUserExchange(
                 List.of(user1Id.toString()), RoomCreated.create().roomId(roomTemporary1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1))
-            .createRoom(roomTemporary1Id.toString(), user1Id.toString(), List.of(), true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -758,7 +803,8 @@ class RoomServiceImplTest {
                         MemberDto.create().userId(user1Id).owner(true),
                         MemberDto.create().userId(user2Id).owner(true),
                         MemberDto.create().userId(user3Id))),
-                any(Room.class)))
+                any(Room.class),
+                any()))
             .thenReturn(
                 List.of(
                     Subscription.create(roomTemporary2, user1Id.toString()).owner(true),
@@ -812,12 +858,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomTemporary2Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1))
-            .createRoom(
-                roomTemporary2Id.toString(),
-                user1Id.toString(),
-                List.of(user2Id.toString(), user3Id.toString()),
-                true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -833,7 +873,7 @@ class RoomServiceImplTest {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(membersService.initRoomSubscriptions(
-                eq(List.of(MemberDto.create().userId(user2Id))), any(Room.class)))
+                eq(List.of(MemberDto.create().userId(user2Id))), any(Room.class), any()))
             .thenReturn(
                 Stream.of(user2Id, user1Id)
                     .map(
@@ -877,9 +917,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString()),
                 RoomCreated.create().roomId(roomOneToOne1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1))
-            .createRoom(
-                roomOneToOne1Id.toString(), user1Id.toString(), List.of(user2Id.toString()), true);
         verify(messageDispatcher, times(1))
             .addUsersToContacts(user1Id.toString(), user2Id.toString());
         verifyNoMoreInteractions(messageDispatcher);
@@ -940,17 +977,19 @@ class RoomServiceImplTest {
       assertEquals("room1-changed", room.getName());
       assertEquals("Room one changed", room.getDescription());
 
+      List<SystemEvent> events = insertedSystemEvents(2);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomUpdated.create()
                   .roomId(roomGroup1Id)
                   .name("room1-changed")
-                  .description("Room one changed"));
-      verify(messageDispatcher, times(1))
-          .updateRoomName(roomGroup1Id.toString(), user1Id.toString(), "room1-changed");
-      verify(messageDispatcher, times(1))
-          .updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(), "Room one changed");
+                  .description("Room one changed")
+                  .updatedBy(user1Id)
+                  .nameSystemEventId(events.get(0).getId())
+                  .nameSystemEventCreatedAt(events.get(0).getCreatedAt())
+                  .descriptionSystemEventId(events.get(1).getId())
+                  .descriptionSystemEventCreatedAt(events.get(1).getCreatedAt()));
       verifyNoMoreInteractions(eventDispatcher);
       verifyNoMoreInteractions(messageDispatcher);
     }
@@ -983,22 +1022,120 @@ class RoomServiceImplTest {
       assertEquals("room1-changed", room.getName());
       assertEquals("Room one changed", room.getDescription());
 
+      List<SystemEvent> events = insertedSystemEvents(2);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomUpdated.create()
                   .roomId(roomGroup1Id)
                   .name("room1-changed")
-                  .description("Room one changed"));
-      verify(messageDispatcher, times(1))
-          .updateRoomName(roomGroup1Id.toString(), user1Id.toString(), "room1-changed");
-      verify(messageDispatcher, times(1))
-          .updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(), "Room one changed");
+                  .description("Room one changed")
+                  .updatedBy(user1Id)
+                  .nameSystemEventId(events.get(0).getId())
+                  .nameSystemEventCreatedAt(events.get(0).getCreatedAt())
+                  .descriptionSystemEventId(events.get(1).getId())
+                  .descriptionSystemEventCreatedAt(events.get(1).getCreatedAt()));
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(meetingService, times(1)).updateMeeting(meeting1.name("room1-changed"));
       verifyNoMoreInteractions(eventDispatcher);
       verifyNoMoreInteractions(messageDispatcher);
       verifyNoMoreInteractions(meetingService);
+    }
+
+    @Test
+    @DisplayName("It writes name and description events in order, one millisecond apart")
+    void updateRoom_testWritesNameThenDescriptionEvents() {
+      when(roomRepository.getById(roomGroup1Id.toString()))
+          .thenReturn(Optional.of(roomGroup1.name("old").description("old description")));
+
+      roomService.updateRoom(
+          roomGroup1Id,
+          RoomEditableFieldsDto.create().name("new").description("new description"),
+          UserPrincipal.create(user1Id));
+
+      List<SystemEvent> events = insertedSystemEvents(2);
+      SystemEvent nameEvent = events.get(0);
+      SystemEvent descriptionEvent = events.get(1);
+      assertEquals("ROOM_NAME_CHANGED", nameEvent.getType());
+      assertEquals(user1Id.toString(), nameEvent.getActorId());
+      assertEquals(roomGroup1Id.toString(), nameEvent.getRoomId());
+      assertEquals("{\"changedBy\":\"" + user1Id + "\",\"name\":\"new\"}", nameEvent.getContent());
+      assertEquals(OffsetDateTime.parse("2026-01-01T10:00:00Z"), nameEvent.getCreatedAt());
+      assertEquals("ROOM_DESCRIPTION_CHANGED", descriptionEvent.getType());
+      assertEquals(user1Id.toString(), descriptionEvent.getActorId());
+      assertEquals(
+          "{\"changedBy\":\"" + user1Id + "\",\"description\":\"new description\"}",
+          descriptionEvent.getContent());
+      assertEquals(
+          OffsetDateTime.parse("2026-01-01T10:00:00.001Z"), descriptionEvent.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("It writes only the name event when only the name changes")
+    void updateRoom_testOnlyNameChanged() {
+      when(roomRepository.getById(roomGroup1Id.toString()))
+          .thenReturn(Optional.of(roomGroup1.name("old").description("same")));
+
+      roomService.updateRoom(
+          roomGroup1Id,
+          RoomEditableFieldsDto.create().name("new").description("same"),
+          UserPrincipal.create(user1Id));
+
+      List<SystemEvent> events = insertedSystemEvents(1);
+      assertEquals("ROOM_NAME_CHANGED", events.get(0).getType());
+      assertEquals(OffsetDateTime.parse("2026-01-01T10:00:00Z"), events.get(0).getCreatedAt());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomUpdated.create()
+                  .roomId(roomGroup1Id)
+                  .name("new")
+                  .description("same")
+                  .updatedBy(user1Id)
+                  .nameSystemEventId(events.get(0).getId())
+                  .nameSystemEventCreatedAt(events.get(0).getCreatedAt()));
+    }
+
+    @Test
+    @DisplayName("It writes a description event when the description is cleared")
+    void updateRoom_testDescriptionClearedToEmpty() {
+      when(roomRepository.getById(roomGroup1Id.toString()))
+          .thenReturn(Optional.of(roomGroup1.name("same").description("old description")));
+
+      roomService.updateRoom(
+          roomGroup1Id,
+          RoomEditableFieldsDto.create().description(""),
+          UserPrincipal.create(user1Id));
+
+      List<SystemEvent> events = insertedSystemEvents(1);
+      assertEquals("ROOM_DESCRIPTION_CHANGED", events.get(0).getType());
+      assertEquals(
+          "{\"changedBy\":\"" + user1Id + "\",\"description\":\"\"}", events.get(0).getContent());
+      assertEquals(OffsetDateTime.parse("2026-01-01T10:00:00Z"), events.get(0).getCreatedAt());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomUpdated.create()
+                  .roomId(roomGroup1Id)
+                  .name("same")
+                  .description("")
+                  .updatedBy(user1Id)
+                  .descriptionSystemEventId(events.get(0).getId())
+                  .descriptionSystemEventCreatedAt(events.get(0).getCreatedAt()));
+    }
+
+    @Test
+    @DisplayName("It writes no event and sends nothing when nothing changes")
+    void updateRoom_testNothingChanged() {
+      when(roomRepository.getById(roomGroup1Id.toString()))
+          .thenReturn(Optional.of(roomGroup1.name("same").description("same description")));
+
+      roomService.updateRoom(
+          roomGroup1Id,
+          RoomEditableFieldsDto.create().name("same").description("same description"),
+          UserPrincipal.create(user1Id));
+
+      verifyNoInteractions(chatMessageService, eventDispatcher);
     }
 
     @Test
@@ -1085,12 +1222,6 @@ class RoomServiceImplTest {
 
       roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup1Id.toString(), user1Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup1Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup1Id.toString(), user3Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1125,10 +1256,6 @@ class RoomServiceImplTest {
           .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
       verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup2Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup2Id.toString(), user3Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user2Id.toString(), user3Id.toString()),
@@ -1166,12 +1293,6 @@ class RoomServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meetingId);
       verify(meetingService, times(1)).deleteMeeting(user1Id.toString(), meeting, roomGroup1);
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup1Id.toString(), user1Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup1Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomGroup1Id.toString(), user3Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1508,10 +1629,8 @@ class RoomServiceImplTest {
           RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
 
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(
-              roomGroup1Id.toString(), user1Id.toString()))
-          .thenReturn(Optional.empty());
-      when(roomUserSettingsRepository.save(userSettings)).thenReturn(userSettings);
+      when(roomUserSettingsRepository.setClearedAtNow(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(desiredDate);
 
       OffsetDateTime clearedAt =
           roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id));
@@ -1519,14 +1638,13 @@ class RoomServiceImplTest {
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
-      verify(roomUserSettingsRepository, times(1)).save(userSettings);
+          .setClearedAtNow(roomGroup1Id.toString(), user1Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               user1Id.toString(),
               RoomHistoryCleared.create().roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
-      verifyNoInteractions(messageDispatcher, attachmentService);
+      verifyNoInteractions(messageDispatcher, attachmentService, chatMessageService);
     }
 
     @Test
@@ -1537,15 +1655,8 @@ class RoomServiceImplTest {
           RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
 
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(
-              roomGroup1Id.toString(), user1Id.toString()))
-          .thenReturn(
-              Optional.of(
-                  RoomUserSettings.create(roomGroup1, user1Id.toString())
-                      .clearedAt(
-                          OffsetDateTime.ofInstant(
-                              Instant.parse("2021-12-31T00:00:00Z"), ZoneId.systemDefault()))));
-      when(roomUserSettingsRepository.save(userSettings)).thenReturn(userSettings);
+      when(roomUserSettingsRepository.setClearedAtNow(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(desiredDate);
 
       OffsetDateTime clearedAt =
           roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id));
@@ -1553,14 +1664,13 @@ class RoomServiceImplTest {
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
-      verify(roomUserSettingsRepository, times(1)).save(userSettings);
+          .setClearedAtNow(roomGroup1Id.toString(), user1Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               user1Id.toString(),
               RoomHistoryCleared.create().roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
-      verifyNoInteractions(messageDispatcher, attachmentService);
+      verifyNoInteractions(messageDispatcher, attachmentService, chatMessageService);
     }
 
     @Test
@@ -1579,33 +1689,35 @@ class RoomServiceImplTest {
       assertEquals(offsetDateTime, clearedAt);
 
       verify(roomRepository, times(1)).getById(roomTemporary2Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomTemporary2Id.toString(), user1Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomTemporary2Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .removeRoomMember(roomTemporary2Id.toString(), user3Id.toString());
       verify(attachmentService, times(1))
           .deleteAttachmentsByRoomId(roomTemporary2Id, UserPrincipal.create(user1Id));
-      verify(messageDispatcher, times(1))
-          .createRoom(
-              roomTemporary2Id.toString(),
-              user1Id.toString(),
-              List.of(user2Id.toString(), user3Id.toString()),
-              false);
-      verify(messageDispatcher, times(1))
-          .clearRoomHistory(
-              roomTemporary2Id.toString(), user1Id.toString(), offsetDateTime.toString());
+      verify(messageRepository, times(1)).deleteByRoomId(roomTemporary2Id.toString());
+      verify(systemEventRepository, times(1)).deleteByRoomId(roomTemporary2Id.toString());
+      List<SystemEvent> events = insertedSystemEvents(1);
+      SystemEvent event = events.get(0);
+      assertEquals("ROOM_HISTORY_CLEARED", event.getType());
+      assertEquals(user1Id.toString(), event.getActorId());
+      assertEquals(roomTemporary2Id.toString(), event.getRoomId());
+      assertEquals("{\"clearedBy\":\"" + user1Id + "\"}", event.getContent());
+      InOrder inOrder = inOrder(systemEventRepository, chatMessageService);
+      inOrder.verify(systemEventRepository).deleteByRoomId(roomTemporary2Id.toString());
+      inOrder.verify(chatMessageService).insertSystemEvent(event);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomHistoryCleared.create().roomId(roomTemporary2Id).clearedAt(clearedAt));
+              RoomHistoryCleared.create()
+                  .roomId(roomTemporary2Id)
+                  .clearedAt(clearedAt)
+                  .clearedBy(user1Id)
+                  .systemEventId(event.getId()));
       verifyNoMoreInteractions(
           roomRepository,
           roomUserSettingsRepository,
           eventDispatcher,
           messageDispatcher,
-          attachmentService);
+          attachmentService,
+          messageRepository,
+          systemEventRepository);
     }
 
     @Test
@@ -1857,9 +1969,11 @@ class RoomServiceImplTest {
       assertEquals(123L, fileMetadata.getOriginalSize());
       assertEquals(user1Id.toString(), fileMetadata.getUserId());
       assertEquals(roomGroup1Id.toString(), fileMetadata.getRoomId());
-      verify(messageDispatcher, times(1))
-          .updateRoomPicture(
-              roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
+      SystemEvent pictureEvent = insertedSystemEvents(1).get(0);
+      assertEquals("ROOM_PICTURE_UPDATED", pictureEvent.getType());
+      assertEquals(user1Id.toString(), pictureEvent.getActorId());
+      assertEquals(roomGroup1Id.toString(), pictureEvent.getRoomId());
+      assertEquals("{\"updatedBy\":\"" + user1Id + "\"}", pictureEvent.getContent());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1867,7 +1981,9 @@ class RoomServiceImplTest {
                   .roomId(roomGroup1Id)
                   .updatedAt(
                       OffsetDateTime.ofInstant(
-                          Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
+                          Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()))
+                  .updatedBy(user1Id)
+                  .systemEventId(pictureEvent.getId()));
       verifyNoMoreInteractions(
           roomRepository,
           fileMetadataRepository,
@@ -1913,9 +2029,11 @@ class RoomServiceImplTest {
       assertEquals(123L, fileMetadata.getOriginalSize());
       assertEquals(user1Id.toString(), fileMetadata.getUserId());
       assertEquals(roomGroup1.getId(), fileMetadata.getRoomId());
-      verify(messageDispatcher, times(1))
-          .updateRoomPicture(
-              roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
+      SystemEvent pictureEvent = insertedSystemEvents(1).get(0);
+      assertEquals("ROOM_PICTURE_UPDATED", pictureEvent.getType());
+      assertEquals(user1Id.toString(), pictureEvent.getActorId());
+      assertEquals(roomGroup1Id.toString(), pictureEvent.getRoomId());
+      assertEquals("{\"updatedBy\":\"" + user1Id + "\"}", pictureEvent.getContent());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1923,7 +2041,9 @@ class RoomServiceImplTest {
                   .roomId(roomGroup1Id)
                   .updatedAt(
                       OffsetDateTime.ofInstant(
-                          Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
+                          Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()))
+                  .updatedBy(user1Id)
+                  .systemEventId(pictureEvent.getId()));
       verifyNoMoreInteractions(
           roomRepository,
           fileMetadataRepository,
@@ -2156,12 +2276,18 @@ class RoomServiceImplTest {
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(metadata.getId(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .deleteRoomPicture(roomGroup1Id.toString(), user1Id.toString());
+      SystemEvent deletedEvent = insertedSystemEvents(1).get(0);
+      assertEquals("ROOM_PICTURE_DELETED", deletedEvent.getType());
+      assertEquals(user1Id.toString(), deletedEvent.getActorId());
+      assertEquals(roomGroup1Id.toString(), deletedEvent.getRoomId());
+      assertEquals("{\"deletedBy\":\"" + user1Id + "\"}", deletedEvent.getContent());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
-              eq(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString())),
-              any(RoomPictureDeleted.class));
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomPictureDeleted.create()
+                  .roomId(roomGroup1Id)
+                  .deletedBy(user1Id)
+                  .systemEventId(deletedEvent.getId()));
       verifyNoMoreInteractions(
           roomRepository,
           fileMetadataRepository,
@@ -2248,156 +2374,6 @@ class RoomServiceImplTest {
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verifyNoMoreInteractions(roomRepository, fileMetadataRepository);
       verifyNoInteractions(storagesService, messageDispatcher, eventDispatcher);
-    }
-  }
-
-  @Nested
-  @DisplayName("Forward messages tests")
-  class ForwardMessagesTests {
-
-    @Test
-    @DisplayName("Forwards a text message")
-    void forwardMessages_textMessage() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      String messageToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><body>this is the body of the message to forward!</body>"
-              + "</message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body");
-      roomService.forwardMessages(
-          roomGroup1Id, List.of(forwardMessageDto), UserPrincipal.create(user1Id));
-
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
-      verify(messageDispatcher, times(1))
-          .forwardMessage(roomGroup1Id.toString(), user1Id.toString(), forwardMessageDto, null);
-      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(messageToForward);
-      verifyNoMoreInteractions(roomRepository, messageDispatcher);
-      verifyNoInteractions(
-          attachmentService,
-          eventDispatcher,
-          userService,
-          membersService,
-          meetingService,
-          storagesService);
-    }
-
-    @Test
-    @DisplayName("Forwards a message describing an attachment")
-    void forwardMessages_attachmentMessage() {
-      String messageToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><x xmlns=\"urn:xmpp:muclight:0#configuration\">"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>7247c23f-1669-46ef-9a87-e8726fefb7aa</attachment-id>"
-              + "<filename>image.jpg</filename><mime-type>image/jpg</mime-type><size>1024</size>"
-              + "</x><body/></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body");
-      FileMetadata newAttachment =
-          FileMetadata.create()
-              .id(UUID.randomUUID().toString())
-              .name("image.jpg")
-              .originalSize(1024L)
-              .mimeType("image/jpg");
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      when(messageDispatcher.getAttachmentIdFromMessage(messageToForward))
-          .thenReturn(Optional.of("7247c23f-1669-46ef-9a87-e8726fefb7aa"));
-      when(attachmentService.copyAttachment(
-              roomGroup1,
-              UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"),
-              UserPrincipal.create(user1Id)))
-          .thenReturn(newAttachment);
-
-      roomService.forwardMessages(
-          roomGroup1Id, List.of(forwardMessageDto), UserPrincipal.create(user1Id));
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
-      verify(attachmentService, times(1))
-          .copyAttachment(
-              roomGroup1,
-              UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"),
-              UserPrincipal.create(user1Id));
-      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(messageToForward);
-      verify(messageDispatcher, times(1))
-          .forwardMessage(
-              roomGroup1Id.toString(), user1Id.toString(), forwardMessageDto, newAttachment);
-      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(messageToForward);
-
-      verifyNoMoreInteractions(roomRepository, messageDispatcher, attachmentService);
-      verifyNoInteractions(
-          eventDispatcher, userService, membersService, meetingService, storagesService);
-    }
-
-    @Test
-    @DisplayName("Forwards a message describing an attachment")
-    void forwardMessages_someMessages() {
-      String message1ToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><body>this is the body of the message to forward!</body>"
-              + "</message>";
-      ForwardMessageDto forwardMessage1Dto =
-          ForwardMessageDto.create()
-              .originalMessage(message1ToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body");
-
-      String message2ToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><x xmlns=\"urn:xmpp:muclight:0#configuration\">"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>7247c23f-1669-46ef-9a87-e8726fefb7aa</attachment-id>"
-              + "<filename>image.jpg</filename><mime-type>image/jpg</mime-type><size>1024</size>"
-              + "</x><body/></message>";
-      ForwardMessageDto forwardMessage2Dto =
-          ForwardMessageDto.create()
-              .originalMessage(message2ToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body");
-      FileMetadata newAttachment =
-          FileMetadata.create()
-              .id(UUID.randomUUID().toString())
-              .name("image.jpg")
-              .originalSize(1024L)
-              .mimeType("image/jpg");
-
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      when(messageDispatcher.getAttachmentIdFromMessage(message2ToForward))
-          .thenReturn(Optional.of("7247c23f-1669-46ef-9a87-e8726fefb7aa"));
-      when(attachmentService.copyAttachment(
-              roomGroup1,
-              UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"),
-              UserPrincipal.create(user1Id)))
-          .thenReturn(newAttachment);
-
-      roomService.forwardMessages(
-          roomGroup1Id,
-          List.of(forwardMessage1Dto, forwardMessage2Dto),
-          UserPrincipal.create(user1Id));
-
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
-      verify(attachmentService, times(1))
-          .copyAttachment(
-              roomGroup1,
-              UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"),
-              UserPrincipal.create(user1Id));
-      verify(messageDispatcher, times(1))
-          .forwardMessage(roomGroup1Id.toString(), user1Id.toString(), forwardMessage1Dto, null);
-      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(message1ToForward);
-      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(message2ToForward);
-      verify(messageDispatcher, times(1))
-          .forwardMessage(
-              roomGroup1Id.toString(), user1Id.toString(), forwardMessage2Dto, newAttachment);
-      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(message2ToForward);
-
-      verifyNoMoreInteractions(roomRepository, messageDispatcher, attachmentService);
-      verifyNoInteractions(
-          eventDispatcher, userService, membersService, meetingService, storagesService);
     }
   }
 }

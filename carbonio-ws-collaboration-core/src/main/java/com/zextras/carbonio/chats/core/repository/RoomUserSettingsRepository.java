@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -70,4 +71,24 @@ public interface RoomUserSettingsRepository {
    *     RoomUserSettings}
    */
   void save(Collection<RoomUserSettings> roomUserSettingsList);
+
+  /**
+   * Sets the user's cleared-history instant to the database clock (creating the settings row if
+   * missing), so it compares correctly with message creation times.
+   *
+   * @param roomId room identifier
+   * @param userId user identifier
+   * @return the stored instant
+   */
+  OffsetDateTime setClearedAtNow(String roomId, String userId);
+
+  /**
+   * Returns the users of a room whose cleared-history instant is at or after the given instant,
+   * i.e. who cannot see an item created at that instant.
+   *
+   * @param roomId room identifier
+   * @param createdAt creation instant of the item
+   * @return the user identifiers
+   */
+  List<String> getUserIdsClearedAtOrAfter(String roomId, OffsetDateTime createdAt);
 }

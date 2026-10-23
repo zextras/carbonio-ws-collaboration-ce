@@ -8,12 +8,14 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import jakarta.websocket.Session;
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 public class EventWebSocketSessions {
 
-  record SessionInfo(WeakReference<Session> sessionRef) {}
+  record SessionInfo(WeakReference<Session> sessionRef, String userId) {}
 
   private final ConcurrentHashMap<String, SessionInfo> sessionInfoMap = new ConcurrentHashMap<>();
   private final SessionPingManager pingManager;
@@ -23,8 +25,8 @@ public class EventWebSocketSessions {
     this.pingManager = pingManager;
   }
 
-  public void add(Session session) {
-    sessionInfoMap.put(session.getId(), new SessionInfo(new WeakReference<>(session)));
+  public void add(Session session, String userId) {
+    sessionInfoMap.put(session.getId(), new SessionInfo(new WeakReference<>(session), userId));
     pingManager.start(session);
   }
 
@@ -38,14 +40,35 @@ public class EventWebSocketSessions {
     sessionInfoMap.forEach(
         (id, info) -> {
           Session s = info.sessionRef().get();
-          if (s != null && s.isOpen()) {
+          if (s == null) {
+            sessionInfoMap.remove(id);
+          } else if (s.isOpen()) {
             try {
               s.getAsyncRemote().sendText(message);
             } catch (Exception ignored) {
             }
-          } else {
-            sessionInfoMap.remove(id);
           }
         });
+  }
+
+  public boolean isOpen(String sessionId) {
+    SessionInfo info = sessionInfoMap.get(sessionId);
+    return info != null && isOpen(info);
+  }
+
+  public Map<String, String> openSessionUserIds() {
+    Map<String, String> open = new HashMap<>();
+    sessionInfoMap.forEach(
+        (id, info) -> {
+          if (isOpen(info)) {
+            open.put(id, info.userId());
+          }
+        });
+    return open;
+  }
+
+  private static boolean isOpen(SessionInfo info) {
+    Session s = info.sessionRef().get();
+    return s != null && s.isOpen();
   }
 }

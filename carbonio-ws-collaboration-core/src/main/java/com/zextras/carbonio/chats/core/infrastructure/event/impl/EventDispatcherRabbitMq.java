@@ -85,6 +85,27 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   }
 
   @Override
+  public void sendRawToUserExchange(String userId, String jsonPayload) {
+    if (channel == null || !channel.isOpen()) {
+      ChatsLogger.error(
+          "Unable to send raw event to exchange: event dispatcher channel is not up!");
+      return;
+    }
+    try {
+      channel.exchangeDeclare(userId, BuiltinExchangeType.DIRECT, false, false, null);
+      channel.basicPublish(
+          userId, USER_ROUTING_KEY, null, jsonPayload.getBytes(StandardCharsets.UTF_8));
+    } catch (Exception e) {
+      ChatsLogger.warn(String.format("Unable to send raw message to user '%s'", userId), e);
+    }
+  }
+
+  @Override
+  public void sendRawToUserExchange(List<String> usersIds, String jsonPayload) {
+    usersIds.forEach(userId -> sendRawToUserExchange(userId, jsonPayload));
+  }
+
+  @Override
   public void stop() {
     try {
       if (channel != null && channel.isOpen()) {

@@ -45,11 +45,11 @@ public class FileMetadata {
   @Column(name = "ROOM_ID", length = 64)
   private String roomId;
 
-  @Column(name = "MESSAGE_ID", length = 64)
+  @Column(name = "CHAT_MESSAGE_ID", length = 64)
   private String messageId;
 
-  @Column(name = "STANZA_ID", length = 64)
-  private String stanzaId;
+  @Column(name = "AREA", length = 64)
+  private String area;
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
@@ -137,12 +137,12 @@ public class FileMetadata {
     return this;
   }
 
-  public String getStanzaId() {
-    return stanzaId;
+  public String getArea() {
+    return area;
   }
 
-  public FileMetadata stanzaId(String stanzaId) {
-    this.stanzaId = stanzaId;
+  public FileMetadata area(String area) {
+    this.area = area;
     return this;
   }
 

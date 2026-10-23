@@ -12,7 +12,7 @@ public class MessageDispatcherException extends DependencyException implements S
 
   @Serial private static final long serialVersionUID = 2549718943520474692L;
 
-  private static final DependencyType type = DependencyType.XMPP_SERVER;
+  private static final DependencyType type = DependencyType.EVENT_DISPATCHER;
 
   public MessageDispatcherException() {
     super(type);

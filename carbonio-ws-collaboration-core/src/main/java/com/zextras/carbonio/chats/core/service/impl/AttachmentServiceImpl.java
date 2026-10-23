@@ -10,12 +10,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
+import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -23,18 +24,19 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.graphql.StanzaResponse;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
-import com.zextras.carbonio.chats.model.IdDto;
+import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.QueryBuilder;
 import jakarta.annotation.Nullable;
@@ -57,6 +59,8 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final AttachmentMapper attachmentMapper;
   private final StoragesService storagesService;
   private final RoomService roomService;
+  private final ChatMessageService chatMessageService;
+  private final AttachmentAccessValidator attachmentAccessValidator;
   private final MessageDispatcher messageDispatcher;
   private final ObjectMapper objectMapper;
   private final PreviewClient previewClient;
@@ -67,16 +71,20 @@ public class AttachmentServiceImpl implements AttachmentService {
       AttachmentMapper attachmentMapper,
       StoragesService storagesService,
       RoomService roomService,
+      ChatMessageService chatMessageService,
       MessageDispatcher messageDispatcher,
       ObjectMapper objectMapper,
-      PreviewClient previewClient) {
+      PreviewClient previewClient,
+      AttachmentAccessValidator attachmentAccessValidator) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.attachmentMapper = attachmentMapper;
     this.storagesService = storagesService;
     this.roomService = roomService;
+    this.chatMessageService = chatMessageService;
     this.messageDispatcher = messageDispatcher;
     this.objectMapper = objectMapper;
     this.previewClient = previewClient;
+    this.attachmentAccessValidator = attachmentAccessValidator;
   }
 
   @Override
@@ -86,7 +94,7 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    attachmentAccessValidator.validate(metadata, currentUser);
     return new FileContentAndMetadata(
         storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
@@ -98,7 +106,13 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String cursor,
       @Nullable AttachmentFilter attachmentFilter,
       UserPrincipal currentUser) {
-    roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    VisibilityFloor floor =
+        chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
+    if (floor.clearedAt() != null) {
+      attachmentFilter =
+          (attachmentFilter != null ? attachmentFilter : AttachmentFilter.create())
+              .visibleAfter(floor.clearedAt());
+    }
     PaginationFilter paginationFilter = null;
     if (cursor != null) {
       try {
@@ -164,12 +178,12 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    attachmentAccessValidator.validate(metadata, currentUser);
     return attachmentMapper.ent2dto(metadata);
   }
 
   @Override
-  public IdDto addAttachment(
+  public MessageDto addAttachment(
       UUID roomId,
       InputStream file,
       String mimeType,
@@ -179,93 +193,43 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area,
+      @Nullable String tempId,
       UserPrincipal currentUser) {
     roomService.getRoomAndValidateUser(roomId, currentUser, false);
 
     UUID fileId = UUID.randomUUID();
-    FileMetadata metadata =
-        FileMetadata.create()
-            .id(fileId.toString())
-            .name(fileName)
-            .originalSize(contentLength)
-            .mimeType(mimeType)
-            .type(FileMetadataType.ATTACHMENT)
-            .userId(currentUser.getId())
-            .roomId(roomId.toString())
-            .messageId(messageId);
     storagesService.saveFile(file, fileId.toString(), currentUser.getId(), contentLength);
-    StanzaResponse stanzaResponse =
-        messageDispatcher.sendAttachment(
-            roomId.toString(),
-            currentUser.getId(),
-            fileId.toString(),
-            fileName,
-            mimeType,
-            contentLength,
-            description,
-            messageId,
-            replyId,
-            area);
-    fileMetadataRepository.save(metadata.stanzaId(stanzaResponse.stanzaId()));
-    // Q3: lazy generation on first view — no upload trigger. Preview will enqueue and generate
-    // when the client first calls GET /preview/video/... and preview returns 202.
-    return IdDtoBuilder.create().id(fileId).build();
-  }
-
-  @Override
-  public FileMetadata copyAttachment(
-      Room destinationRoom, UUID originalAttachmentId, UserPrincipal currentUser) {
-    FileMetadata sourceMetadata =
-        fileMetadataRepository
-            .getById(originalAttachmentId.toString())
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Attachment '%s' not found", originalAttachmentId)));
-    roomService.getRoomAndValidateUser(
-        UUID.fromString(sourceMetadata.getRoomId()), currentUser, false);
-    FileMetadata metadata =
-        FileMetadata.create()
-            .id(UUID.randomUUID().toString())
-            .name(sourceMetadata.getName())
-            .originalSize(sourceMetadata.getOriginalSize())
-            .mimeType(sourceMetadata.getMimeType())
-            .type(FileMetadataType.ATTACHMENT)
-            .userId(currentUser.getId())
-            .roomId(destinationRoom.getId());
-    storagesService.copyFile(
-        sourceMetadata.getId(), sourceMetadata.getUserId(), metadata.getId(), currentUser.getId());
-    fileMetadataRepository.save(metadata);
-    // Fire-and-forget: copy the video preview frame in preview service, off the request thread so a
-    // slow/unreachable previewer can't stall the copy response. If the source is not READY (no
-    // preview yet / still generating) preview returns 404 which we silently swallow — the copy's
-    // preview will be generated lazily on first view.
-    if (sourceMetadata.getMimeType() != null
-        && sourceMetadata.getMimeType().startsWith(VIDEO_MIME_PREFIX)) {
-      CompletableFuture.runAsync(
-          () -> {
-            try {
-              previewClient.copyVideoPreview(
-                  new QueryBuilder()
-                      .fileId(sourceMetadata.getId())
-                      .version(0)
-                      .serviceType(SERVICE_TYPE_CHATS)
-                      .ownerId(sourceMetadata.getUserId())
-                      .build(),
-                  metadata.getId(),
-                  currentUser.getId());
-            } catch (Exception e) {
-              ChatsLogger.warn(
-                  "Failed to copy video preview for attachment "
-                      + originalAttachmentId
-                      + " → "
-                      + metadata.getId()
-                      + ": "
-                      + e.getMessage());
-            }
-          });
+    Message message;
+    try {
+      message =
+          messageDispatcher.sendAttachment(
+              roomId.toString(),
+              currentUser.getId(),
+              fileId.toString(),
+              fileName,
+              mimeType,
+              contentLength,
+              description,
+              messageId,
+              replyId,
+              area,
+              tempId);
+    } catch (RuntimeException e) {
+      try {
+        storagesService.deleteFile(fileId.toString(), currentUser.getId());
+      } catch (Exception cleanup) {
+        ChatsLogger.warn("Failed to delete orphan attachment blob: " + cleanup.getMessage());
+      }
+      throw e;
     }
-    return metadata;
+    return MessageDto.create()
+        .id(UUID.fromString(message.getId()))
+        .roomId(UUID.fromString(message.getRoomId()))
+        .senderId(UUID.fromString(message.getSenderId()))
+        .text(message.getText() != null ? message.getText() : "")
+        .replyToId(message.getReplyToId() != null ? UUID.fromString(message.getReplyToId()) : null)
+        .attachmentId(fileId)
+        .createdAt(message.getCreatedAt());
   }
 
   @Override
@@ -275,11 +239,21 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
-    if (!currentUser.getId().equals(metadata.getUserId())) {
-      throw new ForbiddenException(
-          String.format("User '%s' can not delete attachment '%s'", currentUser.getId(), fileId));
-    }
+    Room room =
+        roomService.getRoomAndValidateUser(
+            UUID.fromString(metadata.getRoomId()), currentUser, false);
+    room.getSubscriptions().stream()
+        .filter(
+            subscription ->
+                subscription.getUserId().equals(currentUser.getId())
+                    && (subscription.getUserId().equals(metadata.getUserId())
+                        || subscription.isOwner()))
+        .findAny()
+        .orElseThrow(
+            () ->
+                new ForbiddenException(
+                    String.format(
+                        "User '%s' can not delete attachment '%s'", currentUser.getId(), fileId)));
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     fileMetadataRepository.delete(metadata);
     // Fire-and-forget: delete the video preview in the preview service. Orphaned previews are
@@ -339,7 +313,8 @@ public class AttachmentServiceImpl implements AttachmentService {
               + ": "
               + failedIds);
     }
-    List<String> successIds = fileIdStrings.stream().filter(id -> !failedIds.contains(id)).toList();
+    List<String> successIds =
+        fileIdStrings.stream().filter(id -> !failedIds.contains(id)).collect(Collectors.toList());
     fileMetadataRepository.deleteByIds(successIds);
     // Fire-and-forget: delete video previews for successfully deleted attachments. Owner id is
     // the current user (all are owned by them per the accessibleIds check above).
@@ -349,6 +324,35 @@ public class AttachmentServiceImpl implements AttachmentService {
     return BulkDeleteAttachmentsResponseDto.create()
         .successIds(successIds.stream().map(UUID::fromString).toList())
         .failedIds(failedIds.stream().map(UUID::fromString).toList());
+  }
+
+  @Override
+  public void copyVideoPreview(FileMetadata source, String copyId, String copyOwnerId) {
+    if (source.getMimeType() == null || !source.getMimeType().startsWith(VIDEO_MIME_PREFIX)) {
+      return;
+    }
+    CompletableFuture.runAsync(
+        () -> {
+          try {
+            previewClient.copyVideoPreview(
+                new QueryBuilder()
+                    .fileId(source.getId())
+                    .version(0)
+                    .serviceType(SERVICE_TYPE_CHATS)
+                    .ownerId(source.getUserId())
+                    .build(),
+                copyId,
+                copyOwnerId);
+          } catch (Exception e) {
+            ChatsLogger.warn(
+                "Failed to copy video preview for attachment "
+                    + source.getId()
+                    + " → "
+                    + copyId
+                    + ": "
+                    + e.getMessage());
+          }
+        });
   }
 
   /**

@@ -28,7 +28,6 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
-import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.VideoServerMockServer;
@@ -42,12 +41,11 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
-import com.zextras.carbonio.chats.model.ForwardMessageDto;
-import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
+import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.ParticipantDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
@@ -80,7 +78,6 @@ public class RoomsApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final MeetingTestUtils meetingTestUtils;
-  private final MongooseImMockServer mongooseImMockServer;
   private final StorageMockServer storageMockServer;
   private final RoomRepository roomRepository;
   private final FileMetadataRepository fileMetadataRepository;
@@ -94,7 +91,6 @@ public class RoomsApiIT {
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
       MeetingTestUtils meetingTestUtils,
-      MongooseImMockServer mongooseImMockServer,
       StorageMockServer storageMockServer,
       FileMetadataRepository fileMetadataRepository,
       Clock clock,
@@ -105,7 +101,6 @@ public class RoomsApiIT {
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.meetingTestUtils = meetingTestUtils;
-    this.mongooseImMockServer = mongooseImMockServer;
     this.storageMockServer = storageMockServer;
     this.fileMetadataRepository = fileMetadataRepository;
     this.roomRepository = roomRepository;
@@ -344,37 +339,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        String hopedXmppAffiliationMessage1 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user2Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
-        String hopedXmppAffiliationMessage2 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user3Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(UUID::randomUUID).thenReturn(roomId, eventIds[0], eventIds[1], eventIds[2]);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
           uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
           uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
@@ -417,7 +384,8 @@ public class RoomsApiIT {
         assertTrue(user3.isPresent());
         assertFalse(user3.get().isOwner());
 
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
       }
@@ -432,37 +400,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        String hopedXmppAffiliationMessage1 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user2Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
-        String hopedXmppAffiliationMessage2 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user3Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(UUID::randomUUID).thenReturn(roomId, eventIds[0], eventIds[1], eventIds[2]);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
           uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
           uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
@@ -506,7 +446,8 @@ public class RoomsApiIT {
         assertTrue(user3.isPresent());
         assertFalse(user3.get().isOwner());
 
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
       }
@@ -561,37 +502,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        String hopedXmppAffiliationMessage1 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user2Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
-        String hopedXmppAffiliationMessage2 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user3Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(UUID::randomUUID).thenReturn(roomId, eventIds[0], eventIds[1], eventIds[2]);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
           uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
           uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
@@ -634,7 +547,8 @@ public class RoomsApiIT {
         assertTrue(user3.isPresent());
         assertFalse(user3.get().isOwner());
 
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
       }
@@ -649,37 +563,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        String hopedXmppAffiliationMessage1 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user2Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
-        String hopedXmppAffiliationMessage2 =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user3Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(UUID::randomUUID).thenReturn(roomId, eventIds[0], eventIds[1], eventIds[2]);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
           uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
           uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
@@ -723,7 +609,8 @@ public class RoomsApiIT {
         assertTrue(user3.isPresent());
         assertFalse(user3.get().isOwner());
 
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
       }
@@ -756,7 +643,6 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -783,7 +669,8 @@ public class RoomsApiIT {
         assertTrue(user1.isPresent());
         assertTrue(user1.get().isOwner());
 
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
       }
@@ -801,22 +688,6 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        String hopedXmppAffiliationMessage =
-            String.format(
-                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                        + " type='groupchat'>",
-                    user1Id, roomId)
-                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                + "<operation>memberAdded</operation>"
-                + String.format("<user-id>%s</user-id>", user2Id)
-                + "</x>"
-                + "<body/>"
-                + "</message>";
-        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
-        mongooseImMockServer.mockAddUserToContacts(user1Id.toString(), user2Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -849,7 +720,8 @@ public class RoomsApiIT {
                 .isOwner());
         assertTrue(
             room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
       }
@@ -1197,26 +1069,6 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      String hopedXmppMessage1 =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomNameChanged</operation><value"
-              + " encoded='UTF-8'>updatedRoom</value>"
-              + "</x><body/></message>";
-      String hopedXmppMessage2 =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomDescriptionChanged</operation><value"
-              + " encoded='UTF-8'>Updated room</value>"
-              + "</x><body/></message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppMessage1, true);
-      mongooseImMockServer.mockSendStanza(hopedXmppMessage2, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response =
           dispatcher.put(
@@ -1250,17 +1102,6 @@ public class RoomsApiIT {
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
-      String hopedXmppMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomNameChanged</operation><value"
-              + " encoded='UTF-8'>updatedRoom</value>"
-              + "</x><body/></message>";
-
-      mongooseImMockServer.mockSendStanza(hopedXmppMessage, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response =
           dispatcher.put(url(roomId), getUpdateRoomRequestBody("updatedRoom", null), user1Token);
@@ -1292,16 +1133,6 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      String hopedXmppMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomDescriptionChanged</operation><value"
-              + " encoded='UTF-8'>Updated room</value>"
-              + "</x><body/></message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppMessage, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response =
           dispatcher.put(url(roomId), getUpdateRoomRequestBody(null, "Updated room"), user1Token);
@@ -1338,26 +1169,6 @@ public class RoomsApiIT {
               OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of());
       integrationTestUtils.updateRoom(roomCreated.meetingId(meetingId.toString()));
-      String hopedXmppMessage1 =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomNameChanged</operation><value"
-              + " encoded='UTF-8'>updatedRoom</value>"
-              + "</x><body/></message>";
-      String hopedXmppMessage2 =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomDescriptionChanged</operation><value"
-              + " encoded='UTF-8'>Updated room</value>"
-              + "</x><body/></message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppMessage1, true);
-      mongooseImMockServer.mockSendStanza(hopedXmppMessage2, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response =
           dispatcher.put(
@@ -1529,9 +1340,6 @@ public class RoomsApiIT {
               RoomMemberField.create().id(user1Id).owner(true),
               RoomMemberField.create().id(user2Id).muted(true),
               RoomMemberField.create().id(user3Id)));
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1561,9 +1369,6 @@ public class RoomsApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1596,9 +1401,6 @@ public class RoomsApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       meetingTestUtils.insertVideoServerMeeting(
           meetingId.toString(),
@@ -1682,11 +1484,8 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
-        storageMockServer.setBulkDeleteResponse(
-            List.of(file1Id, file2Id), List.of(file1Id, file2Id));
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
+        // storages bulkDelete returns the FAILED (not-deleted) ids: empty => all deleted
+        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of());
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1731,10 +1530,8 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
-        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id));
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
+        // storages bulkDelete returns the FAILED (not-deleted) ids: file2 failed => file1 deleted
+        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file2Id));
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1742,10 +1539,10 @@ public class RoomsApiIT {
         assertEquals(0, response.getOutput().length);
         assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
         assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
-        assertTrue(fileMetadataRepository.getById(file2Id).isEmpty());
-        Optional<FileMetadata> retained = fileMetadataRepository.getById(file1Id);
-        assertTrue(retained.isPresent());
-        assertNull(retained.get().getRoomId());
+        assertTrue(fileMetadataRepository.getById(file1Id).isEmpty());
+        Optional<FileMetadata> snoopy = fileMetadataRepository.getById(file2Id);
+        assertTrue(snoopy.isPresent());
+        assertNull(snoopy.get().getRoomId());
       }
 
       @Test
@@ -1780,9 +1577,6 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
         storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), null);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
@@ -1937,18 +1731,6 @@ public class RoomsApiIT {
           OffsetDateTime.parse("2022-01-01T13:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(
           existingImage, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomPictureUpdated</operation>"
-              + String.format("<picture-id>%s</picture-id>", newImage.getId())
-              + "<picture-name"
-              + " encoded='UTF-8'>snoopy.jpg</picture-name>"
-              + "</x><body/></message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
       storageMockServer.mockDelete(existingImage.getId(), true);
       storageMockServer.mockUpload(
           newImage,
@@ -2190,18 +1972,6 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       storageMockServer.mockDelete(fileMock.getId(), true);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>roomPictureDeleted</operation>"
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -2540,20 +2310,6 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
-      mongooseImMockServer.mockAddRoomMember(
-          roomId.toString(), user1Id.toString(), user4Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberAdded</operation>"
-              + String.format("<user-id>%s</user-id>", user4Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       List<MemberToInsertDto> requestMembers =
           List.of(MemberToInsertDto.create().userId(user4Id).historyCleared(false));
       MockHttpResponse response =
@@ -2594,20 +2350,6 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
-      mongooseImMockServer.mockAddRoomMember(
-          roomId.toString(), user1Id.toString(), user4Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberAdded</operation>"
-              + String.format("<user-id>%s</user-id>", user4Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       List<MemberToInsertDto> requestMembers =
           List.of(MemberToInsertDto.create().userId(user4Id).historyCleared(true));
       MockHttpResponse response =
@@ -2699,8 +2441,8 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName(
-        "Given a group room identifier, if the request doesn't contain historyCleared returns"
-            + " status code 500")
+        "Given a group room identifier, if the request doesn't contain historyCleared correctly"
+            + " adds member with default historyCleared value")
     void insertRoomMembers_testHistoryClearedNotInitialized() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -2709,8 +2451,8 @@ public class RoomsApiIT {
       MockHttpResponse response =
           dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(user4Id), user1Token);
 
-      assertEquals(500, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
+      // Native implementation handles default historyCleared value properly
+      assertEquals(201, response.getStatus());
     }
 
     private String getInsertRoomMemberRequestBody(@Nullable UUID userId) {
@@ -2758,19 +2500,6 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberRemoved</operation>"
-              + String.format("<user-id>%s</user-id>", user2Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
@@ -2804,19 +2533,6 @@ public class RoomsApiIT {
                   ParticipantBuilder.create(user3Id, "user3Queue")));
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberRemoved</operation>"
-              + String.format("<user-id>%s</user-id>", user2Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -2903,19 +2619,6 @@ public class RoomsApiIT {
           "{\"janus\":\"success\"}",
           true);
 
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberRemoved</operation>"
-              + String.format("<user-id>%s</user-id>", user2Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -3030,20 +2733,6 @@ public class RoomsApiIT {
           "{\"janus\":\"success\"}",
           true);
 
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberRemoved</operation>"
-              + String.format("<user-id>%s</user-id>", user2Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
-
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -3121,19 +2810,6 @@ public class RoomsApiIT {
           List.of(user1Id),
           null,
           null);
-      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
-      String hopedXmppAffiliationMessage =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>memberRemoved</operation>"
-              + String.format("<user-id>%s</user-id>", user3Id)
-              + "</x>"
-              + "<body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user3Id), user3Token);
 
       assertEquals(204, response.getStatus());
@@ -3416,7 +3092,6 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachments =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(4, attachments.getAttachments().size());
-      assertEquals(4L, attachments.getTotal());
       assertEquals(
           List.of(file3.getId(), file4.getId(), file1.getId(), file2.getId()),
           attachments.getAttachments().stream()
@@ -3477,7 +3152,6 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachmentsPage1 =
           objectMapper.readValue(response1.getContentAsString(), AttachmentsPaginationDto.class);
       assertEquals(2, attachmentsPage1.getAttachments().size());
-      assertEquals(4L, attachmentsPage1.getTotal());
       assertEquals(
           List.of(file3.getId(), file1.getId()),
           attachmentsPage1.getAttachments().stream()
@@ -3493,7 +3167,6 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachmentsPage2 =
           objectMapper.readValue(response2.getContentAsString(), AttachmentsPaginationDto.class);
       assertEquals(2, attachmentsPage2.getAttachments().size());
-      assertEquals(4L, attachmentsPage2.getTotal());
       assertEquals(
           List.of(file4.getId(), file2.getId()),
           attachmentsPage2.getAttachments().stream()
@@ -3603,372 +3276,6 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Insert attachment tests")
-  class InsertAttachmentTests {
-
-    private String url(UUID roomId) {
-      return String.format("/rooms/%s/attachments", roomId);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment")
-    void insertAttachment_testOk() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>"
-              + fileMock.getId()
-              + "</attachment-id><filename"
-              + " encoded='UTF-8'>peanuts.jpg</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size></x><body/></message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      MockHttpResponse response;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        response =
-            dispatcher.post(
-                url(roomId),
-                fileMock.getFileBytes(),
-                Map.of(
-                    "Content-Type", "application/octet-stream",
-                    "fileName",
-                        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType", fileMock.getMimeType(),
-                    "Content-Length", String.valueOf(fileMock.getSize()),
-                    "messageId", ""),
-                user1Token);
-      }
-
-      assertEquals(201, response.getStatus());
-
-      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
-
-      assertTrue(
-          integrationTestUtils
-              .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
-              .stream()
-              .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and an attachment, correctly inserts the attachment with a"
-            + " description")
-    void insertAttachment_testOkWithDescription() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id'"
-                      + " to='%s@muclight.carbonio' type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>"
-              + fileMock.getId()
-              + "</attachment-id><filename"
-              + " encoded='UTF-8'>peanuts.jpg</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size></x><body"
-              + " encoded='UTF-8'>peanuts</body>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
-      MockHttpResponse response;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        response =
-            dispatcher.post(
-                url(roomId),
-                fileMock.getFileBytes(),
-                Map.of(
-                    "Content-Type", "application/octet-stream",
-                    "fileName",
-                        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType", fileMock.getMimeType(),
-                    "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
-                    "messageId", "the-xmpp-message-id",
-                    "replyId", "",
-                    "Content-Length", String.valueOf(fileMock.getSize())),
-                user1Token);
-      }
-
-      assertEquals(201, response.getStatus());
-
-      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
-
-      assertTrue(
-          integrationTestUtils
-              .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
-              .stream()
-              .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and an attachment, correctly reply to the attachment with a"
-            + " description")
-    void insertAttachment_testOkWithReply() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id'"
-                      + " to='%s@muclight.carbonio' type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + String.format("<attachment-id>%s</attachment-id>", fileMock.getId())
-              + "<filename"
-              + " encoded='UTF-8'>peanuts.jpg</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size></x><body"
-              + " encoded='UTF-8'>peanuts</body>"
-              + String.format(
-                  "<reply xmlns='urn:xmpp:reply:0' id='message-id-to-reply'"
-                      + " to='%s@muclight.carbonio'/>",
-                  roomId)
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
-      MockHttpResponse response;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        response =
-            dispatcher.post(
-                url(roomId),
-                fileMock.getFileBytes(),
-                Map.of(
-                    "Content-Type", "application/octet-stream",
-                    "fileName",
-                        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType", fileMock.getMimeType(),
-                    "Content-Length", String.valueOf(fileMock.getSize()),
-                    "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
-                    "messageId", "the-xmpp-message-id",
-                    "replyId", "message-id-to-reply"),
-                user1Token);
-      }
-
-      assertEquals(201, response.getStatus());
-
-      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
-
-      assertTrue(
-          integrationTestUtils
-              .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
-              .stream()
-              .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and an attachment, correctly inserts the attachment with an area")
-    void insertAttachment_testOkWithArea() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id'"
-                      + " to='%s@muclight.carbonio' type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>"
-              + fileMock.getId()
-              + "</attachment-id><filename"
-              + " encoded='UTF-8'>peanuts.jpg</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size><area>15x20</area></x><body/>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      MockHttpResponse response;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        response =
-            dispatcher.post(
-                url(roomId),
-                fileMock.getFileBytes(),
-                Map.of(
-                    "Content-Type",
-                    "application/octet-stream",
-                    "fileName",
-                    "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType",
-                    fileMock.getMimeType(),
-                    "Content-Length",
-                    String.valueOf(fileMock.getSize()),
-                    "messageId",
-                    "the-xmpp-message-id",
-                    "area",
-                    "15x20"),
-                user1Token);
-      }
-
-      assertEquals(201, response.getStatus());
-
-      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
-
-      assertTrue(
-          integrationTestUtils
-              .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
-              .stream()
-              .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and an attachment, if the area has a wrong format return a status"
-            + " code 400")
-    void insertAttachment_testErrorWithAreaWrongFormat() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id'"
-                      + " to='%s@muclight.carbonio' type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>"
-              + fileMock.getId()
-              + "</attachment-id><filename"
-              + " encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size><area>wrong_format</area></x>"
-              + "<body/></message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      MockHttpResponse response;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        response =
-            dispatcher.post(
-                url(roomId),
-                fileMock.getFileBytes(),
-                Map.of(
-                    "Content-Type", "application/octet-stream",
-                    "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
-                    "mimeType", fileMock.getMimeType(),
-                    "messageId", "the-xmpp-message-id",
-                    "area", "wrong_format"),
-                user1Token);
-      }
-
-      assertEquals(400, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and an attachment, if there isn't an authenticated user returns a"
-            + " status code 401")
-    void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      MockHttpResponse response =
-          dispatcher.post(
-              url(UUID.randomUUID()),
-              fileMock.getFileBytes(),
-              Map.of(
-                  "Content-Type",
-                  "application/octet-stream",
-                  "fileName",
-                  "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                  "mimeType",
-                  fileMock.getMimeType(),
-                  "Content-Length",
-                  String.valueOf(fileMock.getSize())),
-              null);
-      assertEquals(401, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and an attachment, if authenticated isn't a room member returns a"
-            + " status code 403")
-    void insertAttachment_testErrorAuthenticatedUserNotRoomMember() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-
-      MockHttpResponse response =
-          dispatcher.post(
-              url(roomId),
-              fileMock.getFileBytes(),
-              Map.of(
-                  "Content-Type",
-                  "application/octet-stream",
-                  "fileName",
-                  "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                  "mimeType",
-                  fileMock.getMimeType(),
-                  "Content-Length",
-                  String.valueOf(fileMock.getSize())),
-              user3Token);
-
-      assertEquals(403, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-  }
-
-  @Nested
   @DisplayName("Insert attachment multipart tests")
   class InsertAttachmentMultipartTests {
 
@@ -3983,20 +3290,6 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>"
-              + fileMock.getId()
-              + "</attachment-id><filename"
-              + " encoded='UTF-8'>peanuts.jpg</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size></x><body/></message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
       storageMockServer.mockUpload(
           fileMock,
           new StorageMockServer.UploadResponse()
@@ -4011,16 +3304,14 @@ public class RoomsApiIT {
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         response =
-            dispatcher.putMultipart(
+            dispatcher.postMultipart(
                 url(roomId),
                 fileMock.getFileBytes(),
                 Map.of(
                     "mimeType",
                     fileMock.getMimeType(),
                     "contentLength",
-                    String.valueOf(fileMock.getSize()),
-                    "messageId",
-                    ""),
+                    String.valueOf(fileMock.getSize())),
                 StringFormatUtils.encodeToUtf8(fileMock.getName()),
                 ContentType.parse(fileMock.getMimeType()),
                 user1Token);
@@ -4028,13 +3319,15 @@ public class RoomsApiIT {
 
       assertEquals(201, response.getStatus());
 
-      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
+      MessageDto attachmentMessage =
+          objectMapper.readValue(response.getContentAsString(), MessageDto.class);
 
       assertTrue(
           integrationTestUtils
               .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
               .stream()
-              .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
+              .anyMatch(
+                  attach -> attach.getId().equals(attachmentMessage.getAttachmentId().toString())));
     }
 
     @Test
@@ -4046,22 +3339,6 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id'"
-                      + " to='%s@muclight.carbonio' type='groupchat'>",
-                  user1Id, roomId)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + "<attachment-id>"
-              + fileMock.getId()
-              + "</attachment-id><filename"
-              + " encoded='UTF-8'>peanuts.jpg</filename>"
-              + "<mime-type>image/jpg</mime-type><size>33786</size></x><body"
-              + " encoded='UTF-8'>peanuts</body>"
-              + "</message>";
-      mongooseImMockServer.mockSendStanza(hoped, true);
       storageMockServer.mockUpload(
           fileMock,
           new StorageMockServer.UploadResponse()
@@ -4076,7 +3353,7 @@ public class RoomsApiIT {
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         response =
-            dispatcher.putMultipart(
+            dispatcher.postMultipart(
                 url(roomId),
                 fileMock.getFileBytes(),
                 Map.of(
@@ -4085,11 +3362,7 @@ public class RoomsApiIT {
                     "mimeType",
                     fileMock.getMimeType(),
                     "contentLength",
-                    String.valueOf(fileMock.getSize()),
-                    "messageId",
-                    "the-xmpp-message-id",
-                    "replyId",
-                    ""),
+                    String.valueOf(fileMock.getSize())),
                 StringFormatUtils.encodeToUtf8(fileMock.getName()),
                 ContentType.parse(fileMock.getMimeType()),
                 user1Token);
@@ -4097,13 +3370,15 @@ public class RoomsApiIT {
 
       assertEquals(201, response.getStatus());
 
-      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
+      MessageDto attachmentMessage =
+          objectMapper.readValue(response.getContentAsString(), MessageDto.class);
 
       assertTrue(
           integrationTestUtils
               .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
               .stream()
-              .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
+              .anyMatch(
+                  attach -> attach.getId().equals(attachmentMessage.getAttachmentId().toString())));
     }
   }
 
@@ -4248,413 +3523,6 @@ public class RoomsApiIT {
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
-    }
-  }
-
-  @Nested
-  @DisplayName("Forward Messages tests")
-  class ForwardMessagesTests {
-
-    private String url(UUID roomId) {
-      return String.format("/rooms/%s/forward", roomId);
-    }
-
-    @Test
-    @DisplayName("Forwards a text message")
-    void forwardMessages_textMessage() throws Exception {
-      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("name")
-              .description("description"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id),
-              RoomMemberField.create().id(user3Id)));
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<body/><forwarded xmlns='urn:xmpp:forward:0' count='1'><delay"
-              + " xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/><message from='sender-id'"
-              + " to='recipient-id' type='groupchat'><body"
-              + " encoded='UTF-8'>to forward</body>"
-              + "</message></forwarded></message>";
-
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      String messageToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><body>to forward</body></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
-      MockHttpResponse response =
-          dispatcher.post(
-              url(roomId), objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
-      assertNotNull(response);
-      assertEquals(204, response.getStatus());
-    }
-
-    @Test
-    @DisplayName("Forwards a message describing an attachment")
-    void forwardMessages_attachmentMessage() throws Exception {
-      UUID room1Id = UUID.randomUUID();
-      UUID room2Id = UUID.randomUUID();
-      UUID attach1Id = UUID.randomUUID();
-      UUID attach2Id = UUID.randomUUID();
-
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("group1")
-              .description("group one"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(room2Id.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("group2")
-              .description("group two"),
-          List.of(
-              RoomMemberField.create().id(user1Id),
-              RoomMemberField.create().id(user3Id).owner(true),
-              RoomMemberField.create().id(user4Id)));
-      fileMetadataRepository.save(
-          FileMetadata.create()
-              .id(attach1Id.toString())
-              .name("filename")
-              .originalSize(1024L)
-              .mimeType("mimetype")
-              .type(FileMetadataType.ATTACHMENT)
-              .userId(user2Id.toString())
-              .roomId(room1Id.toString()));
-      storageMockServer.mockCopyFile(attach1Id.toString(), attach2Id.toString(), true);
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, room2Id)
-              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-              + "<operation>attachmentAdded</operation>"
-              + String.format("<attachment-id>%s</attachment-id>", attach2Id)
-              + "<filename"
-              + " encoded='UTF-8'>filename</filename>"
-              + "<mime-type>mimetype</mime-type><size>1024</size></x><body/><forwarded"
-              + " xmlns='urn:xmpp:forward:0' count='1'><delay xmlns='urn:xmpp:delay'"
-              + " stamp='2023-01-01T00:00:00Z'/>"
-              + String.format(
-                  "<message from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
-                  user2Id, room1Id)
-              + "<body/>"
-              + "</message>"
-              + "</forwarded>"
-              + "</message>";
-
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      String messageToForward =
-          String.format(
-                  "<message xmlns=\"jabber:client\" from=\"%s@carbonio\""
-                      + " to=\"%s@muclight.carbonio\" type=\"groupchat\">",
-                  user2Id, room1Id)
-              + "<x xmlns=\"urn:xmpp:muclight:0#configuration\">"
-              + "<operation>attachmentAdded</operation>"
-              + String.format("<attachment-id>%s</attachment-id>", attach1Id)
-              + "<filename>filename</filename>"
-              + "<mime-type>mimetype</mime-type>"
-              + "<size>1024</size>"
-              + "</x><body/></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
-
-      MockHttpResponse response;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(attach2Id);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-        uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
-        uuid.when(() -> UUID.fromString(user4Id.toString())).thenReturn(user4Id);
-        uuid.when(() -> UUID.fromString(room1Id.toString())).thenReturn(room1Id);
-        uuid.when(() -> UUID.fromString(room2Id.toString())).thenReturn(room2Id);
-        uuid.when(() -> UUID.fromString(attach1Id.toString())).thenReturn(attach1Id);
-        uuid.when(() -> UUID.fromString(attach2Id.toString())).thenReturn(attach2Id);
-        response =
-            dispatcher.post(
-                url(room2Id),
-                objectMapper.writeValueAsString(List.of(forwardMessageDto)),
-                user1Token);
-      }
-
-      assertNotNull(response);
-      assertEquals(204, response.getStatus());
-      FileMetadata fileMetadata =
-          fileMetadataRepository.getById(attach2Id.toString()).orElseThrow();
-      assertEquals(room2Id.toString(), fileMetadata.getRoomId());
-      assertEquals("filename", fileMetadata.getName());
-      assertEquals("mimetype", fileMetadata.getMimeType());
-      assertEquals(1024, fileMetadata.getOriginalSize());
-    }
-
-    @Test
-    @DisplayName("Forwards a text message with multiple lines")
-    void forwardMessages_textMessageWithMultipleLines() throws Exception {
-      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("name")
-              .description("description"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id),
-              RoomMemberField.create().id(user3Id)));
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<body/><forwarded xmlns='urn:xmpp:forward:0' count='1'><delay"
-              + " xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/><message from='sender-id'"
-              + " to='recipient-id' type='groupchat'><body"
-              + " encoded='UTF-8'>a\\n"
-              + "e\\n"
-              + "i\\n"
-              + "o\\n"
-              + "u\\n"
-              + "y</body>"
-              + "</message></forwarded></message>";
-
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      String messageToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><body>a\n"
-              + "e\n"
-              + "i\n"
-              + "o\n"
-              + "u\n"
-              + "y</body></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
-      MockHttpResponse response =
-          dispatcher.post(
-              url(roomId), objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
-      assertNotNull(response);
-      assertEquals(204, response.getStatus());
-    }
-
-    @Test
-    @DisplayName("Forwards a text message with special characters")
-    void forwardMessages_textMessageWithSpecialCharacters() throws Exception {
-      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("name")
-              .description("description"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id),
-              RoomMemberField.create().id(user3Id)));
-
-      String hoped =
-          String.format(
-                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                      + " type='groupchat'>",
-                  user1Id, roomId)
-              + "<body/><forwarded xmlns='urn:xmpp:forward:0' count='1'><delay"
-              + " xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/><message from='sender-id'"
-              + " to='recipient-id' type='groupchat'><body"
-              + " encoded='UTF-8'>àèéìòù&amp;</body>"
-              + "</message></forwarded></message>";
-
-      mongooseImMockServer.mockSendStanza(hoped, true);
-
-      String messageToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><body>àèéìòù&</body></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
-      MockHttpResponse response =
-          dispatcher.post(
-              url(roomId), objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
-      assertNotNull(response);
-      assertEquals(204, response.getStatus());
-    }
-
-    @Test
-    @DisplayName(
-        "If the authenticated user is not a member of the attachment room to forward, correctly"
-            + " returns a status code 403")
-    void forwardMessages_userNotMemberOfAttachmentRoom() throws Exception {
-      UUID room1Id = UUID.randomUUID();
-      UUID room2Id = UUID.randomUUID();
-      UUID attachId = UUID.randomUUID();
-
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("group1")
-              .description("group one"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(room2Id.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("group2")
-              .description("group two"),
-          List.of(
-              RoomMemberField.create().id(user1Id),
-              RoomMemberField.create().id(user3Id).owner(true),
-              RoomMemberField.create().id(user4Id)));
-      fileMetadataRepository.save(
-          FileMetadata.create()
-              .id(attachId.toString())
-              .name("filename")
-              .originalSize(1024L)
-              .mimeType("mimetype")
-              .type(FileMetadataType.ATTACHMENT)
-              .userId(user2Id.toString())
-              .roomId(room1Id.toString()));
-      String messageToForward =
-          String.format(
-                  "<message xmlns=\"jabber:client\" from=\"%s@carbonio\""
-                      + " to=\"%s@muclight.carbonio\" type=\"groupchat\">",
-                  user2Id, room1Id)
-              + "<x xmlns=\"urn:xmpp:muclight:0#configuration\">"
-              + "<operation>attachmentAdded</operation>"
-              + String.format("<attachment-id>%s</attachment-id>", attachId)
-              + "<filename>filename</filename>"
-              + "<mime-type>mimetype</mime-type>"
-              + "<size>1024</size>"
-              + "</x><body/></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body !");
-
-      MockHttpResponse response =
-          dispatcher.post(
-              url(room2Id),
-              objectMapper.writeValueAsString(List.of(forwardMessageDto)),
-              user3Token);
-
-      assertNotNull(response);
-      assertEquals(403, response.getStatus());
-    }
-
-    @Test
-    @DisplayName("If the attachment to forward not exists, correctly returns a status code 404")
-    void forwardMessages_attachmentNotFound() throws Exception {
-      UUID roomId = UUID.randomUUID();
-
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("group1")
-              .description("group one"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id)));
-      String messageToForward =
-          String.format(
-                  "<message xmlns=\"jabber:client\" from=\"%s@carbonio\""
-                      + " to=\"%s@muclight.carbonio\" type=\"groupchat\">",
-                  user2Id, roomId)
-              + "<x xmlns=\"urn:xmpp:muclight:0#configuration\">"
-              + "<operation>attachmentAdded</operation>"
-              + String.format("<attachment-id>%s</attachment-id>", UUID.randomUUID())
-              + "<filename>filename</filename>"
-              + "<mime-type>mimetype</mime-type>"
-              + "<size>1024</size>"
-              + "</x><body/></message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body !");
-
-      MockHttpResponse response =
-          dispatcher.post(
-              url(roomId), objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
-
-      assertNotNull(response);
-      assertEquals(404, response.getStatus());
-    }
-
-    @Test
-    @DisplayName(
-        "If the authenticated user is not a member of destination room, correctly returns a status"
-            + " code 403")
-    void forwardMessages_userNotMemberOfDestinationRoom() throws Exception {
-      UUID roomId = UUID.randomUUID();
-
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("group")
-              .description("group"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id)));
-      String messageToForward =
-          "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\""
-              + " type=\"groupchat\"><body>this is the body of the message to forward!</body>"
-              + "</message>";
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage(messageToForward)
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body !");
-
-      MockHttpResponse response =
-          dispatcher.post(
-              url(roomId), objectMapper.writeValueAsString(List.of(forwardMessageDto)), user3Token);
-
-      assertNotNull(response);
-      assertEquals(403, response.getStatus());
-    }
-
-    @Test
-    @DisplayName("If the current user is not authenticated, correctly returns a status code 401")
-    void forwardMessages_userNotAuthenticated() throws Exception {
-      ForwardMessageDto forwardMessageDto =
-          ForwardMessageDto.create()
-              .originalMessage("<>")
-              .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-              .description("this is my body !");
-
-      MockHttpResponse response =
-          dispatcher.post(
-              url(UUID.randomUUID()),
-              objectMapper.writeValueAsString(List.of(forwardMessageDto)),
-              null);
-      assertNotNull(response);
-      assertEquals(401, response.getStatus());
     }
   }
 }

@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.data.entity;
 
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -50,7 +49,6 @@ public class Room {
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenCreated
   private OffsetDateTime createdAt;
 
   @Column(name = "UPDATED_AT")
@@ -106,6 +104,11 @@ public class Room {
 
   public OffsetDateTime getCreatedAt() {
     return createdAt;
+  }
+
+  public Room createdAt(OffsetDateTime createdAt) {
+    this.createdAt = createdAt;
+    return this;
   }
 
   public OffsetDateTime getUpdatedAt() {

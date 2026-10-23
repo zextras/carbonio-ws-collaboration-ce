@@ -8,14 +8,24 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
+import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
 @Singleton
 public class EbeanSubscriptionRepository implements SubscriptionRepository {
+
+  private static final String VISIBILITY_FLOOR_SQL =
+      """
+      SELECT rus.cleared_at
+      FROM chats.subscription s
+      LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
+      WHERE s.room_id = :roomId AND s.user_id = :userId
+      """;
 
   private final Database db;
 
@@ -26,6 +36,20 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
 
   public Optional<Subscription> getById(String roomId, String userId) {
     return Optional.ofNullable(db.find(Subscription.class, new SubscriptionId(roomId, userId)));
+  }
+
+  @Override
+  public Optional<VisibilityFloor> getVisibilityFloor(String roomId, String userId) {
+    return db.sqlQuery(VISIBILITY_FLOOR_SQL)
+        .setParameter("roomId", roomId)
+        .setParameter("userId", userId)
+        .findOneOrEmpty()
+        .map(
+            row ->
+                new VisibilityFloor(
+                    Optional.ofNullable(row.getTimestamp("cleared_at"))
+                        .map(ts -> ts.toInstant().atOffset(ZoneOffset.UTC))
+                        .orElse(null)));
   }
 
   @Override
@@ -52,6 +76,14 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   @Override
   public void delete(String roomId, String userId) {
     db.delete(Subscription.class, new SubscriptionId(roomId, userId));
+  }
+
+  @Override
+  public List<String> getUserIdsByRoomId(String roomId) {
+    return db.sqlQuery("SELECT user_id FROM chats.subscription WHERE room_id = :roomId")
+        .setParameter("roomId", roomId)
+        .mapToScalar(String.class)
+        .findList();
   }
 
   @Override

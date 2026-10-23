@@ -10,6 +10,8 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.CloseablePostgreSQLContainer;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Optional;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -64,16 +66,38 @@ public class DatabaseExtension implements BeforeAllCallback, BeforeEachCallback,
               config.setPassword(DATABASE_PASSWORD);
               config.setDriverClassName(DATABASE_DRIVER);
 
+              HikariDataSource dataSource = new HikariDataSource(config);
+              ensureApplicationRoleExists(dataSource);
+
               ChatsLogger.debug("Migrating test DB...");
               return Flyway.configure()
                   .cleanDisabled(false)
                   .locations("classpath:migration/ce")
                   .schemas("chats")
-                  .dataSource(new HikariDataSource(config))
+                  .dataSource(dataSource)
                   .validateMigrationNaming(true)
                   .load();
             },
             Flyway.class);
+  }
+
+  /**
+   * Creates the application DB role referenced by migrations (e.g. {@code ALTER ROLE
+   * "carbonio-ws-collaboration-db" ...} in V2_0_0). The role exists in deployed environments but
+   * not in the throwaway Testcontainers database, so it is created here (idempotently) before
+   * Flyway runs.
+   */
+  private void ensureApplicationRoleExists(HikariDataSource dataSource) {
+    try (Connection connection = dataSource.getConnection()) {
+      connection
+          .prepareStatement(
+              "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname ="
+                  + " 'carbonio-ws-collaboration-db') THEN CREATE ROLE"
+                  + " \"carbonio-ws-collaboration-db\"; END IF; END $$;")
+          .execute();
+    } catch (SQLException e) {
+      ChatsLogger.error("Failed to create application role for test DB", e);
+    }
   }
 
   @Override

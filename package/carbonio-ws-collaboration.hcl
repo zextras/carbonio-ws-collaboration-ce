@@ -58,6 +58,10 @@ services {
     }
   }
 
+  meta {
+    service_id = "__SERVICE_ID__"
+  }
+
   name = "carbonio-ws-collaboration"
   port = 10000
 }

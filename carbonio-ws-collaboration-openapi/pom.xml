@@ -157,6 +157,12 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generateApiTests>false</generateApiTests>
               <generateModelDocumentation>false</generateModelDocumentation>
               <generateApiDocumentation>false</generateApiDocumentation>
+              <typeMappings>
+                <typeMapping>TimelineMessage=TimelineMessageDto</typeMapping>
+              </typeMappings>
+              <importMappings>
+                <importMapping>TimelineMessageDto=com.zextras.carbonio.chats.model.TimelineMessageDto</importMapping>
+              </importMappings>
             </configuration>
           </execution>
         </executions>

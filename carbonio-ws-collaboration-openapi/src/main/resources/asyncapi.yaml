@@ -5,31 +5,13 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.15
+  version: 1.6.11
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
-  x-supported-versions:
-    [
-      "1.6.15",
-      "1.6.14",
-      "1.6.13",
-      "1.6.12",
-      "1.6.11",
-      "1.6.10",
-      "1.6.9",
-      "1.6.8",
-      "1.6.7",
-      "1.6.6",
-      "1.6.5",
-      "1.6.4",
-      "1.6.3",
-      "1.6.2",
-      "1.6.1",
-      "1.6.0",
-    ]
+  x-supported-versions: [ "2.0.0" ]
 
-paths: { }
+paths: {}
 
 components:
   schemas:
@@ -62,7 +44,6 @@ components:
         - MeetingSdpAnswered
         - MeetingStarted
         - MeetingStopped
-        - MeetingDeclined
         - MeetingParticipantTalking
         - MeetingParticipantClashed
         - MeetingWaitingParticipantJoined
@@ -74,6 +55,7 @@ components:
         - MeetingRecordingStopped
         - MeetingParticipantHandRaised
         - MeetingParticipantHandRaisedList
+        - MeetingDeclined
         - MeetingParticipantUplinkStatusChanged
         # Websocket connection Events
         - WebsocketConnected
@@ -85,7 +67,7 @@ components:
 
     MediaType:
       type: string
-      enum: [ AUDIO, VIDEO, SCREEN ]
+      enum: [AUDIO, VIDEO, SCREEN]
 
     # Base Event Schema
     DomainEvent:
@@ -108,7 +90,6 @@ components:
           meetingDeleted: "#/components/schemas/MeetingDeleted"
           meetingParticipantJoined: "#/components/schemas/MeetingParticipantJoined"
           meetingParticipantLeft: "#/components/schemas/MeetingParticipantLeft"
-          meetingDeclined: "#/components/schemas/meetingDeclined"
           meetingAudioStreamChanged: "#/components/schemas/MeetingAudioStreamChanged"
           meetingAudioAnswered: "#/components/schemas/MeetingAudioAnswered"
           meetingMediaStreamChanged: "#/components/schemas/MeetingMediaStreamChanged"
@@ -127,6 +108,7 @@ components:
           meetingRecordingStopped: "#/components/schemas/MeetingRecordingStopped"
           meetingParticipantHandRaised: "#/components/schemas/MeetingParticipantHandRaised"
           meetingParticipantHandRaisedList: "#/components/schemas/MeetingParticipantHandRaisedList"
+          meetingDeclined: "#/components/schemas/MeetingDeclined"
           meetingParticipantUplinkStatusChanged: "#/components/schemas/MeetingParticipantUplinkStatusChanged"
           websocketConnected: "#/components/schemas/WebsocketConnected"
           messageBrokerDisconnected: "#/components/schemas/MessageBrokerDisconnected"
@@ -171,10 +153,32 @@ components:
               type: string
             description:
               type: string
+            updatedBy:
+              type: string
+              format: uuid
+            nameSystemEventId:
+              type: string
+              description: "id of the ROOM_NAME_CHANGED system event (timeline item) created by this action, present only when the name changed"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            nameSystemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the nameSystemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when nameSystemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            descriptionSystemEventId:
+              type: string
+              description: "id of the ROOM_DESCRIPTION_CHANGED system event (timeline item) created by this action, present only when the description changed"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            descriptionSystemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the descriptionSystemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when descriptionSystemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - roomId
             - name
             - description
+            - updatedBy
 
     RoomDeleted:
       allOf:
@@ -228,9 +232,22 @@ components:
             updatedAt:
               type: string
               format: date-time
+            updatedBy:
+              type: string
+              format: uuid
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - roomId
             - updatedAt
+            - updatedBy
 
     RoomPictureDeleted:
       allOf:
@@ -240,8 +257,21 @@ components:
             roomId:
               type: string
               format: uuid
+            deletedBy:
+              type: string
+              format: uuid
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - roomId
+            - deletedBy
 
     RoomMemberAdded:
       allOf:
@@ -256,10 +286,23 @@ components:
               format: uuid
             isOwner:
               type: boolean
+            addedBy:
+              type: string
+              format: uuid
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - roomId
             - userId
             - isOwner
+            - addedBy
 
     RoomMemberRemoved:
       allOf:
@@ -272,6 +315,20 @@ components:
             userId:
               type: string
               format: uuid
+            removedBy:
+              type: string
+              format: uuid
+              description: "user who removed the member (the member itself on leave; the first room owner when the removal is automatic, i.e. temporary room clean-up)"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - roomId
             - userId
@@ -309,6 +366,20 @@ components:
             clearedAt:
               type: string
               format: date-time
+            clearedBy:
+              type: string
+              format: uuid
+              description: "user who cleared the history for everyone; present only for TEMPORARY rooms, absent for the per-user clear"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventId:
+              type: string
+              description: "id of the ROOM_HISTORY_CLEARED system event (timeline item) created by this action; present only for TEMPORARY rooms"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - roomId
             - clearedAt
@@ -358,21 +429,6 @@ components:
             - userId
 
     MeetingParticipantLeft:
-      allOf:
-        - $ref: "#/components/schemas/DomainEvent"
-        - type: object
-          properties:
-            meetingId:
-              type: string
-              format: uuid
-            userId:
-              type: string
-              format: uuid
-          required:
-            - meetingId
-            - userId
-
-    meetingDeclined:
       allOf:
         - $ref: "#/components/schemas/DomainEvent"
         - type: object
@@ -507,6 +563,15 @@ components:
             startedAt:
               type: string
               format: date-time
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - meetingId
             - starterUser
@@ -520,8 +585,21 @@ components:
             meetingId:
               type: string
               format: uuid
+            endedBy:
+              type: string
+              format: uuid
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - meetingId
+            - endedBy
 
     MeetingParticipantTalking:
       allOf:
@@ -717,6 +795,32 @@ components:
             - meetingId
             - participants
 
+    MeetingDeclined:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+          required:
+            - meetingId
+            - userId
+
+    # Websocket Events
+
     MeetingParticipantUplinkStatusChanged:
       allOf:
         - $ref: "#/components/schemas/DomainEvent"
@@ -788,3 +892,292 @@ components:
       allOf:
         - $ref: "#/components/schemas/DomainEvent"
         - type: object
+
+    # Chat WsEvent hierarchy (separate from DomainEvent — serialized server→client)
+    WsEvent:
+      discriminator:
+        propertyName: type
+        mapping:
+          MessageReceived: "#/components/schemas/MessageReceived"
+          MessageForwarded: "#/components/schemas/MessageForwarded"
+          MessageEdited: "#/components/schemas/MessageEdited"
+          MessageDeleted: "#/components/schemas/MessageDeleted"
+          MessagePinned: "#/components/schemas/MessagePinned"
+          MessageUnpinned: "#/components/schemas/MessageUnpinned"
+          ReactionChanged: "#/components/schemas/ReactionChanged"
+          ReadUpdated: "#/components/schemas/ReadUpdated"
+          PresenceChanged: "#/components/schemas/PresenceChanged"
+          Typing: "#/components/schemas/Typing"
+          Error: "#/components/schemas/WsError"
+          Pong: "#/components/schemas/WsPong"
+      type: object
+      properties:
+        type:
+          type: string
+        sentDate:
+          type: string
+          format: date-time
+      required:
+        - type
+        - sentDate
+
+    MessageReceived:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "MessageReceived"
+            message:
+              $ref: "#/components/schemas/TimelineMessage"
+            tempId:
+              type: string
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+          required:
+            - message
+
+    MessageForwarded:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "MessageForwarded"
+            message:
+              $ref: "#/components/schemas/TimelineMessage"
+          required:
+            - message
+
+    MessageEdited:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "MessageEdited"
+            messageId:
+              type: string
+            roomId:
+              type: string
+            text:
+              type: string
+            editedAt:
+              type: string
+              format: date-time
+          required:
+            - messageId
+            - roomId
+            - text
+            - editedAt
+
+    MessageDeleted:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "MessageDeleted"
+            messageId:
+              type: string
+            roomId:
+              type: string
+            deletedBy:
+              type: string
+            deletedAt:
+              type: string
+              format: date-time
+          required:
+            - messageId
+            - roomId
+            - deletedBy
+            - deletedAt
+
+    MessagePinned:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "MessagePinned"
+            messageId:
+              type: string
+            roomId:
+              type: string
+            pinnedBy:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            message:
+              $ref: "#/components/schemas/TimelineMessage"
+              description: "the pinned message, same shape as a timeline message; a reply carries replyToId/repliedMessage only when the original is visible to the recipient"
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+          required:
+            - messageId
+            - roomId
+            - pinnedBy
+            - timestamp
+            - message
+
+    MessageUnpinned:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "MessageUnpinned"
+            messageId:
+              type: string
+            roomId:
+              type: string
+            unpinnedBy:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            systemEventId:
+              type: string
+              description: "id of the system event (timeline item) created by this action, if any"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+          required:
+            - messageId
+            - roomId
+            - unpinnedBy
+            - timestamp
+
+    ReactionChanged:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "ReactionChanged"
+            messageId:
+              type: string
+            roomId:
+              type: string
+            userId:
+              type: string
+            reaction:
+              type: string
+            operation:
+              type: string
+          required:
+            - messageId
+            - roomId
+            - userId
+            - reaction
+            - operation
+
+    ReadUpdated:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          description: "sent only when PUT /rooms/{roomId}/read moves the marker forward; a same or older item sends nothing"
+          properties:
+            type:
+              type: string
+              default: "ReadUpdated"
+            roomId:
+              type: string
+            userId:
+              type: string
+            itemCreatedAt:
+              type: string
+              format: date-time
+              description: creation time of the last timeline item read by the user
+          required:
+            - roomId
+            - userId
+            - itemCreatedAt
+
+    PresenceChanged:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "PresenceChanged"
+            userId:
+              type: string
+            online:
+              type: boolean
+            lastActivity:
+              type: string
+              format: date-time
+              description: |
+                Last time the user went offline, also on online events (same value as
+                POST /presence/batch). Absent only if the user has never been offline.
+          required:
+            - userId
+            - online
+
+    Typing:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "Typing"
+            roomId:
+              type: string
+            userId:
+              type: string
+            status:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+          required:
+            - roomId
+            - userId
+            - status
+            - timestamp
+
+    WsError:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "Error"
+            message:
+              type: string
+            requestId:
+              type: string
+            code:
+              type: string
+          required:
+            - message
+
+    WsPong:
+      allOf:
+        - $ref: "#/components/schemas/WsEvent"
+        - type: object
+          properties:
+            type:
+              type: string
+              default: "Pong"

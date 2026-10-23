@@ -16,5 +16,6 @@ public class CoreModule extends AbstractModule {
     install(new MessagingModule());
     install(new UserModule());
     install(new RoomModule());
+    install(new ChatModule());
   }
 }

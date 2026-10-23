@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.impl.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanFileMetadataRepository;
+import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
@@ -44,6 +45,8 @@ public class AttachmentModule extends AbstractModule {
     bind(PreviewApi.class);
     bind(PreviewApiService.class).to(PreviewApiServiceImpl.class);
     bind(PreviewService.class).to(PreviewServiceImpl.class);
+
+    bind(AttachmentAccessValidator.class);
   }
 
   protected Class<? extends StoragesService> storagesService() {

@@ -16,6 +16,8 @@ import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticatio
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
+import com.zextras.carbonio.chats.core.web.socket.WsPresenceBootCleaner;
+import com.zextras.carbonio.chats.core.web.socket.WsPresenceJanitorService;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import com.zextras.carbonio.systemd.SystemdNotify;
 import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;
@@ -44,6 +46,8 @@ public class Boot {
   private final AuthenticationService authenticationService;
   private final EventsWebSocketManager eventsWebSocketManager;
   private final VideoServerEventListener videoServerEventListener;
+  private final WsPresenceBootCleaner wsPresenceBootCleaner;
+  private final WsPresenceJanitorService wsPresenceJanitorService;
   private final AppConfig appConfig;
 
   @Inject
@@ -55,6 +59,8 @@ public class Boot {
       AuthenticationService authenticationService,
       EventsWebSocketManager eventsWebSocketManager,
       VideoServerEventListener videoServerEventListener,
+      WsPresenceBootCleaner wsPresenceBootCleaner,
+      WsPresenceJanitorService wsPresenceJanitorService,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
@@ -63,6 +69,8 @@ public class Boot {
     this.authenticationService = authenticationService;
     this.eventsWebSocketManager = eventsWebSocketManager;
     this.videoServerEventListener = videoServerEventListener;
+    this.wsPresenceBootCleaner = wsPresenceBootCleaner;
+    this.wsPresenceJanitorService = wsPresenceJanitorService;
     this.appConfig = appConfig;
   }
 
@@ -70,7 +78,19 @@ public class Boot {
     ChatsLogger.info("Application latest version: " + VersionProvider.getVersion());
     ChatsLogger.info("Supported versions: " + VersionProvider.getSupportedVersions());
 
-    flyway.migrate();
+    try {
+      flyway.migrate();
+    } catch (Throwable t) {
+      // Non-daemon RabbitMQ threads would keep the JVM alive: exit so systemd restarts it.
+      ChatsLogger.error("Database migration failed, exiting", t);
+      System.exit(1);
+    }
+
+    try {
+      wsPresenceBootCleaner.runOnce();
+    } catch (Exception e) {
+      ChatsLogger.warn("Boot cleanup failed: " + e.getMessage());
+    }
 
     Server server = new Server(createThreadPool());
     ServerConnector connector = new ServerConnector(server);
@@ -109,6 +129,7 @@ public class Boot {
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
     videoServerEventListener.start();
+    wsPresenceJanitorService.start();
 
     server.start();
     SystemdNotify.ready("ws-collaboration ready");

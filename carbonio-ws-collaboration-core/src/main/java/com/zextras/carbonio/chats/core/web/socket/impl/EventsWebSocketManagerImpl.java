@@ -20,12 +20,15 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
+import com.zextras.carbonio.chats.core.web.socket.WsPresenceManager;
+import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
+import jakarta.websocket.PongMessage;
 import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
@@ -45,6 +48,8 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
   private final WebsocketVersionMigrator migrator;
   private final CacheVideoServerSession cacheVideoServerSession;
   private final ParticipantService participantService;
+  private final WsActionRouter wsActionRouter;
+  private final WsPresenceManager wsPresenceManager;
 
   @Inject
   public EventsWebSocketManagerImpl(
@@ -53,12 +58,16 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
       WebsocketVersionMigrator migrator,
       CacheVideoServerSession cacheVideoServerSession,
       ParticipantService participantService,
+      WsActionRouter wsActionRouter,
+      WsPresenceManager wsPresenceManager,
       EventWebSocketSessions sessions) {
     this.rabbitPool = rabbitPool;
     this.objectMapper = objectMapper;
     this.migrator = migrator;
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.participantService = participantService;
+    this.wsActionRouter = wsActionRouter;
+    this.wsPresenceManager = wsPresenceManager;
     this.sessions = sessions;
   }
 
@@ -69,21 +78,12 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
 
-    DomainEvent wsConnected =
-        WebsocketConnected.create()
-            .queueId(queueId)
-            .type(EventType.WEBSOCKET_CONNECTED)
-            .sentDate(OffsetDateTime.now());
-    session
-        .getAsyncRemote()
-        .sendObject(migrator.downgradeIfNeeded(wsConnected, getVersion(session)));
-
-    sessions.add(session);
+    sessions.add(session, userId.toString());
 
     DeliverCallback deliverCallback =
         (consumerTag, delivery) -> {
           String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-          ChatsLogger.info(
+          ChatsLogger.debug(
               String.format(
                   "Received message from broker for user/queue '%s'%nMessage: '%s'",
                   userQueue, message));
@@ -115,6 +115,23 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
       ChatsLogger.warn(
           String.format("Error interacting with message broker for user/queue '%s'", userQueue));
     }
+
+    // Sent once subscribed: events published after the client receives it reach this socket.
+    DomainEvent wsConnected =
+        WebsocketConnected.create()
+            .queueId(queueId)
+            .type(EventType.WEBSOCKET_CONNECTED)
+            .sentDate(OffsetDateTime.now());
+    session
+        .getAsyncRemote()
+        .sendObject(migrator.downgradeIfNeeded(wsConnected, getVersion(session)));
+
+    wsPresenceManager.onConnect(userId.toString(), session);
+  }
+
+  @OnMessage
+  public void onPong(Session session, PongMessage pongMessage) {
+    // Pong is handled by SessionPingManager via EventWebSocketSessions
   }
 
   @Override
@@ -124,6 +141,13 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
 
     try {
       ObjectNode node = objectMapper.readValue(message, ObjectNode.class);
+
+      Optional<JsonNode> optActionKey = getKey(node, "action");
+      if (optActionKey.isPresent()) {
+        wsActionRouter.route(getUserIdFromSession(session), message, session);
+        return;
+      }
+
       Optional<JsonNode> optTypeKey = getKey(node, "type");
       if (optTypeKey.isEmpty() || !session.isOpen()) return;
       String type = optTypeKey.get().asText();
@@ -132,22 +156,15 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
         case "IceRestart" -> onIceRestart(session, node);
         case "UplinkStatusUpdate" -> onUplinkStatusUpdate(session, node);
         default ->
-            ChatsLogger.info(
+            ChatsLogger.warn(
                 String.format("Unknown event type '%s' when parsing websocket message", type));
       }
     } catch (Exception e) {
       UUID userId = UUID.fromString(getUserIdFromSession(session));
       UUID queueId = UUID.fromString(session.getId());
       String userQueue = userId + "/" + queueId;
-      ChatsLogger.warn(String.format("Error sending pong to user/queue '%s'", userQueue));
-      try {
-        session.close();
-      } catch (Exception closeException) {
-        ChatsLogger.warn(
-            String.format(
-                "Error closing websocket session after a message failure for user/queue '%s'",
-                userQueue));
-      }
+      ChatsLogger.warn(
+          String.format("Error parsing websocket message for user/queue '%s'", userQueue));
     }
   }
 
@@ -243,9 +260,13 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
   private void closeSessionWithBroker(Session session) {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
-    cacheVideoServerSession.add(userId, queueId);
-    onSessionDisconnected(queueId);
-    rabbitPool.teardownSession(session.getId());
+    try {
+      cacheVideoServerSession.add(userId, queueId);
+      onSessionDisconnected(queueId);
+    } finally {
+      wsPresenceManager.onDisconnect(userId.toString(), session);
+      rabbitPool.teardownSession(session.getId());
+    }
   }
 
   protected void onSessionDisconnected(UUID queueId) {}

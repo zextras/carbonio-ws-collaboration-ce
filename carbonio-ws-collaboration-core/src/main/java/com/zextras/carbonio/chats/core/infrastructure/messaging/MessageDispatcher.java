@@ -4,101 +4,12 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
-import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.graphql.StanzaResponse;
-import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import jakarta.annotation.Nullable;
-import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 
 public interface MessageDispatcher extends HealthIndicator {
-
-  /**
-   * Creates a room on XMPP server
-   *
-   * @param roomId identifier of the room to create
-   * @param senderId creation user
-   * @param memberIds identifiers of the members invited in this room
-   * @param sendAffiliationMessages if true, sends affiliation messages for room members
-   */
-  void createRoom(
-      String roomId, String senderId, List<String> memberIds, boolean sendAffiliationMessages);
-
-  /**
-   * Sends a message to communicate that the room name has changed
-   *
-   * @param roomId room identifier
-   * @param senderId operation user
-   * @param name new room name
-   */
-  void updateRoomName(String roomId, String senderId, String name);
-
-  /**
-   * Sends a message to communicate that the room description has changed
-   *
-   * @param roomId room identifier
-   * @param senderId operation user
-   * @param description new room description
-   */
-  void updateRoomDescription(String roomId, String senderId, String description);
-
-  /**
-   * Sends a message to communicate that the room picture has changed
-   *
-   * @param roomId room identifier
-   * @param senderId operation user
-   * @param pictureId new pictures id
-   * @param pictureName new pictures name
-   */
-  void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName);
-
-  /**
-   * Sends a message to communicate that the room picture is deleted
-   *
-   * @param roomId room identifier
-   * @param senderId operation user
-   */
-  void deleteRoomPicture(String roomId, String senderId);
-
-  /**
-   * Sends a message to communicate that the room history has been cleared
-   *
-   * @param roomId room identifier
-   * @param senderId operation user
-   * @param timestamp timestamp of when the history was cleared
-   */
-  void clearRoomHistory(String roomId, String senderId, String timestamp);
-
-  /**
-   * Invites a member to join a room on XMPP server
-   *
-   * @param roomId room identifier
-   * @param senderId inviting user identifier
-   * @param memberId identifier of the user to add
-   */
-  void addRoomMember(String roomId, String senderId, String memberId);
-
-  /**
-   * Removes a member from a room on XMPP server. It will destroy the room automatically when the
-   * last member is removed. Moreover, also the inbox entries and all room messages will be deleted.
-   *
-   * @param roomId room identifier
-   * @param memberId identifier of the user to remove
-   */
-  void removeRoomMember(String roomId, String memberId);
-
-  /**
-   * Sends an affiliation message to a room on XMPP server
-   *
-   * @param roomId room identifier
-   * @param senderId operation user identifier
-   * @param memberId identifier of the related room member
-   * @param messageType type of the message
-   */
-  void sendAffiliationMessage(
-      String roomId, String senderId, String memberId, MessageType messageType);
 
   /**
    * Sets two users in their respective contacts list so that they can both see each other's
@@ -110,7 +21,8 @@ public interface MessageDispatcher extends HealthIndicator {
   void addUsersToContacts(String user1id, String user2id);
 
   /**
-   * Sends the attachment stanza to MongooseIM.
+   * Saves the attachment file metadata and creates the associated message atomically, then
+   * broadcasts the message-received event to room members.
    *
    * @param roomId room identifier
    * @param senderId operation user identifier
@@ -118,13 +30,14 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param fileName name of the file
    * @param mimeType mime type of the file
    * @param originalSize size of the file
-   * @param description description of the attachment
-   * @param messageId identifier of XMPP message to create
-   * @param replyId identifier of the message being replied to
-   * @param area optional area metadata
-   * @return a {@link StanzaResponse} containing the message id and server-assigned stanza id
+   * @param description optional message text attached to the upload
+   * @param messageId optional client-provided message ID
+   * @param replyId optional ID of the message being replied to
+   * @param area optional attachment area hint
+   * @param tempId optional client-generated temporary identifier for optimistic UI matching
+   * @return the created {@link Message} row, with attachmentId set
    */
-  StanzaResponse sendAttachment(
+  Message sendAttachment(
       String roomId,
       String senderId,
       String fileId,
@@ -134,21 +47,8 @@ public interface MessageDispatcher extends HealthIndicator {
       String description,
       @Nullable String messageId,
       @Nullable String replyId,
-      @Nullable String area);
-
-  /**
-   * Forwards a message
-   *
-   * @param roomId room identifier
-   * @param senderId operation user identifier
-   * @param messageToForward message to forward
-   * @param fileMetadata file properties {@link FileMetadata}
-   */
-  void forwardMessage(
-      String roomId,
-      String senderId,
-      ForwardMessageDto messageToForward,
-      @Nullable FileMetadata fileMetadata);
+      @Nullable String area,
+      @Nullable String tempId);
 
   /**
    * Returns the attachment identifier into the message if it exists
@@ -158,30 +58,4 @@ public interface MessageDispatcher extends HealthIndicator {
    *     exists
    */
   Optional<String> getAttachmentIdFromMessage(String message);
-
-  /**
-   * Notifies room members that a meeting has started.
-   *
-   * @param roomId room identifier
-   * @param senderId operation user identifier
-   */
-  void sendMeetingStarted(String roomId, String senderId);
-
-  /**
-   * Notifies room members that a meeting has ended.
-   *
-   * @param roomId room identifier
-   * @param senderId operation user identifier
-   * @param startedAt when the meeting started
-   * @param duration meeting duration in seconds
-   */
-  void sendMeetingEnded(String roomId, String senderId, OffsetDateTime startedAt, long duration);
-
-  /**
-   * Notifies room members that a user declined the meeting invitation.
-   *
-   * @param roomId room identifier
-   * @param senderId operation user identifier
-   */
-  void sendMeetingDeclined(String roomId, String senderId);
 }

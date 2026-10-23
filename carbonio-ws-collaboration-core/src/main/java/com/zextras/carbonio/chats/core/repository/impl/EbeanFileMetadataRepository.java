@@ -39,6 +39,14 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
   }
 
   @Override
+  public List<FileMetadata> getByIds(List<String> fileIds) {
+    if (fileIds.isEmpty()) {
+      return List.of();
+    }
+    return db.find(FileMetadata.class).where().in("id", fileIds).findList();
+  }
+
+  @Override
   public Optional<FileMetadata> find(String userId, String roomId, FileMetadataType type) {
     Query<FileMetadata> query = db.find(FileMetadata.class);
     Option.of(userId).map(p -> query.where().eq("userId", p));
@@ -101,6 +109,12 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
       eqIfNotNull(query, "userId", attachmentFilter.getUserId());
       gtIfNotNull(query, "createdAt", attachmentFilter.getCreatedAfter());
       ltIfNotNull(query, "createdAt", attachmentFilter.getCreatedBefore());
+      if (attachmentFilter.getVisibleAfter() != null) {
+        query.raw(
+            "coalesce((select m.created_at from chats.message m where m.id = ${}chat_message_id),"
+                + " ${}created_at) > ?",
+            attachmentFilter.getVisibleAfter());
+      }
       geIfNotNull(query, "originalSize", attachmentFilter.getMinSize());
       leIfNotNull(query, "originalSize", attachmentFilter.getMaxSize());
 

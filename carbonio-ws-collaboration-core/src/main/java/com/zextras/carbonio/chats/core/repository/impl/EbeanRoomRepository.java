@@ -86,6 +86,9 @@ public class EbeanRoomRepository implements RoomRepository {
 
   @Override
   public Room insert(Room room) {
+    if (room.getCreatedAt() == null) {
+      throw new IllegalArgumentException("Room createdAt must be set before insert");
+    }
     db.insert(room);
     return room;
   }
@@ -99,5 +102,20 @@ public class EbeanRoomRepository implements RoomRepository {
   @Override
   public void delete(String roomId) {
     db.delete(Room.class, roomId);
+  }
+
+  @Override
+  public List<String> getOnlineUserIdsSharingRoomWith(String userId) {
+    // Distinct users subscribed to any room of this user, keeping only those with an open session
+    return db.sqlQuery(
+            "SELECT u.user_id FROM ("
+                + "SELECT DISTINCT s2.user_id "
+                + "FROM chats.subscription s1 "
+                + "INNER JOIN chats.subscription s2 ON s1.room_id = s2.room_id "
+                + "WHERE s1.user_id = :userId AND s2.user_id != :userId) u "
+                + "WHERE EXISTS (SELECT 1 FROM chats.ws_session w WHERE w.user_id = u.user_id)")
+        .setParameter("userId", userId)
+        .mapToScalar(String.class)
+        .findList();
   }
 }

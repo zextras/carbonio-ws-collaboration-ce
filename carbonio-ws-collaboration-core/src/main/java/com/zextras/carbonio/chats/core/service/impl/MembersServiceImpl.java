@@ -12,22 +12,23 @@ import com.zextras.carbonio.async.model.RoomMemberRemoved;
 import com.zextras.carbonio.async.model.RoomOwnerDemoted;
 import com.zextras.carbonio.async.model.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
+import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -50,9 +51,11 @@ public class MembersServiceImpl implements MembersService {
   private final EventDispatcher eventDispatcher;
   private final SubscriptionMapper subscriptionMapper;
   private final UserService userService;
-  private final MessageDispatcher messageDispatcher;
   private final MeetingService meetingService;
   private final ParticipantService participantService;
+  private final ChatMessageService chatMessageService;
+  private final DatabaseClock databaseClock;
+  private final SystemEventContentFactory systemEventContentFactory;
 
   @Inject
   public MembersServiceImpl(
@@ -62,18 +65,22 @@ public class MembersServiceImpl implements MembersService {
       EventDispatcher eventDispatcher,
       SubscriptionMapper subscriptionMapper,
       UserService userService,
-      MessageDispatcher messageDispatcher,
       MeetingService meetingService,
-      ParticipantService participantService) {
+      ParticipantService participantService,
+      ChatMessageService chatMessageService,
+      DatabaseClock databaseClock,
+      SystemEventContentFactory systemEventContentFactory) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.eventDispatcher = eventDispatcher;
     this.subscriptionMapper = subscriptionMapper;
     this.userService = userService;
-    this.messageDispatcher = messageDispatcher;
     this.meetingService = meetingService;
     this.participantService = participantService;
+    this.chatMessageService = chatMessageService;
+    this.databaseClock = databaseClock;
+    this.systemEventContentFactory = systemEventContentFactory;
   }
 
   @Override
@@ -85,22 +92,44 @@ public class MembersServiceImpl implements MembersService {
     validateMemberPresence(memberIds, room);
     validateUserExistence(memberIds, currentUser);
 
-    OffsetDateTime currentDateTime = OffsetDateTime.now();
+    OffsetDateTime currentDateTime = databaseClock.now();
     List<MemberInsertedDto> membersInserted = new ArrayList<>();
+    List<String> addedUserIds = new ArrayList<>();
+    List<List<String>> receiversPerMember = new ArrayList<>();
     for (MemberToInsertDto member : membersToInsert) {
       addMemberToRoom(member.getUserId().toString(), room, currentUser.getId());
       MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member, currentDateTime);
 
       membersInserted.add(memberInsertedDto);
+      addedUserIds.add(member.getUserId().toString());
+      receiversPerMember.add(
+          room.getSubscriptions().stream().map(Subscription::getUserId).toList());
+    }
+
+    SystemEvent systemEvent =
+        SystemEvent.create()
+            .id(UUID.randomUUID().toString())
+            .roomId(room.getId())
+            .type("MEMBER_ADDED")
+            .actorId(currentUser.getId())
+            .content(systemEventContentFactory.memberAdded(currentUser.getId(), addedUserIds));
+    chatMessageService.insertSystemEvent(systemEvent);
+
+    for (int i = 0; i < membersToInsert.size(); i++) {
+      MemberToInsertDto member = membersToInsert.get(i);
       eventDispatcher.sendToUserExchange(
-          room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+          receiversPerMember.get(i),
           RoomMemberAdded.create()
               .roomId(UUID.fromString(room.getId()))
               .userId(member.getUserId())
               .isOwner(member.isOwner())
+              .addedBy(UUID.fromString(systemEvent.getActorId()))
+              .systemEventId(systemEvent.getId())
+              .systemEventCreatedAt(systemEvent.getCreatedAt())
               .type(EventType.ROOM_MEMBER_ADDED)
               .sentDate(OffsetDateTime.now()));
     }
+
     return membersInserted;
   }
 
@@ -133,9 +162,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   private void addMemberToRoom(String memberId, Room room, String currentUserId) {
-    messageDispatcher.addRoomMember(room.getId(), currentUserId, memberId);
-    messageDispatcher.sendAffiliationMessage(
-        room.getId(), currentUserId, memberId, MessageType.MEMBER_ADDED);
+    // XMPP affiliation messages are no longer needed; events dispatched via DomainEvent system.
   }
 
   private MemberInsertedDto processRoomSubscription(
@@ -151,25 +178,14 @@ public class MembersServiceImpl implements MembersService {
                 .joinedAt(dateTime));
     room.getSubscriptions().add(subscription);
 
-    processRoomUserSettings(room, member, dateTime);
-
     MemberInsertedDto memberInsertedDto =
         MemberInsertedDto.create().userId(member.getUserId()).owner(member.isOwner());
 
-    return member.isHistoryCleared() ? memberInsertedDto.clearedAt(dateTime) : memberInsertedDto;
-  }
-
-  private void processRoomUserSettings(
-      Room room, MemberToInsertDto member, OffsetDateTime dateTime) {
     if (member.isHistoryCleared()) {
-      RoomUserSettings settings =
-          roomUserSettingsRepository
-              .getByRoomIdAndUserId(room.getId(), member.getUserId().toString())
-              .orElseGet(() -> RoomUserSettings.create(room, member.getUserId().toString()));
-
-      settings.clearedAt(dateTime);
-      roomUserSettingsRepository.save(settings);
+      return memberInsertedDto.clearedAt(
+          roomUserSettingsRepository.setClearedAtNow(room.getId(), member.getUserId().toString()));
     }
+    return memberInsertedDto;
   }
 
   @Override
@@ -184,7 +200,10 @@ public class MembersServiceImpl implements MembersService {
           .ifPresent(meeting -> participantService.removeMeetingParticipant(meeting, room, userId));
     }
     validateLastRoomOwner(userId.toString(), room);
-    deleteRoomMember(userId.toString(), room);
+    List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
+    removeMemberData(userId.toString(), room);
+    persistAndDispatchMemberRemoved(receivers, room, userId.toString(), currentUser.getId());
+
     // delete room if it's the last member
     if (room.getSubscriptions().size() == 1) {
       roomService.deleteRoom(roomId, currentUser);
@@ -201,16 +220,48 @@ public class MembersServiceImpl implements MembersService {
 
   @Override
   public void deleteRoomMember(String userId, Room room) {
+    List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
+    String firstOwnerId =
+        room.getSubscriptions().stream()
+            .filter(Subscription::isOwner)
+            .map(Subscription::getUserId)
+            .findFirst()
+            .orElseThrow();
+    removeMemberData(userId, room);
+    persistAndDispatchMemberRemoved(receivers, room, userId, firstOwnerId);
+  }
+
+  private void persistAndDispatchMemberRemoved(
+      List<String> receivers, Room room, String removedUserId, String actorId) {
+    SystemEvent systemEvent =
+        SystemEvent.create()
+            .id(UUID.randomUUID().toString())
+            .roomId(room.getId())
+            .type("MEMBER_REMOVED")
+            .actorId(actorId)
+            .content(systemEventContentFactory.memberRemoved(actorId, removedUserId));
+    chatMessageService.insertSystemEvent(systemEvent);
+    dispatchMemberRemoved(receivers, room, removedUserId, systemEvent);
+  }
+
+  private void removeMemberData(String userId, Room room) {
     removeRoomMember(userId, room);
     roomUserSettingsRepository
         .getByRoomIdAndUserId(room.getId(), userId)
         .ifPresent(roomUserSettingsRepository::delete);
     subscriptionRepository.delete(room.getId(), userId);
+  }
+
+  private void dispatchMemberRemoved(
+      List<String> receivers, Room room, String userId, SystemEvent systemEvent) {
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+        receivers,
         RoomMemberRemoved.create()
             .roomId(UUID.fromString(room.getId()))
             .userId(UUID.fromString(userId))
+            .removedBy(UUID.fromString(systemEvent.getActorId()))
+            .systemEventId(systemEvent.getId())
+            .systemEventCreatedAt(systemEvent.getCreatedAt())
             .type(EventType.ROOM_MEMBER_REMOVED)
             .sentDate(OffsetDateTime.now()));
   }
@@ -229,16 +280,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   private void removeRoomMember(String memberId, Room room) {
-    String ownerId =
-        room.getSubscriptions().stream()
-            .filter(Subscription::isOwner)
-            .map(Subscription::getUserId)
-            .toList()
-            .getFirst();
-
-    messageDispatcher.removeRoomMember(room.getId(), memberId);
-    messageDispatcher.sendAffiliationMessage(
-        room.getId(), ownerId, memberId, MessageType.MEMBER_REMOVED);
+    // XMPP affiliation messages are no longer needed; events dispatched via DomainEvent system.
   }
 
   @Override
@@ -345,7 +387,8 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<Subscription> initRoomSubscriptions(List<MemberDto> members, Room room) {
+  public List<Subscription> initRoomSubscriptions(
+      List<MemberDto> members, Room room, OffsetDateTime joinedAt) {
     return members.stream()
         .map(
             member ->
@@ -355,7 +398,7 @@ public class MembersServiceImpl implements MembersService {
                     .room(room)
                     // When we have a one-to-one, both members are owners
                     .owner(member.isOwner() || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
-                    .joinedAt(OffsetDateTime.now()))
+                    .joinedAt(joinedAt))
         .toList();
   }
 }

@@ -27,7 +27,6 @@ public class HealthApiIT {
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper objectMapper;
   private final StorageMockServer storageMockServer;
-  private final MongooseImMockServer mongooseImMockServer;
   private final PreviewerMockServer previewerMockServer;
   private final VideoServerMockServer videoServerMockServer;
 
@@ -36,12 +35,10 @@ public class HealthApiIT {
       ResteasyRequestDispatcher dispatcher,
       ObjectMapper objectMapper,
       StorageMockServer storageMockServer,
-      MongooseImMockServer mongooseImMockServer,
       PreviewerMockServer previewerMockServer,
       VideoServerMockServer videoServerMockServer) {
     this.dispatcher = dispatcher;
     this.storageMockServer = storageMockServer;
-    this.mongooseImMockServer = mongooseImMockServer;
     this.previewerMockServer = previewerMockServer;
     this.videoServerMockServer = videoServerMockServer;
     this.dispatcher.getRegistry().addSingletonResource(healthApi);
@@ -51,7 +48,6 @@ public class HealthApiIT {
   @AfterEach
   public void afterEach() {
     storageMockServer.setIsAliveResponse(true);
-    mongooseImMockServer.setIsAliveResponse(true);
     previewerMockServer.setIsAliveResponse(true);
   }
 
@@ -63,7 +59,6 @@ public class HealthApiIT {
     @DisplayName("Returns the success health status")
     void getHealthStatus_TestOk() throws Exception {
       storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(true);
       MockHttpResponse response = dispatcher.get("/health");
@@ -85,7 +80,6 @@ public class HealthApiIT {
     @DisplayName("Returns the health status when storage isn't alive")
     void getHealthStatus_TestWarnStorage() throws Exception {
       storageMockServer.setIsAliveResponse(false);
-      mongooseImMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(true);
       MockHttpResponse response = dispatcher.get("/health");
@@ -104,32 +98,9 @@ public class HealthApiIT {
     }
 
     @Test
-    @DisplayName("Returns the health status when xmpp server isn't alive")
-    void getHealthStatus_TestErrorMongoose() throws Exception {
-      storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(false);
-      previewerMockServer.setIsAliveResponse(true);
-      videoServerMockServer.setIsAliveResponse(true);
-      MockHttpResponse response = dispatcher.get("/health");
-      assertEquals(200, response.getStatus());
-      HealthStatusDto healthStatus =
-          objectMapper.readValue(response.getContentAsString(), HealthStatusDto.class);
-      assertEquals(DependencyHealthTypeDto.values().length, healthStatus.getDependencies().size());
-      assertEquals(HealthStatusTypeDto.ERROR, healthStatus.getStatus());
-
-      List<DependencyHealthDto> failedDependencies =
-          healthStatus.getDependencies().stream()
-              .filter(dependency -> !dependency.isIsHealthy())
-              .toList();
-      assertEquals(1, failedDependencies.size());
-      assertEquals(DependencyHealthTypeDto.XMPP_SERVER, failedDependencies.get(0).getName());
-    }
-
-    @Test
     @DisplayName("Returns the health status when videoserver isn't alive")
     void getHealthStatus_TestWarnVideoserver() throws Exception {
       storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(false);
       previewerMockServer.setIsAliveResponse(true);
       MockHttpResponse response = dispatcher.get("/health");
@@ -152,7 +123,6 @@ public class HealthApiIT {
     @DisplayName("Returns the health status when previewer isn't alive")
     void getHealthStatus_TestWarnPreviewer() throws Exception {
       storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health");
@@ -191,7 +161,6 @@ public class HealthApiIT {
     @DisplayName("Checks correct ready test")
     void isReady_testOk() throws Exception {
       storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(true);
       MockHttpResponse response = dispatcher.get("/health/ready");
@@ -202,7 +171,6 @@ public class HealthApiIT {
     @DisplayName("Checks warn ready test when storage is not alive")
     void isReady_testWarnStorage() throws Exception {
       storageMockServer.setIsAliveResponse(false);
-      mongooseImMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(true);
       MockHttpResponse response = dispatcher.get("/health/ready");
@@ -210,21 +178,9 @@ public class HealthApiIT {
     }
 
     @Test
-    @DisplayName("Checks error ready test when xmpp server isn't alive")
-    void isReady_testErrorMongoose() throws Exception {
-      storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(false);
-      previewerMockServer.setIsAliveResponse(true);
-      videoServerMockServer.setIsAliveResponse(true);
-      MockHttpResponse response = dispatcher.get("/health/ready");
-      assertEquals(424, response.getStatus());
-    }
-
-    @Test
     @DisplayName("Checks warn ready test when previewer isn't alive")
     void isReady_testWarnPreviewer() throws Exception {
       storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(false);
       videoServerMockServer.setIsAliveResponse(true);
       MockHttpResponse response = dispatcher.get("/health/ready");
@@ -235,7 +191,6 @@ public class HealthApiIT {
     @DisplayName("Checks warn ready test when videoserver isn't alive")
     void isReady_testWarnVideoserver() throws Exception {
       storageMockServer.setIsAliveResponse(true);
-      mongooseImMockServer.setIsAliveResponse(true);
       previewerMockServer.setIsAliveResponse(true);
       videoServerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health/ready");

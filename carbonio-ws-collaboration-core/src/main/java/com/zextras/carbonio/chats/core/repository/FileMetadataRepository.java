@@ -23,6 +23,14 @@ public interface FileMetadataRepository {
   Optional<FileMetadata> getById(String fileId);
 
   /**
+   * Gets multiple file metadata records by their identifiers in a single query.
+   *
+   * @param fileIds list of file identifiers
+   * @return list of {@link FileMetadata} (order not guaranteed)
+   */
+  List<FileMetadata> getByIds(List<String> fileIds);
+
+  /**
    * Gets file metadata info from FILE_METADATA table by userId and/or roomId and type
    *
    * @param userId user identifier

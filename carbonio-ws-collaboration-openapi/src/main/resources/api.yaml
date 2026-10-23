@@ -6,26 +6,8 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.15
-  x-supported-versions:
-    [
-      "1.6.15",
-      "1.6.14",
-      "1.6.13",
-      "1.6.12",
-      "1.6.11",
-      "1.6.10",
-      "1.6.9",
-      "1.6.8",
-      "1.6.7",
-      "1.6.6",
-      "1.6.5",
-      "1.6.4",
-      "1.6.3",
-      "1.6.2",
-      "1.6.1",
-      "1.6.0",
-    ]
+  version: 2.0.0
+  x-supported-versions: [ "2.0.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -424,28 +406,6 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
-    post:
-      tags:
-        - Rooms
-        - Attachments
-      summary: Insert an attachment
-      operationId: insertAttachment
-      parameters:
-        - $ref: "#/components/parameters/pathRoomId"
-        - $ref: "#/components/parameters/headerFileName"
-        - $ref: "#/components/parameters/headerMimeType"
-        - $ref: "#/components/parameters/headerDescription"
-        - $ref: "#/components/parameters/headerMessageId"
-        - $ref: "#/components/parameters/headerReplyId"
-        - $ref: "#/components/parameters/headerArea"
-        - $ref: "#/components/parameters/headerContentLength"
-      requestBody:
-        $ref: "#/components/requestBodies/InsertAttachmentRequest"
-      responses:
-        201:
-          $ref: "#/components/responses/201InsertAttachmentResponse"
-        413:
-          $ref: "#/components/responses/413PayloadTooLargeResponse"
     delete:
       tags:
         - Rooms
@@ -465,39 +425,494 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
-    put:
+    post:
       tags:
         - Rooms
         - Attachments
       summary: Insert an attachment with multipart/form-data
       operationId: insertAttachmentMultipart
+      description: Answers 404 when `replyToId` is not a message of the room visible to the caller.
       parameters:
         - $ref: "#/components/parameters/pathRoomId"
       requestBody:
         $ref: "#/components/requestBodies/InsertAttachmentRequestMultipart"
       responses:
         201:
-          $ref: "#/components/responses/201InsertAttachmentResponse"
+          $ref: '#/components/responses/201InsertAttachmentResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages:
+    post:
+      tags:
+        - Rooms
+      summary: Send a message to a room
+      operationId: sendMessage
+      description: Answers 404 when `replyToId` is not a message of the room visible to the caller.
+      parameters:
+        - $ref: "#/components/parameters/pathRoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        201:
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        403:
+          $ref: "#/components/responses/403ForbiddenResponse"
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves paginated message history for a room
+      operationId: getMessageHistory
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - in: query
+          name: before
+          description: Cursor for pagination - returns messages before this message ID
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: limit
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            default: 50
+          required: false
+      responses:
+        200:
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/export:
+    get:
+      tags:
+        - Rooms
+      operationId: exportRoomMessages
+      summary: Streams the full message history of a room as a downloadable text file
+      description: >
+        Streams the entire message history of the room (oldest to newest) as a
+        text/plain attachment, respecting the requesting user's cleared-history
+        lower bound. Streamed server-side with constant memory.
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - in: query
+          name: tz
+          description: IANA time zone (e.g. "Europe/Rome") used to render timestamps; defaults to UTC if absent or invalid.
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: deletedPlaceholder
+          description: Localized label substituted for a deleted message body; defaults to "Deleted message".
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: The chat history as a plain-text file
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: binary
+        '403':
+          $ref: '#/components/responses/403ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/search:
+    get:
+      tags:
+        - Rooms
+      summary: Search messages in a room
+      operationId: searchMessages
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - in: query
+          name: q
+          description: Search query text
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: limit
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 20
+          required: false
+        - in: query
+          name: before
+          description: ISO-8601 timestamp cursor — return messages older than this date (for pagination)
+          schema:
+            type: string
+          required: false
+      responses:
+        200:
+          description: Search results with pagination metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageSearchResult'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/pin:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves pinned messages for a room
+      operationId: getPinnedMessages
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        200:
+          description: List of pinned messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PinnedMessage'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/{messageId}/pin:
+    put:
+      tags:
+        - Rooms
+      summary: Pin a message in a room
+      operationId: pinMessage
+      description: Answers 404 when the message is not in the room or is hidden by the caller's cleared history.
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+      responses:
+        204:
+          description: Message pinned successfully
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+    delete:
+      tags:
+        - Rooms
+      summary: Unpin a message in a room
+      operationId: unpinMessage
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+      responses:
+        204:
+          description: Message unpinned successfully
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/{messageId}/edit:
+    put:
+      tags:
+        - Rooms
+      summary: Edit a message
+      operationId: editMessage
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+      requestBody:
+        description: New message text
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditMessageRequest'
+      responses:
+        200:
+          description: Message edited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/{messageId}:
+    delete:
+      tags:
+        - Rooms
+      summary: Delete a message
+      operationId: deleteMessage
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+      responses:
+        204:
+          description: Message deleted successfully
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/forward:
     post:
       tags:
         - Rooms
-        - Attachments
-      summary: Message forwarding
+      summary: Forward multiple messages to a room
       operationId: forwardMessages
+      description: Answers 404 when a source message is missing or hidden by the caller's cleared history.
       parameters:
-        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: '#/components/parameters/pathRoomId'
       requestBody:
-        $ref: "#/components/requestBodies/ForwardMessagesRequest"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardMessagesRequest'
+      responses:
+        '201':
+          description: Messages forwarded
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/{messageId}/forward:
+    post:
+      tags:
+        - Rooms
+      summary: Forward a message to another room
+      operationId: forwardMessage
+      description: Answers 404 when the source message is missing or hidden by the caller's cleared history.
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardMessageRequest'
+      responses:
+        201:
+          description: Message forwarded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/messages/{messageId}/reactions/{reaction}:
+    post:
+      tags:
+        - Rooms
+      summary: Add a reaction to a message
+      operationId: addReaction
+      description: Answers 404 when the message is not in the room or is hidden by the caller's cleared history.
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+        - in: path
+          name: reaction
+          description: The reaction emoji (URL encoded)
+          schema:
+            type: string
+          required: true
       responses:
         204:
-          $ref: "#/components/responses/204ForwardMessagesResponse"
-        401:
-          $ref: "#/components/responses/401UnauthorizedResponse"
+          description: Reaction added successfully
         403:
-          $ref: "#/components/responses/403ForbiddenResponse"
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: "#/components/responses/404NotFoundResponse"
+          $ref: '#/components/responses/404NotFoundResponse'
+    delete:
+      tags:
+        - Rooms
+      summary: Remove a reaction from a message
+      operationId: removeReaction
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathMessageId'
+        - in: path
+          name: reaction
+          description: The reaction emoji (URL encoded)
+          schema:
+            type: string
+          required: true
+      responses:
+        204:
+          description: Reaction removed successfully
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/timeline:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves paginated timeline for a room including messages and system events
+      operationId: getTimeline
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - in: query
+          name: before
+          description: ISO-8601 timestamp cursor - return items before this date
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: beforeId
+          description: >
+            Message ID that anchors the page boundary together with `before`.
+            When provided alongside `before`, pagination uses a composite cursor
+            (created_at, id) < (before, beforeId) to avoid skipping messages that
+            share the same millisecond timestamp across page boundaries (BUG-12).
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: after
+          description: ISO-8601 timestamp cursor - return items after this date
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: around
+          description: ISO-8601 timestamp cursor - return items around this date
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: limit
+          description: Maximum number of items to return
+          schema:
+            type: integer
+            default: 50
+          required: false
+      responses:
+        200:
+          description: Timeline with items, pagination flags, and read markers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timeline'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/read:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves read markers for all room members
+      operationId: getRoomReadMarkers
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        200:
+          description: List of read markers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReadMarker'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+    put:
+      tags:
+        - Rooms
+      summary: Marks the room as read up to the given timeline item
+      operationId: markRead
+      description: Answers 400 when itemId is missing or blank, and 404 when the room does not exist or the item is not a message or system event of the room or is hidden by the caller's cleared history.
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - itemId
+              properties:
+                itemId:
+                  type: string
+                  description: id of the last read timeline item (message or system event); the marker becomes that item's creation time
+      responses:
+        204:
+          description: Read marker updated
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /inbox:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves inbox with last item and unread count per room
+      operationId: getInbox
+      responses:
+        200:
+          description: Inbox entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboxResponse'
+  /presence/batch:
+    post:
+      tags:
+        - Users
+      summary: Get presence status for multiple users
+      description: Any user's presence can be requested; at most 100 user IDs per request.
+      operationId: getPresenceBatch
+      requestBody:
+        description: List of user IDs
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresenceBatchRequest'
+      responses:
+        200:
+          description: Presence status list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresenceBatchResponse'
+        400:
+          $ref: "#/components/responses/400BadRequestResponse"
   /attachments/{fileId}:
     delete:
       tags:
@@ -516,6 +931,7 @@ paths:
         - Attachments
       summary: Retrieves info related to an uploaded attachment
       operationId: getAttachmentInfo
+      description: Answers 404 when the attachment is hidden by the caller's cleared history.
       parameters:
         - $ref: "#/components/parameters/pathFileId"
       responses:
@@ -531,6 +947,7 @@ paths:
         - Attachments
       summary: Retrieves an uploaded attachment
       operationId: getAttachment
+      description: Answers 404 when the attachment is hidden by the caller's cleared history.
       parameters:
         - $ref: "#/components/parameters/pathFileId"
       responses:
@@ -558,6 +975,8 @@ paths:
         - **crop**: True will crop the picture starting from the borders.
         This option will lose information, leaving it False will scale and
         have borders to fill the requested size.
+
+        Answers 404 when the file is hidden by the caller's cleared history.
       operationId: getImagePreview
       parameters:
         - $ref: "#/components/parameters/pathFileId"
@@ -588,6 +1007,8 @@ paths:
         height of the output image (>=0), width x height => 100x200.
         The first is width, the latter height, the order is important!
         - **shape**: Rounded and Rectangular are currently supported.
+
+        Answers 404 when the file is hidden by the caller's cleared history.
       operationId: getImageThumbnail
       parameters:
         - $ref: "#/components/parameters/pathFileId"
@@ -614,6 +1035,8 @@ paths:
         - **fileId**: UUID of the pdf
         - **first_page**: integer value of first page to preview (n>=1)
         - **last_page**: integer value of last page to preview (0 = last of the original pdf)
+
+        Answers 404 when the file is hidden by the caller's cleared history.
       operationId: getPdfPreview
       parameters:
         - $ref: "#/components/parameters/pathFileId"
@@ -642,6 +1065,8 @@ paths:
         height of the output image (>=0), width x height => 100x200.
         The first is width, the latter height, the order is important!
         - **shape**: Rounded and Rectangular are currently supported.
+
+        Answers 404 when the file is hidden by the caller's cleared history.
       operationId: getPdfThumbnail
       parameters:
         - $ref: "#/components/parameters/pathFileId"
@@ -674,6 +1099,8 @@ paths:
         - **crop**: True will crop the picture starting from the borders.
         This option will lose information, leaving it False will scale and
         have borders to fill the requested size.
+
+        Answers 404 when the file is hidden by the caller's cleared history.
       operationId: getVideoPreview
       parameters:
         - $ref: "#/components/parameters/pathFileId"
@@ -714,6 +1141,8 @@ paths:
         height of the output image (>=0), width x height => 100x200.
         The first is width, the latter height, the order is important!
         - **shape**: Rounded and Rectangular are currently supported.
+
+        Answers 404 when the file is hidden by the caller's cleared history.
       operationId: getVideoThumbnail
       parameters:
         - $ref: "#/components/parameters/pathFileId"
@@ -857,7 +1286,24 @@ paths:
         403:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: "#/components/responses/404NotFoundResponse"
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/decline:
+    post:
+      tags:
+        - Meetings
+      summary: Decline a meeting
+      operationId: declineMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204DeclineMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/leave:
     post:
       tags:
@@ -865,27 +1311,10 @@ paths:
       summary: Remove the current user to the specified meeting
       operationId: leaveMeeting
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
-      responses:
-        204:
-          $ref: '#/components/responses/204LeaveMeetingResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/decline:
-    post:
-      tags:
-        - Meetings
-      summary: Decline the current user from the specified meeting
-      operationId: declineMeeting
-      parameters:
         - $ref: "#/components/parameters/pathMeetingId"
       responses:
         204:
-          $ref: "#/components/responses/204DeclineMeetingResponse"
+          $ref: "#/components/responses/204LeaveMeetingResponse"
         401:
           $ref: "#/components/responses/401UnauthorizedResponse"
         403:
@@ -1129,6 +1558,14 @@ components:
         type: string
         format: uuid
       required: true
+    pathMessageId:
+      in: path
+      name: messageId
+      description: message identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
     pathPreviewArea:
       in: path
       name: area
@@ -1201,34 +1638,6 @@ components:
         type: integer
         format: int64
       required: true
-    headerDescription:
-      in: header
-      name: description
-      description: description encoded to unicode
-      schema:
-        type: string
-      required: false
-    headerMessageId:
-      in: header
-      name: messageId
-      description: description
-      schema:
-        type: string
-      required: false
-    headerReplyId:
-      in: header
-      name: replyId
-      description: identifier of the message being replied to
-      schema:
-        type: string
-      required: false
-    headerArea:
-      in: header
-      name: area
-      description: attachment's area
-      schema:
-        type: string
-      required: false
     queryAttachmentLimit:
       in: query
       name: limit
@@ -1376,14 +1785,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/BulkDeleteAttachmentsRequest"
-    InsertAttachmentRequest:
-      description: file stream
-      required: true
-      content:
-        application/octet-stream:
-          schema:
-            type: string
-            format: binary
     InsertAttachmentRequestMultipart:
       description: Attachment upload form data
       required: true
@@ -1397,31 +1798,25 @@ components:
                 type: string
                 format: binary
                 description: file to upload
+              contentLength:
+                type: integer
+                format: int64
+                description: content length
+              tempId:
+                type: string
+                description: client-generated temporary identifier for optimistic UI matching
               description:
                 type: string
                 description: description encoded to unicode
-              messageId:
-                type: string
-                description: identifier of the message
-              replyId:
+              replyToId:
                 type: string
                 description: identifier of the message being replied to
               area:
                 type: string
                 description: area of the attachment
-              contentLength:
-                type: integer
-                format: int64
-                description: content length
             required:
               - file
-    ForwardMessagesRequest:
-      description: Messages forwarding request
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ForwardMessagesList'
+              - contentLength
     JoinMeetingRequest:
       description: user request containing its streams settings to join a meeting
       required: true
@@ -1591,11 +1986,11 @@ components:
             items:
               $ref: '#/components/schemas/User'
     201InsertAttachmentResponse:
-      description: File identifier
+      description: Created message
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Id'
+            $ref: "#/components/schemas/Message"
     200ListRoomAttachmentsInfoResponse:
       description: Paged list of metadata of every attachment uploaded to the room
       content:
@@ -1641,9 +2036,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Meeting"
-    204ForwardMessagesResponse:
-      description: successfully forwarded the messages
+            $ref: '#/components/schemas/Meeting'
     200CreateMeetingResponse:
       description: The meeting just created
       content:
@@ -1686,10 +2079,10 @@ components:
       description: The queued user was updated successfully
     204DeleteMeetingResponse:
       description: The meeting was deleted successfully
+    204DeclineMeetingResponse:
+      description: Meeting declined
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
-    204DeclineMeetingResponse:
-      description: The user declined the meeting invitation successfully
     204AudioStreamResponse:
       description: The status of audio stream changed successfully
     204OfferAudioStreamResponse:
@@ -1717,7 +2110,9 @@ components:
     401UnauthorizedResponse:
       description: User not authorized
     403ForbiddenResponse:
-      description: The requester could not access the resource
+      description: >
+        The requester could not access the resource: the authenticated user is not active, does not
+        have the WSC feature enabled, or is not allowed to act on the room or resource
     404NotFoundResponse:
       description: The requested resource was not found
     409Conflict:
@@ -1794,7 +2189,6 @@ components:
       description: Health dependency types
       enum:
         - database
-        - xmpp_server
         - event_dispatcher
         - storage_service
         - previewer_service
@@ -2111,10 +2505,6 @@ components:
           type: string
           readOnly: true
           description: identifier of the XMPP message that carries this attachment
-        stanzaId:
-          type: string
-          readOnly: true
-          description: identifier assigned by MongooseIM to the XMPP stanza that delivered this attachment
         area:
           type: string
           readOnly: true
@@ -2215,26 +2605,6 @@ components:
         - Rectangular
       type: string
       description: Class representing all the image shape accepted values
-    ForwardMessagesList:
-      type: array
-      description: Room data
-      items:
-        $ref: "#/components/schemas/ForwardMessage"
-    ForwardMessage:
-      type: object
-      description: Message to forward
-      properties:
-        originalMessage:
-          type: string
-          description: XML message to forward
-        originalMessageSentAt:
-          type: string
-          format: date-time
-          description: date and time the original message was sent
-        description:
-          type: string
-          description: description of the forwarded message
-      required: [originalMessage]
     NewMeetingData:
       type: object
       properties:
@@ -2479,4 +2849,412 @@ components:
         userToModerate:
           type: string
           description: optionally lower the user's hand if I'm a moderator, only works if raised is false
-      required: [raised]
+      required: [ raised ]
+    Message:
+      type: object
+      description: A chat message
+      required: [id, roomId, senderId, text, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        replyToId:
+          type: string
+          format: uuid
+        editedInfo:
+          $ref: '#/components/schemas/EditedInfo'
+        deletedInfo:
+          $ref: '#/components/schemas/DeletedInfo'
+        forwardedInfo:
+          $ref: '#/components/schemas/ForwardedInfo'
+        attachmentId:
+          type: string
+          format: uuid
+    MessageSearchResult:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        hasMore:
+          type: boolean
+      required: [ messages, hasMore ]
+    InboxResponse:
+      type: object
+      description: Inbox payload, one entry per room the user is subscribed to
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxEntryDto'
+      required: [ conversations ]
+    InboxEntryDto:
+      type: object
+      description: |
+        A single conversation in the inbox. Carries everything needed to render a
+        conversation list row without further requests: the room with
+        presence-enriched members, the last item, the unread count and the
+        room's read markers.
+      properties:
+        roomId:
+          type: string
+          format: uuid
+        room:
+          $ref: '#/components/schemas/InboxRoom'
+        lastItem:
+          description: |
+            The newest item visible to the user, either a message or a system
+            event (discriminated by `itemType`), with the same shape as a
+            timeline item. Absent when the room has no visible item. Deleted
+            messages are skipped and items up to the user's cleared-history
+            point are excluded.
+          allOf:
+            - $ref: '#/components/schemas/TimelineItem'
+        unreadCount:
+          type: integer
+          description: |
+            Messages and system events not caused by the current user, newer than
+            the latest of the join time, the cleared history and the read
+            marker. Deleted messages are excluded. Capped at 1000.
+        muted:
+          type: boolean
+          description: indicates whether the current user has muted this room
+        markers:
+          type: array
+          description: read markers of every member of this room
+          items:
+            $ref: '#/components/schemas/ReadMarker'
+      required: [ roomId, room, unreadCount, muted, markers ]
+    InboxRoom:
+      type: object
+      description: |
+        Room summary embedded in an inbox entry. Distinct from `Room`: its members
+        are enriched with presence, and it omits fields not needed to render a
+        conversation list row.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: returned for group rooms only
+        description:
+          type: string
+          description: returned for group rooms only
+        type:
+          $ref: '#/components/schemas/RoomType'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxMember'
+        meetingId:
+          type: string
+          format: uuid
+        userSettings:
+          $ref: '#/components/schemas/RoomUserSettings'
+        pictureUpdatedAt:
+          type: string
+          format: date-time
+          description: returned only if the room picture was set at least once
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [ id, type, members ]
+    InboxMember:
+      type: object
+      description: A room member, enriched with presence state
+      properties:
+        userId:
+          type: string
+          format: uuid
+        owner:
+          type: boolean
+        online:
+          type: boolean
+        lastActivity:
+          type: string
+          format: date-time
+          description: |
+            last time the user went offline. Returned whether the user is online or
+            not, when a previous session is known.
+      required: [ userId, owner, online ]
+    EditMessageRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+    SendMessageRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        replyToId:
+          type: string
+          format: uuid
+        tempId:
+          type: string
+    ForwardMessageRequest:
+      type: object
+      required:
+        - toRoomId
+      properties:
+        toRoomId:
+          type: string
+          format: uuid
+    ForwardMessagesRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          items:
+            type: object
+            required:
+              - sourceRoomId
+              - messageId
+            properties:
+              sourceRoomId:
+                type: string
+                format: uuid
+              messageId:
+                type: string
+                format: uuid
+    PresenceBatchRequest:
+      type: object
+      required:
+        - userIds
+      properties:
+        userIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+    PresenceBatchResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/PresenceStatusDto'
+    PresenceStatusDto:
+      type: object
+      required:
+        - userId
+        - online
+      properties:
+        userId:
+          type: string
+          format: uuid
+        online:
+          type: boolean
+        lastActivity:
+          type: string
+          format: date-time
+          description: |
+            last time the user went offline. Returned whether the user is online or
+            not, when a previous session is known.
+    Timeline:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineItem'
+        hasMoreBefore:
+          type: boolean
+        hasMoreAfter:
+          type: boolean
+        markers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadMarker'
+      required: [items, hasMoreBefore, hasMoreAfter, markers]
+    TimelineItemType:
+      type: string
+      enum: [message, system_event]
+    TimelineItem:
+      type: object
+      discriminator:
+        propertyName: itemType
+        mapping:
+          message: '#/components/schemas/ChatMessageTimelineItem'
+          system_event: '#/components/schemas/SystemEventTimelineItem'
+      properties:
+        itemType:
+          $ref: '#/components/schemas/TimelineItemType'
+        createdAt:
+          type: string
+          format: date-time
+      required: [itemType, createdAt]
+    ChatMessageTimelineItem:
+      allOf:
+        - $ref: '#/components/schemas/TimelineItem'
+        - type: object
+          properties:
+            message:
+              $ref: '#/components/schemas/TimelineMessage'
+          required: [message]
+    SystemEventTimelineItem:
+      allOf:
+        - $ref: '#/components/schemas/TimelineItem'
+        - type: object
+          properties:
+            systemEvent:
+              $ref: '#/components/schemas/SystemEvent'
+          required: [systemEvent]
+    TimelineMessage:
+      type: object
+      description: A message within a timeline item
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        senderId:
+          type: string
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        replyToId:
+          type: string
+        editedInfo:
+          $ref: '#/components/schemas/EditedInfo'
+        deletedInfo:
+          $ref: '#/components/schemas/DeletedInfo'
+        forwardedInfo:
+          $ref: '#/components/schemas/ForwardedInfo'
+        attachment:
+          $ref: '#/components/schemas/MessageAttachment'
+        reactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReactionGroup'
+        repliedMessage:
+          description: >
+            The full message this one replies to, embedded depth-1 (the embedded message never
+            carries its own repliedMessage). Absent when the message is not a reply or when the
+            original is not visible to the caller (cleared / joined after it / hard-removed).
+          $ref: '#/components/schemas/TimelineMessage'
+      required: [id, roomId, senderId, text, createdAt]
+    EditedInfo:
+      type: object
+      properties:
+        editedAt:
+          type: string
+          format: date-time
+      required: [editedAt]
+    DeletedInfo:
+      type: object
+      properties:
+        deletedBy:
+          type: string
+        deletedAt:
+          type: string
+          format: date-time
+      required: [deletedBy, deletedAt]
+    ForwardedInfo:
+      type: object
+      properties:
+        originalSenderId:
+          type: string
+        originalSentAt:
+          type: string
+          format: date-time
+      required: [originalSenderId, originalSentAt]
+    MessageAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+          format: int64
+        area:
+          type: string
+          nullable: true
+      required: [id, name, mimeType, size]
+    ReactionGroup:
+      type: object
+      properties:
+        reaction:
+          type: string
+        userIds:
+          type: array
+          items:
+            type: string
+      required: [reaction, userIds]
+    SystemEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        type:
+          type: string
+        actorId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        content:
+          type: object
+          additionalProperties: true
+      required: [id, roomId, type, actorId, createdAt, content]
+    ReadMarker:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        itemCreatedAt:
+          type: string
+          format: date-time
+          description: creation time of the last timeline item read by the user
+      required: [userId, itemCreatedAt]
+    PinnedMessage:
+      type: object
+      properties:
+        messageId:
+          type: string
+        roomId:
+          type: string
+        pinnedBy:
+          type: string
+        pinnedAt:
+          type: string
+          format: date-time
+        message:
+          description: |
+            The pinned message, with the same shape as a timeline message. It
+            is returned even when it is hidden by the caller's cleared history;
+            clients compare `message.createdAt` with the clear point to decide
+            whether it can be opened. A reply carries `replyToId` and
+            `repliedMessage` only when the original is visible to the caller.
+          allOf:
+            - $ref: '#/components/schemas/TimelineMessage'
+      required: [messageId, roomId, pinnedBy, message]

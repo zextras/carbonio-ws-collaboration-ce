@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
+import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.data.type.UserType;
@@ -24,7 +25,9 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
@@ -140,6 +143,24 @@ class MeetingsApiServiceImplTest {
 
     Response response =
         meetingsApiService.joinMeeting(meetingId, JoinSettingsDto.create(), securityContext);
+
+    assertEquals(Status.OK.getStatusCode(), response.getStatus());
+  }
+
+  @Test
+  void joinMeeting_userWebSocketOnAnotherInstance_isAccepted() throws Exception {
+    MessageBrokerVideoserverHealthMonitor realMonitor =
+        new MessageBrokerVideoserverHealthMonitor(
+            new EventWebSocketSessions(new SessionPingManager()), new JacksonConfig().get());
+    realMonitor.notifyVideoServerReady();
+    MeetingsApiServiceImpl service =
+        new MeetingsApiServiceImpl(
+            meetingService, participantService, mock(CacheVideoServerSession.class), realMonitor);
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(participantService.insertMeetingParticipant(meetingId, JoinSettingsDto.create(), user1))
+        .thenReturn(JoinStatus.ACCEPTED);
+
+    Response response = service.joinMeeting(meetingId, JoinSettingsDto.create(), securityContext);
 
     assertEquals(Status.OK.getStatusCode(), response.getStatus());
   }

@@ -15,6 +15,7 @@ public class AttachmentFilter {
   @Nullable private MimeTypeCategory mimeTypeCategory;
   @Nullable private OffsetDateTime createdAfter;
   @Nullable private OffsetDateTime createdBefore;
+  @Nullable private OffsetDateTime visibleAfter;
   @Nullable private Long minSize;
   @Nullable private Long maxSize;
   private String sortBy;
@@ -51,6 +52,11 @@ public class AttachmentFilter {
 
   public AttachmentFilter createdBefore(@Nullable OffsetDateTime createdBefore) {
     this.createdBefore = createdBefore;
+    return this;
+  }
+
+  public AttachmentFilter visibleAfter(@Nullable OffsetDateTime visibleAfter) {
+    this.visibleAfter = visibleAfter;
     return this;
   }
 
@@ -97,6 +103,11 @@ public class AttachmentFilter {
   @Nullable
   public OffsetDateTime getCreatedBefore() {
     return createdBefore;
+  }
+
+  @Nullable
+  public OffsetDateTime getVisibleAfter() {
+    return visibleAfter;
   }
 
   @Nullable

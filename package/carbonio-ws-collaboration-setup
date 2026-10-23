@@ -65,6 +65,18 @@ EOF
     systemctl daemon-reload
 fi
 
+# Generate a stable service_id: reuse the one already in the HCL if present,
+# otherwise generate a new UUID. The service_id ends up in Consul Service.Meta
+# (same pattern as VideoServer) and is read at runtime via the agent API.
+CURRENT_ID=$(grep -oP 'service_id\s*=\s*"\K[0-9a-f-]+' \
+  /etc/zextras/service-discover/carbonio-ws-collaboration.hcl 2>/dev/null || true)
+
+if [[ -z "${CURRENT_ID}" || "${CURRENT_ID}" == "__SERVICE_ID__" ]]; then
+  SERVICE_ID=$(uuidgen)
+  sed -i "s|__SERVICE_ID__|${SERVICE_ID}|" \
+    /etc/zextras/service-discover/carbonio-ws-collaboration.hcl
+fi
+
 consul reload
 
 carbonio-ws-collaboration-configs

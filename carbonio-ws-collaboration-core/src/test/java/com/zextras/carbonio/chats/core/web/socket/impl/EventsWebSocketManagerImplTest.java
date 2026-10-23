@@ -17,6 +17,8 @@ import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
+import com.zextras.carbonio.chats.core.web.socket.WsPresenceManager;
+import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.Session;
@@ -56,6 +58,8 @@ class EventsWebSocketManagerImplTest {
             migrator,
             cacheVideoServerSession,
             participantService,
+            mock(WsActionRouter.class),
+            mock(WsPresenceManager.class),
             sessions);
 
     session = mock(Session.class);

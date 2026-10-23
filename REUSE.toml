@@ -34,6 +34,12 @@ SPDX-FileCopyrightText = "2025 Zextras"
 SPDX-License-Identifier = "AGPL-3.0-only"
 
 [[annotations]]
+path = "MIGRATION.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
 path = ".github/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Zextras"
@@ -94,6 +100,12 @@ SPDX-FileCopyrightText = "2023 Zextras"
 SPDX-License-Identifier = "CC-BY-NC-SA-4.0"
 
 [[annotations]]
+path = "carbonio-ws-collaboration-it/src/test/resources/mongoose-import/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Zextras <https://www.zextras.com>"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
 path = "carbonio-ws-collaboration-boot/src/main/resources/banner.txt"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2023 Zextras"
@@ -107,12 +119,6 @@ SPDX-License-Identifier = "AGPL-3.0-only"
 
 [[annotations]]
 path = "docs/xmpp-messages.md"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Zextras"
-SPDX-License-Identifier = "AGPL-3.0-only"
-
-[[annotations]]
-path = "docs/websocket-events.md"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Zextras"
 SPDX-License-Identifier = "AGPL-3.0-only"

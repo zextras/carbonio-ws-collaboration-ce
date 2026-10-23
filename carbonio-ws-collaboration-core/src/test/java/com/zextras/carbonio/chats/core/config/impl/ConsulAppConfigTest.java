@@ -86,7 +86,9 @@ class ConsulAppConfigTest {
 
         appConfig.load();
 
-        verify(kvCache, times(6)).addListener(listenerArgumentCaptor.capture());
+        // 5 distinct KV prefixes: carbonio-ws-collaboration/, carbonio-ws-collaboration-db/,
+        // carbonio-message-broker/, carbonio-message-dispatcher-db/, carbonio-videoserver/
+        verify(kvCache, times(5)).addListener(listenerArgumentCaptor.capture());
         Listener<String, Value> listener = listenerArgumentCaptor.getValue();
         assertNotNull(listener);
         listener.notify(
@@ -141,7 +143,8 @@ class ConsulAppConfigTest {
       verify(keyValueClient, times(1))
           .getValue(
               eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(7)).keyValueClient();
+      // 5 KVCache prefixes loaded by load() + 1 direct getValue() call = 6
+      verify(consulClient, times(6)).keyValueClient();
     }
 
     @Test

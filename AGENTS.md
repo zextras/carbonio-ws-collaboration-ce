@@ -26,10 +26,14 @@
 
 - Guice + Jetty + RestEasy (NOT Quarkus). CDI annotations do NOT apply.
 - Dependency injection: Guice modules in `core/config/module/`. `CoreModule` installs the always-on
-  modules (`WebModule`, `MessagingModule`, `UserModule`, `RoomModule`); `ExtensionModule` installs the
-  modules a downstream build may replace or extend (`DatabaseModule`, `AttachmentModule`,
-  `MeetingModule`, `WebSocketModule`). `BootModule` installs both. `@Provides` methods live in the
-  module that owns the feature.
+  modules (`WebModule`, `MessagingModule`, `UserModule`, `RoomModule`, `ChatModule`); `ExtensionModule`
+  installs the modules a downstream build may replace or extend (`DatabaseModule`, `AttachmentModule`,
+  `MeetingModule`, `WebSocketModule`). `BootModule` installs both, plus `ProductionConfig` +
+  `ConsulDiscoveryModule` (or `DockerConfig` + `DockerDiscoveryModule` when `APP_ENVIRONMENT=docker`).
+  `@Provides` methods live in the module that owns the feature.
+- `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
+  `RoomsApiServiceImpl.sendMessage` after a message is stored and broadcast; downstream builds add
+  listeners with `Multibinder.newSetBinder(binder(), MessageSentListener.class).addBinding()`.
 - **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
   dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit
   `bind(NewClass.class);` in the module that owns the feature (project convention, even though Guice can JIT-bind).
