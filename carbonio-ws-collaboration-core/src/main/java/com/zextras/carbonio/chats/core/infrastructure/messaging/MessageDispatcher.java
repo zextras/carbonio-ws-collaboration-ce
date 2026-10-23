@@ -31,7 +31,6 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param mimeType mime type of the file
    * @param originalSize size of the file
    * @param description optional message text attached to the upload
-   * @param messageId optional client-provided message ID
    * @param replyId optional ID of the message being replied to
    * @param area optional attachment area hint
    * @param tempId optional client-generated temporary identifier for optimistic UI matching
@@ -45,7 +44,6 @@ public interface MessageDispatcher extends HealthIndicator {
       String mimeType,
       long originalSize,
       String description,
-      @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area,
       @Nullable String tempId);

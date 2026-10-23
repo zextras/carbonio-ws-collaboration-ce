@@ -1603,6 +1603,7 @@ class MeetingApiIT {
       Optional<Meeting> meetingById = meetingTestUtils.getMeetingById(meetingId);
       assertTrue(meetingById.isPresent());
       assertFalse(meetingById.get().getActive());
+      assertEquals(0, meetingById.get().getParticipants().size());
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);

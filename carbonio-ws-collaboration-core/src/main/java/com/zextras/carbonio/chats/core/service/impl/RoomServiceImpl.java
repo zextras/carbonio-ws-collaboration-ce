@@ -421,7 +421,6 @@ public class RoomServiceImpl implements RoomService {
                 fileMetadataRepository.delete(metadata);
               });
     }
-    deleteRoom(room);
     roomRepository.delete(roomId.toString());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
@@ -429,10 +428,6 @@ public class RoomServiceImpl implements RoomService {
             .roomId(roomId)
             .type(EventType.ROOM_DELETED)
             .sentDate(OffsetDateTime.now()));
-  }
-
-  private void deleteRoom(Room room) {
-    // Member removal from XMPP is no longer needed; handled by DomainEvent system.
   }
 
   @Override
@@ -473,7 +468,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
     Room room =
         getRoom(roomId)
@@ -500,17 +494,8 @@ public class RoomServiceImpl implements RoomService {
               "User '%s' is not an owner of room '%s'", currentUser.getId(), room.getId()));
     }
 
-    attachmentService.deleteAttachmentsByRoomId(UUID.fromString(room.getId()), currentUser);
-    // message delete cascades reactions/pin (FK ON DELETE CASCADE); system events don't
-    messageRepository.deleteByRoomId(room.getId());
-    systemEventRepository.deleteByRoomId(room.getId());
-    SystemEvent systemEvent =
-        insertRoomSystemEvent(
-            room,
-            "ROOM_HISTORY_CLEARED",
-            currentUser.getId(),
-            systemEventContentFactory.roomHistoryCleared(currentUser.getId()),
-            null);
+    PurgedRoomHistory purged = purgeRoomHistoryRows(room, currentUser);
+    SystemEvent systemEvent = purged.systemEvent();
 
     List<String> subscribersIds =
         room.getSubscriptions().stream().map(Subscription::getUserId).toList();
@@ -527,7 +512,29 @@ public class RoomServiceImpl implements RoomService {
             .type(EventType.ROOM_HISTORY_CLEARED)
             .sentDate(OffsetDateTime.now()));
 
+    attachmentService.deleteAttachmentFiles(purged.attachmentIds(), currentUser);
+
     return clearedAt;
+  }
+
+  private record PurgedRoomHistory(List<String> attachmentIds, SystemEvent systemEvent) {}
+
+  @Transactional
+  private PurgedRoomHistory purgeRoomHistoryRows(Room room, UserPrincipal currentUser) {
+    List<String> attachmentIds =
+        fileMetadataRepository.getIdsByRoomIdAndType(room.getId(), FileMetadataType.ATTACHMENT);
+    fileMetadataRepository.deleteByIds(attachmentIds);
+    // message delete cascades reactions/pin (FK ON DELETE CASCADE); system events don't
+    messageRepository.deleteByRoomId(room.getId());
+    systemEventRepository.deleteByRoomId(room.getId());
+    SystemEvent systemEvent =
+        insertRoomSystemEvent(
+            room,
+            "ROOM_HISTORY_CLEARED",
+            currentUser.getId(),
+            systemEventContentFactory.roomHistoryCleared(currentUser.getId()),
+            null);
+    return new PurgedRoomHistory(attachmentIds, systemEvent);
   }
 
   private OffsetDateTime softClearHistoryForUser(Room room, UserPrincipal currentUser) {

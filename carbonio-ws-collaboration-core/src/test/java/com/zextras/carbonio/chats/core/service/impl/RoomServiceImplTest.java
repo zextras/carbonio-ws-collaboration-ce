@@ -319,20 +319,24 @@ class RoomServiceImplTest {
             + " is a member")
     void getRooms_testOkWithMembers() {
       when(roomRepository.getByUserId(user1Id.toString(), true))
-          .thenReturn(Arrays.asList(roomGroup1, roomOneToOne1));
+          .thenReturn(Arrays.asList(roomGroup1, roomOneToOne1, roomTemporary1));
 
       List<RoomDto> rooms =
           roomService.getRooms(List.of(RoomExtraFieldDto.MEMBERS), UserPrincipal.create(user1Id));
 
-      assertEquals(2, rooms.size());
+      assertEquals(3, rooms.size());
       assertEquals(roomGroup1Id.toString(), rooms.get(0).getId().toString());
       assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
       assertEquals(roomOneToOne1Id.toString(), rooms.get(1).getId().toString());
       assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertEquals(roomTemporary1Id, rooms.get(2).getId());
+      assertEquals(RoomTypeDto.TEMPORARY, rooms.get(2).getType());
       assertNotNull(rooms.get(0).getMembers());
       assertNotNull(rooms.get(1).getMembers());
+      assertNotNull(rooms.get(2).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertNull(rooms.get(2).getUserSettings());
     }
 
     @Test
@@ -1683,14 +1687,19 @@ class RoomServiceImplTest {
       when(roomUserSettingsRepository.getByRoomIdAndUserId(
               roomTemporary2Id.toString(), user1Id.toString()))
           .thenReturn(Optional.empty());
+      List<String> attachmentIds = List.of("attachment-1", "attachment-2");
+      when(fileMetadataRepository.getIdsByRoomIdAndType(
+              roomTemporary2Id.toString(), FileMetadataType.ATTACHMENT))
+          .thenReturn(attachmentIds);
 
       OffsetDateTime clearedAt =
           roomService.clearRoomHistory(roomTemporary2Id, UserPrincipal.create(user1Id));
       assertEquals(offsetDateTime, clearedAt);
 
       verify(roomRepository, times(1)).getById(roomTemporary2Id.toString());
+      verify(fileMetadataRepository, times(1)).deleteByIds(attachmentIds);
       verify(attachmentService, times(1))
-          .deleteAttachmentsByRoomId(roomTemporary2Id, UserPrincipal.create(user1Id));
+          .deleteAttachmentFiles(attachmentIds, UserPrincipal.create(user1Id));
       verify(messageRepository, times(1)).deleteByRoomId(roomTemporary2Id.toString());
       verify(systemEventRepository, times(1)).deleteByRoomId(roomTemporary2Id.toString());
       List<SystemEvent> events = insertedSystemEvents(1);
@@ -1699,10 +1708,20 @@ class RoomServiceImplTest {
       assertEquals(user1Id.toString(), event.getActorId());
       assertEquals(roomTemporary2Id.toString(), event.getRoomId());
       assertEquals("{\"clearedBy\":\"" + user1Id + "\"}", event.getContent());
-      InOrder inOrder = inOrder(systemEventRepository, chatMessageService);
+      InOrder inOrder =
+          inOrder(
+              fileMetadataRepository,
+              messageRepository,
+              systemEventRepository,
+              chatMessageService,
+              eventDispatcher,
+              attachmentService);
+      inOrder.verify(fileMetadataRepository).deleteByIds(attachmentIds);
+      inOrder.verify(messageRepository).deleteByRoomId(roomTemporary2Id.toString());
       inOrder.verify(systemEventRepository).deleteByRoomId(roomTemporary2Id.toString());
       inOrder.verify(chatMessageService).insertSystemEvent(event);
-      verify(eventDispatcher, times(1))
+      inOrder
+          .verify(eventDispatcher)
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomHistoryCleared.create()
@@ -1710,6 +1729,9 @@ class RoomServiceImplTest {
                   .clearedAt(clearedAt)
                   .clearedBy(user1Id)
                   .systemEventId(event.getId()));
+      inOrder
+          .verify(attachmentService)
+          .deleteAttachmentFiles(attachmentIds, UserPrincipal.create(user1Id));
       verifyNoMoreInteractions(
           roomRepository,
           roomUserSettingsRepository,

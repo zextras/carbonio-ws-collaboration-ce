@@ -20,6 +20,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.RoomMemberAdded;
 import com.zextras.carbonio.async.model.RoomMemberRemoved;
 import com.zextras.carbonio.async.model.RoomOwnerDemoted;
@@ -641,6 +643,38 @@ class MembersServiceImplTest {
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomOwnerPromoted.create().roomId(UUID.fromString(room.getId())).userId(user3Id));
+    }
+
+    @Test
+    @DisplayName("Owner update events carry their type and sent date")
+    void updateOwners_eventsCarryTypeAndSentDate() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
+      Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()).owner(true),
+              user2subscription,
+              user3subscription));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+
+      membersService.updateRoomOwners(
+          roomId,
+          List.of(
+              MemberDto.create().userId(user2Id).owner(true),
+              MemberDto.create().userId(user3Id).owner(false)),
+          principal);
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(subscriptionRepository, times(1))
+          .updateAll(List.of(user2subscription, user3subscription));
+      ArgumentCaptor<DomainEvent> events = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(2)).sendToUserExchange(anyList(), events.capture());
+      assertEquals(EventType.ROOM_OWNER_PROMOTED, events.getAllValues().get(0).getType());
+      assertNotNull(events.getAllValues().get(0).getSentDate());
+      assertEquals(EventType.ROOM_OWNER_DEMOTED, events.getAllValues().get(1).getType());
+      assertNotNull(events.getAllValues().get(1).getSentDate());
     }
 
     @Test

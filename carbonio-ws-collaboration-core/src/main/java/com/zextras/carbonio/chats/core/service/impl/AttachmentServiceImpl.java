@@ -12,7 +12,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Message;
-import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
@@ -190,7 +189,6 @@ public class AttachmentServiceImpl implements AttachmentService {
       Long contentLength,
       String fileName,
       String description,
-      @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area,
       @Nullable String tempId,
@@ -210,7 +208,6 @@ public class AttachmentServiceImpl implements AttachmentService {
               mimeType,
               contentLength,
               description,
-              messageId,
               replyId,
               area,
               tempId);
@@ -239,21 +236,11 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    Room room =
-        roomService.getRoomAndValidateUser(
-            UUID.fromString(metadata.getRoomId()), currentUser, false);
-    room.getSubscriptions().stream()
-        .filter(
-            subscription ->
-                subscription.getUserId().equals(currentUser.getId())
-                    && (subscription.getUserId().equals(metadata.getUserId())
-                        || subscription.isOwner()))
-        .findAny()
-        .orElseThrow(
-            () ->
-                new ForbiddenException(
-                    String.format(
-                        "User '%s' can not delete attachment '%s'", currentUser.getId(), fileId)));
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    if (!currentUser.getId().equals(metadata.getUserId())) {
+      throw new ForbiddenException(
+          String.format("User '%s' can not delete attachment '%s'", currentUser.getId(), fileId));
+    }
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     fileMetadataRepository.delete(metadata);
     // Fire-and-forget: delete the video preview in the preview service. Orphaned previews are
@@ -289,6 +276,28 @@ public class AttachmentServiceImpl implements AttachmentService {
       }
     } catch (StorageException e) {
       ChatsLogger.warn("Error while deleting attachments of room " + roomId, e);
+    }
+  }
+
+  @Override
+  public void deleteAttachmentFiles(List<String> fileIds, UserPrincipal currentUser) {
+    if (fileIds.isEmpty()) {
+      return;
+    }
+    try {
+      List<String> failedIds = storagesService.deleteFileList(fileIds, currentUser.getId());
+      if (!failedIds.isEmpty()) {
+        ChatsLogger.warn(
+            "Failed to delete "
+                + failedIds.size()
+                + " attachment file(s) from storage: "
+                + failedIds);
+      }
+      fileIds.stream()
+          .filter(id -> !failedIds.contains(id))
+          .forEach(id -> deleteVideoPreviewSilently(id, currentUser.getId()));
+    } catch (Exception e) {
+      ChatsLogger.warn("Error while deleting attachment files " + fileIds, e);
     }
   }
 

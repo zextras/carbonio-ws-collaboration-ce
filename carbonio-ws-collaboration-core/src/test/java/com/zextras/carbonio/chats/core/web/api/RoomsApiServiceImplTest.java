@@ -18,6 +18,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -111,6 +112,7 @@ class RoomsApiServiceImplTest {
   private final MessageRepository messageRepository;
   private final FileMetadataRepository fileMetadataRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final StoragesService storagesService;
 
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
@@ -126,7 +128,7 @@ class RoomsApiServiceImplTest {
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.messageRepository = mock(MessageRepository.class);
     this.messageWriteRepository = mock(MessageWriteRepository.class);
-    StoragesService storagesService = mock(StoragesService.class);
+    this.storagesService = mock(StoragesService.class);
     this.systemEventRepository = mock(SystemEventRepository.class);
     this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.messageSentListener = mock(MessageSentListener.class);
@@ -322,6 +324,19 @@ class RoomsApiServiceImplTest {
       verify(roomService, times(1)).createRoom(roomCreationFieldsDto, user1);
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Insert room without a type answers bad request")
+    void insertRoom_missingType() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      RoomCreationFieldsDto roomCreationFieldsDto = RoomCreationFieldsDto.create().name("room");
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertRoom(roomCreationFieldsDto, securityContext));
+      verifyNoInteractions(roomService);
     }
 
     @Test
@@ -1689,7 +1704,6 @@ class RoomsApiServiceImplTest {
               1024L,
               "fileName",
               "test",
-              null,
               "reply-id",
               "10x5",
               null,
@@ -2009,6 +2023,24 @@ class RoomsApiServiceImplTest {
 
     assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
     verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("deleteMessage leaves the attachment file of the deleted message in place")
+  void deleteMessage_keepsAttachmentFile() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(messageWriteRepository.deleteMessage(
+            messageId.toString(), roomId.toString(), user1Id.toString()))
+        .thenReturn(
+            Optional.of(
+                new MessageWriteRepository.DeleteResult(
+                    messageId.toString(), UUID.randomUUID().toString())));
+
+    Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
+
+    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    verifyNoInteractions(storagesService);
   }
 
   @Test

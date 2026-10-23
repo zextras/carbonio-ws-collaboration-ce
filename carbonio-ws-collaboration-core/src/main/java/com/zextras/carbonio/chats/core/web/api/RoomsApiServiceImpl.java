@@ -197,6 +197,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
+    if (insertRoomRequestDto.getType() == null) {
+      throw new BadRequestException("Room type is required");
+    }
     List<MemberDto> members =
         Optional.ofNullable(insertRoomRequestDto.getMembers()).orElse(List.of());
     if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType())) {
@@ -634,7 +637,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                   Long.parseLong(contentLength),
                   StringFormatUtils.decodeFromUtf8(fileName),
                   normalizeStringValue(description),
-                  null,
                   normalizeStringValue(replyToId),
                   normalizeStringValue(area),
                   normalizeStringValue(tempId),
@@ -1025,16 +1027,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
     MessageWriteRepository.DeleteResult deleted = result.get();
 
-    // Delete attachment blob from storage if present
-    if (deleted.attachmentId() != null) {
-      try {
-        storagesService.deleteFile(deleted.attachmentId(), currentUser.getId());
-      } catch (Exception e) {
-        ChatsLogger.warn(
-            "Failed to delete attachment file for message " + messageId + ": " + e.getMessage());
-      }
-    }
-
     try {
       WsEvent event =
           MessageDeleted.create()
@@ -1190,7 +1182,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         (after != null && !after.isBlank()) ? OffsetDateTime.parse(after) : null;
     OffsetDateTime beforeTs =
         (before != null && !before.isBlank()) ? OffsetDateTime.parse(before) : null;
-    // BUG-12: beforeId anchors the composite cursor (created_at, id) < (beforeTs, beforeId)
+    // beforeId anchors the composite cursor (created_at, id) < (beforeTs, beforeId)
     String effectiveBeforeId = (beforeId != null && !beforeId.isBlank()) ? beforeId : null;
 
     OffsetDateTime effectiveAfter = floor.clamp(afterTs);

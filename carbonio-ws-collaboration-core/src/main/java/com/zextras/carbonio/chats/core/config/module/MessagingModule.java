@@ -35,18 +35,12 @@ public class MessagingModule extends AbstractModule {
   @Singleton
   @Provides
   private MessageDispatcherCredentials getMessageDispatcherCredentials(AppConfig appConfig) {
-    String host =
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElse(null);
-    Integer port =
-        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElse(null);
-    String name =
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME).orElse(null);
-    String username =
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME).orElse(null);
-    String password =
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD).orElse(null);
     return new MessageDispatcherCredentials(
-        host != null ? host : "127.78.0.4", port != null ? port : 20003, name, username, password);
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElseThrow(),
+        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElseThrow(),
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME).orElse(null),
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME).orElse(null),
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD).orElse(null));
   }
 
   @Provides

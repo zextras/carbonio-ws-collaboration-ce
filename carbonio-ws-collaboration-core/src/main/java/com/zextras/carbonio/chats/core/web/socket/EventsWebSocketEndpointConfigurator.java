@@ -42,15 +42,17 @@ public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Co
     if (requested == null || requested.isEmpty()) {
       return "";
     }
+    return selectSubprotocol(supported, requested).orElse("NO_MATCH");
+  }
 
-    // We need to be sure that the chosen semantic version is the newest of those supported
+  /** Returns the newest semantic version among the requested ones that is also supported. */
+  public static Optional<String> selectSubprotocol(List<String> supported, List<String> requested) {
     return requested.stream()
         .filter(supported::contains)
         .map(version -> new AbstractMap.SimpleEntry<>(version, parseSemanticVersion(version)))
         .filter(entry -> entry.getValue().isPresent())
         .max(Comparator.comparing(e -> e.getValue().get()))
-        .map(Map.Entry::getKey)
-        .orElse("NO_MATCH");
+        .map(Map.Entry::getKey);
   }
 
   private static Optional<Semver> parseSemanticVersion(String subprotocol) {

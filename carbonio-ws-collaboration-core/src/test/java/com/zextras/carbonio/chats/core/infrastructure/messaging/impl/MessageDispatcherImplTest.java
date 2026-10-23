@@ -54,7 +54,7 @@ class MessageDispatcherImplTest {
 
   private Message send(String replyId) {
     return dispatcher.sendAttachment(
-        ROOM, USER, FILE, "f.png", "image/png", 10L, "", null, replyId, null, null);
+        ROOM, USER, FILE, "f.png", "image/png", 10L, "", replyId, null, null);
   }
 
   @Test

@@ -7,6 +7,8 @@ package com.zextras.carbonio.chats.core.web.security;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
+import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -19,20 +21,32 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class EventsWebSocketAuthenticationFilter implements Filter {
 
-  private final AuthenticationService authenticationService;
+  private static final String SEC_WEBSOCKET_PROTOCOL = "Sec-WebSocket-Protocol";
 
-  public EventsWebSocketAuthenticationFilter(AuthenticationService authenticationService) {
+  private final AuthenticationService authenticationService;
+  private final List<String> supportedSubprotocols;
+
+  public EventsWebSocketAuthenticationFilter(
+      AuthenticationService authenticationService, List<String> supportedSubprotocols) {
     this.authenticationService = authenticationService;
+    this.supportedSubprotocols = supportedSubprotocols;
   }
 
   public static EventsWebSocketAuthenticationFilter create(
       AuthenticationService authenticationService) {
-    return new EventsWebSocketAuthenticationFilter(authenticationService);
+    return create(authenticationService, VersionProvider.getSupportedVersions());
+  }
+
+  public static EventsWebSocketAuthenticationFilter create(
+      AuthenticationService authenticationService, List<String> supportedSubprotocols) {
+    return new EventsWebSocketAuthenticationFilter(authenticationService, supportedSubprotocols);
   }
 
   @Override
@@ -80,8 +94,27 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     }
     Map<String, String> capabilities = userMyself.getCapabilities();
 
+    List<String> requestedSubprotocols = requestedSubprotocols(httpRequest);
+    if (!requestedSubprotocols.isEmpty()
+        && EventsWebSocketEndpointConfigurator.selectSubprotocol(
+                supportedSubprotocols, requestedSubprotocols)
+            .isEmpty()) {
+      ChatsLogger.warn(
+          "Websocket handshake rejected: no supported sub-protocol in " + requestedSubprotocols);
+      httpServletResponse.setStatus(Status.BAD_REQUEST.getStatusCode());
+      return;
+    }
+
     String userId = userMyself.getInfo().getUserId();
     httpRequest.getSession().setAttribute("userId", userId);
     chain.doFilter(request, response);
+  }
+
+  private static List<String> requestedSubprotocols(HttpServletRequest httpRequest) {
+    return Collections.list(httpRequest.getHeaders(SEC_WEBSOCKET_PROTOCOL)).stream()
+        .flatMap(header -> Arrays.stream(header.split(",")))
+        .map(String::trim)
+        .filter(subprotocol -> !subprotocol.isEmpty())
+        .toList();
   }
 }

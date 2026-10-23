@@ -793,7 +793,7 @@ paths:
             Message ID that anchors the page boundary together with `before`.
             When provided alongside `before`, pagination uses a composite cursor
             (created_at, id) < (before, beforeId) to avoid skipping messages that
-            share the same millisecond timestamp across page boundaries (BUG-12).
+            share the same millisecond timestamp across page boundaries.
           schema:
             type: string
           required: false
@@ -2117,8 +2117,6 @@ components:
       description: The requested resource was not found
     409Conflict:
       description: The request conflict with the current state
-    413PayloadTooLargeResponse:
-      description: The request had a payload that was too big
     413VideoPreviewTooLargeResponse:
       description: >
         The source video exceeds the configured maximum size for preview generation, so no preview
@@ -2504,7 +2502,7 @@ components:
         messageId:
           type: string
           readOnly: true
-          description: identifier of the XMPP message that carries this attachment
+          description: identifier of the message that carries this attachment
         area:
           type: string
           readOnly: true
@@ -2898,9 +2896,9 @@ components:
         conversations:
           type: array
           items:
-            $ref: '#/components/schemas/InboxEntryDto'
+            $ref: '#/components/schemas/InboxEntry'
       required: [ conversations ]
-    InboxEntryDto:
+    InboxEntry:
       type: object
       description: |
         A single conversation in the inbox. Carries everything needed to render a
@@ -3053,8 +3051,8 @@ components:
     PresenceBatchResponse:
       type: array
       items:
-        $ref: '#/components/schemas/PresenceStatusDto'
-    PresenceStatusDto:
+        $ref: '#/components/schemas/PresenceStatus'
+    PresenceStatus:
       type: object
       required:
         - userId

@@ -78,7 +78,6 @@ public class MessageDispatcherImpl implements MessageDispatcher {
       String mimeType,
       long originalSize,
       String description,
-      @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area,
       @Nullable String tempId) {

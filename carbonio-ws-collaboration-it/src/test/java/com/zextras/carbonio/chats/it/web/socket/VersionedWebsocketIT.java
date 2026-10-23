@@ -518,7 +518,8 @@ class VersionedWebsocketIT {
           servletContext
               .addFilter(
                   "eventsWebSocketAuthenticationFilter",
-                  EventsWebSocketAuthenticationFilter.create(authenticationService))
+                  EventsWebSocketAuthenticationFilter.create(
+                      authenticationService, serverSupportedVersions))
               .addMappingForUrlPatterns(
                   EnumSet.of(DispatcherType.REQUEST),
                   false /* It's applied before other filters */,

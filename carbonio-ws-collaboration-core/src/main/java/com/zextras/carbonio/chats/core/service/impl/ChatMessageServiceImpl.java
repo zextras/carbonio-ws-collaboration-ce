@@ -108,7 +108,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   @Override
   public List<Message> getMessageHistory(
       String roomId, OffsetDateTime start, OffsetDateTime end, String endId, int limit) {
-    // Use composite cursor when both end timestamp and anchor ID are provided (BUG-12)
+    // Use composite cursor when both end timestamp and anchor ID are provided
     return messageRepository.getByRoomId(roomId, end, endId, start, limit);
   }
 

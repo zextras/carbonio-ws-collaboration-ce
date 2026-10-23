@@ -732,7 +732,6 @@ public class AttachmentServiceImplTest {
               anyString(),
               anyLong(),
               anyString(),
-              anyString(),
               any(),
               any(),
               any()))
@@ -750,7 +749,6 @@ public class AttachmentServiceImplTest {
             1024L,
             "temp.pdf",
             "description",
-            "",
             null,
             null,
             null,
@@ -787,7 +785,6 @@ public class AttachmentServiceImplTest {
                     null,
                     null,
                     null,
-                    null,
                     currentUser));
       }
 
@@ -816,7 +813,6 @@ public class AttachmentServiceImplTest {
                     1024L,
                     "temp.pdf",
                     "description",
-                    null,
                     null,
                     null,
                     null,
@@ -850,7 +846,6 @@ public class AttachmentServiceImplTest {
                     1024L,
                     "temp.pdf",
                     "description",
-                    "",
                     null,
                     null,
                     null,
@@ -885,7 +880,6 @@ public class AttachmentServiceImplTest {
               any(),
               any(),
               any(),
-              any(),
               any()))
           .thenThrow(new NotFoundException("Reply target not found"));
 
@@ -903,7 +897,6 @@ public class AttachmentServiceImplTest {
                     1024L,
                     "temp.pdf",
                     "",
-                    null,
                     "reply",
                     null,
                     null,
@@ -1007,8 +1000,8 @@ public class AttachmentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Correctly deletes the attachment by room owner")
-    void deleteAttachment_testOkByRoomOwner() {
+    @DisplayName("Throws a forbidden exception if a room owner deletes another user's attachment")
+    void deleteAttachment_roomOwnerIsNotUploader() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       FileMetadata expectedMetadata =
@@ -1024,12 +1017,12 @@ public class AttachmentServiceImplTest {
           .thenReturn(Optional.of(expectedMetadata));
       when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
 
-      attachmentService.deleteAttachment(attachmentUuid, currentUser);
+      assertThrows(
+          ForbiddenException.class,
+          () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
 
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
-      verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
-      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
       verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
@@ -1080,7 +1073,7 @@ public class AttachmentServiceImplTest {
     @DisplayName("Re throws an exception when storages throws an exception")
     void deleteAttachment_testStoragesThrowsError() {
       UUID attachmentUuid = UUID.randomUUID();
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
       FileMetadata expectedMetadata =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
@@ -1108,9 +1101,8 @@ public class AttachmentServiceImplTest {
     }
 
     @Test
-    @DisplayName(
-        "Throws a forbidden exception if authenticated user isn't attachment owner or room owner")
-    void deleteAttachment_testAuthenticatedUserIsNotAttachmentOwnerOrRoomOwner() {
+    @DisplayName("Throws a forbidden exception if authenticated user isn't attachment owner")
+    void deleteAttachment_testAuthenticatedUserIsNotAttachmentOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user3Id);
       FileMetadata expectedMetadata =
@@ -1242,6 +1234,50 @@ public class AttachmentServiceImplTest {
               user2Id.toString());
       verifyNoInteractions(storagesService);
       verifyNoMoreInteractions(fileMetadataRepository);
+    }
+  }
+
+  @Nested
+  @DisplayName("Delete attachment files tests")
+  class DeleteAttachmentFilesTests {
+
+    @Test
+    @DisplayName("Deletes the stored files and leaves the metadata untouched")
+    void deleteAttachmentFiles_testOk() {
+      String file1Id = UUID.randomUUID().toString();
+      String file2Id = UUID.randomUUID().toString();
+      when(storagesService.deleteFileList(List.of(file1Id, file2Id), user1Id.toString()))
+          .thenReturn(List.of(file2Id));
+
+      attachmentService.deleteAttachmentFiles(
+          List.of(file1Id, file2Id), UserPrincipal.create(user1Id));
+
+      verify(storagesService, times(1))
+          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
+      verifyNoMoreInteractions(storagesService, fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Does nothing when there are no files")
+    void deleteAttachmentFiles_noFiles() {
+      attachmentService.deleteAttachmentFiles(List.of(), UserPrincipal.create(user1Id));
+
+      verifyNoInteractions(storagesService, fileMetadataRepository, previewClient);
+    }
+
+    @Test
+    @DisplayName("Does not propagate a storage failure")
+    void deleteAttachmentFiles_storageFails() {
+      String fileId = UUID.randomUUID().toString();
+      when(storagesService.deleteFileList(List.of(fileId), user1Id.toString()))
+          .thenThrow(new StorageException("storage down"));
+
+      assertDoesNotThrow(
+          () ->
+              attachmentService.deleteAttachmentFiles(
+                  List.of(fileId), UserPrincipal.create(user1Id)));
+
+      verifyNoInteractions(fileMetadataRepository, previewClient);
     }
   }
 

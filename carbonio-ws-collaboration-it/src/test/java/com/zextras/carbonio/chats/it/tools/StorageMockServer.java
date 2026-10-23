@@ -116,7 +116,9 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
   public void setBulkDeleteResponse(List<String> requestIds, List<String> responseIds) {
     HttpRequest request = getBulkDeleteRequest(requestIds);
     clear(request);
-    if (responseIds != null) {
+    if (responseIds != null && responseIds.isEmpty()) {
+      when(request).respond(response().withStatusCode(200).withBody(JsonBody.json("{\"ids\":[]}")));
+    } else if (responseIds != null) {
       StoragesBulkDeleteResponse responseBody = new StoragesBulkDeleteResponse();
       responseBody.setIds(
           responseIds.stream()

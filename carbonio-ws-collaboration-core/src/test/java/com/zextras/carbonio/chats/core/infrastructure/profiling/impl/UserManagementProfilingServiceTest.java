@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -26,6 +27,7 @@ import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -131,6 +133,32 @@ class UserManagementProfilingServiceTest {
               profilingService.getById(
                   UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID));
     }
+
+    @Test
+    @DisplayName("Returns the requested guest user correctly mapped")
+    void getById_testGuestOk() throws ApiException {
+      UUID randomUUID = UUID.randomUUID();
+      UserInfoDto userInfo =
+          buildUserInfoDto(
+              randomUUID.toString(),
+              "guest@test.com",
+              "name guest",
+              "mydomain.com",
+              "active",
+              "GUEST");
+      when(userResourceApi.internalUsersIdUserIdGet(anyString())).thenReturn(userInfo);
+
+      Optional<UserProfile> userProfile =
+          profilingService.getById(
+              UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
+
+      assertTrue(userProfile.isPresent());
+      assertEquals(randomUUID.toString(), userProfile.get().getId());
+      assertEquals("guest@test.com", userProfile.get().getEmail());
+      assertEquals("name guest", userProfile.get().getName());
+      assertEquals("mydomain.com", userProfile.get().getDomain());
+      assertEquals(UserType.GUEST, userProfile.get().getType());
+    }
   }
 
   @Nested
@@ -153,6 +181,70 @@ class UserManagementProfilingServiceTest {
       boolean isAlive = assertDoesNotThrow(serviceWithRealClient::isAlive);
 
       assertFalse(isAlive);
+    }
+  }
+
+  @Nested
+  @DisplayName("Get by ids tests")
+  class GetByIdsTests {
+
+    @Test
+    @DisplayName("Returns the requested users correctly mapped")
+    void getByIds_testOk() throws ApiException {
+      UUID userId1 = UUID.randomUUID();
+      UUID userId2 = UUID.randomUUID();
+      UserInfoDto user1 =
+          buildUserInfoDto(
+              userId1.toString(),
+              "user1@test.com",
+              "User One",
+              "mydomain.com",
+              "active",
+              "INTERNAL");
+      UserInfoDto user2 =
+          buildUserInfoDto(
+              userId2.toString(), "user2@test.com", "User Two", "mydomain.com", "active", "GUEST");
+
+      when(userResourceApi.internalUsersPost(anyList())).thenReturn(List.of(user1, user2));
+
+      List<UserProfile> profiles =
+          profilingService.getByIds(
+              UserPrincipal.create(userId1).authToken("cookie"),
+              List.of(userId1.toString(), userId2.toString()));
+
+      assertEquals(2, profiles.size());
+      assertEquals(userId1.toString(), profiles.get(0).getId());
+      assertEquals("User One", profiles.get(0).getName());
+      assertEquals(UserType.INTERNAL, profiles.get(0).getType());
+      assertEquals(userId2.toString(), profiles.get(1).getId());
+      assertEquals("User Two", profiles.get(1).getName());
+      assertEquals(UserType.GUEST, profiles.get(1).getType());
+    }
+
+    @Test
+    @DisplayName("Throws a forbidden exception when the user doesn't have an authentication token")
+    void getByIds_testForbiddenException() {
+      UUID randomUUID = UUID.randomUUID();
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              profilingService.getByIds(
+                  UserPrincipal.create(randomUUID).authToken(null),
+                  List.of(randomUUID.toString())));
+    }
+
+    @Test
+    @DisplayName("Throws a profiling exception when the call fails")
+    void getByIds_testException() throws ApiException {
+      UUID randomUUID = UUID.randomUUID();
+      when(userResourceApi.internalUsersPost(anyList()))
+          .thenThrow(new ApiException(500, "Internal Server Error"));
+      assertThrows(
+          ProfilingException.class,
+          () ->
+              profilingService.getByIds(
+                  UserPrincipal.create(randomUUID).authToken("cookie"),
+                  List.of(randomUUID.toString())));
     }
   }
 }

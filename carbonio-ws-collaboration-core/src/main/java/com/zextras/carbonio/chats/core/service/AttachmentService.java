@@ -65,7 +65,6 @@ public interface AttachmentService {
    * @param contentLength file content length
    * @param fileName file name
    * @param description file description
-   * @param messageId identifier of XMPP message to create
    * @param replyId identifier of the message being replied to
    * @param area attachment's area
    * @param tempId client-generated temporary identifier for optimistic UI matching
@@ -80,7 +79,6 @@ public interface AttachmentService {
       Long contentLength,
       String fileName,
       String description,
-      @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area,
       @Nullable String tempId,
@@ -101,6 +99,15 @@ public interface AttachmentService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void deleteAttachmentsByRoomId(UUID roomId, UserPrincipal currentUser);
+
+  /**
+   * Deletes the stored files of attachments whose metadata has already been deleted, and their
+   * video previews. Failures are logged, not propagated.
+   *
+   * @param fileIds attachment identifiers
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void deleteAttachmentFiles(List<String> fileIds, UserPrincipal currentUser);
 
   /**
    * Bulk deletes a list of attachments scoped to a specific room. The requesting user must be a

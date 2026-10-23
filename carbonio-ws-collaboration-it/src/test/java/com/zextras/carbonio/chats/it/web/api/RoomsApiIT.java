@@ -40,6 +40,8 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsRequestDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -1497,6 +1499,8 @@ public class RoomsApiIT {
             fileMetadataRepository
                 .getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT)
                 .isEmpty());
+        assertTrue(fileMetadataRepository.getById(file1Id).isEmpty());
+        assertTrue(fileMetadataRepository.getById(file2Id).isEmpty());
       }
 
       @Test
@@ -3092,6 +3096,7 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachments =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(4, attachments.getAttachments().size());
+      assertEquals(4L, attachments.getTotal());
       assertEquals(
           List.of(file3.getId(), file4.getId(), file1.getId(), file2.getId()),
           attachments.getAttachments().stream()
@@ -3152,6 +3157,7 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachmentsPage1 =
           objectMapper.readValue(response1.getContentAsString(), AttachmentsPaginationDto.class);
       assertEquals(2, attachmentsPage1.getAttachments().size());
+      assertEquals(4L, attachmentsPage1.getTotal());
       assertEquals(
           List.of(file3.getId(), file1.getId()),
           attachmentsPage1.getAttachments().stream()
@@ -3167,6 +3173,7 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachmentsPage2 =
           objectMapper.readValue(response2.getContentAsString(), AttachmentsPaginationDto.class);
       assertEquals(2, attachmentsPage2.getAttachments().size());
+      assertEquals(4L, attachmentsPage2.getTotal());
       assertEquals(
           List.of(file4.getId(), file2.getId()),
           attachmentsPage2.getAttachments().stream()
@@ -3272,6 +3279,391 @@ public class RoomsApiIT {
               url(room1Id) + "?mimeType=image%2Fpng&mimeTypeCategory=IMAGES", user1Token);
 
       assertEquals(400, response.getStatus());
+    }
+
+    @Test
+    @DisplayName(
+        "Pagination cursor correctly includes items whose ID is lexicographically greater than the"
+            + " cursor item's ID when they have an older timestamp")
+    void listRoomAttachmentInfo_cursorIncludesItemsWithLargerIdOnNextPage() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      // Page 1 will end with this item (small ID, newer timestamp → cursor encodes this)
+      clock.fixTimeAt(Instant.parse("2022-06-01T00:00:00Z"));
+      FileMetadata smallIdFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.fromString("1aaaaaaa-0000-0000-0000-000000000000"),
+              "small id file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+
+      // Page 2 must include this item: ID > cursor ID but timestamp < cursor timestamp
+      // The buggy query would skip it because `id < cursor_id` fails for 'f' > '1'
+      clock.fixTimeAt(Instant.parse("2021-01-01T00:00:00Z"));
+      FileMetadata largeIdFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.fromString("faaaaaaa-0000-0000-0000-000000000000"),
+              "large id file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+      clock.removeFixTime();
+
+      MockHttpResponse response1 = dispatcher.get(url(room1Id) + "?limit=1", user1Token);
+      assertEquals(200, response1.getStatus());
+      AttachmentsPaginationDto page1 =
+          objectMapper.readValue(response1.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, page1.getAttachments().size());
+      assertEquals(smallIdFile.getId(), page1.getAttachments().get(0).getId().toString());
+      assertNotNull(page1.getCursor());
+
+      MockHttpResponse response2 =
+          dispatcher.get(url(room1Id) + "?limit=1&cursor=" + page1.getCursor(), user1Token);
+      assertEquals(200, response2.getStatus());
+      AttachmentsPaginationDto page2 =
+          objectMapper.readValue(response2.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, page2.getAttachments().size());
+      assertEquals(largeIdFile.getId(), page2.getAttachments().get(0).getId().toString());
+      assertNull(page2.getCursor());
+    }
+
+    @Test
+    @DisplayName("Given a userId filter, returns only that user's attachments")
+    void listRoomAttachmentInfo_filterByUserId() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(),
+          "user1 attachment 1",
+          "image/png",
+          FileMetadataType.ATTACHMENT,
+          user1Id,
+          room1Id);
+      FileMetadata file2 =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "user2 attachment",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user2Id,
+              room1Id);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(),
+          "user1 attachment 2",
+          "image/png",
+          FileMetadataType.ATTACHMENT,
+          user1Id,
+          room1Id);
+
+      MockHttpResponse response = dispatcher.get(url(room1Id) + "?userId=" + user2Id, user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, result.getAttachments().size());
+      assertEquals(1L, result.getTotal());
+      assertEquals(file2.getId(), result.getAttachments().get(0).getId().toString());
+    }
+
+    @Test
+    @DisplayName("Given an exact mimeType filter, returns only matching attachments")
+    void listRoomAttachmentInfo_filterByExactMimeType() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      FileMetadata pdfFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "document",
+              "application/pdf",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(), "image", "image/png", FileMetadataType.ATTACHMENT, user1Id, room1Id);
+
+      MockHttpResponse response =
+          dispatcher.get(url(room1Id) + "?mimeType=application%2Fpdf", user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, result.getAttachments().size());
+      assertEquals(pdfFile.getId(), result.getAttachments().get(0).getId().toString());
+    }
+
+    @Test
+    @DisplayName("Given a mimeType prefix filter ending with '/', returns all matching attachments")
+    void listRoomAttachmentInfo_filterByMimeTypePrefix() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      FileMetadata imagePng =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "image png",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+      FileMetadata imageJpeg =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "image jpeg",
+              "image/jpeg",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(),
+          "pdf doc",
+          "application/pdf",
+          FileMetadataType.ATTACHMENT,
+          user1Id,
+          room1Id);
+
+      MockHttpResponse response = dispatcher.get(url(room1Id) + "?mimeType=image%2F", user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(2, result.getAttachments().size());
+      assertEquals(2L, result.getTotal());
+      assertTrue(
+          result.getAttachments().stream()
+              .map(a -> a.getId().toString())
+              .toList()
+              .containsAll(List.of(imagePng.getId(), imageJpeg.getId())));
+    }
+
+    @Test
+    @DisplayName("Given timestamp range filters, returns only in-range attachments")
+    void listRoomAttachmentInfo_filterByTimestampRange() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      clock.fixTimeAt(Instant.parse("2021-01-01T00:00:00Z"));
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(),
+          "old file",
+          "image/png",
+          FileMetadataType.ATTACHMENT,
+          user1Id,
+          room1Id);
+
+      clock.fixTimeAt(Instant.parse("2022-06-15T00:00:00Z"));
+      FileMetadata inRangeFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "in-range file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+
+      clock.fixTimeAt(Instant.parse("2023-12-31T00:00:00Z"));
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(),
+          "new file",
+          "image/png",
+          FileMetadataType.ATTACHMENT,
+          user1Id,
+          room1Id);
+      clock.removeFixTime();
+
+      MockHttpResponse response =
+          dispatcher.get(
+              url(room1Id)
+                  + "?createdAfter=2022-01-01T00:00:00Z&createdBefore=2023-01-01T00:00:00Z",
+              user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, result.getAttachments().size());
+      assertEquals(inRangeFile.getId(), result.getAttachments().get(0).getId().toString());
+    }
+
+    @Test
+    @DisplayName("Given size range filters, returns only attachments within the size range")
+    void listRoomAttachmentInfo_filterByMinAndMaxSize() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      fileMetadataRepository.save(
+          FileMetadata.create()
+              .id(UUID.randomUUID().toString())
+              .name("small file")
+              .originalSize(100L)
+              .mimeType("image/png")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(room1Id.toString()));
+      FileMetadata mediumFile =
+          fileMetadataRepository.save(
+              FileMetadata.create()
+                  .id(UUID.randomUUID().toString())
+                  .name("medium file")
+                  .originalSize(5000L)
+                  .mimeType("image/png")
+                  .type(FileMetadataType.ATTACHMENT)
+                  .userId(user1Id.toString())
+                  .roomId(room1Id.toString()));
+      fileMetadataRepository.save(
+          FileMetadata.create()
+              .id(UUID.randomUUID().toString())
+              .name("large file")
+              .originalSize(100000L)
+              .mimeType("image/png")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(room1Id.toString()));
+
+      MockHttpResponse response =
+          dispatcher.get(url(room1Id) + "?minSize=500&maxSize=10000", user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, result.getAttachments().size());
+      assertEquals(mediumFile.getId(), result.getAttachments().get(0).getId().toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Given sortBy=size and order=desc, returns attachments sorted by size descending"
+            + " with correct pagination cursor")
+    void listRoomAttachmentInfo_sortBySizeDescWithPagination() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      FileMetadata largeFile =
+          fileMetadataRepository.save(
+              FileMetadata.create()
+                  .id(UUID.fromString("c1000000-0000-0000-0000-000000000001").toString())
+                  .name("large file")
+                  .originalSize(10000L)
+                  .mimeType("image/png")
+                  .type(FileMetadataType.ATTACHMENT)
+                  .userId(user1Id.toString())
+                  .roomId(room1Id.toString()));
+      FileMetadata mediumFile =
+          fileMetadataRepository.save(
+              FileMetadata.create()
+                  .id(UUID.fromString("b1000000-0000-0000-0000-000000000001").toString())
+                  .name("medium file")
+                  .originalSize(5000L)
+                  .mimeType("image/png")
+                  .type(FileMetadataType.ATTACHMENT)
+                  .userId(user1Id.toString())
+                  .roomId(room1Id.toString()));
+      FileMetadata smallFile =
+          fileMetadataRepository.save(
+              FileMetadata.create()
+                  .id(UUID.fromString("a1000000-0000-0000-0000-000000000001").toString())
+                  .name("small file")
+                  .originalSize(100L)
+                  .mimeType("image/png")
+                  .type(FileMetadataType.ATTACHMENT)
+                  .userId(user1Id.toString())
+                  .roomId(room1Id.toString()));
+
+      MockHttpResponse response1 =
+          dispatcher.get(url(room1Id) + "?limit=2&sortBy=size&order=desc", user1Token);
+
+      assertEquals(200, response1.getStatus());
+      AttachmentsPaginationDto page1 =
+          objectMapper.readValue(response1.getContentAsString(), new TypeReference<>() {});
+      assertEquals(2, page1.getAttachments().size());
+      assertEquals(
+          List.of(largeFile.getId(), mediumFile.getId()),
+          page1.getAttachments().stream().map(a -> a.getId().toString()).toList());
+      assertNotNull(page1.getCursor());
+
+      MockHttpResponse response2 =
+          dispatcher.get(
+              url(room1Id) + "?limit=2&sortBy=size&order=desc&cursor=" + page1.getCursor(),
+              user1Token);
+
+      assertEquals(200, response2.getStatus());
+      AttachmentsPaginationDto page2 =
+          objectMapper.readValue(response2.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, page2.getAttachments().size());
+      assertEquals(smallFile.getId(), page2.getAttachments().get(0).getId().toString());
+      assertNull(page2.getCursor());
+    }
+
+    @Test
+    @DisplayName(
+        "Given sortBy=created_at, returns attachments sorted by creation date in the requested"
+            + " order")
+    void listRoomAttachmentInfo_sortByCreatedAt() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      clock.fixTimeAt(Instant.parse("2021-01-01T00:00:00Z"));
+      FileMetadata oldestFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "oldest file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+
+      clock.fixTimeAt(Instant.parse("2022-06-15T00:00:00Z"));
+      FileMetadata middleFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "middle file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+
+      clock.fixTimeAt(Instant.parse("2023-12-31T00:00:00Z"));
+      FileMetadata newestFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "newest file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+      clock.removeFixTime();
+
+      MockHttpResponse ascResponse =
+          dispatcher.get(url(room1Id) + "?sortBy=created_at&order=asc", user1Token);
+      assertEquals(200, ascResponse.getStatus());
+      AttachmentsPaginationDto ascResult =
+          objectMapper.readValue(ascResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals(3, ascResult.getAttachments().size());
+      assertEquals(
+          List.of(oldestFile.getId(), middleFile.getId(), newestFile.getId()),
+          ascResult.getAttachments().stream().map(a -> a.getId().toString()).toList());
+
+      MockHttpResponse descResponse =
+          dispatcher.get(url(room1Id) + "?sortBy=created_at&order=desc", user1Token);
+      assertEquals(200, descResponse.getStatus());
+      AttachmentsPaginationDto descResult =
+          objectMapper.readValue(descResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals(3, descResult.getAttachments().size());
+      assertEquals(
+          List.of(newestFile.getId(), middleFile.getId(), oldestFile.getId()),
+          descResult.getAttachments().stream().map(a -> a.getId().toString()).toList());
     }
   }
 
@@ -3523,6 +3915,140 @@ public class RoomsApiIT {
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
+    }
+  }
+
+  @Nested
+  @DisplayName("Bulk delete room attachments tests")
+  class BulkDeleteRoomAttachmentsTests {
+
+    private String url(UUID roomId) {
+      return String.format("/rooms/%s/attachments", roomId);
+    }
+
+    @Test
+    @DisplayName("Room member bulk deletes their own attachments in the room, returns 200")
+    void bulkDeleteRoomAttachments_testOk() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
+      FileMetadata file1 =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+
+      // storages bulkDelete returns the FAILED (not-deleted) ids: empty => all deleted
+      storageMockServer.setBulkDeleteResponse(List.of(file1.getId()), List.of());
+
+      String requestBody =
+          objectMapper.writeValueAsString(
+              BulkDeleteAttachmentsRequestDto.create()
+                  .attachmentIds(List.of(UUID.fromString(file1.getId()))));
+
+      MockHttpResponse response = dispatcher.delete(url(room1Id), requestBody, user1Token);
+
+      assertEquals(200, response.getStatus());
+      BulkDeleteAttachmentsResponseDto result =
+          objectMapper.readValue(
+              response.getContentAsString(), BulkDeleteAttachmentsResponseDto.class);
+      assertEquals(List.of(UUID.fromString(file1.getId())), result.getSuccessIds());
+      assertTrue(result.getFailedIds().isEmpty());
+      assertTrue(fileMetadataRepository.getById(file1.getId()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Non-member trying to bulk delete returns 403")
+    void bulkDeleteRoomAttachments_testNotMember() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
+
+      String requestBody =
+          objectMapper.writeValueAsString(
+              BulkDeleteAttachmentsRequestDto.create().attachmentIds(List.of(UUID.randomUUID())));
+
+      MockHttpResponse response = dispatcher.delete(url(room1Id), requestBody, user3Token);
+
+      assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Member trying to delete another user's attachment returns 403")
+    void bulkDeleteRoomAttachments_testNotOwner() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      FileMetadata file1 =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+
+      String requestBody =
+          objectMapper.writeValueAsString(
+              BulkDeleteAttachmentsRequestDto.create()
+                  .attachmentIds(List.of(UUID.fromString(file1.getId()))));
+
+      MockHttpResponse response = dispatcher.delete(url(room1Id), requestBody, user3Token);
+
+      assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Bulk delete with a non-existent or inaccessible file id returns 403")
+    void bulkDeleteRoomAttachments_testFileNotFound() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
+
+      String requestBody =
+          objectMapper.writeValueAsString(
+              BulkDeleteAttachmentsRequestDto.create().attachmentIds(List.of(UUID.randomUUID())));
+
+      MockHttpResponse response = dispatcher.delete(url(room1Id), requestBody, user1Token);
+
+      assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Bulk delete with a file that belongs to a different room returns 403")
+    void bulkDeleteRoomAttachments_testFileNotInRoom() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      UUID room2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
+      integrationTestUtils.generateAndSaveRoom(
+          room2Id, RoomTypeDto.GROUP, "room2", List.of(user1Id, user2Id));
+      FileMetadata file1 =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room2Id);
+
+      String requestBody =
+          objectMapper.writeValueAsString(
+              BulkDeleteAttachmentsRequestDto.create()
+                  .attachmentIds(List.of(UUID.fromString(file1.getId()))));
+
+      MockHttpResponse response = dispatcher.delete(url(room1Id), requestBody, user1Token);
+
+      assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Unauthenticated request returns 401")
+    void bulkDeleteRoomAttachments_testUnauthenticated() throws Exception {
+      String requestBody =
+          objectMapper.writeValueAsString(
+              BulkDeleteAttachmentsRequestDto.create().attachmentIds(List.of(UUID.randomUUID())));
+
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), requestBody, null);
+
+      assertEquals(401, response.getStatus());
     }
   }
 }

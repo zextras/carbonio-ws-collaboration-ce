@@ -97,7 +97,6 @@ public class MembersServiceImpl implements MembersService {
     List<String> addedUserIds = new ArrayList<>();
     List<List<String>> receiversPerMember = new ArrayList<>();
     for (MemberToInsertDto member : membersToInsert) {
-      addMemberToRoom(member.getUserId().toString(), room, currentUser.getId());
       MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member, currentDateTime);
 
       membersInserted.add(memberInsertedDto);
@@ -159,10 +158,6 @@ public class MembersServiceImpl implements MembersService {
             uuid -> {
               throw new NotFoundException(String.format("User with id '%s' not found", uuid));
             });
-  }
-
-  private void addMemberToRoom(String memberId, Room room, String currentUserId) {
-    // XMPP affiliation messages are no longer needed; events dispatched via DomainEvent system.
   }
 
   private MemberInsertedDto processRoomSubscription(
@@ -245,7 +240,6 @@ public class MembersServiceImpl implements MembersService {
   }
 
   private void removeMemberData(String userId, Room room) {
-    removeRoomMember(userId, room);
     roomUserSettingsRepository
         .getByRoomIdAndUserId(room.getId(), userId)
         .ifPresent(roomUserSettingsRepository::delete);
@@ -277,10 +271,6 @@ public class MembersServiceImpl implements MembersService {
         && room.getSubscriptions().size() > 1) {
       throw new BadRequestException("Last owner can't leave the room");
     }
-  }
-
-  private void removeRoomMember(String memberId, Room room) {
-    // XMPP affiliation messages are no longer needed; events dispatched via DomainEvent system.
   }
 
   @Override
@@ -370,9 +360,13 @@ public class MembersServiceImpl implements MembersService {
                     ? RoomOwnerPromoted.create()
                         .roomId(roomId)
                         .userId(UUID.fromString(subscription.getUserId()))
+                        .type(EventType.ROOM_OWNER_PROMOTED)
+                        .sentDate(OffsetDateTime.now())
                     : RoomOwnerDemoted.create()
                         .roomId(roomId)
-                        .userId(UUID.fromString(subscription.getUserId()))));
+                        .userId(UUID.fromString(subscription.getUserId()))
+                        .type(EventType.ROOM_OWNER_DEMOTED)
+                        .sentDate(OffsetDateTime.now())));
   }
 
   private static void validateUserRequest(List<MemberDto> members, UserPrincipal currentUser) {

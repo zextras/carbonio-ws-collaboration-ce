@@ -13,7 +13,7 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.PresenceBatchRequestDto;
-import com.zextras.carbonio.chats.model.PresenceStatusDtoDto;
+import com.zextras.carbonio.chats.model.PresenceStatusDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -44,13 +44,13 @@ public class PresenceApiServiceImpl implements PresenceApiService {
       throws NotFoundException {
     getCurrentUser(securityContext);
 
-    List<PresenceStatusDtoDto> result = new ArrayList<>();
+    List<PresenceStatusDto> result = new ArrayList<>();
     if (presenceBatchRequestDto != null && presenceBatchRequestDto.getUserIds() != null) {
       List<String> ids = presenceBatchRequestDto.getUserIds().stream().map(UUID::toString).toList();
       List<PresenceSummary> summaries = chatMessageService.getBatchPresence(ids);
       for (PresenceSummary s : summaries) {
-        PresenceStatusDtoDto dto =
-            PresenceStatusDtoDto.create().userId(UUID.fromString(s.userId())).online(s.online());
+        PresenceStatusDto dto =
+            PresenceStatusDto.create().userId(UUID.fromString(s.userId())).online(s.online());
         if (s.lastSeen() != null) {
           dto.lastActivity(s.lastSeen().withOffsetSameInstant(ZoneOffset.UTC));
         }

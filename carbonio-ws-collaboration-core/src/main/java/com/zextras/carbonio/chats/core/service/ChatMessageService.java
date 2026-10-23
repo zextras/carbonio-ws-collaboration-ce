@@ -60,7 +60,7 @@ public interface ChatMessageService {
 
   /**
    * Gets messages using a composite cursor (end, endId) to avoid skipping messages that share the
-   * same millisecond timestamp across page boundaries (BUG-12).
+   * same millisecond timestamp across page boundaries.
    *
    * @param roomId room identifier
    * @param start start time (inclusive, null for no lower bound)
