@@ -29,8 +29,8 @@ import com.zextras.carbonio.async.model.MeetingParticipantClashed;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.async.model.MeetingParticipantJoined;
-import com.zextras.carbonio.async.model.MeetingParticipantKicked;
 import com.zextras.carbonio.async.model.MeetingParticipantLeft;
+import com.zextras.carbonio.async.model.MeetingParticipantLeftReason;
 import com.zextras.carbonio.async.model.MeetingParticipantUplinkStatusChanged;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.*;
@@ -277,7 +277,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(permanentMeetingId).userId(user2Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user2Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(eventDispatcher, times(1))
           .sendToUserQueue(
               user2Id.toString(),
@@ -425,7 +428,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user1Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user1Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(eventDispatcher, times(1))
           .sendToUserQueue(
               user1Id.toString(),
@@ -475,7 +481,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(permanentMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -506,7 +515,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(meeting2Id)
+                  .userId(user2Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
       verifyNoMoreInteractions(
           meetingService,
@@ -544,7 +556,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user1Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user1Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -582,7 +597,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -620,7 +638,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
       verifyNoMoreInteractions(
           meetingService,
@@ -665,11 +686,6 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
-      verify(eventDispatcher, times(1))
-          .sendToUserQueue(
-              user4Id.toString(),
-              user4Queue1.toString(),
-              MeetingParticipantKicked.create().meetingId(permanentMeetingId).userId(user4Id));
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(permanentMeetingId.toString());
       verify(videoServerService, times(1))
@@ -677,7 +693,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(permanentMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.KICKED));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -699,11 +718,6 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
-      verify(eventDispatcher, times(1))
-          .sendToUserQueue(
-              user2Id.toString(),
-              user2Queue1.toString(),
-              MeetingParticipantKicked.create().meetingId(meeting2Id).userId(user2Id));
       verify(participantRepository, times(1)).remove(participant2Session1);
       verify(participantRepository, times(1)).getByMeetingId(meeting2Id.toString());
       verify(videoServerService, times(1))
@@ -711,7 +725,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(meeting2Id)
+                  .userId(user2Id)
+                  .reason(MeetingParticipantLeftReason.KICKED));
       verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
       verifyNoMoreInteractions(
           meetingService,
@@ -742,11 +759,6 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, true);
-      verify(eventDispatcher, times(1))
-          .sendToUserQueue(
-              user4Id.toString(),
-              user4Queue1.toString(),
-              MeetingParticipantKicked.create().meetingId(scheduledMeetingId).userId(user4Id));
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
       verify(videoServerService, times(1))
@@ -754,7 +766,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.KICKED));
       verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
       verifyNoMoreInteractions(
           meetingService,
@@ -849,6 +864,34 @@ class ParticipantServiceImplTest {
 
       verify(participantRepository, never()).remove(any());
       verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the meeting is a one-to-one, it throws a 'bad request' exception")
+    void kickMeetingParticipant_testErrorOneToOneMeeting() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      Room oneToOneRoom = Room.create();
+      oneToOneRoom
+          .id(roomId.toString())
+          .type(RoomTypeDto.ONE_TO_ONE)
+          .subscriptions(
+              List.of(
+                  Subscription.create(oneToOneRoom, user1Id.toString()).owner(true),
+                  Subscription.create(oneToOneRoom, user4Id.toString()).owner(true)));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(oneToOneRoom);
+
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  participantService.kickMeetingParticipant(
+                      permanentMeetingId, user4Id, currentUser));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
     }
 
     @Test

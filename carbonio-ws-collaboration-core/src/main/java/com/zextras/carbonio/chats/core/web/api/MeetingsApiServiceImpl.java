@@ -185,7 +185,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @param userId          identifier of the user to kick {@link UUID}
    * @param securityContext security context created by the authentication filter
    *                        {@link SecurityContext}
-   * @return a response {@link Response) with status 204
+   * @return a response {@link Response} with status 204
    */
   @Override
   public Response kickMeetingParticipant(

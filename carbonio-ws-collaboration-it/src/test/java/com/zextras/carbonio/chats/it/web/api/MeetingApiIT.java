@@ -1913,6 +1913,29 @@ class MeetingApiIT {
     }
 
     @Test
+    @DisplayName("If the meeting is a one-to-one then it returns a status code 400")
+    void kickMeetingParticipant_testErrorOneToOneMeeting() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create().id(room1Id.toString()).type(RoomTypeDto.ONE_TO_ONE),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id).owner(true)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue),
+                  ParticipantBuilder.create(user2Id, user2Queue)));
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId, user2Id), (String) null, Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertTrue(isUser2Participant(meetingId));
+    }
+
+    @Test
     @DisplayName("If the user to kick isn't a meeting participant then it returns a status code 404")
     void kickMeetingParticipant_testErrorIsNotMeetingParticipant() throws Exception {
       UUID meetingId = generateMeeting(false);

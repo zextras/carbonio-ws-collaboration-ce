@@ -56,7 +56,6 @@ components:
         - MeetingDeleted
         - MeetingParticipantJoined
         - MeetingParticipantLeft
-        - MeetingParticipantKicked
         - MeetingAudioStreamChanged
         - MeetingAudioAnswered
         - MeetingMediaStreamChanged
@@ -89,6 +88,11 @@ components:
       type: string
       enum: [ AUDIO, VIDEO, SCREEN ]
 
+    MeetingParticipantLeftReason:
+      type: string
+      enum: [ LEFT, KICKED ]
+      description: LEFT when the participant left the meeting, KICKED when a moderator removed them
+
     # Base Event Schema
     DomainEvent:
       discriminator:
@@ -110,7 +114,6 @@ components:
           meetingDeleted: "#/components/schemas/MeetingDeleted"
           meetingParticipantJoined: "#/components/schemas/MeetingParticipantJoined"
           meetingParticipantLeft: "#/components/schemas/MeetingParticipantLeft"
-          meetingParticipantKicked: "#/components/schemas/MeetingParticipantKicked"
           meetingDeclined: "#/components/schemas/meetingDeclined"
           meetingAudioStreamChanged: "#/components/schemas/MeetingAudioStreamChanged"
           meetingAudioAnswered: "#/components/schemas/MeetingAudioAnswered"
@@ -371,24 +374,12 @@ components:
             userId:
               type: string
               format: uuid
+            reason:
+              $ref: "#/components/schemas/MeetingParticipantLeftReason"
           required:
             - meetingId
             - userId
-
-    MeetingParticipantKicked:
-      allOf:
-        - $ref: "#/components/schemas/DomainEvent"
-        - type: object
-          properties:
-            meetingId:
-              type: string
-              format: uuid
-            userId:
-              type: string
-              format: uuid
-          required:
-            - meetingId
-            - userId
+            - reason
 
     meetingDeclined:
       allOf:
