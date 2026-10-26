@@ -32,6 +32,7 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.KickParticipantDto;
 import com.zextras.carbonio.chats.model.MediaStreamDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
@@ -1769,8 +1770,12 @@ class MeetingApiIT {
   @DisplayName("Kick meeting participant tests")
   class KickMeetingParticipantTests {
 
-    private String url(UUID meetingId, UUID userId) {
-      return String.format("/meetings/%s/participants/%s/kick", meetingId, userId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/kick", meetingId);
+    }
+
+    private String body(UUID userId) throws Exception {
+      return objectMapper.writeValueAsString(KickParticipantDto.create().userToModerate(userId));
     }
 
     private UUID generateMeeting(boolean user2IsOwner) {
@@ -1846,7 +1851,7 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, user2Id), (String) null, Map.of("queue-id", user1Queue), user1Token);
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1861,7 +1866,7 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, user2Id), (String) null, Map.of("queue-id", user1Queue), user1Token);
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertFalse(isUser2Participant(meetingId));
@@ -1877,7 +1882,7 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, user1Id), (String) null, Map.of("queue-id", user2Queue), user2Token);
+              url(meetingId), body(user1Id), Map.of("queue-id", user2Queue), user2Token);
 
       assertEquals(403, response.getStatus());
       assertEquals(
@@ -1891,8 +1896,8 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, user2Id),
-              (String) null,
+              url(meetingId),
+              body(user2Id),
               Map.of("queue-id", UUID.randomUUID().toString()),
               MockedAccount.getGuestAccounts().get(0).getToken());
 
@@ -1907,7 +1912,7 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, user1Id), (String) null, Map.of("queue-id", user1Queue), user1Token);
+              url(meetingId), body(user1Id), Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(400, response.getStatus());
     }
@@ -1929,7 +1934,7 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, user2Id), (String) null, Map.of("queue-id", user1Queue), user1Token);
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(400, response.getStatus());
       assertTrue(isUser2Participant(meetingId));
@@ -1942,8 +1947,8 @@ class MeetingApiIT {
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId, UUID.randomUUID()),
-              (String) null,
+              url(meetingId),
+              body(UUID.randomUUID()),
               Map.of("queue-id", user1Queue),
               user1Token);
 
@@ -1951,12 +1956,25 @@ class MeetingApiIT {
     }
 
     @Test
+    @DisplayName("If the user to kick is missing from the body then it returns a status code 400")
+    void kickMeetingParticipant_testErrorMissingUserToModerate() throws Exception {
+      UUID meetingId = generateMeeting(false);
+
+      MockHttpResponse response =
+          dispatcher.post(url(meetingId), "{}", Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertEquals(
+          3, meetingTestUtils.getMeetingById(meetingId).orElseThrow().getParticipants().size());
+    }
+
+    @Test
     @DisplayName("If the meeting doesn't exist then it returns a status code 404")
     void kickMeetingParticipant_testMeetingNotExists() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
-              url(UUID.randomUUID(), user2Id),
-              (String) null,
+              url(UUID.randomUUID()),
+              body(user2Id),
               Map.of("queue-id", user1Queue),
               user1Token);
 
@@ -1969,7 +1987,7 @@ class MeetingApiIT {
     void kickMeetingParticipant_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
-              url(UUID.randomUUID(), user2Id), (String) null, Map.of("queue-id", user1Queue), null);
+              url(UUID.randomUUID()), body(user2Id), Map.of("queue-id", user1Queue), null);
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);

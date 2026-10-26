@@ -876,7 +876,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/participants/{userId}/kick:
+  /meetings/{meetingId}/kick:
     post:
       tags:
         - Meetings
@@ -888,7 +888,8 @@ paths:
       operationId: kickMeetingParticipant
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathUserId'
+      requestBody:
+        $ref: '#/components/requestBodies/KickMeetingParticipantRequest'
       responses:
         204:
           $ref: '#/components/responses/204KickMeetingParticipantResponse'
@@ -1503,6 +1504,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/HandStatus'
+    KickMeetingParticipantRequest:
+      description: moderator request to kick a participant out of the meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/KickParticipant'
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -2507,3 +2515,12 @@ components:
           type: string
           description: optionally lower the user's hand if I'm a moderator, only works if raised is false
       required: [raised]
+    KickParticipant:
+      type: object
+      description: the participant a moderator wants to kick out of the meeting
+      properties:
+        userToModerate:
+          type: string
+          format: uuid
+          description: the participant to kick out of the meeting
+      required: [userToModerate]

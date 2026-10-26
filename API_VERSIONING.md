@@ -8,10 +8,11 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ### Changes (1.6.16)
 
-- **API**: Added POST `/meetings/{meetingId}/participants/{userId}/kick` endpoint — kicks the specified
-  participant out of the meeting. **Only a moderator (room owner) can kick**: guests and non-owner
-  members get `403 Forbidden`. A moderator cannot kick itself (`400 Bad Request`, use `/leave`), and
-  kicking is not allowed in one-to-one meetings (`400 Bad Request`);
+- **API**: Added POST `/meetings/{meetingId}/kick` endpoint (`KickParticipant` body:
+  `{ "userToModerate": "<uuid>" }`, required) — kicks the specified participant out of the meeting.
+  **Only a moderator (room owner) can kick**: guests and non-owner members get `403 Forbidden`.
+  A moderator cannot kick itself (`400 Bad Request`, use `/leave`), and kicking is not allowed in
+  one-to-one meetings (`400 Bad Request`); a missing `userToModerate` returns `400 Bad Request`;
   `404 Not Found` when the meeting does not exist or the user is not a meeting participant. Returns
   `204 No Content` on success. The removal follows the leave flow: the meeting is stopped when the
   kicked user was the last participant and temporary room members are removed from the room (so in a
