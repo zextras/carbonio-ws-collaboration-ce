@@ -1941,6 +1941,34 @@ class MeetingApiIT {
     }
 
     @Test
+    @DisplayName("If the moderator isn't a meeting participant then it returns a status code 404")
+    void kickMeetingParticipant_testErrorModeratorIsNotMeetingParticipant() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id),
+              RoomMemberField.create().id(user3Id)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user2Id, user2Queue),
+                  ParticipantBuilder.create(user3Id, user3Queue)));
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertTrue(isUser2Participant(meetingId));
+    }
+
+    @Test
     @DisplayName("If the user to kick isn't a meeting participant then it returns a status code 404")
     void kickMeetingParticipant_testErrorIsNotMeetingParticipant() throws Exception {
       UUID meetingId = generateMeeting(false);

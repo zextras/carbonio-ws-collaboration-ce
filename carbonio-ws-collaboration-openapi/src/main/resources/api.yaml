@@ -882,8 +882,9 @@ paths:
         - Meetings
       summary: Removes the specified user from the meeting
       description: |
-        Kicks the specified participant out of the meeting. Only a moderator (room owner) can kick
-        a participant; any other caller gets 403. Kicking is not allowed in one-to-one meetings (400).
+        Kicks the specified participant out of the meeting. Only a moderator (room owner) who is in
+        the meeting can kick a participant: any other caller gets 403, and a moderator who is not a
+        meeting participant gets 404. Kicking is not allowed in one-to-one meetings (400).
         Every room member receives MeetingParticipantLeft with reason KICKED.
       operationId: kickMeetingParticipant
       parameters:

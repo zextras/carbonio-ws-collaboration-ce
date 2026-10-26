@@ -707,36 +707,20 @@ class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("A moderator kicks the last participant, the meeting is also stopped")
-    void kickMeetingParticipant_testOkLastParticipant() {
+    @DisplayName("If the moderator isn't a meeting participant, it throws a 'not found' exception")
+    void kickMeetingParticipant_testErrorModeratorIsNotMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
       when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
-      when(participantRepository.getByMeetingId(meeting2Id.toString())).thenReturn(List.of());
 
-      participantService.kickMeetingParticipant(meeting2Id, user2Id, currentUser);
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> participantService.kickMeetingParticipant(meeting2Id, user2Id, currentUser));
 
-      verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
-      verify(participantRepository, times(1)).remove(participant2Session1);
-      verify(participantRepository, times(1)).getByMeetingId(meeting2Id.toString());
-      verify(videoServerService, times(1))
-          .destroyMeetingParticipant(user2Id.toString(), meeting2Id.toString());
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create()
-                  .meetingId(meeting2Id)
-                  .userId(user2Id)
-                  .reason(MeetingParticipantLeftReason.KICKED));
-      verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
-      verifyNoMoreInteractions(
-          meetingService,
-          roomService,
-          membersService,
-          participantRepository,
-          videoServerService,
-          eventDispatcher);
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
     }
 
     @Test

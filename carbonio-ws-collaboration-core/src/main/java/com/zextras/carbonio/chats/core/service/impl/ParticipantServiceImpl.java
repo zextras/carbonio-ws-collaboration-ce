@@ -271,8 +271,8 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   /**
-   * Kicks a participant out of the meeting. Only a moderator (room owner) can kick: every room
-   * member receives {@link MeetingParticipantLeft} with reason {@link
+   * Kicks a participant out of the meeting. Only a moderator (room owner) who is in the meeting can
+   * kick: every room member receives {@link MeetingParticipantLeft} with reason {@link
    * MeetingParticipantLeftReason#KICKED}.
    *
    * @param meetingId the meeting ID
@@ -290,6 +290,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     if (userId.equals(currentUser.getUUID())) {
       throw new BadRequestException("User cannot kick itself from the meeting");
     }
+    validateMeetingParticipant(currentUser.getId(), meeting);
     Participant participant =
         meeting.getParticipants().stream()
             .filter(p -> userId.toString().equals(p.getUserId()))
