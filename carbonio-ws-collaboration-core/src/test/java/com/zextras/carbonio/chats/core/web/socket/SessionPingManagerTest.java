@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +20,6 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import jakarta.websocket.MessageHandler;
 import jakarta.websocket.PongMessage;
 import jakarta.websocket.Session;
-import java.time.Clock;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.eclipse.jetty.ee10.websocket.jakarta.common.JakartaWebSocketSession;
@@ -32,15 +32,13 @@ import org.mockito.ArgumentCaptor;
 @UnitTest
 class SessionPingManagerTest {
 
-  private Clock clock;
   private ScheduledExecutorService scheduler;
   private SessionPingManager pingManager;
 
   @BeforeEach
   void setUp() {
-    clock = mock(Clock.class);
     scheduler = mock(ScheduledExecutorService.class);
-    pingManager = new SessionPingManager(clock, scheduler);
+    pingManager = new SessionPingManager(scheduler);
   }
 
   private JakartaWebSocketSession newOpenSession(String id) {
@@ -52,12 +50,16 @@ class SessionPingManagerTest {
     return session;
   }
 
-  private void at(long seconds) {
-    when(clock.millis()).thenReturn(seconds * 1000);
+  private void tick(int times) {
+    for (int i = 0; i < times; i++) pingManager.tick();
   }
 
   private void verifyPinged(JakartaWebSocketSession session) {
-    verify(session.getCoreSession())
+    verifyPinged(session, 1);
+  }
+
+  private void verifyPinged(JakartaWebSocketSession session, int times) {
+    verify(session.getCoreSession(), times(times))
         .sendFrame(argThat(frame -> frame.getOpCode() == OpCode.PING), any(), eq(false));
   }
 
@@ -76,17 +78,15 @@ class SessionPingManagerTest {
   @Test
   void schedulesOneTickerAtThePingInterval() {
     verify(scheduler)
-        .scheduleAtFixedRate(
+        .scheduleWithFixedDelay(
             any(Runnable.class), eq(15_000L), eq(15_000L), eq(TimeUnit.MILLISECONDS));
   }
 
   @Test
-  void tick_pingsSessionWithinDeadline_withoutBlocking() {
-    at(0);
+  void tick_pingsSession_withoutBlocking() {
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
 
-    at(15);
     pingManager.tick();
 
     verifyPinged(session);
@@ -94,37 +94,42 @@ class SessionPingManagerTest {
   }
 
   @Test
-  void tick_abortsSessionWithNoPongPastDeadline_once() {
-    at(0);
+  void tick_toleratesMaxMissedPongs() {
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
 
-    at(46);
-    pingManager.tick();
-    pingManager.tick();
+    tick(3);
+
+    verifyPinged(session, 3);
+    verify(session.getCoreSession(), never()).abort();
+  }
+
+  @Test
+  void tick_abortsSessionPastMaxMissedPongs_once() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
+
+    tick(5);
 
     verify(session.getCoreSession()).abort();
-    verifyNotPinged(session);
+    verifyPinged(session, 3);
   }
 
   @Test
-  void pong_keepsSessionAlivePastDeadline() {
-    at(0);
+  void pong_resetsMissedPongs() {
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
 
-    at(40);
+    tick(3);
     pongHandlerOf(session).onMessage(mock(PongMessage.class));
-    at(80);
-    pingManager.tick();
+    tick(3);
 
     verify(session.getCoreSession(), never()).abort();
-    verifyPinged(session);
+    verifyPinged(session, 6);
   }
 
   @Test
   void tick_forgetsClosedSession() {
-    at(0);
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
     when(session.getCoreSession().isOutputOpen()).thenReturn(false);
@@ -139,7 +144,6 @@ class SessionPingManagerTest {
 
   @Test
   void stop_stopsPinging() {
-    at(0);
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
 
@@ -151,7 +155,6 @@ class SessionPingManagerTest {
 
   @Test
   void tick_keepsPingingOthersWhenOneSessionFails() {
-    at(0);
     JakartaWebSocketSession failing = newOpenSession("a");
     JakartaWebSocketSession healthy = newOpenSession("b");
     CoreSession failingCore = failing.getCoreSession();
@@ -178,7 +181,6 @@ class SessionPingManagerTest {
     pingManager.stopAll();
     when(scheduler.isShutdown()).thenReturn(true);
 
-    at(0);
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
     pingManager.tick();

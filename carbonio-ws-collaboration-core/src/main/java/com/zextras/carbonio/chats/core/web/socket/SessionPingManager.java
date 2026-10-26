@@ -9,13 +9,12 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.websocket.PongMessage;
 import jakarta.websocket.Session;
 import java.nio.ByteBuffer;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.jetty.ee10.websocket.jakarta.common.JakartaWebSocketSession;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.websocket.core.CoreSession;
@@ -26,18 +25,16 @@ import org.eclipse.jetty.websocket.core.OpCode;
 public class SessionPingManager {
 
   static final Duration PING_INTERVAL = Duration.ofSeconds(15);
-  static final Duration PONG_DEADLINE = Duration.ofSeconds(45);
+  static final int MAX_MISSED_PONGS = 3;
   private static final ByteBuffer PING_PAYLOAD = ByteBuffer.wrap(new byte[] {0x01});
 
-  private record TrackedSession(CoreSession coreSession, AtomicLong lastPongMillis) {}
+  private record TrackedSession(CoreSession coreSession, AtomicInteger missedPongs) {}
 
   private final ConcurrentHashMap<String, TrackedSession> sessions = new ConcurrentHashMap<>();
-  private final Clock clock;
   private final ScheduledExecutorService scheduler;
 
   public SessionPingManager() {
     this(
-        Clock.systemUTC(),
         Executors.newSingleThreadScheduledExecutor(
             r -> {
               Thread t = new Thread(r, "SessionPingManager");
@@ -47,10 +44,9 @@ public class SessionPingManager {
     Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll, "SessionPingManager shutdown"));
   }
 
-  SessionPingManager(Clock clock, ScheduledExecutorService scheduler) {
-    this.clock = clock;
+  SessionPingManager(ScheduledExecutorService scheduler) {
     this.scheduler = scheduler;
-    scheduler.scheduleAtFixedRate(
+    scheduler.scheduleWithFixedDelay(
         this::tick, PING_INTERVAL.toMillis(), PING_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
   }
 
@@ -61,9 +57,7 @@ public class SessionPingManager {
           "Websocket session is not a Jetty session: " + session.getClass().getName());
     }
     String sessionId = session.getId();
-    sessions.put(
-        sessionId,
-        new TrackedSession(jettySession.getCoreSession(), new AtomicLong(clock.millis())));
+    sessions.put(sessionId, new TrackedSession(jettySession.getCoreSession(), new AtomicInteger()));
     session.addMessageHandler(PongMessage.class, pong -> onPong(sessionId));
   }
 
@@ -78,22 +72,21 @@ public class SessionPingManager {
 
   private void onPong(String sessionId) {
     TrackedSession tracked = sessions.get(sessionId);
-    if (tracked != null) tracked.lastPongMillis().set(clock.millis());
+    if (tracked != null) tracked.missedPongs().set(0);
   }
 
   void tick() {
-    long now = clock.millis();
     sessions.forEach(
         (sessionId, tracked) -> {
           try {
             if (!tracked.coreSession().isOutputOpen()) {
               sessions.remove(sessionId);
-            } else if (now - tracked.lastPongMillis().get() > PONG_DEADLINE.toMillis()) {
+            } else if (tracked.missedPongs().getAndIncrement() >= MAX_MISSED_PONGS) {
               sessions.remove(sessionId);
               ChatsLogger.warn(
                   String.format(
-                      "Websocket session '%s' sent no pong for %ds, aborting it",
-                      sessionId, PONG_DEADLINE.toSeconds()));
+                      "Websocket session '%s' missed %d pongs, aborting it",
+                      sessionId, MAX_MISSED_PONGS));
               tracked.coreSession().abort();
             } else {
               tracked
