@@ -40,18 +40,19 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Singleton
 public class MeetingServiceImpl implements MeetingService {
 
   private final MeetingRepository meetingRepository;
   private final MeetingMapper meetingMapper;
-  private final RoomService roomService;
-  private final MembersService membersService;
+  protected final RoomService roomService;
+  protected final MembersService membersService;
   private final ParticipantService participantService;
   private final VideoServerService videoServerService;
-  private final EventDispatcher eventDispatcher;
-  private final Clock clock;
+  protected final EventDispatcher eventDispatcher;
+  protected final Clock clock;
   private final MessageDispatcher messageDispatcher;
 
   @Inject
@@ -136,13 +137,14 @@ public class MeetingServiceImpl implements MeetingService {
     Meeting meeting = validateMeeting(meetingId);
     OffsetDateTime startedAt = meeting.getStartedAt();
 
-    Meeting updatedMeeting = deactivateMeeting(meeting);
+    Meeting updatedMeeting = deactivateMeeting(user.getId(), meeting);
+    List<String> extraReceivers = meetingStoppedExtraReceivers(meeting);
 
     roomService
         .getRoom(UUID.fromString(updatedMeeting.getRoomId()))
         .ifPresent(
             room -> {
-              notifyMeetingStopped(updatedMeeting, room);
+              notifyMeetingStopped(updatedMeeting, room, extraReceivers);
               notifyMeetingStoppedForOneToOneMeeting(room, user.getId(), startedAt);
               cleanUpRoomMembers(room);
             });
@@ -164,10 +166,11 @@ public class MeetingServiceImpl implements MeetingService {
             .type(EventType.MEETING_DECLINED)
             .sentDate(OffsetDateTime.now()));
     messageDispatcher.sendMeetingDeclined(meeting.getRoomId(), currentUser.getId());
+    afterMeetingDeclined(currentUser, room);
 
     if (room.getType() == RoomTypeDto.ONE_TO_ONE && meeting.getParticipants().size() == 1) {
-      Meeting updatedMeeting = deactivateMeeting(meeting);
-      notifyMeetingStopped(updatedMeeting, room);
+      Meeting updatedMeeting = deactivateMeeting(currentUser.getId(), meeting);
+      notifyMeetingStopped(updatedMeeting, room, List.of());
     }
   }
 
@@ -179,9 +182,11 @@ public class MeetingServiceImpl implements MeetingService {
           .filter(member -> !member.isOwner())
           .forEach(member -> membersService.deleteRoomMember(member.getUserId(), room));
     }
+
+    afterRoomMembersCleanedUp(subscriptions);
   }
 
-  private Meeting validateMeeting(UUID meetingId) {
+  protected Meeting validateMeeting(UUID meetingId) {
     return meetingRepository
         .getById(meetingId.toString())
         .orElseThrow(
@@ -195,7 +200,8 @@ public class MeetingServiceImpl implements MeetingService {
     return meetingRepository.update(meeting);
   }
 
-  private Meeting deactivateMeeting(Meeting meeting) {
+  private Meeting deactivateMeeting(String userId, Meeting meeting) {
+    beforeMeetingStopped(userId, meeting);
     videoServerService.stopMeeting(meeting.getId());
     participantService.clear(UUID.fromString(meeting.getId()));
     meeting.active(false).participants(List.of()).startedAt(null);
@@ -215,6 +221,7 @@ public class MeetingServiceImpl implements MeetingService {
             .type(EventType.MEETING_STARTED)
             .sentDate(OffsetDateTime.now(clock)));
 
+    afterMeetingStarted(user, room, allReceivers);
     notifyMeetingStartedForOneToOneMeeting(user, room);
   }
 
@@ -224,9 +231,18 @@ public class MeetingServiceImpl implements MeetingService {
     }
   }
 
-  private void notifyMeetingStopped(Meeting updatedMeeting, Room room) {
+  private void notifyMeetingStopped(
+      Meeting updatedMeeting, Room room, List<String> extraReceivers) {
+    List<String> receivers =
+        extraReceivers.isEmpty()
+            ? room.getSubscriptions().stream().map(Subscription::getUserId).toList()
+            : Stream.concat(
+                    room.getSubscriptions().stream().map(Subscription::getUserId),
+                    extraReceivers.stream())
+                .distinct()
+                .toList();
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+        receivers,
         MeetingStopped.create()
             .meetingId(UUID.fromString(updatedMeeting.getId()))
             .type(EventType.MEETING_STOPPED)
@@ -295,6 +311,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public void deleteMeeting(String userId, Meeting meeting, Room room) {
+    beforeMeetingStopped(userId, meeting);
     videoServerService.stopMeeting(meeting.getId());
     meetingRepository.delete(meeting);
     eventDispatcher.sendToUserExchange(
@@ -309,4 +326,16 @@ public class MeetingServiceImpl implements MeetingService {
   public void updateMeeting(Meeting updatedMeeting) {
     meetingRepository.update(updatedMeeting);
   }
+
+  protected void beforeMeetingStopped(String userId, Meeting meeting) {}
+
+  protected List<String> meetingStoppedExtraReceivers(Meeting meeting) {
+    return List.of();
+  }
+
+  protected void afterMeetingStarted(UserPrincipal user, RoomDto room, List<String> receivers) {}
+
+  protected void afterMeetingDeclined(UserPrincipal currentUser, Room room) {}
+
+  protected void afterRoomMembersCleanedUp(List<Subscription> subscriptions) {}
 }

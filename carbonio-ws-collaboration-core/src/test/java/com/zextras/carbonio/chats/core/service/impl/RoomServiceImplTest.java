@@ -273,8 +273,8 @@ class RoomServiceImplTest {
       assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
       assertEquals(roomOneToOne1Id.toString(), rooms.get(1).getId().toString());
       assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
-      assertEquals(0, rooms.get(0).getMembers().size());
-      assertEquals(0, rooms.get(1).getMembers().size());
+      assertNull(rooms.get(0).getMembers());
+      assertNull(rooms.get(1).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
 
@@ -326,8 +326,8 @@ class RoomServiceImplTest {
       assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
       assertEquals(roomOneToOne1Id.toString(), rooms.get(1).getId().toString());
       assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
-      assertEquals(0, rooms.get(0).getMembers().size());
-      assertEquals(0, rooms.get(1).getMembers().size());
+      assertNull(rooms.get(0).getMembers());
+      assertNull(rooms.get(1).getMembers());
       assertNotNull(rooms.get(0).getUserSettings());
       assertNotNull(rooms.get(1).getUserSettings());
     }

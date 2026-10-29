@@ -22,6 +22,7 @@ import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinMeetingResultDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.JoinStatusDto;
+import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
@@ -36,9 +37,9 @@ import java.util.UUID;
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   private final MeetingService meetingService;
-  private final ParticipantService participantService;
-  private final CacheVideoServerSession cacheVideoServerSession;
-  private final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
+  protected final ParticipantService participantService;
+  protected final CacheVideoServerSession cacheVideoServerSession;
+  protected final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
 
   @Inject
   public MeetingsApiServiceImpl(
@@ -52,7 +53,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     this.messageBrokerVideoserverHealthMonitor = messageBrokerVideoserverHealthMonitor;
   }
 
-  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+  protected static UserPrincipal getCurrentUser(SecurityContext securityContext) {
     return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
         .orElseThrow(UnauthorizedException::new);
   }
@@ -294,6 +295,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     }
     participantService.updateSubscriptionsMediaStream(
         meetingId, subscriptionUpdatesDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response updateSubscribedMediaQuality(
+      UUID meetingId,
+      MediaQualityRequestDto mediaQualityRequestDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    participantService.updateSubscribedMediaQuality(meetingId, mediaQualityRequestDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

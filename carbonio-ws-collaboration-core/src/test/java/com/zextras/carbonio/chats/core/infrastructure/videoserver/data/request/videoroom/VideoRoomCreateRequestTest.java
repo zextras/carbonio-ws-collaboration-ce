@@ -23,6 +23,7 @@ class VideoRoomCreateRequestTest {
             .publishers(100)
             .bitrate(65000L)
             .bitrateCap(true)
+            .firFreq(5)
             .videoCodec("vp8")
             .record(false);
 
@@ -35,6 +36,7 @@ class VideoRoomCreateRequestTest {
     assertEquals(100, videoRoomCreateRequest.getPublishers());
     assertEquals(65000L, videoRoomCreateRequest.getBitrate());
     assertTrue(videoRoomCreateRequest.getBitrateCap());
+    assertEquals(5, videoRoomCreateRequest.getFirFreq());
     assertEquals("vp8", videoRoomCreateRequest.getVideoCodec());
     assertFalse(videoRoomCreateRequest.getRecord());
   }

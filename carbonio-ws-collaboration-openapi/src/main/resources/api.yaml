@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.14
+  version: 1.6.15
   x-supported-versions:
     [
+      "1.6.15",
       "1.6.14",
       "1.6.13",
       "1.6.12",
@@ -949,6 +950,36 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
+  /meetings/{meetingId}/media/quality:
+    put:
+      tags:
+        - meetings
+      operationId: updateSubscribedMediaQuality
+      summary: Set the received video quality (simulcast substream/temporal) for one subscribed feed
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaQualityRequest"
+      responses:
+        204:
+          description: quality updated
+        400:
+          $ref: "#/components/responses/400BadRequestResponse"
+        401:
+          $ref: "#/components/responses/401UnauthorizedResponse"
+        403:
+          $ref: "#/components/responses/403ForbiddenResponse"
+        404:
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/audio:
     put:
       tags:
@@ -1836,6 +1867,11 @@ components:
         showMessageReads:
           type: boolean
           description: whether the user can see the read status of messages
+        videoSimulcastTiers:
+          type: array
+          description: Ordered simulcast layers a client should publish for the webcam (highest first). Server defaults are 720/360/144 (pixel height), each overridable via the Consul KV keys carbonio-ws-collaboration/meeting/simulcast-{high,medium,low}-height.
+          items:
+            $ref: "#/components/schemas/SimulcastTier"
       required:
         - videoCallEnabled
         - recordingEnabled
@@ -2393,6 +2429,47 @@ components:
             - video
             - screen
       required: [ userId, type ]
+    MediaQualityRequest:
+      type: object
+      required:
+        - userId
+        - type
+        - mid
+        - substream
+      properties:
+        userId:
+          type: string
+          description: UUID of the participant whose published feed is being subscribed to
+        type:
+          type: string
+          enum: [video]
+          description: media type; only video feeds support simulcast layer selection
+        mid:
+          type: string
+          description: Janus media ID (mid) of the subscribed feed to reconfigure
+        substream:
+          type: integer
+          minimum: 0
+          maximum: 2
+          description: spatial/resolution layer index (0 = lowest, 2 = highest)
+        temporal:
+          type: integer
+          minimum: 0
+          maximum: 2
+          description: framerate layer index (0 = lowest, 2 = highest); omit to keep current
+    SimulcastTier:
+      type: object
+      required:
+        - name
+        - height
+      properties:
+        name:
+          type: string
+          enum: [high, medium, low]
+          description: tier label that identifies the quality level
+        height:
+          type: integer
+          description: video frame height in pixels for this tier
     HandStatus:
       type: object
       description: the hand action the user wants to perform
