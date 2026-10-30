@@ -80,5 +80,6 @@ public interface MessageWriteRepository {
       String attachmentId,
       String attachmentName,
       String attachmentMime,
-      Long attachmentSize) {}
+      Long attachmentSize,
+      String attachmentArea) {}
 }

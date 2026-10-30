@@ -17,6 +17,8 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
@@ -28,6 +30,8 @@ import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.storages.internal.pojo.Query;
+import com.zextras.storages.internal.pojo.StoragesUploadResponse;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -383,6 +387,65 @@ class MessageContractIT {
 
       assertEquals(201, response.getStatus(), response.getContentAsString());
       assertEquals("àèì", storedText(response));
+    }
+  }
+
+  @Nested
+  @DisplayName("Forwarded attachments")
+  class ForwardArea {
+
+    @Test
+    @DisplayName("A forwarded image keeps its area in the database, the event and the timeline")
+    void forwardKeepsArea() throws Exception {
+      UUID sourceRoom = newRoom();
+      String fileId = UUID.randomUUID().toString();
+      String messageId = UUID.randomUUID().toString();
+      fileMetadataRepository.save(
+          FileMetadata.create()
+              .id(fileId)
+              .name("pic.png")
+              .originalSize(3L)
+              .mimeType("image/png")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(aUserId.toString())
+              .roomId(sourceRoom.toString())
+              .messageId(messageId)
+              .area("640x480"));
+      messageRepository.insert(
+          Message.create()
+              .id(messageId)
+              .roomId(sourceRoom.toString())
+              .senderId(aUserId.toString())
+              .text("")
+              .attachmentId(fileId));
+      StoragesUploadResponse copied = new StoragesUploadResponse();
+      copied.setQuery(new Query());
+      copied.getQuery().setType("chats");
+      storageMockServer
+          .when(request().withMethod("PUT").withPath("/copy"))
+          .respond(HttpResponse.response().withStatusCode(200).withBody(JsonBody.json(copied)));
+      String queue = bindQueue(bUserId);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              String.format("/rooms/%s/messages/%s/forward", sourceRoom, messageId),
+              objectMapper.writeValueAsString(Map.of("toRoomId", roomId.toString())),
+              aToken);
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      JsonNode forwarded = objectMapper.readTree(response.getContentAsString());
+      String copyId = forwarded.get("attachmentId").asText();
+      assertEquals(
+          "640x480",
+          integrationTestUtils
+              .getFileMetadataById(UUID.fromString(copyId))
+              .orElseThrow()
+              .getArea());
+      JsonNode event = nextEvent(queue, "MessageForwarded");
+      assertEquals("640x480", event.get("message").get("attachment").path("area").asText());
+      assertEquals(
+          "640x480",
+          timelineMessage(forwarded.get("id").asText()).get("attachment").path("area").asText());
     }
   }
 }

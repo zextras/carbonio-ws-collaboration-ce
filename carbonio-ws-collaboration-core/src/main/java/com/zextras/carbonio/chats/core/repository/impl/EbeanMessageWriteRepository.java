@@ -129,7 +129,7 @@ new_msg AS (
     RETURNING id, created_at, attachment_id
 ),
 file_meta AS (
-    SELECT id, name, mime_type, original_size
+    SELECT id, name, mime_type, original_size, area
     FROM chats.file_metadata
     WHERE id = (SELECT attachment_id FROM new_msg)
 )
@@ -139,7 +139,8 @@ SELECT new_msg.id, new_msg.created_at,
        new_msg.attachment_id,
        file_meta.name AS attachment_name,
        file_meta.mime_type AS attachment_mime,
-       file_meta.original_size AS attachment_size
+       file_meta.original_size AS attachment_size,
+       file_meta.area AS attachment_area
 FROM new_msg
 CROSS JOIN orig_msg
 LEFT JOIN file_meta ON true
@@ -248,7 +249,8 @@ LEFT JOIN file_meta ON true
                     row.getString("attachment_id"),
                     row.getString("attachment_name"),
                     row.getString("attachment_mime"),
-                    row.getLong("attachment_size")));
+                    row.getLong("attachment_size"),
+                    row.getString("attachment_area")));
   }
 
   private static OffsetDateTime toOffsetDateTime(Timestamp ts) {

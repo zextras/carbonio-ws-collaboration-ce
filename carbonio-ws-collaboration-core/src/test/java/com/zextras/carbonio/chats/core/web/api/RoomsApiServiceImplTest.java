@@ -2891,11 +2891,47 @@ class RoomsApiServiceImplTest {
                           invocation.getArgument(5),
                           "clip.mp4",
                           "video/mp4",
-                          1024L)));
+                          1024L,
+                          null)));
 
       roomsApiService.forwardMessages(targetRoomId, request(), securityContext);
 
       verify(attachmentService).copyVideoPreview(video, copyId.getValue(), user1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Forwarding an attachment copies its area to the forwarded copy")
+    void forwardMessages_copiesTheAreaToTheCopy() throws Exception {
+      video.area("640x480");
+      when(messageWriteRepository.forwardMessage(
+              eq(sourceRoomId.toString()),
+              eq(targetRoomId.toString()),
+              eq(user1Id.toString()),
+              eq(messageId.toString()),
+              anyString(),
+              anyString()))
+          .thenAnswer(
+              invocation ->
+                  Optional.of(
+                      new MessageWriteRepository.ForwardResult(
+                          invocation.getArgument(4),
+                          OffsetDateTime.now(),
+                          "",
+                          user2Id.toString(),
+                          OffsetDateTime.now(),
+                          invocation.getArgument(5),
+                          "clip.mp4",
+                          "video/mp4",
+                          1024L,
+                          "640x480")));
+
+      roomsApiService.forwardMessages(targetRoomId, request(), securityContext);
+
+      ArgumentCaptor<FileMetadata> copy = ArgumentCaptor.forClass(FileMetadata.class);
+      verify(fileMetadataRepository).save(copy.capture());
+      assertEquals("640x480", copy.getValue().getArea());
+      verify(attachmentService)
+          .copyVideoPreview(video, copy.getValue().getId(), user1Id.toString());
     }
 
     @Test

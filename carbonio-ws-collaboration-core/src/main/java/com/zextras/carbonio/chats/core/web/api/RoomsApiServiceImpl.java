@@ -952,7 +952,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                 .type(FileMetadataType.ATTACHMENT)
                 .userId(currentUser.getId())
                 .roomId(toRoomIdStr)
-                .messageId(newMessageId);
+                .messageId(newMessageId)
+                .area(origMeta.get().getArea());
         fileMetadataRepository.save(newMeta);
       }
     }
@@ -1010,7 +1011,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                 .id(forwarded.attachmentId())
                 .name(forwarded.attachmentName())
                 .mimeType(forwarded.attachmentMime())
-                .originalSize(forwarded.attachmentSize()));
+                .originalSize(forwarded.attachmentSize())
+                .area(forwarded.attachmentArea()));
       }
       WsEvent event =
           MessageForwarded.create()
