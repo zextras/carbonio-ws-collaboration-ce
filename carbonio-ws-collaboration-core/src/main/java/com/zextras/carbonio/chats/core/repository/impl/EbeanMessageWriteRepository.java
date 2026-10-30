@@ -51,6 +51,55 @@ new_msg AS (
 SELECT id, created_at FROM new_msg
 """;
 
+  private static final String SEND_ONCE_SQL =
+      """
+      WITH ts AS (
+          SELECT clock_timestamp() AS t
+      ),
+      check_member AS (
+          SELECT rus.cleared_at
+          FROM chats.subscription s
+          LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
+          WHERE s.room_id = :roomId AND s.user_id = :userId
+      ),
+      reply_ok AS (
+          SELECT 1 AS ok
+          FROM check_member cm
+          WHERE CAST(:replyToId AS text) IS NULL
+             OR EXISTS (
+                  SELECT 1 FROM chats.message r
+                  WHERE r.id = :replyToId AND r.room_id = :roomId
+                    AND (cm.cleared_at IS NULL OR r.created_at > cm.cleared_at))
+      ),
+      claim AS (
+          INSERT INTO chats.message_send_dedup AS d (room_id, sender_id, temp_id, message_id, created_at)
+          SELECT :roomId, :userId, :tempId, :messageId, ts.t
+          FROM reply_ok CROSS JOIN ts
+          ON CONFLICT (room_id, sender_id, temp_id) DO UPDATE
+              SET message_id = EXCLUDED.message_id, created_at = EXCLUDED.created_at
+              WHERE d.created_at < EXCLUDED.created_at - INTERVAL '1 hour'
+          RETURNING d.message_id
+      ),
+      new_msg AS (
+          INSERT INTO chats.message (id, room_id, sender_id, text, reply_to_id, created_at, updated_at)
+          SELECT claim.message_id, :roomId, :userId, :text, :replyToId, ts.t, ts.t
+          FROM claim CROSS JOIN ts
+          RETURNING id, created_at
+      ),
+      live_claim AS (
+          SELECT d.message_id
+          FROM chats.message_send_dedup d CROSS JOIN ts
+          WHERE d.room_id = :roomId AND d.sender_id = :userId AND d.temp_id = :tempId
+            AND d.created_at >= CAST(ts.t AS timestamp) - INTERVAL '1 hour'
+      )
+      SELECT EXISTS (SELECT 1 FROM check_member) AS is_member,
+             EXISTS (SELECT 1 FROM reply_ok) AS reply_visible,
+             new_msg.id,
+             new_msg.created_at,
+             (SELECT message_id FROM live_claim) AS existing_message_id
+      FROM ts
+      LEFT JOIN new_msg ON true
+      """;
   private static final String EDIT_SQL =
       """
       WITH check_member AS (
@@ -173,6 +222,44 @@ LEFT JOIN file_meta ON true
             row ->
                 new SendResult(
                     row.getString("id"), toOffsetDateTime(row.getTimestamp("created_at"))));
+  }
+
+  @Override
+  public SendOnceResult sendMessageOnce(
+      String roomId,
+      String userId,
+      String text,
+      String messageId,
+      String replyToId,
+      String tempId) {
+    SqlRow row =
+        db.sqlQuery(SEND_ONCE_SQL)
+            .setParameter("roomId", roomId)
+            .setParameter("userId", userId)
+            .setParameter("messageId", messageId)
+            .setParameter("text", text != null ? text : "")
+            .setParameter("replyToId", replyToId)
+            .setParameter("tempId", tempId)
+            .findOne();
+    if (!Boolean.TRUE.equals(row.getBoolean("is_member"))) {
+      return new SendOnceResult(SendOnceStatus.NOT_MEMBER, null, null);
+    }
+    String sentId = row.getString("id");
+    if (sentId != null) {
+      return new SendOnceResult(
+          SendOnceStatus.SENT, sentId, toOffsetDateTime(row.getTimestamp("created_at")));
+    }
+    String existingId = row.getString("existing_message_id");
+    if (existingId != null) {
+      return new SendOnceResult(SendOnceStatus.DUPLICATE, existingId, null);
+    }
+    if (!Boolean.TRUE.equals(row.getBoolean("reply_visible"))) {
+      return new SendOnceResult(SendOnceStatus.REPLY_NOT_FOUND, null, null);
+    }
+    return new SendOnceResult(
+        SendOnceStatus.DUPLICATE,
+        EbeanMessageSendDedupRepository.findLiveClaim(db, roomId, userId, tempId),
+        null);
   }
 
   @Override

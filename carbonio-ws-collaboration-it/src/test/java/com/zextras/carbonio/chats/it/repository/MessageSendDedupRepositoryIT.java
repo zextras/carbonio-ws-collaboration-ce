@@ -11,7 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
 import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository.Claim;
+import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
+import com.zextras.carbonio.chats.core.repository.MessageWriteRepository.SendOnceResult;
+import com.zextras.carbonio.chats.core.repository.MessageWriteRepository.SendOnceStatus;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
+import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +40,17 @@ class MessageSendDedupRepositoryIT {
   private final MessageSendDedupRepository repository;
   private final Database database;
 
-  public MessageSendDedupRepositoryIT(MessageSendDedupRepository repository, Database database) {
+  private final MessageWriteRepository messageWriteRepository;
+  private final IntegrationTestUtils integrationTestUtils;
+
+  public MessageSendDedupRepositoryIT(
+      MessageSendDedupRepository repository,
+      MessageWriteRepository messageWriteRepository,
+      IntegrationTestUtils integrationTestUtils,
+      Database database) {
     this.repository = repository;
+    this.messageWriteRepository = messageWriteRepository;
+    this.integrationTestUtils = integrationTestUtils;
     this.database = database;
   }
 
@@ -210,6 +224,102 @@ class MessageSendDedupRepositoryIT {
 
       assertEquals(1, count("SELECT count(*) AS n FROM chats.message_send_dedup"));
       assertEquals("m-4", messageIdOf(ROOM, SENDER, "fresh"));
+    }
+  }
+
+  @Nested
+  @DisplayName("Send once tests")
+  class SendOnceTests {
+
+    private final UUID roomId = UUID.randomUUID();
+    private final UUID sender = UUID.randomUUID();
+
+    private void room() {
+      integrationTestUtils.generateAndSaveRoom(
+          roomId, RoomTypeDto.GROUP, "send-once", List.of(sender, UUID.randomUUID()));
+    }
+
+    private SendOnceResult send(String tempId, String replyToId) {
+      return messageWriteRepository.sendMessageOnce(
+          roomId.toString(),
+          sender.toString(),
+          "hello",
+          UUID.randomUUID().toString(),
+          replyToId,
+          tempId);
+    }
+
+    private long messages() {
+      return database
+          .sqlQuery("SELECT count(*) AS n FROM chats.message WHERE room_id = :roomId")
+          .setParameter("roomId", roomId.toString())
+          .findOne()
+          .getLong("n");
+    }
+
+    @Test
+    @DisplayName("First send stores the message and the claim in one statement")
+    void sendOnce_first() {
+      room();
+
+      SendOnceResult sent = send("t-1", null);
+
+      assertEquals(SendOnceStatus.SENT, sent.status());
+      assertEquals(1, messages());
+      assertEquals(sent.messageId(), messageIdOf(roomId.toString(), sender.toString(), "t-1"));
+    }
+
+    @Test
+    @DisplayName("Second send returns the first message id and stores nothing")
+    void sendOnce_duplicate() {
+      room();
+      SendOnceResult first = send("t-1", null);
+
+      SendOnceResult second = send("t-1", null);
+
+      assertEquals(SendOnceStatus.DUPLICATE, second.status());
+      assertEquals(first.messageId(), second.messageId());
+      assertEquals(1, messages());
+    }
+
+    @Test
+    @DisplayName("A non-member stores nothing")
+    void sendOnce_notMember() {
+      SendOnceResult result = send("t-1", null);
+
+      assertEquals(SendOnceStatus.NOT_MEMBER, result.status());
+      assertEquals(0, count("SELECT count(*) AS n FROM chats.message_send_dedup"));
+    }
+
+    @Test
+    @DisplayName("An invisible reply target stores nothing and leaves the tempId free")
+    void sendOnce_replyNotFound() {
+      room();
+
+      assertEquals(
+          SendOnceStatus.REPLY_NOT_FOUND, send("t-1", UUID.randomUUID().toString()).status());
+      assertEquals(0, messages());
+      assertEquals(SendOnceStatus.SENT, send("t-1", null).status());
+    }
+
+    @Test
+    @DisplayName("Concurrent sends with one tempId: one message, every other answer is its id")
+    void sendOnce_concurrent() throws Exception {
+      room();
+
+      List<SendOnceResult> results = concurrently(8, () -> send("race", null));
+
+      List<SendOnceResult> sent =
+          results.stream().filter(r -> r.status() == SendOnceStatus.SENT).toList();
+      assertEquals(1, sent.size());
+      results.stream()
+          .filter(r -> r.status() != SendOnceStatus.SENT)
+          .forEach(
+              r -> {
+                assertEquals(SendOnceStatus.DUPLICATE, r.status());
+                assertEquals(sent.get(0).messageId(), r.messageId());
+              });
+      assertEquals(1, messages());
     }
   }
 }

@@ -28,6 +28,15 @@ public interface MessageWriteRepository {
       String attachmentId);
 
   /**
+   * Text send that is idempotent on {@code tempId}: in the same statement it claims {@code (roomId,
+   * userId, tempId)} (taking over a claim older than one hour) and inserts the message only when
+   * the claim is new. A duplicate returns the message id of the live claim ({@code null} when that
+   * claim vanished meanwhile) and no {@code createdAt}.
+   */
+  SendOnceResult sendMessageOnce(
+      String roomId, String userId, String text, String messageId, String replyToId, String tempId);
+
+  /**
    * Edits a message text, setting edited=true. Only the original sender can edit.
    *
    * @return empty if user is not a member, not the sender, or message is deleted
@@ -82,4 +91,13 @@ public interface MessageWriteRepository {
       String attachmentMime,
       Long attachmentSize,
       String attachmentArea) {}
+
+  enum SendOnceStatus {
+    SENT,
+    DUPLICATE,
+    NOT_MEMBER,
+    REPLY_NOT_FOUND
+  }
+
+  record SendOnceResult(SendOnceStatus status, String messageId, OffsetDateTime createdAt) {}
 }
