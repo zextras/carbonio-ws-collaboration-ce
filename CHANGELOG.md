@@ -1,3 +1,9 @@
+## [1.15.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.14.3...v1.15.0) (2026-10-30)
+
+### Features
+
+* **meetings:** allow moderators to kick a participant from a meeting (CO-4284) ([#316](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/316)) ([e31c6aa](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/e31c6aa38ea2cd4638443f6ce1633fa6081194ce))
+
 ## [1.14.3](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.14.2...v1.14.3) (2026-10-28)
 
 ## [1.14.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.14.1...v1.14.2) (2026-10-21)
