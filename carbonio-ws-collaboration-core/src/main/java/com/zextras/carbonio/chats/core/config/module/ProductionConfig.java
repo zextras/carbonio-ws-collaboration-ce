@@ -33,7 +33,9 @@ public class ProductionConfig extends AbstractModule {
   }
 
   @Provides
-  private ServerConfiguration getServerConfiguration() {
-    return new ServerConfiguration("127.78.0.4", 10000);
+  private ServerConfiguration getServerConfiguration(AppConfig appConfig) {
+    return new ServerConfiguration(
+        appConfig.get(String.class, ConfigName.SERVER_HOST).orElseThrow(),
+        appConfig.get(Integer.class, ConfigName.SERVER_PORT).orElseThrow());
   }
 }
