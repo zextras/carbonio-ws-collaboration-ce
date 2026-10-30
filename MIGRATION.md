@@ -19,8 +19,10 @@ Send `X-WSC-API-VERSION: 2.0.0` on every REST request and read the `X-WSC-API-VE
 - **`422` with a version lower than `2.0.0` in the header** (e.g. `1.6.16`): a legacy MongooseIM-era backend
   that does not know `2.0.0`. The client cannot work with it: show a "server too old" state.
 - **`422` with `2.0.0` in the header:** a 2.0.0 backend that does not support the version you sent (§10).
+- **`2xx` with a JSON body and no `X-WSC-API-VERSION` header:** a legacy backend older than API versioning (it
+  ignores the header). Treat it like the previous case: "server too old".
 
-Every non-`2xx` response carries the server's own version in the header. Requests without the header are not
+Every non-`2xx` REST response carries the server's own version in the header (a rejected WebSocket handshake does not). Requests without the header are not
 version-checked (internal service-to-service callers rely on this); clients must always send it.
 
 Practical consequences of the new architecture:
@@ -28,7 +30,8 @@ Practical consequences of the new architecture:
 - **All writes are REST.** The HTTP response is the acknowledgement — there is no WebSocket ack event.
 - **The WebSocket is push-only for chat**, except typing (§3).
 - **One socket, not two.** The legacy setup needed a second connection to MongooseIM
-  at `/services/messaging/ws-xmpp`; that is gone.
+  at `/services/messaging/ws-xmpp`; WSC never served that path, and it is no longer served once
+  `carbonio-message-dispatcher` is stopped (step 2).
 - **Message ids are generated server-side.** Correlate optimistic placeholders with the `tempId`
   you send, not with a client-generated id.
 
@@ -311,8 +314,7 @@ each carrying the `systemEventId`/`systemEventCreatedAt` of its own row, to ever
 after the add (the added users included). A user listed twice is added once; an empty list is
 rejected with 400. Room creation lines are not announced through these events.
 
-`MessageSent` (the legacy XMPP-era name) is removed; `MessageReceived` replaces it for both
-send and attachment-upload notifications.
+`MessageReceived` is the event for both a sent message and an attachment upload.
 
 **Ordering.** Every event carries a database timestamp. The broker preserves FIFO per session,
 but clients should still insert by `(createdAt, id)` — that matches the server's own ordering
@@ -351,7 +353,7 @@ Attachment upload changed:
   message of the room visible to the caller. The notification is a `MessageReceived` event (it was an
   `attachmentAdded` stanza).
 - The `application/octet-stream` upload (`insertAttachment`, file metadata in headers) was removed.
-- Text parts (`contentLength`, `description`, `replyToId`, `area`, `tempId`) are read as UTF-8. Send the
+- Text parts (`contentLength`, `description`, `replyToId`, `area`, `tempId`) without a `Content-Type` are read as UTF-8; a part's explicit charset is honoured. Send the
   caption (`description`) as raw UTF-8 text, not escaped, ideally with `Content-Type: text/plain; charset=UTF-8`
   on the part. The `file` part's file name is either the raw name or the whole name written as `\uXXXX`
   escapes (what the official clients send); a name that cannot be decoded answers `400`.
@@ -382,7 +384,7 @@ Each member has a visibility floor, `clearedAt`: the instant of their last per-u
 - Requests that target an item below the floor answer `404`: reply (`replyToId`), forward source, pin, add
   reaction, mark as read.
 - **Quotes of older messages are not returned.** For a reader whose floor is after the quoted message,
-  `repliedMessage` is absent in REST responses, and `repliedMessage` and `replyToId` are absent in
+  `repliedMessage` and `replyToId` are absent in REST responses and in
   `MessageReceived`, `MessageForwarded` and `MessagePinned`. Legacy clients showed such quotes: that was a bug
   and is not reproduced.
 - **Pins are the only exception.** `GET /rooms/{roomId}/pin` and `MessagePinned` always return the current pin
@@ -401,23 +403,27 @@ The authoritative bounds are in `api.yaml`; a request outside them answers `400`
 
 | Input | Rule |
 |---|---|
-| `text` of `POST /rooms/{roomId}/messages` | Required and not blank (only whitespace answers `400`); at most 8192 characters (UTF-16 code units) |
+| `text` of `POST /rooms/{roomId}/messages` | Required and not blank (only spaces or control characters answers `400`); at most 8192 characters (UTF-16 code units) |
 | `tempId` of the send and of the attachment upload | Optional; at most 64 characters |
 | `limit` of `GET /rooms/{roomId}/timeline` and `GET /rooms/{roomId}/messages/search` | 1 to 200 |
 | `{reaction}` of `POST /rooms/{roomId}/messages/{messageId}/reactions/{reaction}` | At most 32 characters |
 | `POST /rooms/{roomId}/members` body | At least one member (`[]` answers `400`); a repeated user id is added once |
 | `POST /presence/batch` | At most 100 user ids |
-| `file` name of the attachment upload | The raw name, or the whole name written as `\uXXXX` escapes; a name that cannot be decoded answers `400` |
+| `description` (caption) of the attachment upload | At most 8192 characters |
+| `text` of `PUT .../messages/{messageId}/edit` | At most 8192 characters |
+| `area` of the attachment upload | At most 64 characters |
+| `file` name of the attachment upload | The raw name, or the whole name written as `\uXXXX` escapes; a name that cannot be decoded, or longer than 256 characters once decoded, answers `400` |
 
 ## 10. Client/server compatibility and upgrade
 
 A 2.0.0 server accepts only the API versions listed in `x-supported-versions` of `api.yaml` (today `2.0.0`).
-There is no compatibility layer for 1.x clients.
+1.x clients cannot work with a 2.0.0 server: REST rejects their version. The WebSocket still accepts a
+handshake without a sub-protocol as `1.6.0` (§4), but that alone is not usable.
 
 | Client | Legacy backend (API 1.6.x, MongooseIM) | 2.0.0 backend |
 |---|---|---|
-| 1.x web or mobile app (API 1.6.x + XMPP) | Works | Does not work: REST calls that send `X-WSC-API-VERSION: 1.6.x` answer `422` (header `2.0.0`), a WebSocket handshake that offers only 1.6.x answers `400`, and the XMPP endpoint `/services/messaging/ws-xmpp` is gone. The app must be updated. |
-| 2.0.0 web or mobile app | Does not work: REST calls answer `422` with a lower version in the header (see "Which backend am I talking to?"); the app must ask for a server upgrade | Works |
+| 1.x web or mobile app (API 1.6.x + XMPP) | Works | Does not work: REST calls that send `X-WSC-API-VERSION: 1.6.x` answer `422` (header `2.0.0`), a WebSocket handshake that offers only 1.6.x answers `400`, and the XMPP endpoint `/services/messaging/ws-xmpp` is no longer served once `carbonio-message-dispatcher` is stopped (step 2). The app must be updated. |
+| 2.0.0 web or mobile app | Does not work: REST calls answer `422` with a lower version in the header, or (backends older than API versioning) succeed without any `X-WSC-API-VERSION` header (see "Which backend am I talking to?"); the app must ask for a server upgrade | Works |
 | Internal callers that send no `X-WSC-API-VERSION` | Works | Works (not version-checked) |
 
 Upgrade procedure (administrators):
@@ -430,8 +436,10 @@ Upgrade procedure (administrators):
 3. Upgrade `carbonio-ws-collaboration`. At the first start, Flyway runs `V2_0_1__migrate_mongoose_data` once:
    it imports messages, system lines, edits, reactions, pins, read markers, last-seen times and contacts from
    the MongooseIM database. It never runs again. If the dispatcher database cannot be read, the start fails
-   and the import is retried at the next start; if the dispatcher was never installed it logs
-   `MongooseIM import skipped: …` and is recorded as done.
+   and the import is retried at the next start; if the dispatcher database credentials are missing from
+   Consul, the database does not exist or it has no MongooseIM tables, it logs
+   `MongooseIM import skipped: <reason>` and is recorded as done: it is never retried. If you expected data,
+   check this line before going live.
 4. Check the WSC log for `MongooseIM import completed: rooms=… messages=…`. The warning
    `other sessions are connected to the MongooseIM database` means MongooseIM was still running during the
    import.

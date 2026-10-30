@@ -26,7 +26,7 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
   ride on `GET /rooms/{roomId}/timeline` and `GET /inbox`.
 - **WebSocket events**: one socket for everything; chat events are the `WsEvent` family (`MessageReceived`,
   `MessageForwarded`, `MessageEdited`, `MessageDeleted`, `MessagePinned`, `MessageUnpinned`, `ReactionChanged`,
-  `ReadUpdated`, `PresenceChanged`, `Typing`); `MessageSent` is removed. Room and meeting events that create a
+  `ReadUpdated`, `PresenceChanged`, `Typing`). Room and meeting events that create a
   system line carry its author, `systemEventId` and `systemEventCreatedAt`.
 - **Presence**: `POST /presence/batch` (at most 100 user ids), `GET /inbox` and `PresenceChanged` carry
   `online` and `lastActivity`.

@@ -18,6 +18,7 @@ edition (`carbonio-ws-collaboration`) sends push notifications; the Community Ed
    - **iOS (APNs) alert:** the lambda composes the banner from the data (see [iOS alert](#ios-alert)).
    - **iOS (APNs) VoIP:** only `new_meeting`, only for apps that registered a VoIP token. The payload is silent
      and the app reports the call to CallKit; those apps get no alert for `new_meeting`.
+     iOS apps without a VoIP token receive `new_meeting` as a normal alert.
    - `answered_meeting` and `declined_meeting` are never sent to iOS. On Android they reach only the apps that
      registered a device name (older apps do not get them).
 
