@@ -168,13 +168,15 @@ public interface ChatMessageService {
   Optional<String> addReaction(String roomId, String messageId, String userId, String reaction);
 
   /**
-   * Removes the reaction a user has on a message
+   * Removes the reaction a user has on a message. The message must be in the room (the cleared
+   * history does not matter); a user has a single reaction per message, so no emoji is needed.
    *
+   * @param roomId room identifier the message must belong to
    * @param messageId message identifier
    * @param userId user identifier
    * @return the emoji that was removed, or empty if the user had no reaction
    */
-  Optional<String> removeReaction(String messageId, String userId);
+  Optional<String> removeReaction(String roomId, String messageId, String userId);
 
   /**
    * Gets all reactions for a message

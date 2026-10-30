@@ -177,7 +177,8 @@ class PinReactionSingleIT {
       String messageId = seedMessage(roomId, "hello");
 
       chatMessageService.addReaction(roomId.toString(), messageId, userId.toString(), "👍");
-      Optional<String> removed = chatMessageService.removeReaction(messageId, userId.toString());
+      Optional<String> removed =
+          chatMessageService.removeReaction(roomId.toString(), messageId, userId.toString());
 
       assertEquals(Optional.of("👍"), removed);
       assertTrue(chatMessageService.getReactions(messageId).isEmpty());

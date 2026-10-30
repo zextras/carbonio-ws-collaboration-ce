@@ -192,6 +192,18 @@ class ChatMessageServiceImplTest {
           NotFoundException.class,
           () -> chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
     }
+
+    @Test
+    @DisplayName("Throws NotFound and stores nothing when the message is deleted")
+    void deletedMessage() {
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message().deleted(true)));
+
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
+      verify(reactionRepository, never()).insert(any(MessageReaction.class));
+      verify(reactionRepository, never()).update(any(MessageReaction.class));
+    }
   }
 
   @Nested
@@ -201,10 +213,11 @@ class ChatMessageServiceImplTest {
     @Test
     @DisplayName("Removes the user's reaction and reports the removed emoji")
     void removesExisting() {
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
       when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
           .thenReturn(Optional.of(MessageReaction.create(message(), USER_ID, "👍")));
 
-      Optional<String> removed = chatMessageService.removeReaction(MESSAGE_ID, USER_ID);
+      Optional<String> removed = chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID);
 
       assertTrue(removed.isPresent());
       assertEquals("👍", removed.get());
@@ -214,13 +227,53 @@ class ChatMessageServiceImplTest {
     @Test
     @DisplayName("Is a no-op when the user has no reaction")
     void noReaction() {
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
       when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
           .thenReturn(Optional.empty());
 
-      Optional<String> removed = chatMessageService.removeReaction(MESSAGE_ID, USER_ID);
+      Optional<String> removed = chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID);
 
       assertTrue(removed.isEmpty());
       verify(reactionRepository, never()).delete(any(), any());
+    }
+
+    @Test
+    @DisplayName("Throws NotFound and removes nothing when the message is in another room")
+    void otherRoom() {
+      when(messageRepository.getById(MESSAGE_ID))
+          .thenReturn(
+              Optional.of(Message.create().id(MESSAGE_ID).roomId("other-room").senderId(USER_ID)));
+
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+      verify(reactionRepository, never()).delete(any(), any());
+    }
+
+    @Test
+    @DisplayName("Throws NotFound when the message does not exist")
+    void messageNotFound() {
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.empty());
+
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+    }
+
+    @Test
+    @DisplayName("Ignores the visibility floor: a reaction on a hidden message can be removed")
+    void ignoresVisibilityFloor() {
+      when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
+          .thenReturn(
+              Optional.of(new VisibilityFloor(OffsetDateTime.parse("2026-01-01T10:00:00Z"))));
+      when(messageRepository.getById(MESSAGE_ID))
+          .thenReturn(
+              Optional.of(message(MESSAGE_ID, OffsetDateTime.parse("2025-01-01T10:00:00Z"))));
+      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
+          .thenReturn(Optional.of(MessageReaction.create(message(), USER_ID, "👍")));
+
+      assertEquals(
+          Optional.of("👍"), chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
     }
   }
 

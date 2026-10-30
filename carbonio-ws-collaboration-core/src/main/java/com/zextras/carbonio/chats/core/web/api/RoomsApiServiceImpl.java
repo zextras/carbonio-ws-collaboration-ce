@@ -775,7 +775,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
     // A user has a single reaction per message, so the path emoji is not needed to identify it.
     Optional<String> removed =
-        chatMessageService.removeReaction(messageId.toString(), currentUser.getId());
+        chatMessageService.removeReaction(
+            roomId.toString(), messageId.toString(), currentUser.getId());
     try {
       if (removed.isPresent()) {
         broadcastReactionChanged(roomId, messageId, currentUser.getId(), removed.get(), "removed");

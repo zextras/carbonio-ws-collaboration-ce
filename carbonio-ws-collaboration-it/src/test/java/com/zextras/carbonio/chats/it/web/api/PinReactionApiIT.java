@@ -286,4 +286,42 @@ class PinReactionApiIT {
       assertEquals(List.of(first), pinnedIds());
     }
   }
+
+  @Nested
+  @DisplayName("Reactions")
+  class Reactions {
+
+    @Test
+    @DisplayName("Adding a reaction to a deleted message is 404 and stores nothing")
+    void reactDeleted() throws Exception {
+      assertEquals(204, deleteMessage(first, aToken));
+
+      assertEquals(404, react(roomId, first, THUMBS_UP, bToken));
+
+      assertTrue(chatMessageService.getReactions(first).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Removing through a room the message is not in is 404 and keeps the reaction")
+    void unreactOtherRoom() throws Exception {
+      UUID otherRoomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          otherRoomId, RoomTypeDto.GROUP, "other-room", List.of(aUserId, bUserId));
+      assertEquals(204, react(roomId, first, THUMBS_UP, bToken));
+
+      assertEquals(404, unreact(otherRoomId, first, THUMBS_UP, bToken));
+
+      assertEquals(1, chatMessageService.getReactions(first).size());
+    }
+
+    @Test
+    @DisplayName("Removing ignores the emoji in the path")
+    void unreactIgnoresEmoji() throws Exception {
+      assertEquals(204, react(roomId, first, THUMBS_UP, bToken));
+
+      assertEquals(204, unreact(roomId, first, "❤️", bToken));
+
+      assertTrue(chatMessageService.getReactions(first).isEmpty());
+    }
+  }
 }

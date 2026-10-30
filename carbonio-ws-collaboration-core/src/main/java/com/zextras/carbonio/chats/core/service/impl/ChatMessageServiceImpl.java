@@ -225,6 +225,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         messageRepository
             .getById(messageId)
             .filter(m -> roomId.equals(m.getRoomId()))
+            .filter(m -> !Boolean.TRUE.equals(m.isDeleted()))
             .filter(m -> floor.canAccess(m.getCreatedAt()))
             .orElseThrow(
                 () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
@@ -254,7 +255,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
-  public Optional<String> removeReaction(String messageId, String userId) {
+  public Optional<String> removeReaction(String roomId, String messageId, String userId) {
+    messageRepository
+        .getById(messageId)
+        .filter(m -> roomId.equals(m.getRoomId()))
+        .orElseThrow(
+            () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
     Optional<MessageReaction> existing = reactionRepository.getByUserAndMessage(messageId, userId);
     if (existing.isEmpty()) {
       return Optional.empty();
