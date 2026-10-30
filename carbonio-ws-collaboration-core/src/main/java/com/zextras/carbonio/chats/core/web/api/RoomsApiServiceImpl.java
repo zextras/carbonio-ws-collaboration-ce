@@ -671,7 +671,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       }
     }
 
-    MessageDto created;
+    MessageDto created = null;
     try {
       created =
           attachmentService.addAttachment(
@@ -686,15 +686,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               normalizeStringValue(tempId),
               messageId,
               currentUser);
+    } catch (ChatsHttpException e) {
+      throw e;
     } catch (Exception e) {
-      if (dedupTempId != null) {
-        releaseSendClaim(roomId, currentUser.getId(), dedupTempId, messageId);
-      }
-      if (e instanceof ChatsHttpException chatsHttpException) {
-        throw chatsHttpException;
-      }
       ChatsLogger.error("Error processing multipart attachment upload", e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error processing file").build();
+    } finally {
+      if (created == null && dedupTempId != null) {
+        releaseSendClaim(roomId, currentUser.getId(), dedupTempId, messageId);
+      }
     }
     notifyMessageSent(currentUser, roomId, created.getId().toString(), created.getText());
     return Response.status(Status.CREATED).entity(created).build();

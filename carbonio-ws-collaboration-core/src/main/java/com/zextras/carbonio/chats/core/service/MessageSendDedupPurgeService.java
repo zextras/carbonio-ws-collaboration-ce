@@ -43,7 +43,7 @@ public class MessageSendDedupPurgeService {
     this.scheduler = scheduler;
   }
 
-  /** Starts the periodic purge. Called explicitly from {@code Boot} after the server starts. */
+  /** Starts the periodic purge. */
   public void start() {
     scheduler.scheduleWithFixedDelay(
         this::purge, INTERVAL_MINUTES, INTERVAL_MINUTES, TimeUnit.MINUTES);
