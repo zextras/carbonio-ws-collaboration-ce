@@ -435,9 +435,11 @@ paths:
         Answers 404 when `replyToId` is not a message of the room visible to the caller.
         Idempotent on `tempId` for 1 hour per room and sender: a later upload with the same
         `tempId` stores no file, creates no message, sends no event and no push notification, and
-        answers 201 with the message created by the first upload, in its current state. It answers
+        answers 201 with the message created by the first request with that `tempId`, in its current state. It answers
         409 while the first request with that `tempId` has not completed yet. A failed upload frees
-        its `tempId`. Text sends and uploads share the same `tempId` space.
+        its `tempId`. If the server stops during an upload or the claim release fails, retries with
+        the same `tempId` answer 409 until the claim expires after 1 hour; the client should then
+        send with a new `tempId`. Text sends and uploads share the same `tempId` space.
       parameters:
         - $ref: "#/components/parameters/pathRoomId"
       requestBody:

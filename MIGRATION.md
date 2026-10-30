@@ -93,7 +93,9 @@ Notes:
   `201` with the message created by the first request, in its current state (edited text,
   `deletedInfo` if it was deleted meanwhile).
 - While the first request is still running (an upload whose file is being stored), the retry answers
-  `409`: wait for the `MessageReceived` carrying your `tempId`, or retry later.
+  `409`: wait for the `MessageReceived` carrying your `tempId`, or retry later. If the server stops
+  during an upload or the claim release fails, retries with the same `tempId` answer `409` until the
+  claim expires after 1 hour; the client should then send with a new `tempId`.
 - A failed upload frees its `tempId`, so retrying it after an error creates the message.
 - After 1 hour the same `tempId` creates a new message.
 
