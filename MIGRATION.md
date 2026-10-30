@@ -31,7 +31,7 @@ Practical consequences of the new architecture:
 - **The WebSocket is push-only for chat**, except typing (§3).
 - **One socket, not two.** The legacy setup needed a second connection to MongooseIM
   at `/services/messaging/ws-xmpp`; WSC never served that path, and it is no longer served once
-  `carbonio-message-dispatcher` is stopped (step 2).
+  `carbonio-message-dispatcher` is stopped (§10, step 2).
 - **Message ids are generated server-side.** Correlate optimistic placeholders with the `tempId`
   you send, not with a client-generated id.
 
