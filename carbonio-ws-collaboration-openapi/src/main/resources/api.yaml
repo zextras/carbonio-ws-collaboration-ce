@@ -549,8 +549,13 @@ paths:
     get:
       tags:
         - Rooms
-      summary: Retrieves pinned messages for a room
+      summary: Retrieves the pinned message of a room
       operationId: getPinnedMessages
+      description: >
+        A room has at most one pinned message, so the array holds 0 or 1 items. The pin is returned
+        with its full text even when the pinned message is older than the caller's cleared-history
+        instant (pins are the only exception to that floor); its attachment, if any, still answers
+        404 below the floor, and a quoted message below the floor is omitted.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       responses:
@@ -572,7 +577,11 @@ paths:
         - Rooms
       summary: Pin a message in a room
       operationId: pinMessage
-      description: Answers 404 when the message is not in the room or is hidden by the caller's cleared history.
+      description: >
+        Pins the message, replacing the room's current pin if any (one pin per room). Writes a
+        MESSAGE_PINNED system event and broadcasts MessagePinned; replacing a pin sends no
+        MessageUnpinned for the previous message. Answers 404 when the message is not in the room,
+        is deleted, or is hidden by the caller's cleared history.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathMessageId'
@@ -588,6 +597,11 @@ paths:
         - Rooms
       summary: Unpin a message in a room
       operationId: unpinMessage
+      description: >
+        Removes the pin when this message is the room's current pin: writes a MESSAGE_UNPINNED
+        system event and broadcasts MessageUnpinned. When the message is not pinned it answers 204
+        and does nothing (no system event, no WebSocket event). Deleting the pinned message unpins it
+        as well.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathMessageId'
@@ -704,7 +718,11 @@ paths:
         - Rooms
       summary: Add a reaction to a message
       operationId: addReaction
-      description: Answers 404 when the message is not in the room or is hidden by the caller's cleared history.
+      description: >
+        Sets the caller's reaction on the message. A user has one reaction per message: a different
+        emoji replaces the previous one and broadcasts ReactionChanged with operation removed (old
+        emoji) and then added (new emoji). Answers 404 when the message is not in the room, is
+        deleted, or is hidden by the caller's cleared history.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathMessageId'
@@ -727,6 +745,11 @@ paths:
         - Rooms
       summary: Remove a reaction from a message
       operationId: removeReaction
+      description: >
+        Removes the caller's reaction from the message whatever emoji the path carries (a user has
+        one reaction per message) and broadcasts ReactionChanged with operation removed and the
+        removed emoji. Answers 204 without any event when the caller has no reaction on the message,
+        and 404 when the message is not in the room.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathMessageId'
@@ -1224,6 +1247,8 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
+        424:
+          $ref: "#/components/responses/424MeetingFailedDependencyResponse"
   /meetings/{meetingId}/stop:
     post:
       tags:
@@ -1260,6 +1285,8 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+        424:
+          $ref: "#/components/responses/424MeetingFailedDependencyResponse"
   /meetings/{meetingId}/decline:
     post:
       tags:
@@ -1339,6 +1366,8 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
+        424:
+          $ref: "#/components/responses/424MeetingFailedDependencyResponse"
   /meetings/{meetingId}/media/answer:
     put:
       tags:
@@ -1426,6 +1455,8 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
+        424:
+          $ref: "#/components/responses/424MeetingFailedDependencyResponse"
   /meetings/{meetingId}/audio/offer:
     put:
       tags:
@@ -1521,6 +1552,8 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+        424:
+          $ref: "#/components/responses/424MeetingFailedDependencyResponse"
 components:
   parameters:
     pathRoomId:
@@ -1618,7 +1651,9 @@ components:
     headerFileName:
       in: header
       name: fileName
-      description: file name encoded to unicode
+      description: >
+        File name, every character written as a 6-character Unicode escape (backslash, u, 4 hex
+        digits per UTF-16 unit), as the official clients send it.
       schema:
         type: string
       required: true
@@ -1796,7 +1831,11 @@ components:
               file:
                 type: string
                 format: binary
-                description: file to upload
+                description: >
+                  File to upload. The file name of this part (Content-Disposition filename) is
+                  either the raw name or the whole name written as 6-character Unicode escapes
+                  (backslash, u, 4 hex digits per UTF-16 unit), which is what the official clients
+                  send; a name that cannot be decoded answers 400.
               contentLength:
                 type: integer
                 format: int64
@@ -1808,7 +1847,10 @@ components:
               description:
                 type: string
                 maxLength: 8192
-                description: description encoded to unicode
+                description: >
+                  Caption of the attachment, sent as raw UTF-8 text (not escaped). Set
+                  Content-Type text/plain; charset=UTF-8 on this part; a text part without a
+                  content type is read as UTF-8.
               replyToId:
                 type: string
                 description: identifier of the message being replied to
@@ -2145,6 +2187,11 @@ components:
         Failed Dependency: the previewer's database dependency is unavailable, so video previews
         are temporarily disabled while other preview types keep working. The client should treat
         this like any other previewer-down state and may retry later.
+    424MeetingFailedDependencyResponse:
+      description: >
+        Failed Dependency: the message broker is down or the video server is not ready, so the
+        meeting operation cannot run. Retry later; after a broker outage the server sends the
+        MessageBrokerRestored WebSocket event when meeting operations are available again.
     502BadGatewayResponse:
       description: The service was unavailable
   schemas:
@@ -2451,9 +2498,10 @@ components:
             historyCleared:
               type: boolean
               default: false
-              description: |
-                indicates whether it can see previous messages,
-                after it has been added to the room
+              description: >
+                true: the new member does NOT see the messages sent before they were added (their
+                cleared-history instant is set to the time of the add and returned as clearedAt);
+                false: the new member sees the whole room history.
           required: [userId, owner, historyCleared]
     MembersInserted:
       type: array
@@ -3165,7 +3213,8 @@ components:
           description: >
             The full message this one replies to, embedded depth-1 (the embedded message never
             carries its own repliedMessage). Absent when the message is not a reply or when the
-            original is not visible to the caller (cleared / joined after it / hard-removed).
+            original is not visible to the caller (created at or before the caller's
+            cleared-history instant, or hard-removed).
           $ref: '#/components/schemas/TimelineMessage'
       required: [id, roomId, senderId, text, createdAt]
     EditedInfo:

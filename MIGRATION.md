@@ -12,8 +12,16 @@ It deliberately does not document request bodies, query parameters or response s
 
 ## Which backend am I talking to?
 
-Every REST response carries an **`X-WSC-API-VERSION`** header. `>= 2.0.0` means the REST/WebSocket backend
-described here. A missing or lower version means the legacy MongooseIM backend.
+Send `X-WSC-API-VERSION: 2.0.0` on every REST request and read the `X-WSC-API-VERSION` response header:
+
+- **`2xx` with a JSON body:** the header echoes the version you sent (`2.0.0`): this is the REST/WebSocket
+  backend described here. `2xx` responses without a JSON body (e.g. `204`) carry no header.
+- **`422` with a version lower than `2.0.0` in the header** (e.g. `1.6.16`): a legacy MongooseIM-era backend
+  that does not know `2.0.0`. The client cannot work with it: show a "server too old" state.
+- **`422` with `2.0.0` in the header:** a 2.0.0 backend that does not support the version you sent (§10).
+
+Every non-`2xx` response carries the server's own version in the header. Requests without the header are not
+version-checked (internal service-to-service callers rely on this); clients must always send it.
 
 Practical consequences of the new architecture:
 
@@ -53,9 +61,20 @@ Notes:
 
 - **Pin used two namespaces in the legacy backend** (`urn:xmpp:pin:0` to create,
   `zextras:iq:pin` to read/delete). That inconsistency is gone — one REST resource.
-- `GET /rooms/{roomId}/messages` also exists (cursor pagination). `GET /rooms/{roomId}/timeline`
-  is the richer endpoint and the recommended one: it returns messages and system events in one
-  discriminated list, supports `before`/`after`/`around` anchoring, and includes read markers.
+- **One pin per room.** `PUT .../messages/{messageId}/pin` replaces the current pin: it writes one
+  `MESSAGE_PINNED` row and sends only `MessagePinned` (no `MessageUnpinned` for the replaced message).
+  `GET /rooms/{roomId}/pin` returns an array of 0 or 1 items. `DELETE .../pin` on a message that is not the
+  current pin answers `204` and does nothing (no row, no event). Pinning a message that is deleted, not in the
+  room, or below your visibility floor (§8) answers `404`. Deleting the pinned message unpins it: the server
+  writes `MESSAGE_UNPINNED` (author = the deleter) and sends `MessageUnpinned` right after `MessageDeleted`.
+- **One reaction per user per message.** `POST .../reactions/{reaction}` with a different emoji replaces your
+  previous reaction and sends two `ReactionChanged` events: `removed` (old emoji), then `added` (new emoji).
+  `DELETE .../reactions/{reaction}` removes your reaction whatever emoji the path carries. Both answer `404`
+  when the message is not in the path room; `POST` also answers `404` for a deleted message or one below your
+  visibility floor. The `{reaction}` of the `POST` is at most 32 characters.
+- `GET /rooms/{roomId}/messages` (the cursor history of earlier 2.0.0 builds) is removed: use
+  `GET /rooms/{roomId}/timeline`, which returns messages and system events in one discriminated list, supports
+  `before`/`after`/`around` anchoring, and includes read markers.
 - Both `POST /rooms/{roomId}/forward` (multi-target) and
   `POST /rooms/{roomId}/messages/{messageId}/forward` (single) exist. The former is the one in general use.
 
@@ -129,8 +148,8 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | Event | Emitted when | Audience |
 |---|---|---|
 | `WebsocketConnected` | Connection is established and subscribed to events | The connecting client only |
-| `MessageBrokerDisconnected` | Server loses its RabbitMQ connection; meeting API calls that require an active session return `403` while this persists | All connected clients |
-| `MessageBrokerRestored` | RabbitMQ connection is restored; meeting API calls become available again | All connected clients |
+| `MessageBrokerDisconnected` | Server loses its RabbitMQ connection; `startMeeting`, `joinMeeting`, `updateMediaStream`, `updateAudioStream` and `updateHandStatus` answer `424` while this persists (they also answer `424` while the video server is not ready) | All connected clients |
+| `MessageBrokerRestored` | RabbitMQ connection is restored and the video server is ready; those meeting calls stop answering `424` | All connected clients |
 | `Pong` | Client sends a legacy `ping` message (prefer native WS PING frames) | The requesting client only |
 
 **Room events** (delivered via message broker to each member's personal queue):
@@ -146,7 +165,7 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | `RoomOwnerDemoted` | A member loses owner rights | All room members |
 | `RoomMuted` | A member mutes room notifications | The member who muted |
 | `RoomUnmuted` | A member unmutes room notifications | The member who unmuted |
-| `RoomHistoryCleared` | Room message history is cleared | All room members |
+| `RoomHistoryCleared` | `PUT /rooms/{roomId}/clear`: a member clears their own history (GROUP, ONE_TO_ONE), or an owner purges a TEMPORARY room | Per-user clear: only the clearing user (all their sessions). TEMPORARY purge: all room members |
 | `RoomPictureChanged` | Room avatar is updated (use `updatedAt` to invalidate caches) | All room members |
 | `RoomPictureDeleted` | Room avatar is removed | All room members |
 
@@ -178,11 +197,11 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 
 | Event | Emitted when | Audience |
 |---|---|---|
-| `MessageReceived` | `POST /rooms/{roomId}/messages` or attachment upload completes | All room members; **sender also receives a `tempId` echo** (see below) |
+| `MessageReceived` | `POST /rooms/{roomId}/messages` or attachment upload completes | All room members, each with the same `tempId` echo (see below) |
 | `MessageForwarded` | `POST /rooms/{roomId}/forward` | All members of the target room |
 | `MessageEdited` | `PUT .../messages/{messageId}/edit` | All room members |
 | `MessageDeleted` | `DELETE .../messages/{messageId}` | All room members |
-| `MessagePinned` | `PUT .../messages/{messageId}/pin` | All room members |
+| `MessagePinned` | `PUT .../messages/{messageId}/pin`, also when it replaces the current pin | All room members |
 | `MessageUnpinned` | `DELETE .../messages/{messageId}/pin` of the room pin (unpinning any other message is a 204 no-op: no system line, no event), or `DELETE .../messages/{messageId}` of the pinned message (sent right after `MessageDeleted`, `unpinnedBy` = the deleter) | All room members |
 | `ReactionChanged` | `POST` or `DELETE .../reactions/{reaction}` | All room members |
 | `ReadUpdated` | `PUT /rooms/{roomId}/read` that moves the marker forward (a same or older item writes nothing and sends nothing) | All room members |
@@ -194,10 +213,12 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 `MessageReceived` and `MessageForwarded` carry a nested `message` object of the `TimelineMessage`
 shape (full message payload including id, text, attachments, reply chain, etc.).
 
-`MessageReceived` additionally carries a top-level `tempId` field that is echoed **only to the sender**
-and is omitted for all other recipients. Use `tempId` to reconcile optimistic-UI placeholders:
-match the `tempId` you sent in the REST request to the `tempId` in the event, then replace the
-placeholder with the real message. Do not use a client-generated id — message ids are server-assigned.
+`MessageReceived` additionally carries a top-level `tempId`: the value the sender passed to
+`POST /rooms/{roomId}/messages` or to the attachment upload (absent when the request had none). It is sent to
+**every room member**, the sender included; a client that has no placeholder with that `tempId` ignores it.
+Use it to reconcile optimistic-UI placeholders: match the `tempId` you sent in the REST request to the `tempId`
+in the event, then replace the placeholder with the real message. Do not use a client-generated id — message
+ids are server-assigned. The `201` response carries the same message: reconcile on whichever arrives first.
 
 Delta events (`MessageEdited`, `MessageDeleted`) are intentionally thin: they reference the target
 message via `messageId` (a foreign key) and carry only the changed fields — `text` and `editedAt`
@@ -226,28 +247,37 @@ present exactly when the id is. Compare it as an instant; the offset may differ 
 | Event | System line | Author field | `systemEventId` |
 |---|---|---|---|
 | `MessagePinned` | `MESSAGE_PINNED` | `pinnedBy` | always |
-| `MessageUnpinned` | `MESSAGE_UNPINNED` | `unpinnedBy` | always |
+| `MessageUnpinned` | `MESSAGE_UNPINNED` | `unpinnedBy` (the deleter when the pinned message is deleted) | always; nothing is written or sent when the message was not pinned |
 | `RoomMemberAdded` | `MEMBER_ADDED` | `addedBy` | always |
 | `RoomMemberRemoved` | `MEMBER_REMOVED` | `removedBy` (the leaving user on self-leave; the first room owner when the removal is automatic, i.e. temporary-room clean-up, as the release did) | always |
 | `MeetingStarted` | `MEETING_STARTED` | `starterUser` | ONE_TO_ONE rooms only |
 | `MeetingStopped` | `MEETING_ENDED` | `endedBy` (the user whose action stopped the meeting) | ONE_TO_ONE rooms only, and only if the meeting had started |
 | `MeetingDeclined` | `MEETING_DECLINED` | `userId` (the decliner) | ONE_TO_ONE rooms only |
 
-Room changes write native system events too. All five carry the current user as `actorId`, and are
-returned by the timeline like the others (`content` is the parsed JSON object):
+Every system line has a `content` JSON object, returned parsed by the timeline. `<user>` is a user id,
+`<message>` a message id, `<meeting>` a meeting id. Rows imported from MongooseIM carry the same keys.
 
-| System line | Written when | `content` |
-|---|---|---|
-| `ROOM_NAME_CHANGED` | `PUT /rooms/{roomId}`, the name actually changed | `{"changedBy": <user>, "name": <new name>}` |
-| `ROOM_DESCRIPTION_CHANGED` | `PUT /rooms/{roomId}`, the description actually changed (also to `""`) | `{"changedBy": <user>, "description": <new description>}` |
-| `ROOM_PICTURE_UPDATED` | `PUT /rooms/{roomId}/picture` | `{"updatedBy": <user>}` |
-| `ROOM_PICTURE_DELETED` | `DELETE /rooms/{roomId}/picture` | `{"deletedBy": <user>}` |
-| `ROOM_HISTORY_CLEARED` | `PUT /rooms/{roomId}/clear` on a TEMPORARY room (the owner clears for everyone) | `{"clearedBy": <user>}` |
+| System line | Written when | `actorId` | `content` |
+|---|---|---|---|
+| `ROOM_CREATED` | Room creation (first row of every room) | the creator | `{"creatorId": <user>}` |
+| `MEMBER_ADDED` | Room creation (one row per invited member, GROUP and TEMPORARY rooms) and `POST /rooms/{roomId}/members` (one row per added member) | the user who added | `{"addedByUserId": <user>, "addedUserIds": [<user>]}`, always exactly one id |
+| `MEMBER_REMOVED` | A member is removed, leaves, is kicked from a temporary room's meeting, or is removed automatically (temporary-room clean-up) | the remover (see `removedBy` above) | `{"removedByUserId": <user>, "removedUserId": <user>}` |
+| `MESSAGE_PINNED` | `PUT .../messages/{messageId}/pin` | the pinner | `{"pinnedBy": <user>, "messageId": <message>}` |
+| `MESSAGE_UNPINNED` | `DELETE .../messages/{messageId}/pin` of the current pin, or deletion of the pinned message | the unpinner or the deleter | `{"unpinnedBy": <user>, "messageId": <message>}` |
+| `MEETING_STARTED` | A ONE_TO_ONE meeting starts | the starter | `{"startedBy": <user>, "meetingId": <meeting>}` |
+| `MEETING_ENDED` | A ONE_TO_ONE meeting that had started stops | the user whose action stopped it | `{"endedBy": <user>, "meetingId": <meeting>, "startedAt": <epoch milliseconds, number>, "durationSec": <seconds, number>}` |
+| `MEETING_DECLINED` | `POST /meetings/{meetingId}/decline` in a ONE_TO_ONE room | the decliner | `{"declinedBy": <user>, "meetingId": <meeting>}` |
+| `ROOM_NAME_CHANGED` | `PUT /rooms/{roomId}`, the name actually changed | the current user | `{"changedBy": <user>, "name": <new name>}` |
+| `ROOM_DESCRIPTION_CHANGED` | `PUT /rooms/{roomId}`, the description actually changed (also to `""`) | the current user | `{"changedBy": <user>, "description": <new description>}` |
+| `ROOM_PICTURE_UPDATED` | `PUT /rooms/{roomId}/picture` | the current user | `{"updatedBy": <user>}` |
+| `ROOM_PICTURE_DELETED` | `DELETE /rooms/{roomId}/picture` | the current user | `{"deletedBy": <user>}` |
+| `ROOM_HISTORY_CLEARED` | `PUT /rooms/{roomId}/clear` on a TEMPORARY room (the owner clears for everyone) | the owner | `{"clearedBy": <user>}` |
 
-An update that changes nothing writes no event. If name and description change in one request, two
-rows are written, name first, with `createdAt` 1 ms apart. `ROOM_HISTORY_CLEARED` is written after the
-purge, so it is the only row left in the room. The per-user clear of GROUP and ONE_TO_ONE rooms
-(`cleared_at`) writes no event.
+An update that changes nothing writes no event. If name and description change in one request, two rows are
+written, name first, with `createdAt` 1 ms apart. `ROOM_HISTORY_CLEARED` is written after the purge, so it is
+the only row left in the room; its `createdAt` is the `clearedAt` returned by `PUT /rooms/{roomId}/clear` and
+carried by `RoomHistoryCleared`. The per-user clear of GROUP and ONE_TO_ONE rooms (`cleared_at`) writes no
+event.
 
 | Event | System line | Author field | `systemEventId` |
 |---|---|---|---|
@@ -302,6 +332,13 @@ Attachment upload changed:
   message of the room visible to the caller. The notification is a `MessageReceived` event (it was an
   `attachmentAdded` stanza).
 - The `application/octet-stream` upload (`insertAttachment`, file metadata in headers) was removed.
+- Text parts (`contentLength`, `description`, `replyToId`, `area`, `tempId`) are read as UTF-8. Send the
+  caption (`description`) as raw UTF-8 text, not escaped, ideally with `Content-Type: text/plain; charset=UTF-8`
+  on the part. The `file` part's file name is either the raw name or the whole name written as `\uXXXX`
+  escapes (what the official clients send); a name that cannot be decoded answers `400`.
+- Push notifications (Advanced edition only) are sent for text messages and for attachments with a non-blank
+  caption, which becomes the notification body (at most 500 characters, then `…`). Edits, reactions, forwards
+  and deletes never push. See `docs/notification-messages.md`.
 
 ## 7. Removed, with no replacement
 
@@ -313,3 +350,71 @@ Attachment upload changed:
 
 Room configuration messages (`roomNameChanged`, `roomPictureUpdated`, `memberAdded`, …) were XMPP
 notifications, not operations — they are now the corresponding `Room*` events in §4.
+
+## 8. History visibility (`clearedAt` floor)
+
+Each member has a visibility floor, `clearedAt`: the instant of their last per-user clear
+(`PUT /rooms/{roomId}/clear` on a GROUP or ONE_TO_ONE room), or the instant they were added with
+`historyCleared: true`. The server enforces it on every read path; clients never filter by date themselves.
+
+- A member sees only the items created strictly after their `clearedAt`: timeline, search, export, inbox
+  (`lastItem` and unread counters), attachment lists, attachment info, download and previews (`404` below the
+  floor).
+- Requests that target an item below the floor answer `404`: reply (`replyToId`), forward source, pin, add
+  reaction, mark as read.
+- **Quotes of older messages are not returned.** For a reader whose floor is after the quoted message,
+  `repliedMessage` is absent in REST responses, and `repliedMessage` and `replyToId` are absent in
+  `MessageReceived`, `MessageForwarded` and `MessagePinned`. Legacy clients showed such quotes: that was a bug
+  and is not reproduced.
+- **Pins are the only exception.** `GET /rooms/{roomId}/pin` and `MessagePinned` always return the current pin
+  with its text, also when the pinned message is below the reader's floor. Its attachment is not exempt: the
+  `attachment` metadata is present, but download, preview and thumbnail answer `404` below the floor, so show
+  the pinned text only (no thumbnail, preview or download).
+- `historyCleared` in `POST /rooms/{roomId}/members`: `true` means the new member does **not** see the messages
+  sent before they were added (their `clearedAt` is set to the time of the add and returned as `clearedAt`);
+  `false` (the default) gives them the whole history.
+- A TEMPORARY-room clear (`PUT /rooms/{roomId}/clear` by an owner) does not use the floor: it deletes the
+  room's messages, attachments and system lines for everyone and leaves one `ROOM_HISTORY_CLEARED` row.
+
+## 9. Limits and validation
+
+The authoritative bounds are in `api.yaml`; a request outside them answers `400`.
+
+| Input | Rule |
+|---|---|
+| `text` of `POST /rooms/{roomId}/messages` | Required and not blank (only whitespace answers `400`); at most 8192 characters (UTF-16 code units) |
+| `tempId` of the send and of the attachment upload | Optional; at most 64 characters |
+| `limit` of `GET /rooms/{roomId}/timeline` and `GET /rooms/{roomId}/messages/search` | 1 to 200 |
+| `{reaction}` of `POST /rooms/{roomId}/messages/{messageId}/reactions/{reaction}` | At most 32 characters |
+| `POST /rooms/{roomId}/members` body | At least one member (`[]` answers `400`); a repeated user id is added once |
+| `POST /presence/batch` | At most 100 user ids |
+| `file` name of the attachment upload | The raw name, or the whole name written as `\uXXXX` escapes; a name that cannot be decoded answers `400` |
+
+## 10. Client/server compatibility and upgrade
+
+A 2.0.0 server accepts only the API versions listed in `x-supported-versions` of `api.yaml` (today `2.0.0`).
+There is no compatibility layer for 1.x clients.
+
+| Client | Legacy backend (API 1.6.x, MongooseIM) | 2.0.0 backend |
+|---|---|---|
+| 1.x web or mobile app (API 1.6.x + XMPP) | Works | Does not work: REST calls that send `X-WSC-API-VERSION: 1.6.x` answer `422` (header `2.0.0`), a WebSocket handshake that offers only 1.6.x answers `400`, and the XMPP endpoint `/services/messaging/ws-xmpp` is gone. The app must be updated. |
+| 2.0.0 web or mobile app | Does not work: REST calls answer `422` with a lower version in the header (see "Which backend am I talking to?"); the app must ask for a server upgrade | Works |
+| Internal callers that send no `X-WSC-API-VERSION` | Works | Works (not version-checked) |
+
+Upgrade procedure (administrators):
+
+1. Plan the server upgrade together with the clients: 1.x apps stop working as soon as the server runs 2.0.0,
+   and 2.0.0 apps do not work with a legacy server. Mobile users need an app version that speaks API 2.0.0.
+2. **Stop `carbonio-message-dispatcher` (MongooseIM) on every node before upgrading** and keep it stopped and
+   disabled afterwards. Keep its database (`carbonio-message-dispatcher-db`) running and reachable: the import
+   reads it.
+3. Upgrade `carbonio-ws-collaboration`. At the first start, Flyway runs `V2_0_1__migrate_mongoose_data` once:
+   it imports messages, system lines, edits, reactions, pins, read markers, last-seen times and contacts from
+   the MongooseIM database. It never runs again. If the dispatcher database cannot be read, the start fails
+   and the import is retried at the next start; if the dispatcher was never installed it logs
+   `MongooseIM import skipped: …` and is recorded as done.
+4. Check the WSC log for `MongooseIM import completed: rooms=… messages=…`. The warning
+   `other sessions are connected to the MongooseIM database` means MongooseIM was still running during the
+   import.
+5. Anything written to MongooseIM after the import (for example by a 1.x client talking to a dispatcher that
+   was left running) is never imported and is lost for 2.0.0 users. Step 2 prevents it.
