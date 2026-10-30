@@ -1979,6 +1979,67 @@ class MeetingApiIT {
     }
 
     @Test
+    @DisplayName(
+        "A moderator kicks a temporary member, who is removed from the room on the moderator's"
+            + " behalf")
+    void kickMeetingParticipant_testOkTemporaryMemberRemovedByModerator() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.TEMPORARY)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user3Id).owner(true),
+              RoomMemberField.create().id(user2Id).temporary(true)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              MeetingType.SCHEDULED,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue),
+                  ParticipantBuilder.create(user2Id, user2Queue),
+                  ParticipantBuilder.create(user3Id, user3Queue)),
+              true);
+      mockVideoServerDestroyUser2(meetingId);
+      String firstOwnerId =
+          integrationTestUtils.getRoomById(room1Id).orElseThrow().getSubscriptions().stream()
+              .filter(Subscription::isOwner)
+              .map(Subscription::getUserId)
+              .findFirst()
+              .orElseThrow();
+      boolean user1IsFirstOwner = user1Id.toString().equals(firstOwnerId);
+      UUID moderatorId = user1IsFirstOwner ? user3Id : user1Id;
+      String moderatorQueue = user1IsFirstOwner ? user3Queue : user1Queue;
+      String moderatorToken =
+          user1IsFirstOwner
+              ? MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getToken()
+              : user1Token;
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user2Id), Map.of("queue-id", moderatorQueue), moderatorToken);
+
+      assertEquals(204, response.getStatus());
+      assertFalse(isUser2Participant(meetingId));
+      assertTrue(
+          integrationTestUtils.getRoomById(room1Id).orElseThrow().getSubscriptions().stream()
+              .noneMatch(subscription -> user2Id.toString().equals(subscription.getUserId())));
+      List<SystemEvent> removals =
+          systemEventRepository.findByRoomId(room1Id.toString()).stream()
+              .filter(event -> "MEMBER_REMOVED".equals(event.getType()))
+              .toList();
+      assertEquals(1, removals.size());
+      assertEquals(moderatorId.toString(), removals.get(0).getActorId());
+      Map<String, String> content =
+          objectMapper.readValue(removals.get(0).getContent(), new TypeReference<>() {});
+      assertEquals(
+          Map.of("removedByUserId", moderatorId.toString(), "removedUserId", user2Id.toString()),
+          content);
+    }
+
+    @Test
     @DisplayName("If the authenticated user isn't a moderator then it returns a status code 403")
     void kickMeetingParticipant_testErrorUserIsNotAModerator() throws Exception {
       UUID meetingId = generateMeeting(false);

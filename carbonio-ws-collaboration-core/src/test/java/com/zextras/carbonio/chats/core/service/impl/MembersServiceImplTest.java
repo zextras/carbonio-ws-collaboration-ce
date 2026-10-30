@@ -952,6 +952,41 @@ class MembersServiceImplTest {
     }
 
     @Test
+    @DisplayName("A removal on behalf of a user persists MEMBER_REMOVED authored by that user")
+    void deleteRoomMember_removalAuthoredByGivenUser() throws Exception {
+      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()).owner(true),
+              Subscription.create(room, user3Id.toString()).owner(true),
+              Subscription.create(room, user2Id.toString()).temporary(true)));
+      insertSetsCreatedAt();
+
+      membersService.deleteRoomMember(user2Id.toString(), room, user3Id.toString());
+
+      SystemEvent removed = capturedSystemEvent();
+      assertEquals("MEMBER_REMOVED", removed.getType());
+      assertEquals(roomId.toString(), removed.getRoomId());
+      assertEquals(user3Id.toString(), removed.getActorId());
+      assertEquals(
+          Map.of("removedByUserId", user3Id.toString(), "removedUserId", user2Id.toString()),
+          new ObjectMapper()
+              .readValue(removed.getContent(), new TypeReference<Map<String, String>>() {}));
+      ArgumentCaptor<RoomMemberRemoved> event = ArgumentCaptor.forClass(RoomMemberRemoved.class);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              eq(List.of(user1Id.toString(), user3Id.toString(), user2Id.toString())),
+              event.capture());
+      assertEquals(user2Id, event.getValue().getUserId());
+      assertEquals(user3Id, event.getValue().getRemovedBy());
+      assertEquals(removed.getId(), event.getValue().getSystemEventId());
+      assertEquals(PERSISTED_AT, event.getValue().getSystemEventCreatedAt());
+      verify(roomUserSettingsRepository, times(1))
+          .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
+      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
+    }
+
+    @Test
     @DisplayName("If user is the last room owner, it throws a 'bad request' exception")
     void deleteRoomMember_userIsTheLastOwner() {
       Room room = generateRoom(RoomTypeDto.GROUP);

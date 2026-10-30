@@ -48,6 +48,17 @@ public interface MembersService {
   void deleteRoomMember(String userId, Room room);
 
   /**
+   * Removes a member from the specified room on behalf of the given user, who is recorded as the
+   * author of the removal. This is used by ParticipantService when a moderator kicks a temporary
+   * member out of the meeting
+   *
+   * @param userId user identifier {@link String }
+   * @param room room entity {@link Room }
+   * @param removedBy identifier of the user who removed the member {@link String }
+   */
+  void deleteRoomMember(String userId, Room room, String removedBy);
+
+  /**
    * Retrieves every member to the given room
    *
    * @param roomId room identifier {@link UUID }

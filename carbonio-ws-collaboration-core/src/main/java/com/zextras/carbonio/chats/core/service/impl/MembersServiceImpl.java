@@ -215,15 +215,20 @@ public class MembersServiceImpl implements MembersService {
 
   @Override
   public void deleteRoomMember(String userId, Room room) {
-    List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
     String firstOwnerId =
         room.getSubscriptions().stream()
             .filter(Subscription::isOwner)
             .map(Subscription::getUserId)
             .findFirst()
             .orElseThrow();
+    deleteRoomMember(userId, room, firstOwnerId);
+  }
+
+  @Override
+  public void deleteRoomMember(String userId, Room room, String removedBy) {
+    List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
     removeMemberData(userId, room);
-    persistAndDispatchMemberRemoved(receivers, room, userId, firstOwnerId);
+    persistAndDispatchMemberRemoved(receivers, room, userId, removedBy);
   }
 
   private void persistAndDispatchMemberRemoved(

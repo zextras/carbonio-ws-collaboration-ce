@@ -251,7 +251,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         .forEach(
             participant ->
                 removeMeetingParticipant(
-                    participant, meeting, room, MeetingParticipantLeftReason.LEFT));
+                    participant, meeting, room, MeetingParticipantLeftReason.LEFT, null));
   }
 
   @Override
@@ -300,11 +300,16 @@ public class ParticipantServiceImpl implements ParticipantService {
                     new NotFoundException(
                         String.format(
                             "User '%s' is not a participant of meeting '%s'", userId, meetingId)));
-    removeMeetingParticipant(participant, meeting, room, MeetingParticipantLeftReason.KICKED);
+    removeMeetingParticipant(
+        participant, meeting, room, MeetingParticipantLeftReason.KICKED, currentUser.getId());
   }
 
   private void removeMeetingParticipant(
-      Participant participant, Meeting meeting, Room room, MeetingParticipantLeftReason reason) {
+      Participant participant,
+      Meeting meeting,
+      Room room,
+      MeetingParticipantLeftReason reason,
+      @Nullable String removedBy) {
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
     participantRepository.remove(participant);
     List<Subscription> subscriptions = room.getSubscriptions();
@@ -321,18 +326,25 @@ public class ParticipantServiceImpl implements ParticipantService {
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
           UUID.fromString(meeting.getId()));
     }
-    cleanupTemporaryMember(participant, room, subscriptions);
+    cleanupTemporaryMember(participant, room, subscriptions, removedBy);
   }
 
   private void cleanupTemporaryMember(
-      Participant participant, Room room, List<Subscription> subscriptions) {
+      Participant participant,
+      Room room,
+      List<Subscription> subscriptions,
+      @Nullable String removedBy) {
     subscriptions.stream()
         .filter(s -> s.getUserId().equals(participant.getUserId()))
         .findFirst()
         .ifPresent(
             s -> {
               if (s.isTemporary()) {
-                membersService.deleteRoomMember(s.getUserId(), room);
+                if (removedBy == null) {
+                  membersService.deleteRoomMember(s.getUserId(), room);
+                } else {
+                  membersService.deleteRoomMember(s.getUserId(), room, removedBy);
+                }
               }
             });
   }

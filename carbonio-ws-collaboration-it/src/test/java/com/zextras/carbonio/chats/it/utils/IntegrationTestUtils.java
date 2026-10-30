@@ -141,6 +141,7 @@ public class IntegrationTestUtils {
                       .userId(member.getId().toString())
                       .room(room)
                       .owner(member.isOwner())
+                      .temporary(member.isTemporary())
                       .joinedAt(OffsetDateTime.now()));
 
           if (member.isMuted()) {
@@ -162,6 +163,7 @@ public class IntegrationTestUtils {
     private UUID id;
     private boolean owner = false;
     private boolean muted = false;
+    private boolean temporary = false;
 
     public static RoomMemberField create() {
       return new RoomMemberField();
@@ -191,6 +193,15 @@ public class IntegrationTestUtils {
 
     public RoomMemberField muted(boolean muted) {
       this.muted = muted;
+      return this;
+    }
+
+    public boolean isTemporary() {
+      return temporary;
+    }
+
+    public RoomMemberField temporary(boolean temporary) {
+      this.temporary = temporary;
       return this;
     }
   }

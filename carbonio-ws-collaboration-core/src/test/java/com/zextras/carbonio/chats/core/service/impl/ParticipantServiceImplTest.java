@@ -754,7 +754,8 @@ class ParticipantServiceImplTest {
                   .meetingId(scheduledMeetingId)
                   .userId(user4Id)
                   .reason(MeetingParticipantLeftReason.KICKED));
-      verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
+      verify(membersService, times(1))
+          .deleteRoomMember(user4Id.toString(), scheduledRoom, user1Id.toString());
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -844,7 +845,8 @@ class ParticipantServiceImplTest {
 
       assertThrows(
           VideoServerException.class,
-          () -> participantService.kickMeetingParticipant(permanentMeetingId, user4Id, currentUser));
+          () ->
+              participantService.kickMeetingParticipant(permanentMeetingId, user4Id, currentUser));
 
       verify(participantRepository, never()).remove(any());
       verifyNoInteractions(eventDispatcher);

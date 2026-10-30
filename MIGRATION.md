@@ -160,7 +160,7 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | `MeetingStopped` | The last participant leaves (meeting ends) | All meeting participants |
 | `MeetingDeclined` | A user declines the meeting invitation | All meeting participants |
 | `MeetingParticipantJoined` | A participant joins the active meeting | All meeting participants |
-| `MeetingParticipantLeft` | A participant leaves the active meeting | All meeting participants |
+| `MeetingParticipantLeft` | A participant leaves the active meeting, or a moderator kicks them out (`reason`: `LEFT` or `KICKED`) | All room members, the kicked user included |
 | `MeetingParticipantClashed` | A second session of the same user joins (first session is kicked) | The displaced session only |
 | `MeetingAudioStreamChanged` | A participant's audio is muted/unmuted (by self or moderator) | All meeting participants |
 | `MeetingAudioAnswered` | WebRTC answer for the audio PeerConnection is ready | The requesting participant only |
@@ -282,7 +282,7 @@ These were already plain REST and never touched XMPP. Same method, same path, sa
 | Members | `listRoomMembers`, `insertRoomMembers`, `deleteRoomMember`, `insertOwner`, `deleteOwner`, `updateRoomOwners` |
 | Attachments | `listRoomAttachmentsInfo`, `insertAttachmentMultipart`, `bulkDeleteRoomAttachments`, `deleteAttachment`, `getAttachmentInfo`, `getAttachment` |
 | Preview | `getImagePreview`, `getImageThumbnail`, `getPdfPreview`, `getPdfThumbnail`, `getVideoPreview`, `getVideoThumbnail` |
-| Meetings | `listMeeting`, `createMeeting`, `getMeeting`, `deleteMeeting`, `startMeeting`, `stopMeeting`, `joinMeeting`, `leaveMeeting`, `declineMeeting` |
+| Meetings | `listMeeting`, `createMeeting`, `getMeeting`, `deleteMeeting`, `startMeeting`, `stopMeeting`, `joinMeeting`, `leaveMeeting`, `kickMeetingParticipant`, `declineMeeting` |
 | Meeting media / RTC | `updateMediaStream`, `answerRtcMediaStream`, `updateSubscriptionsMediaStream`, `updateAudioStream`, `offerRtcAudioStream`, `iceRestartAudio`, `iceRestartVideo`, `iceRestartScreen`, `updateHandStatus` |
 | Users / info | `getUsers`, `getUser`, `getCapabilities`, `getToken` |
 | Health | `getHealthStatus`, `isLive`, `isReady` |
