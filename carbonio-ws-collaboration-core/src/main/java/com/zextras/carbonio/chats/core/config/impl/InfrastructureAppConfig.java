@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class InfrastructureAppConfig extends AppConfig {
 
@@ -17,7 +18,8 @@ public class InfrastructureAppConfig extends AppConfig {
 
   private final Map<String, String> configs;
 
-  private InfrastructureAppConfig(Collection<ConfigContribution> catalog) {
+  private InfrastructureAppConfig(
+      Collection<ConfigContribution> catalog, Function<String, String> environment) {
     this.configs = new HashMap<>();
     catalog.forEach(
         contribution ->
@@ -29,12 +31,21 @@ public class InfrastructureAppConfig extends AppConfig {
                         throw new IllegalStateException(
                             "Duplicate infrastructure default for config key " + key);
                       }
-                      configs.put(key, value);
+                      configs.put(
+                          key,
+                          Optional.ofNullable(environment.apply(key))
+                              .filter(override -> !override.isBlank())
+                              .orElse(value));
                     }));
   }
 
   public static AppConfig create(Collection<ConfigContribution> catalog) {
-    return new InfrastructureAppConfig(catalog);
+    return create(catalog, System::getenv);
+  }
+
+  public static AppConfig create(
+      Collection<ConfigContribution> catalog, Function<String, String> environment) {
+    return new InfrastructureAppConfig(catalog, environment);
   }
 
   @Override
