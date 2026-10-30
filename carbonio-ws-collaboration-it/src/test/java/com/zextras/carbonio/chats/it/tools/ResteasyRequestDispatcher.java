@@ -226,6 +226,17 @@ public class ResteasyRequestDispatcher {
         preparePostMultiPart(path, fileBytes, formHeaders, fileName, contentType, userToken));
   }
 
+  public MockHttpResponse postRaw(
+      String path, byte[] body, String contentType, @Nullable String userToken)
+      throws URISyntaxException {
+    MockHttpRequest request = MockHttpRequest.post(path);
+    Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+    request.content(body);
+    request.header("Content-Type", contentType);
+    request.accept(MediaType.APPLICATION_JSON);
+    return sendRequest(request);
+  }
+
   private MockHttpRequest prepareDelete(
       String path, Map<String, String> requestHeaders, @Nullable String userToken)
       throws URISyntaxException {

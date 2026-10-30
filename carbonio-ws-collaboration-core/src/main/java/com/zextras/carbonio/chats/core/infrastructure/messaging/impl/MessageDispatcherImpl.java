@@ -15,14 +15,16 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.repository.UserContactRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.model.MessageAttachmentDto;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import jakarta.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,6 +42,7 @@ public class MessageDispatcherImpl implements MessageDispatcher {
   private final MessageRepository messageRepository;
   private final FileMetadataRepository fileMetadataRepository;
   private final MessageReceivedBroadcaster messageReceivedBroadcaster;
+  private final TimelineItemMapper timelineItemMapper;
 
   @Inject
   public MessageDispatcherImpl(
@@ -49,7 +52,8 @@ public class MessageDispatcherImpl implements MessageDispatcher {
       ObjectMapper objectMapper,
       MessageRepository messageRepository,
       FileMetadataRepository fileMetadataRepository,
-      MessageReceivedBroadcaster messageReceivedBroadcaster) {
+      MessageReceivedBroadcaster messageReceivedBroadcaster,
+      TimelineItemMapper timelineItemMapper) {
     this.chatMessageService = chatMessageService;
     this.messageWriteRepository = messageWriteRepository;
     this.userContactRepository = userContactRepository;
@@ -57,6 +61,7 @@ public class MessageDispatcherImpl implements MessageDispatcher {
     this.messageRepository = messageRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.messageReceivedBroadcaster = messageReceivedBroadcaster;
+    this.timelineItemMapper = timelineItemMapper;
   }
 
   @Override
@@ -124,50 +129,22 @@ public class MessageDispatcherImpl implements MessageDispatcher {
             .createdAt(sent.createdAt());
 
     try {
+      Map<String, FileMetadata> attachmentsById = new HashMap<>();
+      attachmentsById.put(fileId, metadata);
       TimelineMessageDto messageDto =
-          TimelineMessageDto.create()
-              .id(message.getId())
-              .roomId(roomId)
-              .senderId(senderId)
-              .text(text)
-              .createdAt(message.getCreatedAt())
-              .attachment(
-                  MessageAttachmentDto.create()
-                      .id(fileId)
-                      .name(fileName)
-                      .mimeType(mimeType)
-                      .size(originalSize)
-                      .area(area));
+          timelineItemMapper.baseMessageFields(message, attachmentsById);
       if (replyId != null) {
-        messageDto.replyToId(replyId);
         messageRepository
             .getById(replyId)
             .ifPresent(
                 replied -> {
-                  TimelineMessageDto repliedDto =
-                      TimelineMessageDto.create()
-                          .id(replied.getId())
-                          .roomId(replied.getRoomId())
-                          .senderId(replied.getSenderId())
-                          .text(replied.getText() != null ? replied.getText() : "")
-                          .createdAt(replied.getCreatedAt());
-                  if (replied.getReplyToId() != null) {
-                    repliedDto.replyToId(replied.getReplyToId());
-                  }
                   if (replied.getAttachmentId() != null) {
                     fileMetadataRepository
                         .getById(replied.getAttachmentId())
-                        .ifPresent(
-                            meta ->
-                                repliedDto.attachment(
-                                    MessageAttachmentDto.create()
-                                        .id(meta.getId())
-                                        .name(meta.getName())
-                                        .mimeType(meta.getMimeType())
-                                        .size(meta.getOriginalSize())
-                                        .area(meta.getArea())));
+                        .ifPresent(meta -> attachmentsById.put(meta.getId(), meta));
                   }
-                  messageDto.repliedMessage(repliedDto);
+                  messageDto.repliedMessage(
+                      timelineItemMapper.baseMessageFields(replied, attachmentsById));
                 });
       }
       messageReceivedBroadcaster.broadcast(roomId, messageDto, tempId);
