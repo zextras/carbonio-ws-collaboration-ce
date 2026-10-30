@@ -56,6 +56,7 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
+import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.Query;
@@ -75,6 +76,8 @@ import org.mockito.Mockito;
 
 @UnitTest
 public class AttachmentServiceImplTest {
+
+  private static final String MESSAGE_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
   private final AttachmentService attachmentService;
   private final FileMetadataRepository fileMetadataRepository;
@@ -734,6 +737,7 @@ public class AttachmentServiceImplTest {
               anyString(),
               any(),
               any(),
+              any(),
               any()))
           .thenReturn(stubMessage);
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -752,6 +756,7 @@ public class AttachmentServiceImplTest {
             null,
             null,
             null,
+            MESSAGE_ID,
             currentUser);
       }
 
@@ -785,6 +790,7 @@ public class AttachmentServiceImplTest {
                     null,
                     null,
                     null,
+                    MESSAGE_ID,
                     currentUser));
       }
 
@@ -816,6 +822,7 @@ public class AttachmentServiceImplTest {
                     null,
                     null,
                     null,
+                    MESSAGE_ID,
                     currentUser));
       }
 
@@ -849,6 +856,7 @@ public class AttachmentServiceImplTest {
                     null,
                     null,
                     null,
+                    MESSAGE_ID,
                     currentUser));
       }
 
@@ -856,6 +864,61 @@ public class AttachmentServiceImplTest {
       verify(storagesService, times(1))
           .saveFile(fileStream, attachmentUuid.toString(), currentUser.getId(), 1024L);
       verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Creates the message with the id given by the caller")
+    void addAttachment_usesTheGivenMessageId() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(messageDispatcher.sendAttachment(
+              anyString(),
+              anyString(),
+              anyString(),
+              anyString(),
+              anyString(),
+              anyLong(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any()))
+          .thenReturn(
+              Message.create()
+                  .id(MESSAGE_ID)
+                  .roomId(roomId.toString())
+                  .senderId(user1Id.toString())
+                  .text("")
+                  .createdAt(OffsetDateTime.parse("2026-01-01T00:00:00Z")));
+
+      MessageDto created =
+          attachmentService.addAttachment(
+              roomId,
+              mock(InputStream.class),
+              "application/pdf",
+              1024L,
+              "temp.pdf",
+              null,
+              null,
+              null,
+              "t-1",
+              MESSAGE_ID,
+              currentUser);
+
+      verify(messageDispatcher)
+          .sendAttachment(
+              eq(roomId.toString()),
+              eq(user1Id.toString()),
+              anyString(),
+              eq("temp.pdf"),
+              eq("application/pdf"),
+              eq(1024L),
+              isNull(),
+              isNull(),
+              isNull(),
+              eq("t-1"),
+              eq(MESSAGE_ID));
+      assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
     }
   }
 
@@ -880,6 +943,7 @@ public class AttachmentServiceImplTest {
               any(),
               any(),
               any(),
+              any(),
               any()))
           .thenThrow(new NotFoundException("Reply target not found"));
 
@@ -900,6 +964,7 @@ public class AttachmentServiceImplTest {
                     "reply",
                     null,
                     null,
+                    MESSAGE_ID,
                     currentUser));
       }
 

@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -45,6 +46,7 @@ import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
@@ -106,6 +108,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 @UnitTest
 class RoomsApiServiceImplTest {
@@ -1751,16 +1754,17 @@ class RoomsApiServiceImplTest {
       when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
       UUID createdId = UUID.randomUUID();
       when(attachmentService.addAttachment(
-              roomId,
-              attachment,
-              "image/jpeg",
-              1024L,
-              "fileName",
-              "test",
-              "reply-id",
-              "10x5",
-              null,
-              user1))
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq("test"),
+              eq("reply-id"),
+              eq("10x5"),
+              isNull(),
+              anyString(),
+              eq(user1)))
           .thenReturn(createdMessage(createdId, "test"));
 
       Response response =
@@ -1769,16 +1773,18 @@ class RoomsApiServiceImplTest {
 
       verify(attachmentService, times(1))
           .addAttachment(
-              roomId,
-              attachment,
-              "image/jpeg",
-              1024L,
-              "fileName",
-              "test",
-              "reply-id",
-              "10x5",
-              null,
-              user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq("test"),
+              eq("reply-id"),
+              eq("10x5"),
+              isNull(),
+              anyString(),
+              eq(user1));
+      verifyNoInteractions(messageSendDedupRepository);
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       verify(messageSentListener, times(1))
@@ -1788,7 +1794,7 @@ class RoomsApiServiceImplTest {
     @BeforeEach
     void stubAddAttachmentWithACreatedMessage() throws Exception {
       when(attachmentService.addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
           .thenReturn(createdMessage(UUID.randomUUID(), ""));
     }
 
@@ -1798,16 +1804,17 @@ class RoomsApiServiceImplTest {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       UUID createdId = UUID.randomUUID();
       when(attachmentService.addAttachment(
-              roomId,
-              attachment,
-              "image/jpeg",
-              1024L,
-              "fileName",
-              "a caption",
-              null,
-              null,
-              null,
-              user1))
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq("a caption"),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1)))
           .thenReturn(createdMessage(createdId, "a caption"));
 
       Response response =
@@ -1817,16 +1824,17 @@ class RoomsApiServiceImplTest {
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       verify(attachmentService, times(1))
           .addAttachment(
-              roomId,
-              attachment,
-              "image/jpeg",
-              1024L,
-              "fileName",
-              "a caption",
-              null,
-              null,
-              null,
-              user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq("a caption"),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1));
       verify(messageSentListener, times(1))
           .onMessageSent(user1, roomId, createdId.toString(), "a caption");
     }
@@ -1839,7 +1847,17 @@ class RoomsApiServiceImplTest {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       UUID createdId = UUID.randomUUID();
       when(attachmentService.addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1))
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1)))
           .thenReturn(createdMessage(createdId, ""));
 
       Response response =
@@ -1848,7 +1866,17 @@ class RoomsApiServiceImplTest {
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       verify(attachmentService, times(1))
           .addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1));
       verify(messageSentListener, times(1)).onMessageSent(user1, roomId, createdId.toString(), "");
     }
 
@@ -1859,7 +1887,17 @@ class RoomsApiServiceImplTest {
       UUID createdId = UUID.randomUUID();
       MessageDto created = createdMessage(createdId, "");
       when(attachmentService.addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1))
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1)))
           .thenReturn(created);
       doThrow(new RuntimeException("listener failure"))
           .when(messageSentListener)
@@ -1872,7 +1910,17 @@ class RoomsApiServiceImplTest {
       assertEquals(created, response.getEntity());
       verify(attachmentService, times(1))
           .addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1));
     }
 
     @Test
@@ -1881,7 +1929,17 @@ class RoomsApiServiceImplTest {
         throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       when(attachmentService.addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1))
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1)))
           .thenThrow(new ForbiddenException("not a member"));
       MultipartFormDataInput form = attachmentForm(null);
 
@@ -1891,7 +1949,17 @@ class RoomsApiServiceImplTest {
 
       verify(attachmentService, times(1))
           .addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1));
       verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
     }
 
@@ -2199,7 +2267,17 @@ class RoomsApiServiceImplTest {
         assertEquals(Status.CREATED.getStatusCode(), response.getStatus(), name);
         verify(attachmentService)
             .addAttachment(
-                roomId, attachment, "image/jpeg", 1024L, name, null, null, null, null, user1);
+                eq(roomId),
+                eq(attachment),
+                eq("image/jpeg"),
+                eq(1024L),
+                eq(name),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                anyString(),
+                eq(user1));
       }
     }
 
@@ -2215,7 +2293,17 @@ class RoomsApiServiceImplTest {
 
       verify(attachmentService)
           .addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "😀.jpg", null, null, null, null, user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("😀.jpg"),
+              isNull(),
+              isNull(),
+              isNull(),
+              isNull(),
+              anyString(),
+              eq(user1));
     }
 
     @Test
@@ -2247,7 +2335,17 @@ class RoomsApiServiceImplTest {
       verify(areaPart, never()).setMediaType(any());
       verify(attachmentService)
           .addAttachment(
-              roomId, attachment, "image/jpeg", 1024L, "fileName", "àè", null, "10x5", null, user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq("àè"),
+              isNull(),
+              eq("10x5"),
+              isNull(),
+              anyString(),
+              eq(user1));
     }
 
     @Test
@@ -2278,6 +2376,8 @@ class RoomsApiServiceImplTest {
     @DisplayName("A tempId of 64 characters and a description of 8192 characters are accepted")
     void insertAttachmentMultipart_limitsAreInclusive() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
+          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
       String tempId = "t".repeat(64);
       String description = "d".repeat(8192);
 
@@ -2296,16 +2396,17 @@ class RoomsApiServiceImplTest {
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       verify(attachmentService)
           .addAttachment(
-              roomId,
-              attachment,
-              "image/jpeg",
-              1024L,
-              "fileName",
-              description,
-              null,
-              null,
-              tempId,
-              user1);
+              eq(roomId),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq(description),
+              isNull(),
+              isNull(),
+              eq(tempId),
+              anyString(),
+              eq(user1));
     }
 
     @Test
@@ -2502,6 +2603,144 @@ class RoomsApiServiceImplTest {
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       verify(messageWriteRepository, never())
           .sendMessageOnce(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("An upload with a tempId claims it before storing and creates that message id")
+    void insertAttachmentMultipart_withTempId_claimsFirst() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageSendDedupRepository.claim(
+              eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), anyString()))
+          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
+      when(attachmentService.addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenAnswer(invocation -> stored(invocation.getArgument(9)));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(upload("t-1"), roomId, securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      ArgumentCaptor<String> claimed = ArgumentCaptor.forClass(String.class);
+      InOrder order = inOrder(chatMessageService, messageSendDedupRepository, attachmentService);
+      order
+          .verify(chatMessageService)
+          .validateRoomMembership(roomId.toString(), user1Id.toString());
+      order
+          .verify(messageSendDedupRepository)
+          .claim(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), claimed.capture());
+      order
+          .verify(attachmentService)
+          .addAttachment(
+              eq(roomId),
+              any(),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              isNull(),
+              isNull(),
+              isNull(),
+              eq("t-1"),
+              eq(claimed.getValue()),
+              eq(user1));
+      verify(messageSendDedupRepository, never()).release(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("A duplicate upload answers 201 with the original and stores nothing")
+    void insertAttachmentMultipart_duplicate_returnsOriginalWithoutStoring() throws Exception {
+      String originalId = UUID.randomUUID().toString();
+      String attachmentId = UUID.randomUUID().toString();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
+          .thenReturn(new MessageSendDedupRepository.Claim(false, originalId));
+      when(messageRepository.getById(originalId))
+          .thenReturn(Optional.of(original(originalId, attachmentId)));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(upload("t-1"), roomId, securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      MessageDto body = (MessageDto) response.getEntity();
+      assertEquals(UUID.fromString(originalId), body.getId());
+      assertEquals(UUID.fromString(attachmentId), body.getAttachmentId());
+      verifyNoInteractions(attachmentService, messageSentListener);
+    }
+
+    @Test
+    @DisplayName("A storage failure after the claim releases it and keeps the error status")
+    void insertAttachmentMultipart_storageFailure_releasesTheClaim() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
+          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
+      when(attachmentService.addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenThrow(new StorageException("storage down"));
+      MultipartFormDataInput input = upload("t-1");
+
+      assertThrows(
+          StorageException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+
+      ArgumentCaptor<String> claimed = ArgumentCaptor.forClass(String.class);
+      verify(messageSendDedupRepository)
+          .claim(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), claimed.capture());
+      verify(messageSendDedupRepository)
+          .release(roomId.toString(), user1Id.toString(), "t-1", claimed.getValue());
+      verifyNoInteractions(messageSentListener);
+      verify(attachmentService)
+          .addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("An unexpected failure after the claim releases it and answers 500")
+    void insertAttachmentMultipart_unexpectedFailure_releasesTheClaim() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
+          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
+      when(attachmentService.addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenThrow(new RuntimeException("boom"));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(upload("t-1"), roomId, securityContext);
+
+      assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatus());
+      verify(messageSendDedupRepository)
+          .release(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), anyString());
+      verify(attachmentService)
+          .addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("An upload without tempId never touches the claims")
+    void insertAttachmentMultipart_withoutTempId_noClaim() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(attachmentService.addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenAnswer(invocation -> stored(invocation.getArgument(9)));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(upload(null), roomId, securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verifyNoInteractions(messageSendDedupRepository);
+      verify(attachmentService)
+          .addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("An upload tempId longer than 64 characters is rejected before any write")
+    void insertAttachmentMultipart_tempIdTooLong() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input = upload("t".repeat(65));
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+      verifyNoInteractions(messageSendDedupRepository, attachmentService);
     }
   }
 

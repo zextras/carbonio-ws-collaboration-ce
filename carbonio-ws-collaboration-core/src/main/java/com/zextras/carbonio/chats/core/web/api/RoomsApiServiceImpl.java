@@ -656,6 +656,18 @@ public class RoomsApiServiceImpl implements RoomsApiService {
           roomId.toString(), currentUser.getId(), normalizeStringValue(replyToId));
     }
 
+    String dedupTempId = sendTempId(tempId);
+    String messageId = UUID.randomUUID().toString();
+    if (dedupTempId != null) {
+      chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
+      MessageSendDedupRepository.Claim claim =
+          messageSendDedupRepository.claim(
+              roomId.toString(), currentUser.getId(), dedupTempId, messageId);
+      if (!claim.claimed()) {
+        return duplicateSendResponse(roomId, claim.existingMessageId());
+      }
+    }
+
     MessageDto created;
     try {
       created =
@@ -669,10 +681,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               normalizeStringValue(replyToId),
               normalizeStringValue(area),
               normalizeStringValue(tempId),
+              messageId,
               currentUser);
-    } catch (ChatsHttpException e) {
-      throw e;
     } catch (Exception e) {
+      if (dedupTempId != null) {
+        releaseSendClaim(roomId, currentUser.getId(), dedupTempId, messageId);
+      }
+      if (e instanceof ChatsHttpException chatsHttpException) {
+        throw chatsHttpException;
+      }
       ChatsLogger.error("Error processing multipart attachment upload", e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error processing file").build();
     }
@@ -1455,6 +1472,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     Set<String> replyIds =
         original.getReplyToId() != null ? Set.of(original.getReplyToId()) : Set.of();
     return Response.status(Status.CREATED).entity(toMessageDto(original, replyIds)).build();
+  }
+
+  private void releaseSendClaim(UUID roomId, String userId, String tempId, String messageId) {
+    try {
+      messageSendDedupRepository.release(roomId.toString(), userId, tempId, messageId);
+    } catch (Exception e) {
+      ChatsLogger.warn(
+          "Could not release the send claim of tempId '" + tempId + "': " + e.getMessage());
+    }
   }
 
   private MessageDto toMessageDto(Message msg, Set<String> visibleReplyIds) {

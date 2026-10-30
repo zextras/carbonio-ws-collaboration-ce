@@ -7,6 +7,9 @@ package com.zextras.carbonio.chats.it.web.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
+import static org.mockserver.model.Parameter.param;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,12 +17,17 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
+import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
+import com.zextras.carbonio.chats.it.utils.MockedFiles;
+import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
+import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
@@ -28,11 +36,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.apache.http.entity.ContentType;
 import org.jboss.resteasy.mock.MockHttpResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockserver.matchers.Times;
+import org.mockserver.model.HttpRequest;
+import org.mockserver.model.JsonBody;
+import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 class SendIdempotencyIT {
@@ -271,6 +285,114 @@ class SendIdempotencyIT {
       assertEquals(
           400, send(senderToken, Map.of("text", "x", "tempId", "t".repeat(65))).getStatus());
       assertEquals(0, count(MESSAGES));
+      assertEquals(0, count(CLAIMS));
+    }
+  }
+
+  @Nested
+  @DisplayName("Attachment upload")
+  class AttachmentUpload {
+
+    private final HttpRequest anyUpload =
+        request()
+            .withMethod("PUT")
+            .withPath("/upload")
+            .withQueryStringParameter(param("type", "chats"));
+    private FileMock fileMock;
+
+    @BeforeEach
+    void resetStorage() {
+      fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      storageMockServer.clear(anyUpload);
+    }
+
+    @AfterEach
+    void clearStorage() {
+      storageMockServer.clear(anyUpload);
+    }
+
+    private void uploadsAnswer(int status, Times times) {
+      storageMockServer
+          .when(anyUpload, times)
+          .respond(
+              response()
+                  .withStatusCode(status)
+                  .withBody(
+                      JsonBody.json(
+                          new StorageMockServer.UploadResponse()
+                              .digest("")
+                              .digestAlgorithm("")
+                              .size(fileMock.getSize()))));
+    }
+
+    private MockHttpResponse upload(String tempId) throws Exception {
+      return dispatcher.postMultipart(
+          String.format("/rooms/%s/attachments", roomId),
+          fileMock.getFileBytes(),
+          Map.of("contentLength", String.valueOf(fileMock.getSize()), "tempId", tempId),
+          StringFormatUtils.encodeToUtf8(fileMock.getName()),
+          ContentType.parse(fileMock.getMimeType()),
+          senderToken);
+    }
+
+    @Test
+    @DisplayName("The same tempId twice: one blob, one metadata row, one event, same answer")
+    void sameTempIdTwice() throws Exception {
+      uploadsAnswer(201, Times.unlimited());
+      String queue = bindQueue(member);
+      MessageDto first = created(upload("att-1"));
+      assertEquals("MessageReceived", nextEvent(queue).get("type").asText());
+
+      MessageDto second = created(upload("att-1"));
+
+      assertEquals(first.getId(), second.getId());
+      assertEquals(first.getAttachmentId(), second.getAttachmentId());
+      assertEquals(
+          1,
+          integrationTestUtils
+              .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
+              .size());
+      assertEquals(1, count(MESSAGES));
+      storageMockServer.verify(anyUpload, VerificationTimes.exactly(1));
+      assertNextEventIsTheSentinel(queue);
+    }
+
+    @Test
+    @DisplayName("A failed upload releases its tempId so that the retry creates the message")
+    void failedUploadReleasesTheTempId() throws Exception {
+      uploadsAnswer(500, Times.once());
+      uploadsAnswer(201, Times.unlimited());
+
+      assertEquals(424, upload("att-2").getStatus());
+      assertEquals(0, count(CLAIMS));
+      assertEquals(0, count(MESSAGES));
+
+      MessageDto retried = created(upload("att-2"));
+
+      assertEquals(1, count(MESSAGES));
+      assertEquals(retried.getId().toString(), claimOf(sender, "att-2"));
+    }
+
+    @Test
+    @DisplayName("A text send with the tempId of an upload answers the upload message")
+    void textRetryOfAnUploadedTempId() throws Exception {
+      uploadsAnswer(201, Times.unlimited());
+      MessageDto uploaded = created(upload("att-3"));
+
+      MessageDto retried = created(send(senderToken, Map.of("text", "x", "tempId", "att-3")));
+
+      assertEquals(uploaded.getId(), retried.getId());
+      assertEquals(uploaded.getAttachmentId(), retried.getAttachmentId());
+      assertEquals(1, count(MESSAGES));
+    }
+
+    @Test
+    @DisplayName("An upload tempId longer than 64 characters stores nothing")
+    void tempIdTooLong() throws Exception {
+      uploadsAnswer(201, Times.unlimited());
+
+      assertEquals(400, upload("t".repeat(65)).getStatus());
+      storageMockServer.verify(anyUpload, VerificationTimes.never());
       assertEquals(0, count(CLAIMS));
     }
   }

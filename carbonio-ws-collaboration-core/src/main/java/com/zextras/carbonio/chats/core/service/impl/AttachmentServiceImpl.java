@@ -192,6 +192,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String replyId,
       @Nullable String area,
       @Nullable String tempId,
+      String messageId,
       UserPrincipal currentUser) {
     roomService.getRoomAndValidateUser(roomId, currentUser, false);
 
@@ -210,7 +211,8 @@ public class AttachmentServiceImpl implements AttachmentService {
               description,
               replyId,
               area,
-              tempId);
+              tempId,
+              messageId);
     } catch (RuntimeException e) {
       try {
         storagesService.deleteFile(fileId.toString(), currentUser.getId());

@@ -26,7 +26,6 @@ import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Native implementation of MessageDispatcher that stores messages directly in the database and
@@ -85,10 +84,10 @@ public class MessageDispatcherImpl implements MessageDispatcher {
       String description,
       @Nullable String replyId,
       @Nullable String area,
-      @Nullable String tempId) {
+      @Nullable String tempId,
+      String messageId) {
     String text = description != null ? description : "";
 
-    String newMessageId = UUID.randomUUID().toString();
     FileMetadata metadata =
         FileMetadata.create()
             .id(fileId)
@@ -98,14 +97,14 @@ public class MessageDispatcherImpl implements MessageDispatcher {
             .type(FileMetadataType.ATTACHMENT)
             .userId(senderId)
             .roomId(roomId)
-            .messageId(newMessageId)
+            .messageId(messageId)
             .area(area);
     fileMetadataRepository.save(metadata);
     MessageWriteRepository.SendResult sent;
     try {
       sent =
           messageWriteRepository
-              .sendMessage(roomId, senderId, text, newMessageId, replyId, fileId)
+              .sendMessage(roomId, senderId, text, messageId, replyId, fileId)
               .orElseThrow(
                   () ->
                       replyId != null
@@ -120,7 +119,7 @@ public class MessageDispatcherImpl implements MessageDispatcher {
     }
     Message message =
         Message.create()
-            .id(newMessageId)
+            .id(messageId)
             .roomId(roomId)
             .senderId(senderId)
             .text(text)

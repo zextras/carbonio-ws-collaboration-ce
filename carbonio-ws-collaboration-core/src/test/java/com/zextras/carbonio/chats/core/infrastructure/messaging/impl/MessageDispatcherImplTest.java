@@ -61,7 +61,7 @@ class MessageDispatcherImplTest {
 
   private Message send(String replyId) {
     return dispatcher.sendAttachment(
-        ROOM, USER, FILE, "f.png", "image/png", 10L, "", replyId, null, null);
+        ROOM, USER, FILE, "f.png", "image/png", 10L, "", replyId, null, null, "msg");
   }
 
   @Test
@@ -183,5 +183,25 @@ class MessageDispatcherImplTest {
 
     assertEquals("author", repliedDto.getForwardedInfo().getOriginalSenderId());
     assertEquals(originalSentAt, repliedDto.getForwardedInfo().getOriginalSentAt());
+  }
+
+  @Test
+  void insertsTheMessageWithTheIdGivenByTheCaller() throws Exception {
+    when(messageWriteRepository.sendMessage(
+            anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+        .thenReturn(
+            Optional.of(
+                new MessageWriteRepository.SendResult(
+                    "given-id", OffsetDateTime.parse("2026-01-01T10:00:00Z"))));
+
+    Message sent =
+        dispatcher.sendAttachment(
+            ROOM, USER, FILE, "f.png", "image/png", 10L, "", null, null, "temp", "given-id");
+
+    verify(messageWriteRepository).sendMessage(ROOM, USER, "", "given-id", null, FILE);
+    ArgumentCaptor<FileMetadata> metadata = ArgumentCaptor.forClass(FileMetadata.class);
+    verify(fileMetadataRepository).save(metadata.capture());
+    assertEquals("given-id", metadata.getValue().getMessageId());
+    assertEquals("given-id", sent.getId());
   }
 }
