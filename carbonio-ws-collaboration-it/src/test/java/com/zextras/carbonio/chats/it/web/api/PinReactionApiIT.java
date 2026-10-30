@@ -324,4 +324,28 @@ class PinReactionApiIT {
       assertTrue(chatMessageService.getReactions(first).isEmpty());
     }
   }
+
+  @Nested
+  @DisplayName("Reaction length")
+  class ReactionLength {
+
+    @Test
+    @DisplayName("A reaction longer than 32 characters is 400 on add and remove, stores nothing")
+    void tooLong() throws Exception {
+      String reaction = "a".repeat(33);
+
+      assertEquals(400, react(roomId, first, reaction, bToken));
+      assertEquals(400, unreact(roomId, first, reaction, bToken));
+
+      assertTrue(chatMessageService.getReactions(first).isEmpty());
+    }
+
+    @Test
+    @DisplayName("A reaction of exactly 32 characters is accepted")
+    void maxLength() throws Exception {
+      assertEquals(204, react(roomId, first, "a".repeat(32), bToken));
+
+      assertEquals("a".repeat(32), chatMessageService.getReactions(first).get(0).getReaction());
+    }
+  }
 }
