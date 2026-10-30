@@ -2091,6 +2091,64 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("A tempId longer than 64 characters is a bad request")
+    void insertAttachmentMultipart_tempIdTooLong() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          multipart(genericFileName, Map.of("tempId", textPart("t".repeat(65), false)));
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName("A description longer than 8192 characters is a bad request")
+    void insertAttachmentMultipart_descriptionTooLong() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          multipart(genericFileName, Map.of("description", textPart("d".repeat(8193), false)));
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName("A tempId of 64 characters and a description of 8192 characters are accepted")
+    void insertAttachmentMultipart_limitsAreInclusive() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      String tempId = "t".repeat(64);
+      String description = "d".repeat(8192);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(
+                  genericFileName,
+                  Map.of(
+                      "tempId",
+                      textPart(tempId, false),
+                      "description",
+                      textPart(description, false))),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(attachmentService)
+          .addAttachment(
+              roomId,
+              attachment,
+              "image/jpeg",
+              1024L,
+              "fileName",
+              description,
+              null,
+              null,
+              tempId,
+              user1);
+    }
+
+    @Test
     @DisplayName("Insert attachment multipart with a guest user")
     void insertAttachmentMultipart_testGuestUser() {
       when(securityContext.getUserPrincipal()).thenReturn(guest);
@@ -2140,6 +2198,18 @@ class RoomsApiServiceImplTest {
 
     assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
     verify(messageSentListener, times(1)).onMessageSent(user1, roomId, generatedMsgId, "hello");
+  }
+
+  @Test
+  @DisplayName("sendMessage rejects a blank text with 400 and stores nothing")
+  void sendMessage_blankText_badRequest() {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    SendMessageRequestDto dto = SendMessageRequestDto.create().text(" \n\t ");
+
+    assertThrows(
+        BadRequestException.class, () -> roomsApiService.sendMessage(roomId, dto, securityContext));
+
+    verifyNoInteractions(messageWriteRepository, messageSentListener);
   }
 
   @Test

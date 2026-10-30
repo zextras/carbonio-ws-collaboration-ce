@@ -448,4 +448,90 @@ class MessageContractIT {
           timelineMessage(forwarded.get("id").asText()).get("attachment").path("area").asText());
     }
   }
+
+  @Nested
+  @DisplayName("Message and page limits")
+  class Limits {
+
+    private MockHttpResponse send(Map<String, String> body) throws Exception {
+      return dispatcher.post(
+          String.format("/rooms/%s/messages", roomId),
+          objectMapper.writeValueAsString(body),
+          aToken);
+    }
+
+    @Test
+    @DisplayName("A blank text is a 400 and stores nothing")
+    void blankText() throws Exception {
+      assertEquals(400, send(Map.of("text", " \n\t ")).getStatus());
+      assertEquals(400, send(Map.of("text", "")).getStatus());
+      assertEquals(0, messageCount());
+    }
+
+    @Test
+    @DisplayName("A text of 8192 characters is accepted, 8193 is a 400")
+    void textLength() throws Exception {
+      assertEquals(201, send(Map.of("text", "x".repeat(8192))).getStatus());
+      assertEquals(400, send(Map.of("text", "x".repeat(8193))).getStatus());
+      assertEquals(1, messageCount());
+    }
+
+    @Test
+    @DisplayName("A tempId of 64 characters is accepted, 65 is a 400")
+    void tempIdLength() throws Exception {
+      assertEquals(201, send(Map.of("text", "hi", "tempId", "t".repeat(64))).getStatus());
+      assertEquals(400, send(Map.of("text", "hi", "tempId", "t".repeat(65))).getStatus());
+    }
+
+    @Test
+    @DisplayName("An edit longer than 8192 characters is a 400")
+    void editLength() throws Exception {
+      String messageId = sendText(roomId, "short");
+      String path = String.format("/rooms/%s/messages/%s/edit", roomId, messageId);
+
+      assertEquals(
+          400,
+          dispatcher
+              .put(path, objectMapper.writeValueAsString(Map.of("text", "x".repeat(8193))), aToken)
+              .getStatus());
+      assertEquals(
+          200,
+          dispatcher
+              .put(path, objectMapper.writeValueAsString(Map.of("text", "x".repeat(8192))), aToken)
+              .getStatus());
+    }
+
+    @Test
+    @DisplayName("Upload description and tempId over their limits are a 400 and store nothing")
+    void uploadLimits() throws Exception {
+      String fileName = StringFormatUtils.encodeToUtf8("photo.png");
+
+      MockHttpResponse longDescription =
+          uploadRaw(
+              fileName,
+              textPart("description", null, "d".repeat(8193).getBytes(StandardCharsets.UTF_8)));
+      MockHttpResponse longTempId =
+          uploadRaw(
+              fileName, textPart("tempId", null, "t".repeat(65).getBytes(StandardCharsets.UTF_8)));
+
+      assertEquals(400, longDescription.getStatus());
+      assertEquals(400, longTempId.getStatus());
+      assertEquals(0, attachmentCount());
+      assertEquals(0, messageCount());
+    }
+
+    @Test
+    @DisplayName("Timeline and search accept a limit between 1 and 200")
+    void pageLimits() throws Exception {
+      for (String path :
+          List.of(
+              String.format("/rooms/%s/timeline?limit=", roomId),
+              String.format("/rooms/%s/messages/search?q=a&limit=", roomId))) {
+        assertEquals(400, dispatcher.get(path + "0", aToken).getStatus(), path);
+        assertEquals(400, dispatcher.get(path + "201", aToken).getStatus(), path);
+        assertEquals(200, dispatcher.get(path + "1", aToken).getStatus(), path);
+        assertEquals(200, dispatcher.get(path + "200", aToken).getStatus(), path);
+      }
+    }
+  }
 }

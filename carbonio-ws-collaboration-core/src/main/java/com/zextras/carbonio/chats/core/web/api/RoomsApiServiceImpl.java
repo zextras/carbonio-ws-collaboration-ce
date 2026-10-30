@@ -16,6 +16,7 @@ import com.zextras.carbonio.async.model.ReactionChanged;
 import com.zextras.carbonio.async.model.ReadUpdated;
 import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.api.RoomsApiService;
+import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
@@ -631,6 +632,16 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     String area = getStringFromPart(formDataMap, "area");
     String tempId = getStringFromPart(formDataMap, "tempId");
 
+    if (tempId != null && tempId.length() > ChatsConstant.MAX_TEMP_ID_LENGTH) {
+      throw new BadRequestException(
+          String.format("tempId must be at most %d characters", ChatsConstant.MAX_TEMP_ID_LENGTH));
+    }
+    if (description != null && description.length() > ChatsConstant.MAX_MESSAGE_TEXT_LENGTH) {
+      throw new BadRequestException(
+          String.format(
+              "description must be at most %d characters", ChatsConstant.MAX_MESSAGE_TEXT_LENGTH));
+    }
+
     if (area != null && !isValidArea(area)) {
       return Response.status(Status.BAD_REQUEST).entity("Invalid area format").build();
     }
@@ -838,6 +849,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     String messageId = UUID.randomUUID().toString();
     String text = dto.getText() != null ? dto.getText() : "";
+    if (text.trim().isEmpty()) {
+      throw new BadRequestException("Message text must not be blank");
+    }
     String replyToId = dto.getReplyToId() != null ? dto.getReplyToId().toString() : null;
     String tempId = dto.getTempId();
 

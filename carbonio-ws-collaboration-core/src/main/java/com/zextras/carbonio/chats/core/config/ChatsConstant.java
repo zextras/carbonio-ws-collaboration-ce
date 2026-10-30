@@ -12,6 +12,10 @@ public class ChatsConstant {
 
   public static final String API_VERSION_HEADER = "X-WSC-API-VERSION";
 
+  public static final int MAX_MESSAGE_TEXT_LENGTH = 8192;
+
+  public static final int MAX_TEMP_ID_LENGTH = 64;
+
   public static class CONFIGURATIONS_DEFAULT_VALUES {
 
     public static final boolean CAN_VIDEO_CALL = true;
