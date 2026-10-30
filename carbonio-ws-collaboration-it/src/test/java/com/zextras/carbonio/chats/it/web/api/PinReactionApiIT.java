@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
+
 package com.zextras.carbonio.chats.it.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.Test;
 
 @ApiIntegrationTest
 class PinReactionApiIT {
+
   private static final String THUMBS_UP = "👍";
 
   private final ResteasyRequestDispatcher dispatcher;
@@ -45,10 +47,12 @@ class PinReactionApiIT {
   private final SystemEventRepository systemEventRepository;
   private final ChatMessageService chatMessageService;
   private final Channel channel;
+
   private static UUID aUserId;
   private static String aToken;
   private static UUID bUserId;
   private static String bToken;
+
   private UUID roomId;
   private String first;
   private String second;
@@ -182,6 +186,7 @@ class PinReactionApiIT {
 
       assertEquals(204, unpin(second, bToken));
       assertEquals(204, unpin(UUID.randomUUID().toString(), bToken));
+
       assertTrue(rows("MESSAGE_UNPINNED").isEmpty());
       assertEquals(List.of(first), pinnedIds());
       assertEquals(204, react(roomId, first, THUMBS_UP, aToken));

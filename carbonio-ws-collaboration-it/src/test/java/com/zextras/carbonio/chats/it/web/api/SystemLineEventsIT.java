@@ -252,6 +252,9 @@ class SystemLineEventsIT {
         systemEventRepository.findByRoomId(roomId.toString()).stream()
             .filter(e -> "MEMBER_ADDED".equals(e.getType()))
             .count());
+
+    addMembers(List.of(eUserId));
+    assertEquals(eUserId.toString(), nextEvent(queueA, "RoomMemberAdded").get("userId").asText());
   }
 
   @Test

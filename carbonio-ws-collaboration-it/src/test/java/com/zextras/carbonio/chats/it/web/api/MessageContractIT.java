@@ -422,7 +422,11 @@ class MessageContractIT {
       copied.setQuery(new Query());
       copied.getQuery().setType("chats");
       storageMockServer
-          .when(request().withMethod("PUT").withPath("/copy"))
+          .when(
+              request()
+                  .withMethod("PUT")
+                  .withPath("/copy")
+                  .withQueryStringParameter(param("sourceNode", fileId)))
           .respond(HttpResponse.response().withStatusCode(200).withBody(JsonBody.json(copied)));
       String queue = bindQueue(bUserId);
 

@@ -1225,6 +1225,7 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.insertRoomMembers(roomId, List.of(), securityContext);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      verifyNoInteractions(roomService, membersService);
     }
 
     @Test
@@ -1921,6 +1922,7 @@ class RoomsApiServiceImplTest {
               isNull(),
               anyString(),
               eq(user1));
+      verify(messageSentListener, times(1)).onMessageSent(user1, roomId, createdId.toString(), "");
     }
 
     @Test

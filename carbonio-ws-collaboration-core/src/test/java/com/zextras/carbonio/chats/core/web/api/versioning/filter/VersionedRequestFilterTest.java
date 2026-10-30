@@ -39,7 +39,7 @@ class VersionedRequestFilterTest {
 
   @Test
   void aSupportedVersionPasses() throws Exception {
-    ContainerRequestContext context = requestWithVersion("2.0.0");
+    ContainerRequestContext context = requestWithVersion(VersionProvider.getVersion());
 
     filter.filter(context);
 
