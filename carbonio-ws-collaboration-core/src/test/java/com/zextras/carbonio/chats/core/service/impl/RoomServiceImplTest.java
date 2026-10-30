@@ -1680,7 +1680,9 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Correctly clears the temporary room performed by an owner")
     void clearRoom_testOkTemporaryRoom() {
-      OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
+      OffsetDateTime rowCreatedAt = OffsetDateTime.parse("2026-01-01T10:00:00.123456Z");
+      when(chatMessageService.insertSystemEvent(any(SystemEvent.class)))
+          .thenAnswer(invocation -> invocation.<SystemEvent>getArgument(0).createdAt(rowCreatedAt));
 
       when(roomRepository.getById(roomTemporary2Id.toString()))
           .thenReturn(Optional.of(roomTemporary2));
@@ -1694,7 +1696,7 @@ class RoomServiceImplTest {
 
       OffsetDateTime clearedAt =
           roomService.clearRoomHistory(roomTemporary2Id, UserPrincipal.create(user1Id));
-      assertEquals(offsetDateTime, clearedAt);
+      assertEquals(rowCreatedAt, clearedAt);
 
       verify(roomRepository, times(1)).getById(roomTemporary2Id.toString());
       verify(fileMetadataRepository, times(1)).deleteByIds(attachmentIds);
@@ -1704,6 +1706,7 @@ class RoomServiceImplTest {
       verify(systemEventRepository, times(1)).deleteByRoomId(roomTemporary2Id.toString());
       List<SystemEvent> events = insertedSystemEvents(1);
       SystemEvent event = events.get(0);
+      assertEquals(rowCreatedAt, event.getCreatedAt());
       assertEquals("ROOM_HISTORY_CLEARED", event.getType());
       assertEquals(user1Id.toString(), event.getActorId());
       assertEquals(roomTemporary2Id.toString(), event.getRoomId());
@@ -1726,9 +1729,10 @@ class RoomServiceImplTest {
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomHistoryCleared.create()
                   .roomId(roomTemporary2Id)
-                  .clearedAt(clearedAt)
+                  .clearedAt(rowCreatedAt)
                   .clearedBy(user1Id)
-                  .systemEventId(event.getId()));
+                  .systemEventId(event.getId())
+                  .systemEventCreatedAt(rowCreatedAt));
       inOrder
           .verify(attachmentService)
           .deleteAttachmentFiles(attachmentIds, UserPrincipal.create(user1Id));

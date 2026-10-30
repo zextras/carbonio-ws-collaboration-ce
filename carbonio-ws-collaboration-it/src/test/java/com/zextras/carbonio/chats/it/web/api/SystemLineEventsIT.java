@@ -518,11 +518,9 @@ class SystemLineEventsIT {
             .actorId(aUserId.toString())
             .content("{}"));
 
-    assertEquals(
-        200,
-        dispatcher
-            .put(String.format("/rooms/%s/clear", temporaryRoomId), null, aToken)
-            .getStatus());
+    MockHttpResponse cleared =
+        dispatcher.put(String.format("/rooms/%s/clear", temporaryRoomId), null, aToken);
+    assertEquals(200, cleared.getStatus());
 
     JsonNode event = nextEvent(queueB, "RoomHistoryCleared");
     assertEquals(aUserId.toString(), event.get("clearedBy").asText());
@@ -532,6 +530,8 @@ class SystemLineEventsIT {
     assertEquals(aUserId.toString(), row.getActorId());
     assertEquals(aUserId.toString(), content(row).get("clearedBy").asText());
     assertCreatedAt(row, event, "systemEventCreatedAt");
+    assertCreatedAt(row, event, "clearedAt");
+    assertCreatedAt(row, objectMapper.readTree(cleared.getContentAsString()), "clearedAt");
 
     List<JsonNode> remaining = timelineSystemEvents(temporaryRoomId, bToken);
     assertEquals(1, remaining.size());

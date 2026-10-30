@@ -500,7 +500,7 @@ public class RoomServiceImpl implements RoomService {
     List<String> subscribersIds =
         room.getSubscriptions().stream().map(Subscription::getUserId).toList();
 
-    OffsetDateTime clearedAt = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
+    OffsetDateTime clearedAt = systemEvent.getCreatedAt();
     eventDispatcher.sendToUserExchange(
         subscribersIds,
         RoomHistoryCleared.create()
