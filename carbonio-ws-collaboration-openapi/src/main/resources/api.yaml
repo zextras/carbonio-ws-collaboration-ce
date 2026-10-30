@@ -1851,7 +1851,8 @@ components:
                   File to upload. The file name of this part (Content-Disposition filename) is
                   either the raw name or the whole name written as 6-character Unicode escapes
                   (backslash, u, 4 hex digits per UTF-16 unit), which is what the official clients
-                  send; a name that cannot be decoded answers 400.
+                  send; a name that cannot be decoded, or longer than 256 characters once
+                  decoded, answers 400.
               contentLength:
                 type: integer
                 format: int64
@@ -1872,6 +1873,7 @@ components:
                 description: identifier of the message being replied to
               area:
                 type: string
+                maxLength: 64
                 description: area of the attachment
             required:
               - file

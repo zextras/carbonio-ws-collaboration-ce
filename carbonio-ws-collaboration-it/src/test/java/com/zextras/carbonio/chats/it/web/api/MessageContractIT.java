@@ -525,6 +525,32 @@ class MessageContractIT {
     }
 
     @Test
+    @DisplayName("Upload file name over 256 characters or area over 64 are a 400 and store nothing")
+    void uploadNameAndAreaLimits() throws Exception {
+      MockHttpResponse longName = uploadRaw("a".repeat(253) + ".png");
+      MockHttpResponse longArea =
+          uploadRaw(
+              StringFormatUtils.encodeToUtf8("photo.png"),
+              textPart("area", null, ("1".repeat(64) + "x").getBytes(StandardCharsets.UTF_8)));
+
+      assertEquals(400, longName.getStatus(), longName.getContentAsString());
+      assertEquals(400, longArea.getStatus(), longArea.getContentAsString());
+      assertEquals(0, attachmentCount());
+      assertEquals(0, messageCount());
+    }
+
+    @Test
+    @DisplayName("Upload file name of 256 characters and area of 64 are accepted")
+    void uploadNameAndAreaAtLimits() throws Exception {
+      MockHttpResponse response =
+          uploadRaw(
+              "a".repeat(252) + ".png",
+              textPart("area", null, ("1".repeat(63) + "x").getBytes(StandardCharsets.UTF_8)));
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+    }
+
+    @Test
     @DisplayName("Timeline and search accept a limit between 1 and 200")
     void pageLimits() throws Exception {
       for (String path :

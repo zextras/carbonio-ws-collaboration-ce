@@ -630,6 +630,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the file name", e);
     }
+    if (decodedFileName.codePointCount(0, decodedFileName.length()) > 256) {
+      throw new BadRequestException("The file name must be at most 256 characters");
+    }
 
     String mimeType = mediaType.toString();
     String description = getStringFromPart(formDataMap, "description");
@@ -718,7 +721,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   private boolean isValidArea(String area) {
-    return !area.isEmpty() && Pattern.compile("^(\\s)|^\\w|^\\d*+x+\\d*").matcher(area).matches();
+    return !area.isEmpty()
+        && area.length() <= 64
+        && Pattern.compile("^(\\s)|^\\w|^\\d*+x+\\d*").matcher(area).matches();
   }
 
   private String normalizeStringValue(String value) {
