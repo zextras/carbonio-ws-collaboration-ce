@@ -3706,6 +3706,8 @@ public class RoomsApiIT {
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(fileMock.getUUID().toString()))
+            .thenReturn(fileMock.getUUID());
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         response =
@@ -3755,6 +3757,8 @@ public class RoomsApiIT {
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(fileMock.getUUID().toString()))
+            .thenReturn(fileMock.getUUID());
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         response =

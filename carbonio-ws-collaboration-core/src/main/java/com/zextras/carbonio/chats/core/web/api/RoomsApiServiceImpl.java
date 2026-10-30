@@ -651,27 +651,28 @@ public class RoomsApiServiceImpl implements RoomsApiService {
           roomId.toString(), currentUser.getId(), normalizeStringValue(replyToId));
     }
 
+    MessageDto created;
     try {
-      return Response.status(Status.CREATED)
-          .entity(
-              attachmentService.addAttachment(
-                  roomId,
-                  filePart.getBody(InputStream.class, null),
-                  mimeType,
-                  Long.parseLong(contentLength),
-                  decodedFileName,
-                  normalizeStringValue(description),
-                  normalizeStringValue(replyToId),
-                  normalizeStringValue(area),
-                  normalizeStringValue(tempId),
-                  currentUser))
-          .build();
+      created =
+          attachmentService.addAttachment(
+              roomId,
+              filePart.getBody(InputStream.class, null),
+              mimeType,
+              Long.parseLong(contentLength),
+              decodedFileName,
+              normalizeStringValue(description),
+              normalizeStringValue(replyToId),
+              normalizeStringValue(area),
+              normalizeStringValue(tempId),
+              currentUser);
     } catch (ChatsHttpException e) {
       throw e;
     } catch (Exception e) {
       ChatsLogger.error("Error processing multipart attachment upload", e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error processing file").build();
     }
+    notifyMessageSent(currentUser, roomId, created.getId().toString(), created.getText());
+    return Response.status(Status.CREATED).entity(created).build();
   }
 
   private InputPart getFormPart(Map<String, List<InputPart>> formParts, String fieldName) {
@@ -886,13 +887,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       ChatsLogger.warn("Error broadcasting message-received event: " + e.getMessage());
     }
 
-    for (MessageSentListener listener : messageSentListeners) {
-      try {
-        listener.onMessageSent(currentUser, roomId, sent.messageId(), text);
-      } catch (Exception e) {
-        ChatsLogger.warn("Error in message-sent listener: " + e.getMessage());
-      }
-    }
+    notifyMessageSent(currentUser, roomId, sent.messageId(), text);
 
     MessageDto responseDto =
         MessageDto.create()
@@ -905,6 +900,16 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       responseDto.replyToId(dto.getReplyToId());
     }
     return Response.status(Status.CREATED).entity(responseDto).build();
+  }
+
+  private void notifyMessageSent(UserPrincipal sender, UUID roomId, String messageId, String text) {
+    for (MessageSentListener listener : messageSentListeners) {
+      try {
+        listener.onMessageSent(sender, roomId, messageId, text);
+      } catch (Exception e) {
+        ChatsLogger.warn("Error in message-sent listener: " + e.getMessage());
+      }
+    }
   }
 
   @Override

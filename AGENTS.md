@@ -32,8 +32,9 @@
   `ConsulDiscoveryModule` (or `DockerConfig` + `DockerDiscoveryModule` when `APP_ENVIRONMENT=docker`).
   `@Provides` methods live in the module that owns the feature.
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
-  `RoomsApiServiceImpl.sendMessage` after a message is stored and broadcast; downstream builds add
-  listeners with `Multibinder.newSetBinder(binder(), MessageSentListener.class).addBinding()`.
+  `RoomsApiServiceImpl.sendMessage` and `RoomsApiServiceImpl.insertAttachmentMultipart` (text = caption or
+  `""`) after a message is stored and broadcast; downstream builds add listeners with
+  `Multibinder.newSetBinder(binder(), MessageSentListener.class).addBinding()`.
 - **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
   dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit
   `bind(NewClass.class);` in the module that owns the feature (project convention, even though Guice can JIT-bind).

@@ -73,6 +73,7 @@ import com.zextras.carbonio.chats.model.ForwardMessagesRequestDto;
 import com.zextras.carbonio.chats.model.ForwardMessagesRequestMessagesInnerDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
+import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.MimeTypeCategoryDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -1743,6 +1744,19 @@ class RoomsApiServiceImplTest {
       when(areaPart.getBody(String.class, null)).thenReturn("10x5");
       formDataMap.put("area", List.of(areaPart));
       when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
+      UUID createdId = UUID.randomUUID();
+      when(attachmentService.addAttachment(
+              roomId,
+              attachment,
+              "image/jpeg",
+              1024L,
+              "fileName",
+              "test",
+              "reply-id",
+              "10x5",
+              null,
+              user1))
+          .thenReturn(createdMessage(createdId, "test"));
 
       Response response =
           roomsApiService.insertAttachmentMultipart(
@@ -1762,6 +1776,147 @@ class RoomsApiServiceImplTest {
               user1);
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(messageSentListener, times(1))
+          .onMessageSent(user1, roomId, createdId.toString(), "test");
+    }
+
+    @BeforeEach
+    void stubAddAttachmentWithACreatedMessage() throws Exception {
+      when(attachmentService.addAttachment(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(createdMessage(UUID.randomUUID(), ""));
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart notifies the message-sent listeners with the caption")
+    void insertAttachmentMultipart_notifiesMessageSentListenersWithCaption() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID createdId = UUID.randomUUID();
+      when(attachmentService.addAttachment(
+              roomId,
+              attachment,
+              "image/jpeg",
+              1024L,
+              "fileName",
+              "a caption",
+              null,
+              null,
+              null,
+              user1))
+          .thenReturn(createdMessage(createdId, "a caption"));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              attachmentForm("a caption"), roomId, securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(attachmentService, times(1))
+          .addAttachment(
+              roomId,
+              attachment,
+              "image/jpeg",
+              1024L,
+              "fileName",
+              "a caption",
+              null,
+              null,
+              null,
+              user1);
+      verify(messageSentListener, times(1))
+          .onMessageSent(user1, roomId, createdId.toString(), "a caption");
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart without a caption notifies the listeners with an empty text")
+    void insertAttachmentMultipart_withoutCaption_notifiesMessageSentListenersWithEmptyText()
+        throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID createdId = UUID.randomUUID();
+      when(attachmentService.addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1))
+          .thenReturn(createdMessage(createdId, ""));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(attachmentForm(null), roomId, securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(attachmentService, times(1))
+          .addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1);
+      verify(messageSentListener, times(1)).onMessageSent(user1, roomId, createdId.toString(), "");
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart answers 201 even when a message-sent listener fails")
+    void insertAttachmentMultipart_listenerFails_stillCreated() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID createdId = UUID.randomUUID();
+      MessageDto created = createdMessage(createdId, "");
+      when(attachmentService.addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1))
+          .thenReturn(created);
+      doThrow(new RuntimeException("listener failure"))
+          .when(messageSentListener)
+          .onMessageSent(user1, roomId, createdId.toString(), "");
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(attachmentForm(null), roomId, securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(created, response.getEntity());
+      verify(attachmentService, times(1))
+          .addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1);
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart does not notify the listeners when the upload fails")
+    void insertAttachmentMultipart_uploadFails_doesNotNotifyMessageSentListeners()
+        throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(attachmentService.addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1))
+          .thenThrow(new ForbiddenException("not a member"));
+      MultipartFormDataInput form = attachmentForm(null);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.insertAttachmentMultipart(form, roomId, securityContext));
+
+      verify(attachmentService, times(1))
+          .addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", null, null, null, null, user1);
+      verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+    }
+
+    private MultipartFormDataInput attachmentForm(String caption) throws Exception {
+      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
+      Map<String, List<InputPart>> formDataMap = new HashMap<>();
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
+      when(filePart.getFileName()).thenReturn(genericFileName);
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      formDataMap.put("file", List.of(filePart));
+      InputPart contentLengthPart = mock(InputPart.class);
+      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
+      formDataMap.put("contentLength", List.of(contentLengthPart));
+      if (caption != null) {
+        InputPart descriptionPart = mock(InputPart.class);
+        when(descriptionPart.getBody(String.class, null)).thenReturn(caption);
+        formDataMap.put("description", List.of(descriptionPart));
+      }
+      when(input.getFormDataMap()).thenReturn(formDataMap);
+      return input;
+    }
+
+    private MessageDto createdMessage(UUID id, String text) {
+      return MessageDto.create()
+          .id(id)
+          .roomId(roomId)
+          .senderId(user1Id)
+          .text(text)
+          .attachmentId(UUID.randomUUID());
     }
 
     @Test

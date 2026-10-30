@@ -1017,6 +1017,8 @@ class VisibilityIT {
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(fileMock.getUUID().toString()))
+            .thenReturn(fileMock.getUUID());
         uuid.when(() -> UUID.fromString(targetRoomId)).thenReturn(targetRoom);
         uuid.when(() -> UUID.fromString(aUserId.toString())).thenReturn(aUserId);
         response =
