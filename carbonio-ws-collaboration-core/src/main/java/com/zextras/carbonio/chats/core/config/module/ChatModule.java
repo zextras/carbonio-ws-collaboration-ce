@@ -36,6 +36,7 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanWsPresenceRepository
 import com.zextras.carbonio.chats.core.repository.impl.TimelineRepositoryImpl;
 import com.zextras.carbonio.chats.core.service.ChatExportService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
+import com.zextras.carbonio.chats.core.service.MessageSendDedupPurgeService;
 import com.zextras.carbonio.chats.core.service.MessageSentListener;
 import com.zextras.carbonio.chats.core.service.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.service.impl.ChatExportServiceImpl;
@@ -72,6 +73,7 @@ public class ChatModule extends AbstractModule {
     bind(ChatMessageService.class).to(ChatMessageServiceImpl.class);
     bind(ChatExportFormatter.class);
     bind(ChatExportService.class).to(ChatExportServiceImpl.class);
+    bind(MessageSendDedupPurgeService.class);
 
     Multibinder.newSetBinder(binder(), MessageSentListener.class);
   }

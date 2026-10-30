@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.service.MessageSendDedupPurgeService;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
@@ -48,6 +49,7 @@ public class Boot {
   private final VideoServerEventListener videoServerEventListener;
   private final WsPresenceBootCleaner wsPresenceBootCleaner;
   private final WsPresenceJanitorService wsPresenceJanitorService;
+  private final MessageSendDedupPurgeService messageSendDedupPurgeService;
   private final AppConfig appConfig;
 
   @Inject
@@ -61,6 +63,7 @@ public class Boot {
       VideoServerEventListener videoServerEventListener,
       WsPresenceBootCleaner wsPresenceBootCleaner,
       WsPresenceJanitorService wsPresenceJanitorService,
+      MessageSendDedupPurgeService messageSendDedupPurgeService,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
@@ -71,6 +74,7 @@ public class Boot {
     this.videoServerEventListener = videoServerEventListener;
     this.wsPresenceBootCleaner = wsPresenceBootCleaner;
     this.wsPresenceJanitorService = wsPresenceJanitorService;
+    this.messageSendDedupPurgeService = messageSendDedupPurgeService;
     this.appConfig = appConfig;
   }
 
@@ -131,6 +135,7 @@ public class Boot {
 
     videoServerEventListener.start();
     wsPresenceJanitorService.start();
+    messageSendDedupPurgeService.start();
 
     server.start();
     SystemdNotify.ready("ws-collaboration ready");
