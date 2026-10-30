@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.it.web.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.Parameter.param;
@@ -35,6 +36,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.http.entity.ContentType;
 import org.jboss.resteasy.mock.MockHttpResponse;
@@ -333,6 +338,48 @@ class SendIdempotencyIT {
           StringFormatUtils.encodeToUtf8(fileMock.getName()),
           ContentType.parse(fileMock.getMimeType()),
           senderToken);
+    }
+
+    @Test
+    @DisplayName(
+        "A retry while the first upload is storing answers 409; the claim is committed before"
+            + " storage")
+    void uploadInFlight() throws Exception {
+      CountDownLatch entered = new CountDownLatch(1);
+      CountDownLatch release = new CountDownLatch(1);
+      storageMockServer
+          .when(anyUpload, Times.once())
+          .respond(
+              req -> {
+                entered.countDown();
+                release.await(30, TimeUnit.SECONDS);
+                return response()
+                    .withStatusCode(201)
+                    .withBody(
+                        JsonBody.json(
+                            new StorageMockServer.UploadResponse()
+                                .digest("")
+                                .digestAlgorithm("")
+                                .size(fileMock.getSize())));
+              });
+      ExecutorService pool = Executors.newSingleThreadExecutor();
+      try {
+        Future<MockHttpResponse> first = pool.submit(() -> upload("att-4"));
+        assertTrue(entered.await(30, TimeUnit.SECONDS));
+        String claimed = claimOf(sender, "att-4");
+        assertNotNull(claimed);
+        assertEquals(409, upload("att-4").getStatus());
+        assertEquals(409, send(senderToken, Map.of("text", "x", "tempId", "att-4")).getStatus());
+        release.countDown();
+        MessageDto stored = created(first.get(30, TimeUnit.SECONDS));
+        assertEquals(claimed, stored.getId().toString());
+        assertEquals(stored.getId(), created(upload("att-4")).getId());
+        assertEquals(1, count(MESSAGES));
+        storageMockServer.verify(anyUpload, VerificationTimes.exactly(1));
+      } finally {
+        release.countDown();
+        pool.shutdownNow();
+      }
     }
 
     @Test
