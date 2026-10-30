@@ -30,6 +30,8 @@ public interface ParticipantService {
 
   void removeMeetingParticipant(UUID queueId);
 
+  void kickMeetingParticipant(UUID meetingId, UUID userId, UserPrincipal currentUser);
+
   void updateMediaStream(
       UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser);
 

@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -29,6 +30,7 @@ import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.async.model.MeetingParticipantJoined;
 import com.zextras.carbonio.async.model.MeetingParticipantLeft;
+import com.zextras.carbonio.async.model.MeetingParticipantLeftReason;
 import com.zextras.carbonio.async.model.MeetingParticipantUplinkStatusChanged;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.*;
@@ -39,6 +41,7 @@ import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
@@ -274,7 +277,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(permanentMeetingId).userId(user2Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user2Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(eventDispatcher, times(1))
           .sendToUserQueue(
               user2Id.toString(),
@@ -422,7 +428,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user1Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user1Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(eventDispatcher, times(1))
           .sendToUserQueue(
               user1Id.toString(),
@@ -472,7 +481,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(permanentMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -503,7 +515,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(meeting2Id)
+                  .userId(user2Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
       verifyNoMoreInteractions(
           meetingService,
@@ -541,7 +556,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user1Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user1Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -579,7 +597,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
           roomService,
@@ -617,7 +638,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user4Id.toString()),
-              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.LEFT));
       verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
       verifyNoMoreInteractions(
           meetingService,
@@ -641,6 +665,235 @@ class ParticipantServiceImplTest {
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(meetingService, roomService, membersService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
+    }
+  }
+
+  @Nested
+  @DisplayName("Kick meeting participant tests")
+  class KickMeetingParticipantTests {
+
+    @Test
+    @DisplayName("A moderator kicks a participant out of the meeting")
+    void kickMeetingParticipant_testOk() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      when(participantRepository.getByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(List.of(participant1Session1, participant2Session1));
+
+      participantService.kickMeetingParticipant(permanentMeetingId, user4Id, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verify(participantRepository, times(1)).remove(participant4Session1);
+      verify(participantRepository, times(1)).getByMeetingId(permanentMeetingId.toString());
+      verify(videoServerService, times(1))
+          .destroyMeetingParticipant(user4Id.toString(), permanentMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              MeetingParticipantLeft.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.KICKED));
+      verifyNoMoreInteractions(
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the moderator isn't a meeting participant, it throws a 'not found' exception")
+    void kickMeetingParticipant_testErrorModeratorIsNotMeetingParticipant() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> participantService.kickMeetingParticipant(meeting2Id, user2Id, currentUser));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("A moderator kicks a temporary user from a virtual room, who is removed from it")
+    void kickMeetingParticipant_testOkRoomTemporaryAndUserIsTemporary() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      scheduledMeeting.participants(List.of(participant1Session1, participant4Session1));
+      when(meetingService.getMeetingEntity(scheduledMeetingId))
+          .thenReturn(Optional.of(scheduledMeeting));
+      scheduledRoom.subscriptions(
+          List.of(
+              Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
+              Subscription.create(scheduledRoom, user4Id.toString()).temporary(true)));
+      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, true))
+          .thenReturn(scheduledRoom);
+      when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
+          .thenReturn(List.of(participant1Session1));
+
+      participantService.kickMeetingParticipant(scheduledMeetingId, user4Id, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, true);
+      verify(participantRepository, times(1)).remove(participant4Session1);
+      verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
+      verify(videoServerService, times(1))
+          .destroyMeetingParticipant(user4Id.toString(), scheduledMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user4Id.toString()),
+              MeetingParticipantLeft.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user4Id)
+                  .reason(MeetingParticipantLeftReason.KICKED));
+      verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
+      verifyNoMoreInteractions(
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the current user isn't a moderator, it throws a 'forbidden' exception")
+    void kickMeetingParticipant_testErrorUserIsNotAModerator() {
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true))
+          .thenThrow(
+              new ForbiddenException(
+                  String.format(
+                      "User '%s' is not an owner of room '%s'", currentUser.getId(), roomId)));
+
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  participantService.kickMeetingParticipant(
+                      permanentMeetingId, user4Id, currentUser));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verifyNoMoreInteractions(meetingService, roomService);
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the moderator tries to kick itself, it throws a 'bad request' exception")
+    void kickMeetingParticipant_testErrorKickItself() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  participantService.kickMeetingParticipant(
+                      permanentMeetingId, user1Id, currentUser));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the user isn't a meeting participant, it throws a 'not found' exception")
+    void kickMeetingParticipant_testErrorIsNotMeetingParticipant() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.kickMeetingParticipant(
+                      permanentMeetingId, user3Id, currentUser));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the removal fails, the kicked user isn't notified")
+    void kickMeetingParticipant_testErrorRemovalFails() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      doThrow(new VideoServerException("destroy failed"))
+          .when(videoServerService)
+          .destroyMeetingParticipant(user4Id.toString(), permanentMeetingId.toString());
+
+      assertThrows(
+          VideoServerException.class,
+          () -> participantService.kickMeetingParticipant(permanentMeetingId, user4Id, currentUser));
+
+      verify(participantRepository, never()).remove(any());
+      verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the meeting is a one-to-one, it throws a 'bad request' exception")
+    void kickMeetingParticipant_testErrorOneToOneMeeting() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      Room oneToOneRoom = Room.create();
+      oneToOneRoom
+          .id(roomId.toString())
+          .type(RoomTypeDto.ONE_TO_ONE)
+          .subscriptions(
+              List.of(
+                  Subscription.create(oneToOneRoom, user1Id.toString()).owner(true),
+                  Subscription.create(oneToOneRoom, user4Id.toString()).owner(true)));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(oneToOneRoom);
+
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  participantService.kickMeetingParticipant(
+                      permanentMeetingId, user4Id, currentUser));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          membersService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the meeting doesn't exist, it throws a 'not found' exception")
+    void kickMeetingParticipant_testErrorMeetingNotExists() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.kickMeetingParticipant(
+                      permanentMeetingId, user4Id, currentUser));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      verifyNoInteractions(
+          roomService, membersService, participantRepository, videoServerService, eventDispatcher);
     }
   }
 

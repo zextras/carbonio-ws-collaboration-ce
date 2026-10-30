@@ -22,6 +22,7 @@ import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinMeetingResultDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.JoinStatusDto;
+import com.zextras.carbonio.chats.model.KickParticipantDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
@@ -174,6 +175,28 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.removeMeetingParticipant(meetingId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Kicks the specified user out of the meeting. Only a moderator can kick a
+   * participant.
+   *
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param kickParticipantDto the participant to kick {@link KickParticipantDto}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
+   * @return a response {@link Response} with status 204
+   */
+  @Override
+  public Response kickMeetingParticipant(
+      UUID meetingId, KickParticipantDto kickParticipantDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    participantService.kickMeetingParticipant(
+        meetingId, kickParticipantDto.getUserToModerate(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

@@ -5,12 +5,13 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.15
+  version: 1.6.16
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
   x-supported-versions:
     [
+      "1.6.16",
       "1.6.15",
       "1.6.14",
       "1.6.13",
@@ -86,6 +87,11 @@ components:
     MediaType:
       type: string
       enum: [ AUDIO, VIDEO, SCREEN ]
+
+    MeetingParticipantLeftReason:
+      type: string
+      enum: [ LEFT, KICKED ]
+      description: LEFT when the participant left the meeting, KICKED when a moderator removed them
 
     # Base Event Schema
     DomainEvent:
@@ -368,9 +374,12 @@ components:
             userId:
               type: string
               format: uuid
+            reason:
+              $ref: "#/components/schemas/MeetingParticipantLeftReason"
           required:
             - meetingId
             - userId
+            - reason
 
     meetingDeclined:
       allOf:

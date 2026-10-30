@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.15
+  version: 1.6.16
   x-supported-versions:
     [
+      "1.6.16",
       "1.6.15",
       "1.6.14",
       "1.6.13",
@@ -875,6 +876,32 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/kick:
+    post:
+      tags:
+        - Meetings
+      summary: Removes the specified user from the meeting
+      description: |
+        Kicks the specified participant out of the meeting. Only a moderator (room owner) who is in
+        the meeting can kick a participant: any other caller gets 403, and a moderator who is not a
+        meeting participant gets 404. Kicking is not allowed in one-to-one meetings (400).
+        Every room member receives MeetingParticipantLeft with reason KICKED.
+      operationId: kickMeetingParticipant
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/KickMeetingParticipantRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204KickMeetingParticipantResponse'
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/decline:
     post:
       tags:
@@ -1478,6 +1505,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/HandStatus'
+    KickMeetingParticipantRequest:
+      description: moderator request to kick a participant out of the meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/KickParticipant'
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -1688,6 +1722,8 @@ components:
       description: The meeting was deleted successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
+    204KickMeetingParticipantResponse:
+      description: The user was kicked out of the meeting successfully
     204DeclineMeetingResponse:
       description: The user declined the meeting invitation successfully
     204AudioStreamResponse:
@@ -2480,3 +2516,12 @@ components:
           type: string
           description: optionally lower the user's hand if I'm a moderator, only works if raised is false
       required: [raised]
+    KickParticipant:
+      type: object
+      description: the participant a moderator wants to kick out of the meeting
+      properties:
+        userToModerate:
+          type: string
+          format: uuid
+          description: the participant to kick out of the meeting
+      required: [userToModerate]

@@ -32,6 +32,7 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.KickParticipantDto;
 import com.zextras.carbonio.chats.model.MediaStreamDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
@@ -1759,6 +1760,262 @@ class MeetingApiIT {
                   JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
               Map.of("queue-id", user1Queue),
               null);
+
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+  }
+
+  @Nested
+  @DisplayName("Kick meeting participant tests")
+  class KickMeetingParticipantTests {
+
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/kick", meetingId);
+    }
+
+    private String body(UUID userId) throws Exception {
+      return objectMapper.writeValueAsString(KickParticipantDto.create().userToModerate(userId));
+    }
+
+    private UUID generateMeeting(boolean user2IsOwner) {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id).owner(user2IsOwner),
+              RoomMemberField.create().id(user3Id)));
+      return meetingTestUtils.generateAndSaveMeeting(
+          room1Id,
+          List.of(
+              ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+              ParticipantBuilder.create(user2Id, user2Queue)
+                  .audioStreamOn(false)
+                  .videoStreamOn(true),
+              ParticipantBuilder.create(user3Id, user3Queue)
+                  .audioStreamOn(false)
+                  .videoStreamOn(false)));
+    }
+
+    private void mockVideoServerDestroyUser2(UUID meetingId) {
+      meetingTestUtils.insertVideoServerSession(
+          meetingTestUtils.insertVideoServerMeeting(
+              meetingId.toString(),
+              "connectionId",
+              "audioHandleId",
+              "videoHandleId",
+              "audioRoomId",
+              "videoRoomId"),
+          user2Id.toString(),
+          user2Queue,
+          "connection_" + user2Queue,
+          "audioHandleId_" + user2Queue,
+          "videoOutHandleId_" + user2Queue,
+          "videoInHandleId_" + user2Queue,
+          "screenHandleId_" + user2Queue);
+      List.of(
+              "/audioHandleId_" + user2Queue,
+              "/videoInHandleId_" + user2Queue,
+              "/videoOutHandleId_" + user2Queue,
+              "/screenHandleId_" + user2Queue)
+          .forEach(
+              handle ->
+                  videoServerMockServer.mockRequestedResponse(
+                      "POST",
+                      "/janus/connection_" + user2Queue + handle,
+                      "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+                      "{\"janus\":\"success\"}",
+                      true));
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user2Queue,
+          "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+    }
+
+    private boolean isUser2Participant(UUID meetingId) {
+      return meetingTestUtils.getMeetingById(meetingId).orElseThrow().getParticipants().stream()
+          .anyMatch(participant -> user2Id.toString().equals(participant.getUserId()));
+    }
+
+    @Test
+    @DisplayName("Given a meeting and a participant, the moderator correctly kicks the participant")
+    void kickMeetingParticipant_testOk() throws Exception {
+      UUID meetingId = generateMeeting(false);
+      mockVideoServerDestroyUser2(meetingId);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertFalse(isUser2Participant(meetingId));
+    }
+
+    @Test
+    @DisplayName("Given a meeting and a moderator participant, a moderator correctly kicks it")
+    void kickMeetingParticipant_testOkKickModerator() throws Exception {
+      UUID meetingId = generateMeeting(true);
+      mockVideoServerDestroyUser2(meetingId);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertFalse(isUser2Participant(meetingId));
+      assertTrue(
+          integrationTestUtils.getRoomById(room1Id).orElseThrow().getSubscriptions().stream()
+              .anyMatch(subscription -> user2Id.toString().equals(subscription.getUserId())));
+    }
+
+    @Test
+    @DisplayName("If the authenticated user isn't a moderator then it returns a status code 403")
+    void kickMeetingParticipant_testErrorUserIsNotAModerator() throws Exception {
+      UUID meetingId = generateMeeting(false);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user1Id), Map.of("queue-id", user2Queue), user2Token);
+
+      assertEquals(403, response.getStatus());
+      assertEquals(
+          3, meetingTestUtils.getMeetingById(meetingId).orElseThrow().getParticipants().size());
+    }
+
+    @Test
+    @DisplayName("If the authenticated user is a guest then it returns a status code 403")
+    void kickMeetingParticipant_testErrorUserIsGuest() throws Exception {
+      UUID meetingId = generateMeeting(false);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId),
+              body(user2Id),
+              Map.of("queue-id", UUID.randomUUID().toString()),
+              MockedAccount.getGuestAccounts().get(0).getToken());
+
+      assertEquals(403, response.getStatus());
+      assertTrue(isUser2Participant(meetingId));
+    }
+
+    @Test
+    @DisplayName("If the moderator tries to kick itself then it returns a status code 400")
+    void kickMeetingParticipant_testErrorKickItself() throws Exception {
+      UUID meetingId = generateMeeting(false);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user1Id), Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(400, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("If the meeting is a one-to-one then it returns a status code 400")
+    void kickMeetingParticipant_testErrorOneToOneMeeting() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create().id(room1Id.toString()).type(RoomTypeDto.ONE_TO_ONE),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id).owner(true)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue),
+                  ParticipantBuilder.create(user2Id, user2Queue)));
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertTrue(isUser2Participant(meetingId));
+    }
+
+    @Test
+    @DisplayName("If the moderator isn't a meeting participant then it returns a status code 404")
+    void kickMeetingParticipant_testErrorModeratorIsNotMeetingParticipant() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id),
+              RoomMemberField.create().id(user3Id)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user2Id, user2Queue),
+                  ParticipantBuilder.create(user3Id, user3Queue)));
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertTrue(isUser2Participant(meetingId));
+    }
+
+    @Test
+    @DisplayName("If the user to kick isn't a meeting participant then it returns a status code 404")
+    void kickMeetingParticipant_testErrorIsNotMeetingParticipant() throws Exception {
+      UUID meetingId = generateMeeting(false);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId),
+              body(UUID.randomUUID()),
+              Map.of("queue-id", user1Queue),
+              user1Token);
+
+      assertEquals(404, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("If the user to kick is missing from the body then it returns a status code 400")
+    void kickMeetingParticipant_testErrorMissingUserToModerate() throws Exception {
+      UUID meetingId = generateMeeting(false);
+
+      MockHttpResponse response =
+          dispatcher.post(url(meetingId), "{}", Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertEquals(
+          3, meetingTestUtils.getMeetingById(meetingId).orElseThrow().getParticipants().size());
+    }
+
+    @Test
+    @DisplayName("If the meeting doesn't exist then it returns a status code 404")
+    void kickMeetingParticipant_testMeetingNotExists() throws Exception {
+      MockHttpResponse response =
+          dispatcher.post(
+              url(UUID.randomUUID()),
+              body(user2Id),
+              Map.of("queue-id", user1Queue),
+              user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the user isn’t authenticated then it returns a status code 401")
+    void kickMeetingParticipant_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response =
+          dispatcher.post(
+              url(UUID.randomUUID()), body(user2Id), Map.of("queue-id", user1Queue), null);
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);

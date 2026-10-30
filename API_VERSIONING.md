@@ -4,6 +4,25 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.16
+
+### Changes (1.6.16)
+
+- **API**: Added POST `/meetings/{meetingId}/kick` endpoint (`KickParticipant` body:
+  `{ "userToModerate": "<uuid>" }`, required) — kicks the specified participant out of the meeting.
+  **Only a moderator (room owner) who is in the meeting can kick**: guests and non-owner members get
+  `403 Forbidden`. A moderator cannot kick itself (`400 Bad Request`, use `/leave`), and kicking is
+  not allowed in one-to-one meetings (`400 Bad Request`); a missing `userToModerate` returns
+  `400 Bad Request`;
+  `404 Not Found` when the meeting does not exist, or when the moderator or the user to kick is not a
+  meeting participant. Returns `204 No Content` on success. Temporary room members are removed from
+  the room when kicked (so in a virtual room they have to go through the waiting room again to rejoin).
+- **WebSocket (outbound)**: `MeetingParticipantLeft` now always carries a `reason` field (`LEFT` |
+  `KICKED`): `KICKED` when a moderator removed the participant, `LEFT` for every other exit (leave,
+  removal from the room, disconnection). Every room member (kicked user included) receives it.
+
+---
+
 ## Version 1.6.15
 
 ### Changes (1.6.15)
