@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.entity.UserContact;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItemRefs;
+import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
@@ -272,7 +273,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
   @Transactional
   @Override
-  public SystemEvent pinMessage(String roomId, String messageId, String userId) {
+  public PinResult pinMessage(String roomId, String messageId, String userId) {
     VisibilityFloor floor = getVisibilityFloor(roomId, userId);
     // Validate message exists and belongs to this room
     Message message =
@@ -284,13 +285,17 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       throw new NotFoundException(
           String.format("Message '%s' does not belong to room '%s'", messageId, roomId));
     }
-    if (!floor.canAccess(message.getCreatedAt())) {
+    if (Boolean.TRUE.equals(message.isDeleted()) || !floor.canAccess(message.getCreatedAt())) {
       throw new NotFoundException(String.format("Message '%s' not found", messageId));
     }
 
     // Both DB writes are atomic: pin record + system event in the same operation.
     // Any exception from either step rolls back both via the surrounding @Transactional.
-    MessagePin pin = pinRepository.pin(roomId, messageId, userId);
+    MessagePin pin =
+        pinRepository
+            .pin(roomId, messageId, userId)
+            .orElseThrow(
+                () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
     String content;
     try {
       content = objectMapper.writeValueAsString(Map.of("pinnedBy", userId, "messageId", messageId));
@@ -306,7 +311,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             .content(content)
             .createdAt(pin.getPinnedAt());
     systemEventRepository.insert(event);
-    return event;
+    return new PinResult(message, event);
   }
 
   @Transactional

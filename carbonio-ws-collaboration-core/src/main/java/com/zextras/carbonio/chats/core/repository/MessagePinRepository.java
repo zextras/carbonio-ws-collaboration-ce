@@ -6,18 +6,22 @@ package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import java.util.List;
+import java.util.Optional;
 
 public interface MessagePinRepository {
 
   /**
-   * Pins a message in a room. A room has a single pin: any existing pin is replaced.
+   * Pins a message in a room with a single upsert. A room has a single pin: any existing pin is
+   * replaced. The message row is share-locked and must be in the room and not deleted, so a
+   * concurrent delete either waits for this pin to commit or turns it into a no-op.
    *
    * @param roomId room identifier
    * @param messageId message identifier
    * @param pinnedBy user identifier of the user pinning the message
-   * @return the created {@link MessagePin}
+   * @return the written {@link MessagePin}, or empty when the message is missing, in another room
+   *     or deleted
    */
-  MessagePin pin(String roomId, String messageId, String pinnedBy);
+  Optional<MessagePin> pin(String roomId, String messageId, String pinnedBy);
 
   /**
    * Unpins a message from a room, only when it is the room pin

@@ -204,4 +204,34 @@ class PinReactionApiIT {
       assertTrue(pinnedIds().isEmpty());
     }
   }
+
+  @Nested
+  @DisplayName("Pin")
+  class Pin {
+
+    @Test
+    @DisplayName("of a deleted message is 404 and writes neither a pin nor a MESSAGE_PINNED row")
+    void pinDeleted() throws Exception {
+      assertEquals(204, deleteMessage(first, aToken));
+
+      assertEquals(404, pin(first, bToken));
+
+      assertTrue(pinnedIds().isEmpty());
+      assertTrue(rows("MESSAGE_PINNED").isEmpty());
+    }
+
+    @Test
+    @DisplayName("of a second message replaces the pin and announces the new one")
+    void pinReplaces() throws Exception {
+      assertEquals(204, pin(first, aToken));
+      assertEquals(204, pin(second, bToken));
+
+      assertEquals(first, nextOfType(queueB, "MessagePinned").get("messageId").asText());
+      JsonNode replaced = nextOfType(queueB, "MessagePinned");
+      assertEquals(second, replaced.get("messageId").asText());
+      assertEquals(bUserId.toString(), replaced.get("pinnedBy").asText());
+      assertEquals("second", replaced.get("message").get("text").asText());
+      assertEquals(List.of(second), pinnedIds());
+    }
+  }
 }

@@ -26,6 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.zextras.carbonio.async.model.MessagePinned;
+import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -34,6 +36,7 @@ import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -78,6 +81,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SendMessageRequestDto;
 import com.zextras.carbonio.chats.model.TimelineDto;
 import com.zextras.carbonio.chats.model.TimelineItemTypeDto;
+import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -2128,6 +2132,48 @@ class RoomsApiServiceImplTest {
       assertEquals(messageId.toString(), event.get("messageId").asText());
       assertEquals(user1Id.toString(), event.get("unpinnedBy").asText());
       assertEquals("unpin-event", event.get("systemEventId").asText());
+    }
+
+    @Test
+    @DisplayName("pinMessage announces the pin it committed without re-reading the room pin")
+    void pinMessage_broadcastsCommittedPin() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      OffsetDateTime pinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      Message message =
+          Message.create()
+              .id(messageId.toString())
+              .roomId(roomId.toString())
+              .senderId(user2Id.toString())
+              .text("pinned text")
+              .createdAt(pinnedAt.minusMinutes(1));
+      SystemEvent systemEvent =
+          SystemEvent.create()
+              .id("pin-event")
+              .roomId(roomId.toString())
+              .type("MESSAGE_PINNED")
+              .actorId(user1Id.toString())
+              .createdAt(pinnedAt);
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.pinMessage(
+              roomId.toString(), messageId.toString(), user1Id.toString()))
+          .thenReturn(new PinResult(message, systemEvent));
+
+      Response response = roomsApiService.pinMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService, never()).getPinnedMessages(anyString());
+      ArgumentCaptor<WsEvent> event = ArgumentCaptor.forClass(WsEvent.class);
+      ArgumentCaptor<TimelineMessageDto> broadcastMessage =
+          ArgumentCaptor.forClass(TimelineMessageDto.class);
+      verify(messageReceivedBroadcaster)
+          .broadcastWithReplyVisibility(
+              eq(roomId.toString()), event.capture(), broadcastMessage.capture());
+      MessagePinned pinned = (MessagePinned) event.getValue();
+      assertEquals(messageId.toString(), pinned.getMessageId());
+      assertEquals(user1Id.toString(), pinned.getPinnedBy());
+      assertEquals("pin-event", pinned.getSystemEventId());
+      assertEquals(pinnedAt, pinned.getSystemEventCreatedAt());
+      assertEquals("pinned text", broadcastMessage.getValue().getText());
     }
   }
 

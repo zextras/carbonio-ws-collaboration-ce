@@ -9,15 +9,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
+import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -87,6 +94,42 @@ class PinReactionSingleIT {
       chatMessageService.unpinMessage(roomId.toString(), messageA, userId.toString());
 
       assertTrue(chatMessageService.getPinnedMessages(roomId.toString()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Concurrent pins in one room all succeed and leave a single pin")
+    void concurrentPins() throws Exception {
+      UUID roomId = seedRoom();
+      List<String> messages = new ArrayList<>();
+      for (int i = 0; i < 8; i++) {
+        messages.add(seedMessage(roomId, "m" + i));
+      }
+      CountDownLatch start = new CountDownLatch(1);
+      ExecutorService executor = Executors.newFixedThreadPool(messages.size());
+      try {
+        List<Future<PinResult>> results = new ArrayList<>();
+        for (String messageId : messages) {
+          results.add(
+              executor.submit(
+                  () -> {
+                    start.await();
+                    return chatMessageService.pinMessage(
+                        roomId.toString(), messageId, userId.toString());
+                  }));
+        }
+        start.countDown();
+        for (int i = 0; i < results.size(); i++) {
+          PinResult pinned = results.get(i).get(30, TimeUnit.SECONDS);
+          assertEquals(messages.get(i), pinned.message().getId());
+          assertEquals("MESSAGE_PINNED", pinned.systemEvent().getType());
+        }
+      } finally {
+        executor.shutdownNow();
+      }
+
+      List<MessagePin> pins = chatMessageService.getPinnedMessages(roomId.toString());
+      assertEquals(1, pins.size());
+      assertTrue(messages.contains(pins.get(0).getMessageId()));
     }
   }
 

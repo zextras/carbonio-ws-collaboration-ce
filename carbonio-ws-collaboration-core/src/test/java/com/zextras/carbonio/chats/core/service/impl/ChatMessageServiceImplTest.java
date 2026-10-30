@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,6 +26,7 @@ import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
+import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -226,22 +228,28 @@ class ChatMessageServiceImplTest {
   @DisplayName("pinMessage (single pin per room)")
   class PinMessage {
 
-    @Test
-    @DisplayName("Replaces the room pin and emits a MESSAGE_PINNED system event")
-    void pins() {
-      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(pinRepository.pin(ROOM_ID, MESSAGE_ID, USER_ID))
-          .thenReturn(MessagePin.create(ROOM_ID, MESSAGE_ID, USER_ID));
+    private final OffsetDateTime pinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00.123456Z");
 
-      SystemEvent returned = chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
+    @Test
+    @DisplayName("Upserts the room pin and emits a MESSAGE_PINNED system event at the pin time")
+    void pins() {
+      Message message = message();
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message));
+      when(pinRepository.pin(ROOM_ID, MESSAGE_ID, USER_ID))
+          .thenReturn(
+              Optional.of(MessagePin.create(ROOM_ID, MESSAGE_ID, USER_ID).pinnedAt(pinnedAt)));
+
+      PinResult returned = chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
 
       verify(pinRepository).pin(ROOM_ID, MESSAGE_ID, USER_ID);
       ArgumentCaptor<SystemEvent> captor = ArgumentCaptor.forClass(SystemEvent.class);
       verify(systemEventRepository).insert(captor.capture());
       assertEquals("MESSAGE_PINNED", captor.getValue().getType());
       assertEquals(USER_ID, captor.getValue().getActorId());
-      assertEquals(captor.getValue().getId(), returned.getId());
-      assertEquals(USER_ID, returned.getActorId());
+      assertEquals(pinnedAt, captor.getValue().getCreatedAt());
+      assertEquals(captor.getValue().getId(), returned.systemEvent().getId());
+      assertEquals(USER_ID, returned.systemEvent().getActorId());
+      assertSame(message, returned.message());
     }
 
     @Test
@@ -254,6 +262,29 @@ class ChatMessageServiceImplTest {
           NotFoundException.class,
           () -> chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
       verify(pinRepository, never()).pin(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Throws NotFound and pins nothing when the message is deleted")
+    void deletedMessage() {
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message().deleted(true)));
+
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
+      verify(pinRepository, never()).pin(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Throws NotFound and writes no row when the message is deleted while pinning")
+    void deletedWhilePinning() {
+      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
+      when(pinRepository.pin(ROOM_ID, MESSAGE_ID, USER_ID)).thenReturn(Optional.empty());
+
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
+      verify(systemEventRepository, never()).insert(any(SystemEvent.class));
     }
   }
 

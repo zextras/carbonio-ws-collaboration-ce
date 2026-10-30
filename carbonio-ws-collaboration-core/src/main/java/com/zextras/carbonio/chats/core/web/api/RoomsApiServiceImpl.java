@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.TimelinePage;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
@@ -682,17 +683,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response pinMessage(UUID roomId, UUID messageId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     // pinMessage now atomically inserts pin record + system event in ChatMessageServiceImpl
-    SystemEvent systemEvent =
+    PinResult pinned =
         chatMessageService.pinMessage(roomId.toString(), messageId.toString(), currentUser.getId());
+    SystemEvent systemEvent = pinned.systemEvent();
     try {
-      Message pinned =
-          chatMessageService.getPinnedMessages(roomId.toString()).stream()
-              .filter(p -> messageId.toString().equals(p.getMessageId()))
-              .map(MessagePin::getMessage)
-              .findFirst()
-              .orElseThrow();
       TimelineMessageDto message =
-          toTimelineMessages(List.of(pinned), roomId.toString(), new VisibilityFloor(null)).get(0);
+          toTimelineMessages(
+                  List.of(pinned.message()), roomId.toString(), new VisibilityFloor(null))
+              .get(0);
       messageReceivedBroadcaster.broadcastWithReplyVisibility(
           roomId.toString(),
           MessagePinned.create()

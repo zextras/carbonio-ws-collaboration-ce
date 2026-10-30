@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
 import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
+import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import java.time.OffsetDateTime;
@@ -191,10 +192,11 @@ public interface ChatMessageService {
    * @param roomId room identifier
    * @param messageId message identifier
    * @param userId user identifier of the user pinning the message
-   * @return the persisted MESSAGE_PINNED {@link SystemEvent}, whose {@code createdAt} is the pin
-   *     time
+   * @return the pinned {@link Message} and the persisted MESSAGE_PINNED {@link SystemEvent}, whose
+   *     {@code createdAt} is the pin time; a missing, deleted, foreign or hidden message is not
+   *     found
    */
-  SystemEvent pinMessage(String roomId, String messageId, String userId);
+  PinResult pinMessage(String roomId, String messageId, String userId);
 
   /**
    * Unpins a message from a room
