@@ -671,7 +671,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   private String getStringFromPart(Map<String, List<InputPart>> formParts, String fieldName) {
     try {
       InputPart part = getFormPart(formParts, fieldName);
-      return part != null ? part.getBody(String.class, null) : null;
+      if (part == null) {
+        return null;
+      }
+      if (!part.isContentTypeFromMessage()) {
+        part.setMediaType(MediaType.TEXT_PLAIN_TYPE.withCharset("UTF-8"));
+      }
+      return part.getBody(String.class, null);
     } catch (Exception e) {
       return null;
     }

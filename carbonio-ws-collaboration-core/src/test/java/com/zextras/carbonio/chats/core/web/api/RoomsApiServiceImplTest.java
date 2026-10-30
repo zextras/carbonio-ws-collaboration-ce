@@ -2070,6 +2070,27 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Text parts without a content type are read as UTF-8, explicit ones are kept")
+    void insertAttachmentMultipart_textPartsWithoutContentTypeAreUtf8() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      InputPart descriptionPart = textPart("àè", false);
+      InputPart areaPart = textPart("10x5", true);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(genericFileName, Map.of("description", descriptionPart, "area", areaPart)),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(descriptionPart).setMediaType(MediaType.TEXT_PLAIN_TYPE.withCharset("UTF-8"));
+      verify(areaPart, never()).setMediaType(any());
+      verify(attachmentService)
+          .addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "fileName", "àè", null, "10x5", null, user1);
+    }
+
+    @Test
     @DisplayName("Insert attachment multipart with a guest user")
     void insertAttachmentMultipart_testGuestUser() {
       when(securityContext.getUserPrincipal()).thenReturn(guest);

@@ -351,4 +351,38 @@ class MessageContractIT {
       assertEquals(0, messageCount());
     }
   }
+
+  @Nested
+  @DisplayName("Multipart text parts")
+  class MultipartText {
+
+    @Test
+    @DisplayName("A UTF-8 description without a part content type is stored intact")
+    void utf8DescriptionWithoutContentType() throws Exception {
+      String description = "— \"àèì\" 👍";
+
+      MockHttpResponse response =
+          uploadRaw(
+              StringFormatUtils.encodeToUtf8("photo.png"),
+              textPart("description", null, description.getBytes(StandardCharsets.UTF_8)));
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      assertEquals(description, storedText(response));
+    }
+
+    @Test
+    @DisplayName("An explicit ISO-8859-1 part charset is still honoured")
+    void isoDescriptionWithExplicitCharset() throws Exception {
+      MockHttpResponse response =
+          uploadRaw(
+              StringFormatUtils.encodeToUtf8("photo.png"),
+              textPart(
+                  "description",
+                  "text/plain; charset=ISO-8859-1",
+                  "àèì".getBytes(StandardCharsets.ISO_8859_1)));
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      assertEquals("àèì", storedText(response));
+    }
+  }
 }
