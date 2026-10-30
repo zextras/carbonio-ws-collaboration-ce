@@ -311,10 +311,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
   @Transactional
   @Override
-  public SystemEvent unpinMessage(String roomId, String messageId, String userId) {
+  public Optional<SystemEvent> unpinMessage(String roomId, String messageId, String userId) {
     // Both DB writes are atomic: unpin record + system event in the same operation.
     // Any exception from either step rolls back both via the surrounding @Transactional.
-    pinRepository.unpin(roomId, messageId);
+    if (pinRepository.unpin(roomId, messageId) == 0) {
+      return Optional.empty();
+    }
     String content;
     try {
       content =
@@ -331,7 +333,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             .actorId(userId)
             .content(content);
     systemEventRepository.insert(event);
-    return event;
+    return Optional.of(event);
   }
 
   @Override

@@ -716,24 +716,39 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
     // unpinMessage now atomically inserts unpin record + system event in ChatMessageServiceImpl
-    SystemEvent systemEvent =
-        chatMessageService.unpinMessage(
-            roomId.toString(), messageId.toString(), currentUser.getId());
+    chatMessageService
+        .unpinMessage(roomId.toString(), messageId.toString(), currentUser.getId())
+        .ifPresent(
+            systemEvent ->
+                broadcastMessageUnpinned(
+                    roomId.toString(),
+                    messageId.toString(),
+                    systemEvent.getActorId(),
+                    systemEvent.getId(),
+                    systemEvent.getCreatedAt()));
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  private void broadcastMessageUnpinned(
+      String roomId,
+      String messageId,
+      String unpinnedBy,
+      String systemEventId,
+      OffsetDateTime systemEventCreatedAt) {
     try {
       WsEvent event =
           MessageUnpinned.create()
-              .messageId(messageId.toString())
-              .roomId(roomId.toString())
-              .unpinnedBy(systemEvent.getActorId())
-              .systemEventId(systemEvent.getId())
-              .systemEventCreatedAt(systemEvent.getCreatedAt())
+              .messageId(messageId)
+              .roomId(roomId)
+              .unpinnedBy(unpinnedBy)
+              .systemEventId(systemEventId)
+              .systemEventCreatedAt(systemEventCreatedAt)
               .timestamp(OffsetDateTime.now())
               .sentDate(OffsetDateTime.now());
-      broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+      broadcastToRoomMembers(roomId, objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting unpin event: " + e.getMessage());
     }
-    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override

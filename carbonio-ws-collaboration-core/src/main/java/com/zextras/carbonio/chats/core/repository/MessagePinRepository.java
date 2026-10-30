@@ -20,12 +20,13 @@ public interface MessagePinRepository {
   MessagePin pin(String roomId, String messageId, String pinnedBy);
 
   /**
-   * Unpins a message from a room
+   * Unpins a message from a room, only when it is the room pin
    *
    * @param roomId room identifier
    * @param messageId message identifier
+   * @return the number of removed pins (0 or 1)
    */
-  void unpin(String roomId, String messageId);
+  int unpin(String roomId, String messageId);
 
   /**
    * Gets the pinned messages for a room (at most one, since a room has a single pin)

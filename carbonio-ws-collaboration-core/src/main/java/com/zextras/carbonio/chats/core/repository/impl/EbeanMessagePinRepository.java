@@ -34,8 +34,12 @@ public class EbeanMessagePinRepository implements MessagePinRepository {
   }
 
   @Override
-  public void unpin(String roomId, String messageId) {
-    db.find(MessagePin.class).where().eq("roomId", roomId).eq("messageId", messageId).delete();
+  public int unpin(String roomId, String messageId) {
+    return db.find(MessagePin.class)
+        .where()
+        .eq("roomId", roomId)
+        .eq("messageId", messageId)
+        .delete();
   }
 
   @Override

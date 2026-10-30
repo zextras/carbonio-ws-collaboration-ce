@@ -264,15 +264,31 @@ class ChatMessageServiceImplTest {
     @Test
     @DisplayName("Removes the room pin and emits a MESSAGE_UNPINNED system event")
     void unpins() {
-      SystemEvent returned = chatMessageService.unpinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
+      when(pinRepository.unpin(ROOM_ID, MESSAGE_ID)).thenReturn(1);
+
+      Optional<SystemEvent> returned =
+          chatMessageService.unpinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
 
       verify(pinRepository).unpin(ROOM_ID, MESSAGE_ID);
       ArgumentCaptor<SystemEvent> captor = ArgumentCaptor.forClass(SystemEvent.class);
       verify(systemEventRepository).insert(captor.capture());
       assertEquals("MESSAGE_UNPINNED", captor.getValue().getType());
       assertEquals(USER_ID, captor.getValue().getActorId());
-      assertEquals(captor.getValue().getId(), returned.getId());
-      assertEquals(USER_ID, returned.getActorId());
+      assertTrue(returned.isPresent());
+      assertEquals(captor.getValue().getId(), returned.get().getId());
+      assertEquals(USER_ID, returned.get().getActorId());
+    }
+
+    @Test
+    @DisplayName("Writes no system event when the message is not the room pin")
+    void notPinned() {
+      when(pinRepository.unpin(ROOM_ID, MESSAGE_ID)).thenReturn(0);
+
+      Optional<SystemEvent> returned =
+          chatMessageService.unpinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
+
+      assertTrue(returned.isEmpty());
+      verify(systemEventRepository, never()).insert(any(SystemEvent.class));
     }
   }
 

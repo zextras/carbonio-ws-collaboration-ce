@@ -22,7 +22,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
@@ -113,6 +117,9 @@ class RoomsApiServiceImplTest {
   private final FileMetadataRepository fileMetadataRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final StoragesService storagesService;
+  private final EventDispatcher eventDispatcher;
+  private final MessageReceivedBroadcaster messageReceivedBroadcaster;
+  private final ObjectMapper objectMapper;
 
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
@@ -123,8 +130,13 @@ class RoomsApiServiceImplTest {
     this.chatMessageService = mock(ChatMessageService.class);
     when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
         .thenReturn(new VisibilityFloor(null));
-    EventDispatcher eventDispatcher = mock(EventDispatcher.class);
-    ObjectMapper objectMapper = new ObjectMapper();
+    this.eventDispatcher = mock(EventDispatcher.class);
+    this.messageReceivedBroadcaster = mock(MessageReceivedBroadcaster.class);
+    this.objectMapper =
+        JsonMapper.builder()
+            .addModule(new JavaTimeModule())
+            .build()
+            .setDateFormat(new RFC3339DateFormat());
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.messageRepository = mock(MessageRepository.class);
     this.messageWriteRepository = mock(MessageWriteRepository.class);
@@ -148,7 +160,7 @@ class RoomsApiServiceImplTest {
             storagesService,
             new TimelineRepositoryImpl(messageRepository, systemEventRepository),
             subscriptionRepository,
-            mock(MessageReceivedBroadcaster.class),
+            messageReceivedBroadcaster,
             Set.of(messageSentListener),
             chatExportService,
             new TimelineItemMapper(objectMapper));
@@ -2066,6 +2078,57 @@ class RoomsApiServiceImplTest {
     Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
 
     assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+  }
+
+  @Nested
+  @DisplayName("Pin, unpin and delete events tests")
+  class PinUnpinDeleteEventsTest {
+
+    @Test
+    @DisplayName("unpinMessage of a message that is not the room pin answers 204 and sends nothing")
+    void unpinMessage_notPinned_sendsNothing() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.unpinMessage(
+              roomId.toString(), messageId.toString(), user1Id.toString()))
+          .thenReturn(Optional.empty());
+
+      Response response = roomsApiService.unpinMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService).validateRoomMembership(roomId.toString(), user1Id.toString());
+      verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("unpinMessage of the room pin sends MessageUnpinned with the persisted row")
+    void unpinMessage_pinned_sendsUnpinned() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      List<String> members = List.of(user1Id.toString(), user2Id.toString());
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
+      when(chatMessageService.unpinMessage(
+              roomId.toString(), messageId.toString(), user1Id.toString()))
+          .thenReturn(
+              Optional.of(
+                  SystemEvent.create()
+                      .id("unpin-event")
+                      .roomId(roomId.toString())
+                      .type("MESSAGE_UNPINNED")
+                      .actorId(user1Id.toString())
+                      .createdAt(OffsetDateTime.parse("2026-10-30T10:00:00Z"))));
+
+      Response response = roomsApiService.unpinMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+      verify(eventDispatcher).sendRawToUserExchange(eq(members), payload.capture());
+      JsonNode event = objectMapper.readTree(payload.getValue());
+      assertEquals("MessageUnpinned", event.get("type").asText());
+      assertEquals(messageId.toString(), event.get("messageId").asText());
+      assertEquals(user1Id.toString(), event.get("unpinnedBy").asText());
+      assertEquals("unpin-event", event.get("systemEventId").asText());
+    }
   }
 
   @Nested

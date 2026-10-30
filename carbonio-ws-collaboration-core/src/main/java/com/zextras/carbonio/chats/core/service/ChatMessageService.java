@@ -202,9 +202,10 @@ public interface ChatMessageService {
    * @param roomId room identifier
    * @param messageId message identifier
    * @param userId user identifier of the user unpinning the message
-   * @return the persisted MESSAGE_UNPINNED {@link SystemEvent}
+   * @return the persisted MESSAGE_UNPINNED {@link SystemEvent}, or empty when the message is not
+   *     the room pin (nothing is written)
    */
-  SystemEvent unpinMessage(String roomId, String messageId, String userId);
+  Optional<SystemEvent> unpinMessage(String roomId, String messageId, String userId);
 
   /**
    * Gets all pinned messages for a room
