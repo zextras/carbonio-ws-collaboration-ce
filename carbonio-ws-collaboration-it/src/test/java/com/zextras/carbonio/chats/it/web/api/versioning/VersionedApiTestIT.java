@@ -66,7 +66,7 @@ class VersionedApiTestIT {
   @Test
   void downgrade_migration()
       throws URISyntaxException, UnsupportedEncodingException, JsonProcessingException {
-    registerDummyApi(defaultDispatcher);
+    var dispatcher = legacyDispatcher();
 
     ChangeSet changeSet1 =
         new ChangeSet(new Semver("1.5.0"), DummyModel.class, List.of(new AddFullNameMigration()));
@@ -80,8 +80,7 @@ class VersionedApiTestIT {
     versionRegistry.register(changeSet2);
 
     var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, "1.3.0");
-    MockHttpResponse response =
-        defaultDispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
+    MockHttpResponse response = dispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
 
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
 
@@ -98,7 +97,7 @@ class VersionedApiTestIT {
   @Test
   void apply_migrations_for_matching_model_class()
       throws URISyntaxException, UnsupportedEncodingException, JsonProcessingException {
-    registerDummyApi(defaultDispatcher);
+    var dispatcher = legacyDispatcher();
 
     ChangeSet matchingChangeSet =
         new ChangeSet(new Semver("1.5.0"), DummyModel.class, List.of(new AddFullNameMigration()));
@@ -111,8 +110,7 @@ class VersionedApiTestIT {
     versionRegistry.register(wrongChangeSet);
 
     var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, "1.3.0");
-    MockHttpResponse response =
-        defaultDispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
+    MockHttpResponse response = dispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
 
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
 
@@ -128,7 +126,7 @@ class VersionedApiTestIT {
   @Test
   void migrateDTOList()
       throws URISyntaxException, UnsupportedEncodingException, JsonProcessingException {
-    registerDummyApi(defaultDispatcher);
+    var dispatcher = legacyDispatcher();
 
     ChangeSet matchingChangeSet =
         new ChangeSet(new Semver("1.5.0"), DummyModel.class, List.of(new AddFullNameMigration()));
@@ -141,8 +139,7 @@ class VersionedApiTestIT {
     versionRegistry.register(wrongChangeSet);
 
     var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, "1.3.0");
-    MockHttpResponse response =
-        defaultDispatcher.get(DUMMY_API_LIST_ENDPOINT, null, headerWithVersion);
+    MockHttpResponse response = dispatcher.get(DUMMY_API_LIST_ENDPOINT, null, headerWithVersion);
 
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
 
@@ -165,12 +162,11 @@ class VersionedApiTestIT {
 
   @Test
   void response_header_has_same_version() throws URISyntaxException {
-    registerDummyApi(defaultDispatcher);
+    var dispatcher = legacyDispatcher();
 
     var requestVersion = "1.5.0";
     var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, requestVersion);
-    MockHttpResponse response =
-        defaultDispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
+    MockHttpResponse response = dispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
 
     assertEquals(Status.OK.getStatusCode(), response.getStatus());
     var responseVersion =
@@ -222,7 +218,7 @@ class VersionedApiTestIT {
     String currentVersion = "1.5.0";
     var dispatcher =
         buildRequestDispatcherWith(
-            new VersionedRequestFilterTest(currentVersion),
+            new VersionedRequestFilterTest(currentVersion, List.of(currentVersion)),
             new VersionedResponseFilterTest(currentVersion, "ignore"));
     registerDummyApi(dispatcher);
 
@@ -234,6 +230,34 @@ class VersionedApiTestIT {
     assertEquals(422, response.getStatus());
     assertEquals(
         currentVersion, response.getOutputHeaders().getFirst(ChatsConstant.API_VERSION_HEADER));
+  }
+
+  @Test
+  void reject_request_with_unsupported_older_version() throws URISyntaxException {
+    registerDummyApi(defaultDispatcher);
+
+    var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, "1.6.14");
+    MockHttpResponse response =
+        defaultDispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion);
+
+    assertEquals(422, response.getStatus());
+    assertEquals(
+        List.of(VersionProvider.getVersion()),
+        response.getOutputHeaders().get(ChatsConstant.API_VERSION_HEADER));
+  }
+
+  @Test
+  void accept_request_with_a_supported_version_or_without_the_header() throws URISyntaxException {
+    registerDummyApi(defaultDispatcher);
+
+    var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, VersionProvider.getVersion());
+
+    assertEquals(
+        Status.OK.getStatusCode(),
+        defaultDispatcher.get(DUMMY_API_BASE_ENDPOINT, null, headerWithVersion).getStatus());
+    assertEquals(
+        Status.OK.getStatusCode(),
+        defaultDispatcher.get(DUMMY_API_BASE_ENDPOINT, null).getStatus());
   }
 
   @Test
@@ -255,6 +279,7 @@ class VersionedApiTestIT {
         Arguments.of(new AlignedVersions()),
         Arguments.of(new ClientWithOlderVersion()),
         Arguments.of(new ClientWithNewerVersion()),
+        Arguments.of(new ClientWithUnsupportedOlderVersion()),
         Arguments.of(new ClientWithNoHeaderVersion()));
   }
 
@@ -265,7 +290,7 @@ class VersionedApiTestIT {
     var client = scenario.clientStatus();
     var dispatcher =
         buildRequestDispatcherWith(
-            new VersionedRequestFilterTest(server.currentVersion),
+            new VersionedRequestFilterTest(server.currentVersion, server.supportedVersions),
             new VersionedResponseFilterTest(server.currentVersion, server.oldestVersion));
     registerDummyApi(dispatcher);
 
@@ -286,6 +311,15 @@ class VersionedApiTestIT {
 
   private void registerDummyApi(ResteasyRequestDispatcher dispatcher) {
     dispatcher.getRegistry().addSingletonResource(dummyVersionedApi);
+  }
+
+  private ResteasyRequestDispatcher legacyDispatcher() {
+    var dispatcher =
+        buildRequestDispatcherWith(
+            new VersionedRequestFilterTest("1.6.0", List.of("1.6.0", "1.5.0", "1.3.0")),
+            new VersionedResponseFilterTest("1.6.0", "1.3.0"));
+    registerDummyApi(dispatcher);
+    return dispatcher;
   }
 
   private ResteasyRequestDispatcher buildRequestDispatcherWith(
@@ -330,15 +364,22 @@ class VersionedApiTestIT {
 
   class VersionedRequestFilterTest extends VersionedRequestFilter {
     private final String currentVersion;
+    private final List<String> supportedVersions;
 
-    public VersionedRequestFilterTest(String currentVersion) {
+    public VersionedRequestFilterTest(String currentVersion, List<String> supportedVersions) {
       super();
       this.currentVersion = currentVersion;
+      this.supportedVersions = supportedVersions;
     }
 
     @Override
     public String getCurrentVersion() {
       return this.currentVersion;
+    }
+
+    @Override
+    public List<String> getSupportedVersions() {
+      return this.supportedVersions;
     }
   }
 
@@ -358,7 +399,7 @@ class VersionedApiTestIT {
       ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
       implements HeaderVersionScenario {
     public AlignedVersions() {
-      this(new ServerStatus("1.6.0"), new ClientStatus("1.6.0"), "1.6.0");
+      this(new ServerStatus("1.6.0", List.of("1.6.0")), new ClientStatus("1.6.0"), "1.6.0");
     }
   }
 
@@ -366,7 +407,18 @@ class VersionedApiTestIT {
       ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
       implements HeaderVersionScenario {
     public ClientWithOlderVersion() {
-      this(new ServerStatus("1.6.0"), new ClientStatus("1.5.12"), "1.5.12");
+      this(
+          new ServerStatus("1.6.0", List.of("1.6.0", "1.5.12")),
+          new ClientStatus("1.5.12"),
+          "1.5.12");
+    }
+  }
+
+  private record ClientWithUnsupportedOlderVersion(
+      ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
+      implements HeaderVersionScenario {
+    public ClientWithUnsupportedOlderVersion() {
+      this(new ServerStatus("1.6.0", List.of("1.6.0")), new ClientStatus("1.5.12"), "1.6.0");
     }
   }
 
@@ -374,7 +426,7 @@ class VersionedApiTestIT {
       ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
       implements HeaderVersionScenario {
     public ClientWithNewerVersion() {
-      this(new ServerStatus("1.6.0"), new ClientStatus("1.7.0"), "1.6.0");
+      this(new ServerStatus("1.6.0", List.of("1.6.0")), new ClientStatus("1.7.0"), "1.6.0");
     }
   }
 
@@ -382,13 +434,17 @@ class VersionedApiTestIT {
       ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
       implements HeaderVersionScenario {
     public ClientWithNoHeaderVersion() {
-      this(new ServerStatus("1.6.0", "1.4.0"), new ClientStatus(null), "1.4.0");
+      this(
+          new ServerStatus("1.6.0", "1.4.0", List.of("1.6.0", "1.4.0")),
+          new ClientStatus(null),
+          "1.4.0");
     }
   }
 
-  private record ServerStatus(String currentVersion, String oldestVersion) {
-    public ServerStatus(String currentVersion) {
-      this(currentVersion, "ignore");
+  private record ServerStatus(
+      String currentVersion, String oldestVersion, List<String> supportedVersions) {
+    public ServerStatus(String currentVersion, List<String> supportedVersions) {
+      this(currentVersion, "ignore", supportedVersions);
     }
   }
 

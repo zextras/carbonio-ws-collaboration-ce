@@ -35,7 +35,7 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
 
     if (responseContext.getStatus() < Status.OK.getStatusCode()
         || responseContext.getStatus() >= Status.MULTIPLE_CHOICES.getStatusCode()) {
-      responseContext.getHeaders().add(ChatsConstant.API_VERSION_HEADER, getCurrentVersion());
+      responseContext.getHeaders().putSingle(ChatsConstant.API_VERSION_HEADER, getCurrentVersion());
       return;
     }
 

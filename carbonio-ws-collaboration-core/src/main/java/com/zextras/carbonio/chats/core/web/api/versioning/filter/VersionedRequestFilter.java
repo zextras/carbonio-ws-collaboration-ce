@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
+import java.util.List;
 
 @Provider
 public class VersionedRequestFilter implements ContainerRequestFilter {
@@ -35,12 +36,19 @@ public class VersionedRequestFilter implements ContainerRequestFilter {
       return;
     }
 
-    if (versionFromRequest.isGreaterThan(getCurrentVersion())) {
-      containerRequestContext.abortWith(Response.status(UNPROCESSABLE_ENTITY_STATUS).build());
+    if (getSupportedVersions().stream().noneMatch(versionFromRequest::isEqualTo)) {
+      containerRequestContext.abortWith(
+          Response.status(UNPROCESSABLE_ENTITY_STATUS)
+              .header(ChatsConstant.API_VERSION_HEADER, getCurrentVersion())
+              .build());
     }
   }
 
   public String getCurrentVersion() {
     return VersionProvider.getVersion();
+  }
+
+  public List<String> getSupportedVersions() {
+    return VersionProvider.getSupportedVersions();
   }
 }
