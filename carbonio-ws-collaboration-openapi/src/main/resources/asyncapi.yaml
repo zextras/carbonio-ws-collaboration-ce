@@ -69,6 +69,11 @@ components:
       type: string
       enum: [AUDIO, VIDEO, SCREEN]
 
+    MeetingParticipantLeftReason:
+      type: string
+      enum: [ LEFT, KICKED ]
+      description: LEFT when the participant left the meeting, KICKED when a moderator removed them
+
     # Base Event Schema
     DomainEvent:
       discriminator:
@@ -439,9 +444,12 @@ components:
             userId:
               type: string
               format: uuid
+            reason:
+              $ref: "#/components/schemas/MeetingParticipantLeftReason"
           required:
             - meetingId
             - userId
+            - reason
 
     MeetingAudioStreamChanged:
       allOf:

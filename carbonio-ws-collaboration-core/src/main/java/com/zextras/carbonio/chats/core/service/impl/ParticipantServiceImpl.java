@@ -16,6 +16,7 @@ import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.async.model.MeetingParticipantJoined;
 import com.zextras.carbonio.async.model.MeetingParticipantLeft;
+import com.zextras.carbonio.async.model.MeetingParticipantLeftReason;
 import com.zextras.carbonio.async.model.MeetingParticipantUplinkStatusChanged;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
@@ -37,6 +38,7 @@ import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -207,6 +209,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID())
+            .reason(MeetingParticipantLeftReason.LEFT)
             .type(EventType.MEETING_PARTICIPANT_LEFT)
             .sentDate(OffsetDateTime.now()));
     eventDispatcher.sendToUserQueue(
@@ -245,7 +248,10 @@ public class ParticipantServiceImpl implements ParticipantService {
     meeting.getParticipants().stream()
         .filter(p -> userId.toString().equals(p.getUserId()))
         .toList()
-        .forEach(participant -> removeMeetingParticipant(participant, meeting, room));
+        .forEach(
+            participant ->
+                removeMeetingParticipant(
+                    participant, meeting, room, MeetingParticipantLeftReason.LEFT));
   }
 
   @Override
@@ -264,7 +270,41 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 UUID.fromString(participant.getUserId()))));
   }
 
-  private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
+  /**
+   * Kicks a participant out of the meeting. Only a moderator (room owner) who is in the meeting can
+   * kick: every room member receives {@link MeetingParticipantLeft} with reason {@link
+   * MeetingParticipantLeftReason#KICKED}.
+   *
+   * @param meetingId the meeting ID
+   * @param userId the ID of the user to kick
+   * @param currentUser the moderator performing the kick
+   */
+  @Override
+  public void kickMeetingParticipant(UUID meetingId, UUID userId, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    Room room =
+        roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      throw new BadRequestException("Cannot kick a participant from a one-to-one meeting");
+    }
+    if (userId.equals(currentUser.getUUID())) {
+      throw new BadRequestException("User cannot kick itself from the meeting");
+    }
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    Participant participant =
+        meeting.getParticipants().stream()
+            .filter(p -> userId.toString().equals(p.getUserId()))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        String.format(
+                            "User '%s' is not a participant of meeting '%s'", userId, meetingId)));
+    removeMeetingParticipant(participant, meeting, room, MeetingParticipantLeftReason.KICKED);
+  }
+
+  private void removeMeetingParticipant(
+      Participant participant, Meeting meeting, Room room, MeetingParticipantLeftReason reason) {
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
     participantRepository.remove(participant);
     List<Subscription> subscriptions = room.getSubscriptions();
@@ -273,6 +313,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId()))
+            .reason(reason)
             .type(EventType.MEETING_PARTICIPANT_LEFT)
             .sentDate(OffsetDateTime.now()));
     if (participantRepository.getByMeetingId(meeting.getId()).isEmpty()) {
