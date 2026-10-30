@@ -78,6 +78,25 @@ Notes:
 - Both `POST /rooms/{roomId}/forward` (multi-target) and
   `POST /rooms/{roomId}/messages/{messageId}/forward` (single) exist. The former is the one in general use.
 
+### Retrying a send: idempotency on `tempId`
+
+`POST /rooms/{roomId}/messages` and `POST /rooms/{roomId}/attachments` are idempotent on `tempId`
+(at most 64 characters) for **1 hour**, per room and sender. The two operations share the same
+`tempId` space.
+
+- The first request with a `tempId` creates the message as usual.
+- A later request of the same sender in the same room with the same `tempId` creates nothing: no new
+  message, no `MessageReceived`, no push notification and, for an upload, no stored file. It answers
+  `201` with the message created by the first request, in its current state (edited text,
+  `deletedInfo` if it was deleted meanwhile).
+- While the first request is still running (an upload whose file is being stored), the retry answers
+  `409`: wait for the `MessageReceived` carrying your `tempId`, or retry later.
+- A failed upload frees its `tempId`, so retrying it after an error creates the message.
+- After 1 hour the same `tempId` creates a new message.
+
+Requests without `tempId` are never deduplicated. Send a fresh `tempId` for every message and reuse it
+only to retry that message.
+
 ## 2. Data that used to need its own request
 
 Two things that were separate XMPP round-trips now arrive inside responses you already make:

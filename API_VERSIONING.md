@@ -51,6 +51,7 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
 - `api.yaml` documents the `424` that `startMeeting`, `joinMeeting`, `updateMediaStream`, `updateAudioStream`
   and `updateHandStatus` answer while the message broker is down or the video server is not ready (same
   behaviour as 1.6.x; `MIGRATION.md` used to say `403`).
+- Send and attachment upload are idempotent on `tempId` for 1 hour per room and sender (`201` with the original message, `409` while the first request is still running); `tempId` is at most 64 characters.
 
 ### Versioning rule from the first release candidate
 

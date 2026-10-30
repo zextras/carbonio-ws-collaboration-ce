@@ -431,7 +431,13 @@ paths:
         - Attachments
       summary: Insert an attachment with multipart/form-data
       operationId: insertAttachmentMultipart
-      description: Answers 404 when `replyToId` is not a message of the room visible to the caller.
+      description: >
+        Answers 404 when `replyToId` is not a message of the room visible to the caller.
+        Idempotent on `tempId` for 1 hour per room and sender: a later upload with the same
+        `tempId` stores no file, creates no message, sends no event and no push notification, and
+        answers 201 with the message created by the first upload, in its current state. It answers
+        409 while the first request with that `tempId` has not completed yet. A failed upload frees
+        its `tempId`. Text sends and uploads share the same `tempId` space.
       parameters:
         - $ref: "#/components/parameters/pathRoomId"
       requestBody:
@@ -443,13 +449,21 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+        409:
+          $ref: "#/components/responses/409Conflict"
   /rooms/{roomId}/messages:
     post:
       tags:
         - Rooms
       summary: Send a message to a room
       operationId: sendMessage
-      description: Answers 404 when `replyToId` is not a message of the room visible to the caller.
+      description: >
+        Answers 404 when `replyToId` is not a message of the room visible to the caller.
+        Idempotent on `tempId` for 1 hour per room and sender: a later request with the same
+        `tempId` creates no message, sends no event and no push notification, and answers 201 with
+        the message created by the first request, in its current state (edited text, `deletedInfo`).
+        It answers 409 while the first request with that `tempId` has not completed yet. Without
+        `tempId` every request creates a message.
       parameters:
         - $ref: "#/components/parameters/pathRoomId"
       requestBody:
@@ -469,6 +483,8 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+        409:
+          $ref: "#/components/responses/409Conflict"
   /rooms/{roomId}/messages/export:
     get:
       tags:
