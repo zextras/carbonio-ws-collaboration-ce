@@ -100,6 +100,7 @@ SELECT id, created_at FROM new_msg
       FROM ts
       LEFT JOIN new_msg ON true
       """;
+
   private static final String EDIT_SQL =
       """
       WITH check_member AS (
