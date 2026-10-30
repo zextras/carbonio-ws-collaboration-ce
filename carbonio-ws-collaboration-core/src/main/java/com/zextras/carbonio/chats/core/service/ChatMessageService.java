@@ -48,46 +48,6 @@ public interface ChatMessageService {
   Optional<Message> getMessage(String messageId);
 
   /**
-   * Gets messages for MAM (Message Archive Management) query
-   *
-   * @param roomId room identifier
-   * @param start start time (inclusive, null for no lower bound)
-   * @param end end time (exclusive, null for no upper bound)
-   * @param limit maximum number of messages
-   * @return list of {@link Message}
-   */
-  List<Message> getMessageHistory(
-      String roomId, OffsetDateTime start, OffsetDateTime end, int limit);
-
-  /**
-   * Gets messages using a composite cursor (end, endId) to avoid skipping messages that share the
-   * same millisecond timestamp across page boundaries.
-   *
-   * @param roomId room identifier
-   * @param start start time (inclusive, null for no lower bound)
-   * @param end upper timestamp bound (exclusive)
-   * @param endId message ID that anchors the page boundary — combined with end forms the composite
-   *     cursor {@code (created_at, id) < (end, endId)}
-   * @param limit maximum number of messages
-   * @return list of {@link Message}
-   */
-  List<Message> getMessageHistory(
-      String roomId, OffsetDateTime start, OffsetDateTime end, String endId, int limit);
-
-  /**
-   * Gets messages with configurable sort order
-   *
-   * @param roomId room identifier
-   * @param start start time (inclusive, null for no lower bound)
-   * @param end end time (exclusive, null for no upper bound)
-   * @param limit maximum number of messages
-   * @param ascending true for oldest-first, false for newest-first
-   * @return list of {@link Message}
-   */
-  List<Message> getMessageHistory(
-      String roomId, OffsetDateTime start, OffsetDateTime end, int limit, boolean ascending);
-
-  /**
    * Gets specific messages by their stanza IDs
    *
    * @param roomId room identifier
@@ -108,18 +68,6 @@ public interface ChatMessageService {
    */
   List<Message> searchMessages(
       String roomId, String searchText, OffsetDateTime before, OffsetDateTime after, int limit);
-
-  /**
-   * Gets messages up to a specific message ID (MongooseIM to-id extension). Used for backfilling
-   * when navigating to a specific message (e.g., from search results).
-   *
-   * @param roomId room identifier
-   * @param toId message ID to load up to (inclusive)
-   * @param start start time (null for no lower bound)
-   * @param limit maximum number of messages
-   * @return list of {@link Message}
-   */
-  List<Message> getMessagesUpToId(String roomId, String toId, OffsetDateTime start, int limit);
 
   // ==================== INBOX OPERATIONS ====================
 

@@ -440,46 +440,22 @@ class VisibilityIT {
     }
 
     @Test
-    @DisplayName("History and search hide the reply reference when the original is hidden")
-    void replyReferenceInHistoryAndSearch() throws Exception {
+    @DisplayName("Search hides the reply reference when the original is hidden")
+    void replyReferenceInSearch() throws Exception {
       for (String token : List.of(aToken, bToken)) {
         boolean visible = token.equals(aToken);
-        JsonNode history = json(dispatcher.get(String.format("/rooms/%s/messages", roomId), token));
         JsonNode search =
             json(dispatcher.get(String.format("/rooms/%s/messages/search?q=second", roomId), token))
                 .get("messages");
-        for (JsonNode list : List.of(history, search)) {
-          JsonNode reply = null;
-          for (JsonNode n : list) {
-            if (m2.equals(n.get("id").asText())) {
-              reply = n;
-            }
+        JsonNode reply = null;
+        for (JsonNode n : search) {
+          if (m2.equals(n.get("id").asText())) {
+            reply = n;
           }
-          assertNotNull(reply);
-          assertEquals(visible, reply.has("replyToId"));
         }
+        assertNotNull(reply);
+        assertEquals(visible, reply.has("replyToId"));
       }
-    }
-
-    @Test
-    @DisplayName("Message history excludes hidden messages for B")
-    void history() throws Exception {
-      List<String> idsB = new ArrayList<>();
-      json(dispatcher.get(String.format("/rooms/%s/messages", roomId), bToken))
-          .forEach(n -> idsB.add(n.get("id").asText()));
-      assertFalse(idsB.contains(m1));
-      assertTrue(idsB.contains(m2));
-
-      List<String> idsUpTo = new ArrayList<>();
-      json(dispatcher.get(String.format("/rooms/%s/messages?before=%s", roomId, m3), bToken))
-          .forEach(n -> idsUpTo.add(n.get("id").asText()));
-      assertFalse(idsUpTo.contains(m1));
-      assertTrue(idsUpTo.contains(m2));
-
-      List<String> idsC = new ArrayList<>();
-      json(dispatcher.get(String.format("/rooms/%s/messages", roomId), cToken))
-          .forEach(n -> idsC.add(n.get("id").asText()));
-      assertTrue(idsC.contains(m1));
     }
 
     @Test

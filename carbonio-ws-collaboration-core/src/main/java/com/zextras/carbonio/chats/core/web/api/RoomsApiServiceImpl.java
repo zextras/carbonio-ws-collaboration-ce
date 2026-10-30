@@ -1176,28 +1176,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response getMessageHistory(
-      UUID roomId, String before, Integer limit, SecurityContext securityContext) {
-    UserPrincipal currentUser = getCurrentUser(securityContext);
-    VisibilityFloor floor =
-        chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
-    OffsetDateTime floorAfter = floor.clearedAt();
-    int pageLimit = limit != null ? limit : 50;
-    List<Message> messages;
-    if (before != null && !before.isBlank()) {
-      messages =
-          chatMessageService.getMessagesUpToId(roomId.toString(), before, floorAfter, pageLimit);
-    } else {
-      messages =
-          chatMessageService.getMessageHistory(roomId.toString(), floorAfter, null, pageLimit);
-    }
-    Set<String> visibleReplyIds = visibleReplyTargetIds(messages, roomId.toString(), floor);
-    return Response.status(Status.OK)
-        .entity(messages.stream().map(m -> toMessageDto(m, visibleReplyIds)).toList())
-        .build();
-  }
-
-  @Override
   public Response searchMessages(
       UUID roomId, String q, Integer limit, String before, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);

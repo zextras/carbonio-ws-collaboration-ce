@@ -469,39 +469,6 @@ paths:
           $ref: "#/components/responses/403ForbiddenResponse"
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-    get:
-      tags:
-        - Rooms
-      summary: Retrieves paginated message history for a room
-      operationId: getMessageHistory
-      parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - in: query
-          name: before
-          description: Cursor for pagination - returns messages before this message ID
-          schema:
-            type: string
-          required: false
-        - in: query
-          name: limit
-          description: Maximum number of messages to return
-          schema:
-            type: integer
-            default: 50
-          required: false
-      responses:
-        200:
-          description: List of messages
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Message'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/messages/export:
     get:
       tags:

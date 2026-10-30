@@ -100,26 +100,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
-  public List<Message> getMessageHistory(
-      String roomId, OffsetDateTime start, OffsetDateTime end, int limit) {
-    // For MAM, we query with before=end and after=start
-    return messageRepository.getByRoomId(roomId, end, start, limit);
-  }
-
-  @Override
-  public List<Message> getMessageHistory(
-      String roomId, OffsetDateTime start, OffsetDateTime end, String endId, int limit) {
-    // Use composite cursor when both end timestamp and anchor ID are provided
-    return messageRepository.getByRoomId(roomId, end, endId, start, limit);
-  }
-
-  @Override
-  public List<Message> getMessageHistory(
-      String roomId, OffsetDateTime start, OffsetDateTime end, int limit, boolean ascending) {
-    return messageRepository.getByRoomId(roomId, end, start, limit, ascending);
-  }
-
-  @Override
   public List<Message> getMessagesByIds(String roomId, List<String> stanzaIds) {
     return messageRepository.getByRoomIdAndIds(roomId, stanzaIds);
   }
@@ -132,12 +112,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       return List.of();
     }
     return messageRepository.searchByText(roomId, words, before, after, limit);
-  }
-
-  @Override
-  public List<Message> getMessagesUpToId(
-      String roomId, String toId, OffsetDateTime start, int limit) {
-    return messageRepository.getByRoomIdUpToMessageId(roomId, toId, start, limit);
   }
 
   // ==================== INBOX OPERATIONS ====================

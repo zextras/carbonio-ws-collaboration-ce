@@ -115,33 +115,6 @@ public class EbeanMessageRepository implements MessageRepository {
 
   @Override
   @Transactional
-  public List<Message> getByRoomIdUpToMessageId(
-      String roomId, String toId, OffsetDateTime after, int limit) {
-    // First, get the target message to find its timestamp
-    Optional<Message> targetMessage = getById(toId);
-    if (targetMessage.isEmpty()) {
-      return List.of();
-    }
-
-    OffsetDateTime targetTimestamp = targetMessage.get().getCreatedAt();
-
-    // Get messages up to and including the target message
-    Query<Message> query =
-        db.find(Message.class)
-            .where()
-            .eq("roomId", roomId)
-            .le("createdAt", targetTimestamp) // le = less than or equal (include target)
-            .query();
-
-    if (after != null) {
-      query = query.where().gt("createdAt", after).query();
-    }
-
-    return query.orderBy("createdAt desc, id desc").setMaxRows(limit).findList();
-  }
-
-  @Override
-  @Transactional
   public List<Message> searchByText(
       String roomId, List<String> words, OffsetDateTime before, OffsetDateTime after, int limit) {
     Query<Message> query = db.find(Message.class).where().eq("roomId", roomId).query();

@@ -80,19 +80,6 @@ public interface MessageRepository {
   List<Message> getByRoomIdAndIds(String roomId, List<String> ids);
 
   /**
-   * Retrieves messages for a room up to a specific message ID (MongooseIM to-id extension). Used
-   * for backfilling when navigating to a specific message (e.g., search result).
-   *
-   * @param roomId room identifier
-   * @param toId message ID to load up to (inclusive)
-   * @param after only messages after this time (null for no lower bound)
-   * @param limit maximum number of messages to return
-   * @return {@link List} of {@link Message}
-   */
-  List<Message> getByRoomIdUpToMessageId(
-      String roomId, String toId, OffsetDateTime after, int limit);
-
-  /**
    * Word-AND search in messages for a room: every word must appear (case-insensitively, as a
    * substring, in any order) in the current text.
    *

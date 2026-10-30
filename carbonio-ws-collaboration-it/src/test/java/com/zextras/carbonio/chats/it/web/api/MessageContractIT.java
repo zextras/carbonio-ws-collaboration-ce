@@ -534,4 +534,17 @@ class MessageContractIT {
       }
     }
   }
+
+  @Nested
+  @DisplayName("Removed endpoints")
+  class Removed {
+
+    @Test
+    @DisplayName("GET /rooms/{roomId}/messages no longer exists, POST on the same path still works")
+    void messageHistoryIsGone() throws Exception {
+      assertEquals(
+          405, dispatcher.get(String.format("/rooms/%s/messages", roomId), aToken).getStatus());
+      sendText(roomId, "still works");
+    }
+  }
 }
