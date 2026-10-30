@@ -43,6 +43,7 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -51,6 +52,7 @@ import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
+import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
@@ -125,6 +127,7 @@ class RoomsApiServiceImplTest {
   private final EventDispatcher eventDispatcher;
   private final MessageReceivedBroadcaster messageReceivedBroadcaster;
   private final ObjectMapper objectMapper;
+  private final MessageSendDedupRepository messageSendDedupRepository;
 
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
@@ -150,6 +153,7 @@ class RoomsApiServiceImplTest {
     this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.messageSentListener = mock(MessageSentListener.class);
     ChatExportService chatExportService = mock(ChatExportService.class);
+    this.messageSendDedupRepository = mock(MessageSendDedupRepository.class);
     this.roomsApiService =
         new RoomsApiServiceImpl(
             roomService,
@@ -168,7 +172,8 @@ class RoomsApiServiceImplTest {
             messageReceivedBroadcaster,
             Set.of(messageSentListener),
             chatExportService,
-            new TimelineItemMapper(objectMapper));
+            new TimelineItemMapper(objectMapper),
+            messageSendDedupRepository);
   }
 
   private UUID user1Id;
@@ -2329,6 +2334,174 @@ class RoomsApiServiceImplTest {
           () ->
               roomsApiService.insertAttachmentMultipart(
                   multipartFormDataInput, roomId, securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Send idempotency on tempId tests")
+  class SendIdempotencyTest {
+
+    private final OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T20:00:00Z");
+
+    private Message original(String id, String attachmentId) {
+      return Message.create()
+          .id(id)
+          .roomId(roomId.toString())
+          .senderId(user1Id.toString())
+          .text("hello")
+          .createdAt(createdAt)
+          .attachmentId(attachmentId);
+    }
+
+    private MultipartFormDataInput upload(String tempId) throws Exception {
+      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
+      Map<String, List<InputPart>> form = new HashMap<>();
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(mock(InputStream.class));
+      when(filePart.getFileName())
+          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      form.put("file", List.of(filePart));
+      InputPart contentLengthPart = mock(InputPart.class);
+      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
+      form.put("contentLength", List.of(contentLengthPart));
+      if (tempId != null) {
+        InputPart tempIdPart = mock(InputPart.class);
+        when(tempIdPart.getBody(String.class, null)).thenReturn(tempId);
+        form.put("tempId", List.of(tempIdPart));
+      }
+      when(input.getFormDataMap()).thenReturn(form);
+      return input;
+    }
+
+    private MessageDto stored(String messageId) {
+      return MessageDto.create()
+          .id(UUID.fromString(messageId))
+          .roomId(roomId)
+          .senderId(user1Id)
+          .text("")
+          .attachmentId(UUID.randomUUID())
+          .createdAt(createdAt);
+    }
+
+    private SendMessageRequestDto request(String tempId) {
+      return SendMessageRequestDto.create().text("hello").tempId(tempId);
+    }
+
+    @Test
+    @DisplayName("A first send with a tempId goes through the claiming query and is broadcast")
+    void sendMessage_withTempId_firstSend() throws Exception {
+      String messageId = UUID.randomUUID().toString();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageWriteRepository.sendMessageOnce(
+              eq(roomId.toString()),
+              eq(user1Id.toString()),
+              eq("hello"),
+              anyString(),
+              isNull(),
+              eq("t-1")))
+          .thenReturn(
+              new MessageWriteRepository.SendOnceResult(
+                  MessageWriteRepository.SendOnceStatus.SENT, messageId, createdAt));
+
+      Response response = roomsApiService.sendMessage(roomId, request("t-1"), securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(UUID.fromString(messageId), ((MessageDto) response.getEntity()).getId());
+      verify(messageWriteRepository, never()).sendMessage(any(), any(), any(), any(), any(), any());
+      verify(messageReceivedBroadcaster, times(1))
+          .broadcast(eq(roomId.toString()), any(), eq("t-1"));
+      verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId, "hello");
+    }
+
+    @Test
+    @DisplayName("A duplicate tempId answers 201 with the original, without event or listener")
+    void sendMessage_duplicateTempId_returnsOriginal() throws Exception {
+      String originalId = UUID.randomUUID().toString();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
+          .thenReturn(
+              new MessageWriteRepository.SendOnceResult(
+                  MessageWriteRepository.SendOnceStatus.DUPLICATE, originalId, null));
+      when(messageRepository.getById(originalId))
+          .thenReturn(Optional.of(original(originalId, null)));
+
+      Response response = roomsApiService.sendMessage(roomId, request("t-1"), securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      MessageDto body = (MessageDto) response.getEntity();
+      assertEquals(UUID.fromString(originalId), body.getId());
+      assertEquals(createdAt, body.getCreatedAt());
+      assertEquals("hello", body.getText());
+      verifyNoInteractions(messageReceivedBroadcaster, messageSentListener);
+    }
+
+    @Test
+    @DisplayName("A duplicate whose first send has not stored its message yet answers 409")
+    void sendMessage_duplicateInFlight_conflict() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
+          .thenReturn(
+              new MessageWriteRepository.SendOnceResult(
+                  MessageWriteRepository.SendOnceStatus.DUPLICATE, null, null));
+
+      assertThrows(
+          ConflictException.class,
+          () -> roomsApiService.sendMessage(roomId, request("t-1"), securityContext));
+      verifyNoInteractions(messageReceivedBroadcaster, messageSentListener);
+    }
+
+    @Test
+    @DisplayName("A duplicate pointing to a message of another room answers 409")
+    void sendMessage_duplicateOfOtherRoom_conflict() {
+      String originalId = UUID.randomUUID().toString();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
+          .thenReturn(
+              new MessageWriteRepository.SendOnceResult(
+                  MessageWriteRepository.SendOnceStatus.DUPLICATE, originalId, null));
+      when(messageRepository.getById(originalId))
+          .thenReturn(Optional.of(original(originalId, null).roomId(UUID.randomUUID().toString())));
+
+      assertThrows(
+          ConflictException.class,
+          () -> roomsApiService.sendMessage(roomId, request("t-1"), securityContext));
+    }
+
+    @Test
+    @DisplayName("Not a member and invisible reply target keep their 403 and 404")
+    void sendMessage_withTempId_errors() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
+          .thenReturn(
+              new MessageWriteRepository.SendOnceResult(
+                  MessageWriteRepository.SendOnceStatus.NOT_MEMBER, null, null))
+          .thenReturn(
+              new MessageWriteRepository.SendOnceResult(
+                  MessageWriteRepository.SendOnceStatus.REPLY_NOT_FOUND, null, null));
+
+      assertEquals(
+          Status.FORBIDDEN.getStatusCode(),
+          roomsApiService.sendMessage(roomId, request("t-1"), securityContext).getStatus());
+      assertEquals(
+          Status.NOT_FOUND.getStatusCode(),
+          roomsApiService.sendMessage(roomId, request("t-1"), securityContext).getStatus());
+      verifyNoInteractions(messageReceivedBroadcaster, messageSentListener);
+    }
+
+    @Test
+    @DisplayName("A blank tempId is not a dedup key: the plain send path is used")
+    void sendMessage_blankTempId_plainPath() throws Exception {
+      String messageId = UUID.randomUUID().toString();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(messageWriteRepository.sendMessage(any(), any(), any(), any(), any(), any()))
+          .thenReturn(Optional.of(new MessageWriteRepository.SendResult(messageId, createdAt)));
+
+      Response response = roomsApiService.sendMessage(roomId, request("  "), securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(messageWriteRepository, never())
+          .sendMessageOnce(any(), any(), any(), any(), any(), any());
     }
   }
 

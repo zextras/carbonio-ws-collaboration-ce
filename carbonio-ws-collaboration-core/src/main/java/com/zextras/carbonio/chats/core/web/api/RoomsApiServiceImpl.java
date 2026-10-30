@@ -34,6 +34,7 @@ import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
+import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
@@ -46,6 +47,7 @@ import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
+import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.TimelineRepository;
@@ -131,6 +133,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   private final Set<MessageSentListener> messageSentListeners;
   private final ChatExportService chatExportService;
   private final TimelineItemMapper timelineItemMapper;
+  private final MessageSendDedupRepository messageSendDedupRepository;
 
   @Inject
   public RoomsApiServiceImpl(
@@ -150,7 +153,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       MessageReceivedBroadcaster messageReceivedBroadcaster,
       Set<MessageSentListener> messageSentListeners,
       ChatExportService chatExportService,
-      TimelineItemMapper timelineItemMapper) {
+      TimelineItemMapper timelineItemMapper,
+      MessageSendDedupRepository messageSendDedupRepository) {
     this.roomService = roomService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
@@ -168,6 +172,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     this.messageSentListeners = messageSentListeners;
     this.chatExportService = chatExportService;
     this.timelineItemMapper = timelineItemMapper;
+    this.messageSendDedupRepository = messageSendDedupRepository;
   }
 
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
@@ -871,21 +876,39 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     String replyToId = dto.getReplyToId() != null ? dto.getReplyToId().toString() : null;
     String tempId = dto.getTempId();
 
-    Optional<MessageWriteRepository.SendResult> result =
-        messageWriteRepository.sendMessage(
-            roomId.toString(), currentUser.getId(), text, messageId, replyToId, null);
-
-    if (result.isEmpty()) {
-      if (replyToId != null
-          && subscriptionRepository.getById(roomId.toString(), currentUser.getId()).isPresent()) {
+    String dedupTempId = sendTempId(tempId);
+    MessageWriteRepository.SendResult sent;
+    if (dedupTempId == null) {
+      Optional<MessageWriteRepository.SendResult> result =
+          messageWriteRepository.sendMessage(
+              roomId.toString(), currentUser.getId(), text, messageId, replyToId, null);
+      if (result.isEmpty()) {
+        if (replyToId != null
+            && subscriptionRepository.getById(roomId.toString(), currentUser.getId()).isPresent()) {
+          return Response.status(Status.NOT_FOUND).entity("Reply target not found").build();
+        }
+        return Response.status(Status.FORBIDDEN)
+            .entity("Not a room member or message ID conflict")
+            .build();
+      }
+      sent = result.get();
+    } else {
+      MessageWriteRepository.SendOnceResult once =
+          messageWriteRepository.sendMessageOnce(
+              roomId.toString(), currentUser.getId(), text, messageId, replyToId, dedupTempId);
+      if (once.status() == MessageWriteRepository.SendOnceStatus.NOT_MEMBER) {
+        return Response.status(Status.FORBIDDEN)
+            .entity("Not a room member or message ID conflict")
+            .build();
+      }
+      if (once.status() == MessageWriteRepository.SendOnceStatus.REPLY_NOT_FOUND) {
         return Response.status(Status.NOT_FOUND).entity("Reply target not found").build();
       }
-      return Response.status(Status.FORBIDDEN)
-          .entity("Not a room member or message ID conflict")
-          .build();
+      if (once.status() == MessageWriteRepository.SendOnceStatus.DUPLICATE) {
+        return duplicateSendResponse(roomId, once.messageId());
+      }
+      sent = new MessageWriteRepository.SendResult(once.messageId(), once.createdAt());
     }
-
-    MessageWriteRepository.SendResult sent = result.get();
 
     try {
       Message sentMsg =
@@ -1412,6 +1435,26 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     List<TimelineItem> items =
         messages.stream().map(m -> (TimelineItem) new TimelineItem.MessageItem(m)).toList();
     return resolveRepliedMessages(items, roomId, floor).keySet();
+  }
+
+  private static String sendTempId(String tempId) {
+    return tempId == null || tempId.isBlank() ? null : tempId;
+  }
+
+  private Response duplicateSendResponse(UUID roomId, String messageId) {
+    Message original =
+        messageId == null
+            ? null
+            : messageRepository
+                .getById(messageId)
+                .filter(m -> roomId.toString().equals(m.getRoomId()))
+                .orElse(null);
+    if (original == null) {
+      throw new ConflictException("The first request with this tempId has not completed yet");
+    }
+    Set<String> replyIds =
+        original.getReplyToId() != null ? Set.of(original.getReplyToId()) : Set.of();
+    return Response.status(Status.CREATED).entity(toMessageDto(original, replyIds)).build();
   }
 
   private MessageDto toMessageDto(Message msg, Set<String> visibleReplyIds) {
