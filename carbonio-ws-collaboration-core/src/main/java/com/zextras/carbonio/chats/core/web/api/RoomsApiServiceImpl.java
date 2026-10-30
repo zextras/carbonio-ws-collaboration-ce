@@ -789,9 +789,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             roomId.toString(), messageId.toString(), currentUser.getId(), reaction);
     try {
       if (replaced.isPresent()) {
-        broadcastReactionChanged(roomId, messageId, currentUser.getId(), replaced.get(), "removed");
+        broadcastReactionChanged(
+            roomId,
+            messageId,
+            currentUser.getId(),
+            replaced.get(),
+            ReactionChanged.OperationEnum.REMOVED);
       }
-      broadcastReactionChanged(roomId, messageId, currentUser.getId(), reaction, "added");
+      broadcastReactionChanged(
+          roomId, messageId, currentUser.getId(), reaction, ReactionChanged.OperationEnum.ADDED);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
@@ -809,7 +815,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             roomId.toString(), messageId.toString(), currentUser.getId());
     try {
       if (removed.isPresent()) {
-        broadcastReactionChanged(roomId, messageId, currentUser.getId(), removed.get(), "removed");
+        broadcastReactionChanged(
+            roomId,
+            messageId,
+            currentUser.getId(),
+            removed.get(),
+            ReactionChanged.OperationEnum.REMOVED);
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
@@ -818,7 +829,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   private void broadcastReactionChanged(
-      UUID roomId, UUID messageId, String userId, String reaction, String operation)
+      UUID roomId,
+      UUID messageId,
+      String userId,
+      String reaction,
+      ReactionChanged.OperationEnum operation)
       throws com.fasterxml.jackson.core.JsonProcessingException {
     WsEvent event =
         ReactionChanged.create()

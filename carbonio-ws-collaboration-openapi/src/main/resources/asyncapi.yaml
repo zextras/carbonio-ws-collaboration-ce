@@ -1090,6 +1090,11 @@ components:
               type: string
             operation:
               type: string
+              enum: [added, removed]
+              description: >
+                added when the user added this reaction, removed when the user removed it. A user has
+                one reaction per message: replacing it sends removed for the old emoji, then added for
+                the new one.
           required:
             - messageId
             - roomId
@@ -1155,6 +1160,11 @@ components:
               type: string
             status:
               type: string
+              enum: [started, stopped]
+              description: >
+                started while the user is typing, stopped when they stop. The server relays any other
+                value sent by a client as started. Best-effort: hide the indicator after about 7 seconds
+                without a new started.
             timestamp:
               type: string
               format: date-time

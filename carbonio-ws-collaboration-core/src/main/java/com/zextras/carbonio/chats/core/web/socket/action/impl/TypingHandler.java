@@ -59,7 +59,10 @@ public class TypingHandler implements WsActionHandler {
 
       String status = getOptionalText(payload, "status");
       // Normalise: anything other than "stopped" is treated as "started"
-      String normalizedStatus = "stopped".equalsIgnoreCase(status) ? "stopped" : "started";
+      Typing.StatusEnum normalizedStatus =
+          "stopped".equalsIgnoreCase(status)
+              ? Typing.StatusEnum.STOPPED
+              : Typing.StatusEnum.STARTED;
 
       String json =
           objectMapper.writeValueAsString(
