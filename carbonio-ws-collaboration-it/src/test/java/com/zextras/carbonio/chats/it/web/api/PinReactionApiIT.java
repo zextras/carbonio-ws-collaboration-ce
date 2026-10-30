@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -232,6 +233,57 @@ class PinReactionApiIT {
       assertEquals(bUserId.toString(), replaced.get("pinnedBy").asText());
       assertEquals("second", replaced.get("message").get("text").asText());
       assertEquals(List.of(second), pinnedIds());
+    }
+  }
+
+  @Nested
+  @DisplayName("Deleting the pinned message")
+  class DeletePinned {
+
+    @Test
+    @DisplayName("unpins it, writes MESSAGE_UNPINNED by the deleter, sends MessageUnpinned last")
+    void deletePinned() throws Exception {
+      assertEquals(204, pin(first, bToken));
+      nextOfType(queueB, "MessagePinned");
+
+      assertEquals(204, deleteMessage(first, aToken));
+
+      JsonNode deleted = next(queueB);
+      assertEquals("MessageDeleted", deleted.get("type").asText());
+      assertEquals(first, deleted.get("messageId").asText());
+      JsonNode unpinned = next(queueB);
+      assertEquals("MessageUnpinned", unpinned.get("type").asText());
+      assertEquals(first, unpinned.get("messageId").asText());
+      assertEquals(aUserId.toString(), unpinned.get("unpinnedBy").asText());
+      SystemEvent row =
+          systemEventRepository
+              .getById(unpinned.get("systemEventId").asText())
+              .orElseThrow(() -> new AssertionError("MESSAGE_UNPINNED row not persisted"));
+      assertEquals("MESSAGE_UNPINNED", row.getType());
+      assertEquals(roomId.toString(), row.getRoomId());
+      assertEquals(aUserId.toString(), row.getActorId());
+      JsonNode content = objectMapper.readTree(row.getContent());
+      assertEquals(aUserId.toString(), content.get("unpinnedBy").asText());
+      assertEquals(first, content.get("messageId").asText());
+      assertTrue(
+          row.getCreatedAt()
+              .isEqual(OffsetDateTime.parse(unpinned.get("systemEventCreatedAt").asText())));
+      assertTrue(pinnedIds().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Deleting another message keeps the pin and sends no MessageUnpinned")
+    void deleteOther() throws Exception {
+      assertEquals(204, pin(first, bToken));
+      nextOfType(queueB, "MessagePinned");
+
+      assertEquals(204, deleteMessage(second, aToken));
+
+      assertEquals("MessageDeleted", next(queueB).get("type").asText());
+      assertEquals(204, react(roomId, first, THUMBS_UP, aToken));
+      assertEquals("ReactionChanged", next(queueB).get("type").asText());
+      assertTrue(rows("MESSAGE_UNPINNED").isEmpty());
+      assertEquals(List.of(first), pinnedIds());
     }
   }
 }

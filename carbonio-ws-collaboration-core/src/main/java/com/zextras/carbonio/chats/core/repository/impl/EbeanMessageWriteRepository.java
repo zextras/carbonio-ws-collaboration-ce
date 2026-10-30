@@ -8,14 +8,19 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import io.ebean.Database;
+import io.ebean.SqlRow;
+import io.ebean.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Ebean implementation of {@link MessageWriteRepository}. Each public method executes a single CTE
- * query that validates membership, mutates data, and returns the result in one database round-trip.
+ * query that validates membership, mutates data, and returns the result in one database round-trip;
+ * {@link #deleteMessage} adds a second statement, in the same transaction, that drops the room pin
+ * of the deleted message.
  */
 @Singleton
 public class EbeanMessageWriteRepository implements MessageWriteRepository {
@@ -74,6 +79,22 @@ SELECT id, created_at FROM new_msg
           RETURNING id, attachment_id
       )
       SELECT id, attachment_id FROM del_msg
+      """;
+
+  private static final String UNPIN_DELETED_SQL =
+      """
+      WITH unpinned AS (
+          DELETE FROM chats.message_pin
+          WHERE room_id = :roomId AND message_id = :messageId
+          RETURNING message_id
+      )
+      INSERT INTO chats.system_event (id, room_id, type, actor_id, content, created_at)
+      SELECT :systemEventId, :roomId, 'MESSAGE_UNPINNED', :userId,
+             CAST(json_build_object('unpinnedBy', CAST(:userId AS text),
+                                    'messageId', CAST(:messageId AS text)) AS text),
+             clock_timestamp()
+      FROM unpinned
+      RETURNING id, created_at
       """;
 
   private static final String FORWARD_SQL =
@@ -172,13 +193,32 @@ LEFT JOIN file_meta ON true
   }
 
   @Override
+  @Transactional
   public Optional<DeleteResult> deleteMessage(String messageId, String roomId, String userId) {
-    return db.sqlQuery(DELETE_SQL)
-        .setParameter("roomId", roomId)
-        .setParameter("userId", userId)
-        .setParameter("messageId", messageId)
-        .findOneOrEmpty()
-        .map(row -> new DeleteResult(row.getString("id"), row.getString("attachment_id")));
+    Optional<SqlRow> deleted =
+        db.sqlQuery(DELETE_SQL)
+            .setParameter("roomId", roomId)
+            .setParameter("userId", userId)
+            .setParameter("messageId", messageId)
+            .findOneOrEmpty();
+    if (deleted.isEmpty()) {
+      return Optional.empty();
+    }
+    Unpinned unpinned =
+        db.sqlQuery(UNPIN_DELETED_SQL)
+            .setParameter("roomId", roomId)
+            .setParameter("userId", userId)
+            .setParameter("messageId", messageId)
+            .setParameter("systemEventId", UUID.randomUUID().toString())
+            .findOneOrEmpty()
+            .map(
+                row ->
+                    new Unpinned(
+                        row.getString("id"), toOffsetDateTime(row.getTimestamp("created_at"))))
+            .orElse(null);
+    return Optional.of(
+        new DeleteResult(
+            deleted.get().getString("id"), deleted.get().getString("attachment_id"), unpinned));
   }
 
   @Override

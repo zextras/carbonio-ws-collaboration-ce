@@ -35,7 +35,9 @@ public interface MessageWriteRepository {
   Optional<EditResult> editMessage(String messageId, String roomId, String userId, String newText);
 
   /**
-   * Soft-deletes a message. Only the original sender can delete.
+   * Soft-deletes a message. Only the original sender can delete. When the message is the room pin,
+   * the pin is removed and a MESSAGE_UNPINNED system event authored by the deleter is written in
+   * the same transaction.
    *
    * @return empty if user is not a member, not the sender, or message already deleted
    */
@@ -60,7 +62,14 @@ public interface MessageWriteRepository {
   record EditResult(
       String messageId, String text, OffsetDateTime updatedAt, OffsetDateTime createdAt) {}
 
-  record DeleteResult(String messageId, String attachmentId) {}
+  record DeleteResult(String messageId, String attachmentId, Unpinned unpinned) {
+
+    public DeleteResult(String messageId, String attachmentId) {
+      this(messageId, attachmentId, null);
+    }
+  }
+
+  record Unpinned(String systemEventId, OffsetDateTime systemEventCreatedAt) {}
 
   record ForwardResult(
       String messageId,

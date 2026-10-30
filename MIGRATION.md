@@ -183,7 +183,7 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | `MessageEdited` | `PUT .../messages/{messageId}/edit` | All room members |
 | `MessageDeleted` | `DELETE .../messages/{messageId}` | All room members |
 | `MessagePinned` | `PUT .../messages/{messageId}/pin` | All room members |
-| `MessageUnpinned` | `DELETE .../messages/{messageId}/pin` | All room members |
+| `MessageUnpinned` | `DELETE .../messages/{messageId}/pin` of the room pin (unpinning any other message is a 204 no-op: no system line, no event), or `DELETE .../messages/{messageId}` of the pinned message (sent right after `MessageDeleted`, `unpinnedBy` = the deleter) | All room members |
 | `ReactionChanged` | `POST` or `DELETE .../reactions/{reaction}` | All room members |
 | `ReadUpdated` | `PUT /rooms/{roomId}/read` that moves the marker forward (a same or older item writes nothing and sends nothing) | All room members |
 | `PresenceChanged` | A user opens their first or closes their last WebSocket, across all instances | Online users sharing at least one room with the affected user |

@@ -2175,6 +2175,61 @@ class RoomsApiServiceImplTest {
       assertEquals(pinnedAt, pinned.getSystemEventCreatedAt());
       assertEquals("pinned text", broadcastMessage.getValue().getText());
     }
+
+    @Test
+    @DisplayName("deleteMessage of the room pin sends MessageDeleted, then MessageUnpinned")
+    void deleteMessage_pinned_sendsDeletedThenUnpinned() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      OffsetDateTime unpinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      List<String> members = List.of(user1Id.toString(), user2Id.toString());
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
+      when(messageWriteRepository.deleteMessage(
+              messageId.toString(), roomId.toString(), user1Id.toString()))
+          .thenReturn(
+              Optional.of(
+                  new MessageWriteRepository.DeleteResult(
+                      messageId.toString(),
+                      null,
+                      new MessageWriteRepository.Unpinned("unpin-event", unpinnedAt))));
+
+      Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      ArgumentCaptor<String> payloads = ArgumentCaptor.forClass(String.class);
+      verify(eventDispatcher, times(2)).sendRawToUserExchange(eq(members), payloads.capture());
+      JsonNode deleted = objectMapper.readTree(payloads.getAllValues().get(0));
+      JsonNode unpinned = objectMapper.readTree(payloads.getAllValues().get(1));
+      assertEquals("MessageDeleted", deleted.get("type").asText());
+      assertEquals("MessageUnpinned", unpinned.get("type").asText());
+      assertEquals(messageId.toString(), unpinned.get("messageId").asText());
+      assertEquals(user1Id.toString(), unpinned.get("unpinnedBy").asText());
+      assertEquals("unpin-event", unpinned.get("systemEventId").asText());
+      assertEquals(
+          unpinnedAt.toInstant(),
+          OffsetDateTime.parse(unpinned.get("systemEventCreatedAt").asText()).toInstant());
+    }
+
+    @Test
+    @DisplayName("deleteMessage of a message that is not the room pin sends only MessageDeleted")
+    void deleteMessage_notPinned_sendsOnlyDeleted() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      List<String> members = List.of(user1Id.toString(), user2Id.toString());
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
+      when(messageWriteRepository.deleteMessage(
+              messageId.toString(), roomId.toString(), user1Id.toString()))
+          .thenReturn(
+              Optional.of(new MessageWriteRepository.DeleteResult(messageId.toString(), null)));
+
+      Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+      verify(eventDispatcher, times(1)).sendRawToUserExchange(eq(members), payload.capture());
+      assertEquals(
+          "MessageDeleted", objectMapper.readTree(payload.getValue()).get("type").asText());
+    }
   }
 
   @Nested

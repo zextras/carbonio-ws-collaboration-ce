@@ -1052,6 +1052,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-deleted event: " + e.getMessage());
     }
+    if (deleted.unpinned() != null) {
+      broadcastMessageUnpinned(
+          roomId.toString(),
+          deleted.messageId(),
+          currentUser.getId(),
+          deleted.unpinned().systemEventId(),
+          deleted.unpinned().systemEventCreatedAt());
+    }
     return Response.status(Status.NO_CONTENT).build();
   }
 
