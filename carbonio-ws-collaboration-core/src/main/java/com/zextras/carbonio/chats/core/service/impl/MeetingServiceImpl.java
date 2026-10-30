@@ -188,7 +188,11 @@ public class MeetingServiceImpl implements MeetingService {
     }
 
     eventDispatcher.sendToUserExchange(
-        meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
+        Stream.concat(
+                meeting.getParticipants().stream().map(Participant::getUserId),
+                Stream.of(currentUser.getId()))
+            .distinct()
+            .toList(),
         MeetingDeclined.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID())

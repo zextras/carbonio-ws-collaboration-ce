@@ -158,7 +158,7 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | `MeetingDeleted` | A meeting is deleted | All room members |
 | `MeetingStarted` | The first participant joins (meeting goes live) | All room members |
 | `MeetingStopped` | The last participant leaves (meeting ends) | All meeting participants |
-| `MeetingDeclined` | A user declines the meeting invitation | All meeting participants |
+| `MeetingDeclined` | A user declines the meeting invitation | All meeting participants and the decliner (so the decliner's other devices stop ringing) |
 | `MeetingParticipantJoined` | A participant joins the active meeting | All meeting participants |
 | `MeetingParticipantLeft` | A participant leaves the active meeting, or a moderator kicks them out (`reason`: `LEFT` or `KICKED`) | All room members, the kicked user included |
 | `MeetingParticipantClashed` | A second session of the same user joins (first session is kicked) | The displaced session only |
