@@ -1209,6 +1209,42 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert room members with an empty list returns 400 without touching the room")
+    void insertRoomMembers_emptyList() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response = roomsApiService.insertRoomMembers(roomId, List.of(), securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("A user id listed twice counts once against the group member limit")
+    void insertRoomMembers_duplicatesCountOnce() throws Exception {
+      user1.carbonioAttributes(Map.of(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS.getValue(), "3"));
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(roomService.getRoomById(roomId, user1))
+          .thenReturn(
+              RoomDto.create()
+                  .type(RoomTypeDto.GROUP)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id).owner(true),
+                          MemberDto.create().userId(UUID.randomUUID()))));
+      List<MemberToInsertDto> memberToInsertDtos =
+          List.of(
+              MemberToInsertDto.create().userId(user2Id),
+              MemberToInsertDto.create().userId(user2Id));
+
+      Response response =
+          roomsApiService.insertRoomMembers(roomId, memberToInsertDtos, securityContext);
+
+      verify(roomService, times(1)).getRoomById(roomId, user1);
+      verify(membersService, times(1)).insertRoomMembers(roomId, memberToInsertDtos, user1);
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+    }
+
+    @Test
     @DisplayName("Insert room members with a guest user")
     void insertRoomMembers_testGuestUser() {
       when(securityContext.getUserPrincipal()).thenReturn(guest);

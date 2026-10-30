@@ -256,9 +256,11 @@ purge, so it is the only row left in the room. The per-user clear of GROUP and O
 | `RoomPictureDeleted` | `ROOM_PICTURE_DELETED` | `deletedBy` (always) | `systemEventId`, always |
 | `RoomHistoryCleared` | `ROOM_HISTORY_CLEARED` | `clearedBy` | `systemEventId`; both present only for TEMPORARY rooms, absent for the per-user clear |
 
-A bulk member add writes one `MEMBER_ADDED` row (with all the added users) but sends one
-`RoomMemberAdded` per member: all of them carry the same `systemEventId`. Room creation lines are
-not announced through these events.
+A member add writes one `MEMBER_ADDED` row per added user (`addedUserIds` holds that single user;
+the rows of one request are 1 ms apart, in request order) and sends one `RoomMemberAdded` per user,
+each carrying the `systemEventId`/`systemEventCreatedAt` of its own row, to every member of the room
+after the add (the added users included). A user listed twice is added once; an empty list is
+rejected with 400. Room creation lines are not announced through these events.
 
 `MessageSent` (the legacy XMPP-era name) is removed; `MessageReceived` replaces it for both
 send and attachment-upload notifications.

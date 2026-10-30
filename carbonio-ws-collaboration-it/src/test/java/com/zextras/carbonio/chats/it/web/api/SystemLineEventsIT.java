@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.it.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockserver.model.HttpRequest.request;
@@ -208,8 +209,10 @@ class SystemLineEventsIT {
   }
 
   @Test
-  @DisplayName("Bulk add sends one RoomMemberAdded per member, all with the same systemEventId")
+  @DisplayName("Bulk add writes one MEMBER_ADDED row per member and every member gets every event")
   void bulkAdded() throws Exception {
+    String queueE = bindQueue(eUserId);
+
     addMembers(List.of(dUserId, eUserId));
 
     JsonNode first = nextEvent(queueA, "RoomMemberAdded");
@@ -217,15 +220,38 @@ class SystemLineEventsIT {
     assertEquals(
         List.of(dUserId.toString(), eUserId.toString()),
         List.of(first.get("userId").asText(), second.get("userId").asText()));
-    String systemEventId = first.get("systemEventId").asText();
-    assertEquals(systemEventId, second.get("systemEventId").asText());
-    SystemEvent row = persisted(systemEventId);
-    assertEquals("MEMBER_ADDED", row.getType());
-    assertEquals(aUserId.toString(), row.getActorId());
-    assertEquals(row.getActorId(), first.get("addedBy").asText());
-    assertEquals(row.getActorId(), second.get("addedBy").asText());
-    assertCreatedAt(row, first, "systemEventCreatedAt");
-    assertCreatedAt(row, second, "systemEventCreatedAt");
+    SystemEvent firstRow = persisted(first.get("systemEventId").asText());
+    SystemEvent secondRow = persisted(second.get("systemEventId").asText());
+    assertNotEquals(firstRow.getId(), secondRow.getId());
+    for (SystemEvent row : List.of(firstRow, secondRow)) {
+      assertEquals("MEMBER_ADDED", row.getType());
+      assertEquals(aUserId.toString(), row.getActorId());
+      assertEquals(1, content(row).get("addedUserIds").size());
+    }
+    assertEquals(dUserId.toString(), content(firstRow).get("addedUserIds").get(0).asText());
+    assertEquals(eUserId.toString(), content(secondRow).get("addedUserIds").get(0).asText());
+    assertEquals(
+        1L, Duration.between(firstRow.getCreatedAt(), secondRow.getCreatedAt()).toMillis());
+    assertCreatedAt(firstRow, first, "systemEventCreatedAt");
+    assertCreatedAt(secondRow, second, "systemEventCreatedAt");
+    assertEquals(aUserId.toString(), first.get("addedBy").asText());
+    assertEquals(aUserId.toString(), second.get("addedBy").asText());
+
+    assertEquals(dUserId.toString(), nextEvent(queueE, "RoomMemberAdded").get("userId").asText());
+    assertEquals(eUserId.toString(), nextEvent(queueE, "RoomMemberAdded").get("userId").asText());
+  }
+
+  @Test
+  @DisplayName("A bulk add listing the same user twice adds it once, with one row and one event")
+  void bulkAddedDuplicate() throws Exception {
+    addMembers(List.of(dUserId, dUserId));
+
+    assertEquals(dUserId.toString(), nextEvent(queueA, "RoomMemberAdded").get("userId").asText());
+    assertEquals(
+        1L,
+        systemEventRepository.findByRoomId(roomId.toString()).stream()
+            .filter(e -> "MEMBER_ADDED".equals(e.getType()))
+            .count());
   }
 
   @Test

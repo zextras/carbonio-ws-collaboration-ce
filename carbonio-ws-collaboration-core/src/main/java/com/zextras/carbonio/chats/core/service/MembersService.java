@@ -18,7 +18,10 @@ import java.util.UUID;
 public interface MembersService {
 
   /**
-   * Adds the specified users to the room. This can only be performed by an owner of the given room
+   * Adds the specified users to the room. This can only be performed by an owner of the given room.
+   * A user listed twice is added once; the subscriptions and one MEMBER_ADDED system event per
+   * added user are written in one transaction, then one RoomMemberAdded per user is sent to every
+   * member.
    *
    * @param roomId room identifier {@link UUID }
    * @param memberToInsertDto members to add or invite {@link MemberDto }

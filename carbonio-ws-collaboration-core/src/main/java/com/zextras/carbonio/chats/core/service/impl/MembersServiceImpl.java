@@ -35,10 +35,13 @@ import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -86,55 +89,72 @@ public class MembersServiceImpl implements MembersService {
   @Override
   public List<MemberInsertedDto> insertRoomMembers(
       UUID roomId, List<MemberToInsertDto> membersToInsert, UserPrincipal currentUser) {
-    List<UUID> memberIds = extractUniqueMemberIds(membersToInsert);
+    List<MemberToInsertDto> uniqueMembers = deduplicate(membersToInsert);
+    List<UUID> memberIds = uniqueMembers.stream().map(MemberToInsertDto::getUserId).toList();
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
 
     validateMemberPresence(memberIds, room);
     validateUserExistence(memberIds, currentUser);
 
     OffsetDateTime currentDateTime = databaseClock.now();
-    List<MemberInsertedDto> membersInserted = new ArrayList<>();
-    List<String> addedUserIds = new ArrayList<>();
-    List<List<String>> receiversPerMember = new ArrayList<>();
-    for (MemberToInsertDto member : membersToInsert) {
-      MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member, currentDateTime);
+    List<AddedMember> addedMembers =
+        persistAddedMembers(room, uniqueMembers, currentUser, currentDateTime);
 
-      membersInserted.add(memberInsertedDto);
-      addedUserIds.add(member.getUserId().toString());
-      receiversPerMember.add(
-          room.getSubscriptions().stream().map(Subscription::getUserId).toList());
-    }
-
-    SystemEvent systemEvent =
-        SystemEvent.create()
-            .id(UUID.randomUUID().toString())
-            .roomId(room.getId())
-            .type("MEMBER_ADDED")
-            .actorId(currentUser.getId())
-            .content(systemEventContentFactory.memberAdded(currentUser.getId(), addedUserIds));
-    chatMessageService.insertSystemEvent(systemEvent);
-
-    for (int i = 0; i < membersToInsert.size(); i++) {
-      MemberToInsertDto member = membersToInsert.get(i);
+    List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
+    for (AddedMember added : addedMembers) {
       eventDispatcher.sendToUserExchange(
-          receiversPerMember.get(i),
+          receivers,
           RoomMemberAdded.create()
               .roomId(UUID.fromString(room.getId()))
-              .userId(member.getUserId())
-              .isOwner(member.isOwner())
-              .addedBy(UUID.fromString(systemEvent.getActorId()))
-              .systemEventId(systemEvent.getId())
-              .systemEventCreatedAt(systemEvent.getCreatedAt())
+              .userId(added.member().getUserId())
+              .isOwner(added.member().isOwner())
+              .addedBy(UUID.fromString(added.systemEvent().getActorId()))
+              .systemEventId(added.systemEvent().getId())
+              .systemEventCreatedAt(added.systemEvent().getCreatedAt())
               .type(EventType.ROOM_MEMBER_ADDED)
               .sentDate(OffsetDateTime.now()));
     }
 
-    return membersInserted;
+    return addedMembers.stream().map(AddedMember::inserted).toList();
   }
 
-  private List<UUID> extractUniqueMemberIds(List<MemberToInsertDto> membersToInsert) {
-    return new ArrayList<>(
-        new HashSet<>(membersToInsert.stream().map(MemberToInsertDto::getUserId).toList()));
+  private record AddedMember(
+      MemberToInsertDto member, MemberInsertedDto inserted, SystemEvent systemEvent) {}
+
+  @Transactional
+  private List<AddedMember> persistAddedMembers(
+      Room room,
+      List<MemberToInsertDto> members,
+      UserPrincipal currentUser,
+      OffsetDateTime joinedAt) {
+    List<MemberInsertedDto> inserted = new ArrayList<>();
+    for (MemberToInsertDto member : members) {
+      inserted.add(processRoomSubscription(room, member, joinedAt));
+    }
+    OffsetDateTime firstEventAt = databaseClock.now();
+    List<AddedMember> addedMembers = new ArrayList<>();
+    for (int i = 0; i < members.size(); i++) {
+      MemberToInsertDto member = members.get(i);
+      SystemEvent systemEvent =
+          SystemEvent.create()
+              .id(UUID.randomUUID().toString())
+              .roomId(room.getId())
+              .type("MEMBER_ADDED")
+              .actorId(currentUser.getId())
+              .content(
+                  systemEventContentFactory.memberAdded(
+                      currentUser.getId(), List.of(member.getUserId().toString())))
+              .createdAt(firstEventAt.plus(i, ChronoUnit.MILLIS));
+      chatMessageService.insertSystemEvent(systemEvent);
+      addedMembers.add(new AddedMember(member, inserted.get(i), systemEvent));
+    }
+    return addedMembers;
+  }
+
+  private static List<MemberToInsertDto> deduplicate(List<MemberToInsertDto> membersToInsert) {
+    Map<UUID, MemberToInsertDto> byUserId = new LinkedHashMap<>();
+    membersToInsert.forEach(member -> byUserId.putIfAbsent(member.getUserId(), member));
+    return List.copyOf(byUserId.values());
   }
 
   private static void validateMemberPresence(List<UUID> memberIds, Room room) {

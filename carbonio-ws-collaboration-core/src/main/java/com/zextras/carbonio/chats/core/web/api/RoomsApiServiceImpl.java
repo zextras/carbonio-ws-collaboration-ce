@@ -428,6 +428,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
+    if (memberToInsertDto.isEmpty()) {
+      return Response.status(Status.BAD_REQUEST).build();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -437,7 +440,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               if (RoomTypeDto.GROUP.equals(room.get().getType())) {
                 int maxMembers =
                     currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
-                if ((r.getMembers().size() + memberToInsertDto.size()) > maxMembers) {
+                long newMembers =
+                    memberToInsertDto.stream().map(MemberToInsertDto::getUserId).distinct().count();
+                if ((r.getMembers().size() + newMembers) > maxMembers) {
                   return Response.status(Status.BAD_REQUEST).build();
                 }
               }

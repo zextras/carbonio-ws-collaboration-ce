@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -465,7 +466,8 @@ class MembersServiceImplTest {
                   .userId(user2Id)
                   .isOwner(false)
                   .addedBy(user1Id)
-                  .systemEventId(systemEventId));
+                  .systemEventId(systemEventId)
+                  .systemEventCreatedAt(JOINED_AT));
     }
 
     @Test
@@ -517,7 +519,8 @@ class MembersServiceImplTest {
                   .userId(user2Id)
                   .isOwner(false)
                   .addedBy(user1Id)
-                  .systemEventId(systemEventId));
+                  .systemEventId(systemEventId)
+                  .systemEventCreatedAt(JOINED_AT));
     }
 
     @Test
@@ -569,12 +572,13 @@ class MembersServiceImplTest {
                   .userId(user2Id)
                   .isOwner(false)
                   .addedBy(user1Id)
-                  .systemEventId(systemEventId));
+                  .systemEventId(systemEventId)
+                  .systemEventCreatedAt(JOINED_AT));
     }
 
     @Test
-    @DisplayName("Bulk add sends one event per member, all with the id of the single system event")
-    void insertRoomMembers_bulkSharesSystemEventId() {
+    @DisplayName("Bulk add writes one MEMBER_ADDED row per member, 1 ms apart, one event per row")
+    void insertRoomMembers_bulkWritesOneRowPerMember() throws Exception {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
@@ -582,7 +586,7 @@ class MembersServiceImplTest {
       when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       when(userService.userExists(any(UUID.class), any(UserPrincipal.class))).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
-          .thenReturn(Subscription.create(room, user2Id.toString()));
+          .thenAnswer(i -> i.getArgument(0));
 
       membersService.insertRoomMembers(
           roomId,
@@ -594,17 +598,65 @@ class MembersServiceImplTest {
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(2)).userExists(any(UUID.class), any(UserPrincipal.class));
       verify(subscriptionRepository, times(2)).insert(any(Subscription.class));
-      SystemEvent added = capturedSystemEvent();
+      ArgumentCaptor<SystemEvent> rows = ArgumentCaptor.forClass(SystemEvent.class);
+      verify(chatMessageService, times(2)).insertSystemEvent(rows.capture());
+      SystemEvent first = rows.getAllValues().get(0);
+      SystemEvent second = rows.getAllValues().get(1);
+      assertNotEquals(first.getId(), second.getId());
+      assertEquals("MEMBER_ADDED", first.getType());
+      assertEquals("MEMBER_ADDED", second.getType());
+      assertEquals(List.of(user2Id.toString()), addedUserIds(first));
+      assertEquals(List.of(user3Id.toString()), addedUserIds(second));
+      assertEquals(JOINED_AT, first.getCreatedAt());
+      assertEquals(JOINED_AT.plusNanos(1_000_000), second.getCreatedAt());
       ArgumentCaptor<RoomMemberAdded> events = ArgumentCaptor.forClass(RoomMemberAdded.class);
-      verify(eventDispatcher, times(2)).sendToUserExchange(anyList(), events.capture());
-      assertEquals(2, events.getAllValues().size());
-      events
-          .getAllValues()
-          .forEach(
-              e -> {
-                assertEquals(added.getId(), e.getSystemEventId());
-                assertEquals(added.getActorId(), e.getAddedBy().toString());
-              });
+      verify(eventDispatcher, times(2))
+          .sendToUserExchange(
+              eq(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString())),
+              events.capture());
+      assertEquals(user2Id, events.getAllValues().get(0).getUserId());
+      assertEquals(first.getId(), events.getAllValues().get(0).getSystemEventId());
+      assertEquals(first.getCreatedAt(), events.getAllValues().get(0).getSystemEventCreatedAt());
+      assertEquals(user3Id, events.getAllValues().get(1).getUserId());
+      assertEquals(second.getId(), events.getAllValues().get(1).getSystemEventId());
+      assertEquals(second.getCreatedAt(), events.getAllValues().get(1).getSystemEventCreatedAt());
+    }
+
+    @Test
+    @DisplayName("A user id listed twice is inserted once, with one row and one event")
+    void insertRoomMembers_duplicatesInsertedOnce() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(
+          new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenAnswer(i -> i.getArgument(0));
+
+      List<MemberInsertedDto> inserted =
+          membersService.insertRoomMembers(
+              roomId,
+              List.of(
+                  MemberToInsertDto.create().userId(user2Id).historyCleared(false),
+                  MemberToInsertDto.create().userId(user2Id).owner(true).historyCleared(false)),
+              principal);
+
+      assertEquals(1, inserted.size());
+      assertEquals(user2Id, inserted.get(0).getUserId());
+      assertEquals(Boolean.FALSE, inserted.get(0).isOwner());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), any(RoomMemberAdded.class));
+    }
+
+    private List<String> addedUserIds(SystemEvent row) throws Exception {
+      ObjectMapper mapper = new ObjectMapper();
+      return mapper.convertValue(
+          mapper.readTree(row.getContent()).get("addedUserIds"),
+          new TypeReference<List<String>>() {});
     }
   }
 

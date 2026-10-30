@@ -2459,6 +2459,19 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
     }
 
+    @Test
+    @DisplayName("Given a group room identifier, an empty member list returns status code 400")
+    void insertRoomMembers_emptyList() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.post(url(roomId), "[]", user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
     private String getInsertRoomMemberRequestBody(@Nullable UUID userId) {
       return getInsertRoomMemberRequestBody(List.of(MemberToInsertDto.create().userId(userId)));
     }
