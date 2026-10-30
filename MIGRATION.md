@@ -359,9 +359,10 @@ Attachment upload changed:
   caption (`description`) as raw UTF-8 text, not escaped, ideally with `Content-Type: text/plain; charset=UTF-8`
   on the part. The `file` part's file name is either the raw name or the whole name written as `\uXXXX`
   escapes (what the official clients send); a name that cannot be decoded answers `400`.
-- Push notifications (Advanced edition only) are sent for text messages and for attachments with a non-blank
-  caption, which becomes the notification body (at most 500 characters, then `…`). Edits, reactions, forwards
-  and deletes never push. See `docs/notification-messages.md`.
+- After a successful text send or attachment upload (not a `tempId` duplicate) the server calls the registered
+  `MessageSentListener` extensions with the message text or the caption (`""` when there is none); which
+  messages they act on is up to each listener. Edits, reactions, forwards and deletes do not call them. None
+  is registered by default.
 
 ## 7. Removed, with no replacement
 
