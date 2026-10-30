@@ -8,7 +8,7 @@ public class ChatsConstant {
 
   public static final String LOGGER_CONFIG_PATH = "/etc/carbonio/ws-collaboration/logback.xml";
 
-  public static final String IS_UNICODE_FORMAT_REGEX = "[\\\\[uU][a-fA-F0-9]{4}]*";
+  public static final String IS_UNICODE_FORMAT_REGEX = "(\\\\u[0-9a-fA-F]{4})+";
 
   public static final String API_VERSION_HEADER = "X-WSC-API-VERSION";
 

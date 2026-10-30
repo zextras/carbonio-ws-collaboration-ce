@@ -618,6 +618,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       return Response.status(Status.BAD_REQUEST).entity(MIME_TYPE_NOT_FOUND).build();
     }
 
+    String decodedFileName;
+    try {
+      decodedFileName = StringFormatUtils.decodeFileName(fileName);
+    } catch (UnsupportedEncodingException e) {
+      throw new BadRequestException("Unable to decode the file name", e);
+    }
+
     String mimeType = mediaType.toString();
     String description = getStringFromPart(formDataMap, "description");
     String replyToId = getStringFromPart(formDataMap, "replyToId");
@@ -641,7 +648,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                   filePart.getBody(InputStream.class, null),
                   mimeType,
                   Long.parseLong(contentLength),
-                  StringFormatUtils.decodeFromUtf8(fileName),
+                  decodedFileName,
                   normalizeStringValue(description),
                   normalizeStringValue(replyToId),
                   normalizeStringValue(area),

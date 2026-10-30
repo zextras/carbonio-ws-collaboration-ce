@@ -2005,6 +2005,70 @@ class RoomsApiServiceImplTest {
       assertEquals("Error processing file", response.getEntity());
     }
 
+    private InputPart textPart(String value, boolean contentTypeFromMessage) throws Exception {
+      InputPart part = mock(InputPart.class);
+      when(part.getBody(String.class, null)).thenReturn(value);
+      when(part.isContentTypeFromMessage()).thenReturn(contentTypeFromMessage);
+      return part;
+    }
+
+    private MultipartFormDataInput multipart(String fileName, Map<String, InputPart> textParts)
+        throws Exception {
+      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
+      Map<String, List<InputPart>> formDataMap = new HashMap<>();
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
+      when(filePart.getFileName()).thenReturn(fileName);
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      formDataMap.put("file", List.of(filePart));
+      formDataMap.put("contentLength", List.of(textPart("1024", true)));
+      textParts.forEach((name, part) -> formDataMap.put(name, List.of(part)));
+      when(input.getFormDataMap()).thenReturn(formDataMap);
+      return input;
+    }
+
+    @Test
+    @DisplayName("A raw file name is used as-is")
+    void insertAttachmentMultipart_rawFileNameIsUsedAsIs() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      for (String name : List.of("foto.jpg", "foto àè.jpg", "cafe", "foto\\u00e0.jpg")) {
+        Response response =
+            roomsApiService.insertAttachmentMultipart(
+                multipart(name, Map.of()), roomId, securityContext);
+
+        assertEquals(Status.CREATED.getStatusCode(), response.getStatus(), name);
+        verify(attachmentService)
+            .addAttachment(
+                roomId, attachment, "image/jpeg", 1024L, name, null, null, null, null, user1);
+      }
+    }
+
+    @Test
+    @DisplayName("A fully escaped file name is decoded")
+    void insertAttachmentMultipart_escapedFileNameIsDecoded() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.insertAttachmentMultipart(
+          multipart("\\ud83d\\ude00\\u002e\\u006a\\u0070\\u0067", Map.of()),
+          roomId,
+          securityContext);
+
+      verify(attachmentService)
+          .addAttachment(
+              roomId, attachment, "image/jpeg", 1024L, "😀.jpg", null, null, null, null, user1);
+    }
+
+    @Test
+    @DisplayName("A file name that decodes to a lone surrogate is a bad request")
+    void insertAttachmentMultipart_loneSurrogateFileNameIsBadRequest() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input = multipart("\\ud83d", Map.of());
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
     @Test
     @DisplayName("Insert attachment multipart with a guest user")
     void insertAttachmentMultipart_testGuestUser() {

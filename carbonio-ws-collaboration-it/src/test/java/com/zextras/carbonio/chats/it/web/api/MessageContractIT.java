@@ -308,4 +308,47 @@ class MessageContractIT {
           aUserId.toString(), replied.get("forwardedInfo").get("originalSenderId").asText());
     }
   }
+
+  @Nested
+  @DisplayName("Attachment file names")
+  class FileNames {
+
+    @Test
+    @DisplayName("A plain ASCII name is stored as-is")
+    void plainName() throws Exception {
+      MockHttpResponse response = uploadRaw("foto.jpg");
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      assertEquals("foto.jpg", storedFileName(response));
+    }
+
+    @Test
+    @DisplayName("A raw UTF-8 name is stored as-is")
+    void rawUtf8Name() throws Exception {
+      MockHttpResponse response = uploadRaw("foto àè.jpg");
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      assertEquals("foto àè.jpg", storedFileName(response));
+    }
+
+    @Test
+    @DisplayName("A fully escaped name, as the official clients send it, is decoded")
+    void escapedName() throws Exception {
+      MockHttpResponse response =
+          uploadRaw("\\ud83d\\ude00" + StringFormatUtils.encodeToUtf8(" àè.jpg"));
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      assertEquals("😀 àè.jpg", storedFileName(response));
+    }
+
+    @Test
+    @DisplayName("A name decoding to a lone surrogate is a 400 and stores nothing")
+    void loneSurrogate() throws Exception {
+      MockHttpResponse response = uploadRaw("\\ud83d");
+
+      assertEquals(400, response.getStatus(), response.getContentAsString());
+      assertEquals(0, attachmentCount());
+      assertEquals(0, messageCount());
+    }
+  }
 }

@@ -63,7 +63,19 @@ public class StringFormatUtils {
       throw new UnsupportedEncodingException(
           String.format("'%s' is not encoded to UTF-8 format", toDecode));
     }
-    return StringEscapeUtils.unescapeJava(toDecode);
+    return requireWellFormed(StringEscapeUtils.unescapeJava(toDecode));
+  }
+
+  public static String decodeFileName(String fileName) throws UnsupportedEncodingException {
+    return requireWellFormed(
+        isEncodedInUtf8(fileName) ? StringEscapeUtils.unescapeJava(fileName) : fileName);
+  }
+
+  private static String requireWellFormed(String decoded) throws UnsupportedEncodingException {
+    if (decoded.indexOf(0) >= 0 || !StandardCharsets.UTF_8.newEncoder().canEncode(decoded)) {
+      throw new UnsupportedEncodingException("The decoded string is not well-formed Unicode");
+    }
+    return decoded;
   }
 
   public static boolean isEncodedInUtf8(String text) {

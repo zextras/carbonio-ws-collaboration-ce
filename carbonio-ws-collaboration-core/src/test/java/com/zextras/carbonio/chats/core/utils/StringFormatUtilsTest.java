@@ -6,9 +6,11 @@ package com.zextras.carbonio.chats.core.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import java.io.UnsupportedEncodingException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -197,6 +199,64 @@ public class StringFormatUtilsTest {
     public void isEncodedInUtf8_okFailed() {
       String str = "Hello";
       assertFalse(StringFormatUtils.isEncodedInUtf8(str));
+    }
+
+    @Test
+    @DisplayName("Only a string made entirely of \\uXXXX sequences is encoded")
+    public void isEncodedInUtf8_strictWholeString() {
+      assertTrue(StringFormatUtils.isEncodedInUtf8("\\u0066\\u006F"));
+      assertFalse(StringFormatUtils.isEncodedInUtf8("cafe"));
+      assertFalse(StringFormatUtils.isEncodedInUtf8("foto.jpg"));
+      assertFalse(StringFormatUtils.isEncodedInUtf8("\\u0066x"));
+      assertFalse(StringFormatUtils.isEncodedInUtf8("\\u006"));
+      assertFalse(StringFormatUtils.isEncodedInUtf8("\\U0066"));
+      assertFalse(StringFormatUtils.isEncodedInUtf8(""));
+    }
+  }
+
+  @Nested
+  public class DecodeFileNameTests {
+
+    @Test
+    @DisplayName("A name that is not fully escaped is returned as-is")
+    public void decodeFileName_rawNamesAreKept() throws Exception {
+      assertEquals("foto.jpg", StringFormatUtils.decodeFileName("foto.jpg"));
+      assertEquals("foto àè.jpg", StringFormatUtils.decodeFileName("foto àè.jpg"));
+      assertEquals("cafe", StringFormatUtils.decodeFileName("cafe"));
+      assertEquals("foto\\u00e0.jpg", StringFormatUtils.decodeFileName("foto\\u00e0.jpg"));
+    }
+
+    @Test
+    @DisplayName("A fully escaped name, surrogate pairs included, is decoded")
+    public void decodeFileName_escapedNamesAreDecoded() throws Exception {
+      assertEquals(
+          "foto àè.jpg",
+          StringFormatUtils.decodeFileName(StringFormatUtils.encodeToUtf8("foto àè.jpg")));
+      assertEquals(
+          "😀.jpg", StringFormatUtils.decodeFileName("\\ud83d\\ude00\\u002e\\u006a\\u0070\\u0067"));
+    }
+
+    @Test
+    @DisplayName("A lone surrogate or a NUL character is rejected")
+    public void decodeFileName_malformedNamesFail() {
+      assertThrows(
+          UnsupportedEncodingException.class, () -> StringFormatUtils.decodeFileName("\\ud83d"));
+      assertThrows(
+          UnsupportedEncodingException.class,
+          () -> StringFormatUtils.decodeFileName("\\ude00\\u0061"));
+      assertThrows(
+          UnsupportedEncodingException.class, () -> StringFormatUtils.decodeFileName("\\u0000"));
+    }
+
+    @Test
+    @DisplayName("decodeFromUtf8 stays strict: raw or malformed names are rejected")
+    public void decodeFromUtf8_staysStrict() {
+      assertThrows(
+          UnsupportedEncodingException.class, () -> StringFormatUtils.decodeFromUtf8("foto.jpg"));
+      assertThrows(
+          UnsupportedEncodingException.class, () -> StringFormatUtils.decodeFromUtf8("cafe"));
+      assertThrows(
+          UnsupportedEncodingException.class, () -> StringFormatUtils.decodeFromUtf8("\\ud83d"));
     }
   }
 }
