@@ -67,10 +67,8 @@ class SessionPingManagerTest {
     verify(session.getCoreSession(), never()).sendFrame(any(), any(), anyBoolean());
   }
 
-  @SuppressWarnings("unchecked")
   private MessageHandler.Whole<PongMessage> pongHandlerOf(JakartaWebSocketSession session) {
-    ArgumentCaptor<MessageHandler.Whole<PongMessage>> captor =
-        ArgumentCaptor.forClass(MessageHandler.Whole.class);
+    ArgumentCaptor<MessageHandler.Whole<PongMessage>> captor = ArgumentCaptor.captor();
     verify(session).addMessageHandler(eq(PongMessage.class), captor.capture());
     return captor.getValue();
   }
