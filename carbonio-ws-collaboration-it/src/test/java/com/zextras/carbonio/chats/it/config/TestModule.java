@@ -13,8 +13,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.web.api.versioning.DummyVersionedApi;
@@ -58,13 +56,6 @@ public class TestModule extends AbstractModule {
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Failed to create RabbitMQ connection", e);
     }
-  }
-
-  @Singleton
-  @Provides
-  public RabbitConnectionPoolService getRabbitConnectionPoolFactory(
-      ConnectionFactory connectionFactory, MessageBrokerVideoserverHealthMonitor healthMonitor) {
-    return new RabbitConnectionPoolService(connectionFactory, 2, healthMonitor);
   }
 
   @Provides

@@ -78,9 +78,6 @@ public class CoreConfigContribution implements ConfigContribution {
     mappings.put(
         ConfigName.TOPOLOGY_RECOVERY_ENABLED,
         "carbonio-ws-collaboration/broker/topology-recovery-enabled");
-    mappings.put(
-        ConfigName.EVENT_DISPATCHER_POOL_SIZE,
-        "carbonio-ws-collaboration/broker/connection-pool-size");
     mappings.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
     mappings.put(
         ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, "carbonio-message-dispatcher-db/db-host");

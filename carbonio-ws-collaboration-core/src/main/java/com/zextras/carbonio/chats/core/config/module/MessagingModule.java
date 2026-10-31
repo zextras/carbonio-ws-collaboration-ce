@@ -25,6 +25,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
 import java.util.Base64;
@@ -33,8 +34,11 @@ import java.util.concurrent.TimeoutException;
 public class MessagingModule extends AbstractModule {
 
   @Override
+  @SuppressWarnings("removal")
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
+    bind(UserEventListener.class).asEagerSingleton();
+    bind(RabbitConnectionPoolService.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
   }
@@ -70,8 +74,9 @@ public class MessagingModule extends AbstractModule {
     return new MessageDispatcherHttpClient(httpClient, mongooseimUrl, authToken, objectMapper);
   }
 
+  @Singleton
   @Provides
-  private Connection getRabbitMqConnection(AppConfig appConfig) {
+  private ConnectionFactory getRabbitMqConnectionFactory(AppConfig appConfig) {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
     factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
@@ -90,37 +95,16 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
     factory.setTopologyRecoveryEnabled(
         appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
+    return factory;
+  }
+
+  @Provides
+  private Connection getRabbitMqConnection(ConnectionFactory factory) {
     try {
-      return factory.newConnection();
+      return factory.newConnection(EventDispatcherRabbitMq.connectionName("videoserver"));
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Could not create connection with message broker", e);
     }
-  }
-
-  @Singleton
-  @Provides
-  private RabbitConnectionPoolService getRabbitConnectionPoolFactory(
-      AppConfig appConfig, MessageBrokerVideoserverHealthMonitor healthMonitor) {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
-    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
-    factory.setUsername(
-        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
-    factory.setPassword(
-        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
-    factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
-    factory.setRequestedHeartbeat(
-        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
-    factory.setNetworkRecoveryInterval(
-        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(30000));
-    factory.setConnectionTimeout(
-        appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
-    factory.setAutomaticRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
-    factory.setTopologyRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
-    int poolSize = appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_POOL_SIZE).orElse(10);
-    return new RabbitConnectionPoolService(factory, poolSize, healthMonitor);
   }
 
   @Provides

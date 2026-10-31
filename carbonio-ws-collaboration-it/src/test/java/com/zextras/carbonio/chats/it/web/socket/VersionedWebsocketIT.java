@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.vdurmont.semver4j.Semver;
 import com.zextras.carbonio.async.model.DomainEvent;
@@ -23,7 +22,7 @@ import com.zextras.carbonio.async.model.Pong;
 import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
@@ -33,7 +32,6 @@ import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticatio
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
-import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
@@ -80,7 +78,7 @@ class VersionedWebsocketIT {
   private EventsWebSocketManager eventsWebSocketManager;
   private final AuthenticationService authenticationService;
   private final Channel channel;
-  private final RabbitConnectionPoolService rabbitPool;
+  private final EventWebSocketSessions sessions;
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator websocketVersionMigrator;
   private final ParticipantService participantService;
@@ -89,14 +87,14 @@ class VersionedWebsocketIT {
   public VersionedWebsocketIT(
       AuthenticationService authenticationService,
       Channel channel,
-      RabbitConnectionPoolService rabbitPool,
+      EventWebSocketSessions sessions,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
       CacheVideoServerSession cacheVideoServerSession) {
     this.authenticationService = authenticationService;
     this.channel = channel;
-    this.rabbitPool = rabbitPool;
+    this.sessions = sessions;
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
@@ -124,7 +122,6 @@ class VersionedWebsocketIT {
 
           try (Session ignored = createSession(clientContextWithVersion)) {
             awaitFirstMessage(client);
-            declareBrokerExchange();
             dispatchEvent(
                 MeetingCreated.create()
                     .meetingId(UUID.randomUUID())
@@ -157,7 +154,6 @@ class VersionedWebsocketIT {
           try (Session ignored = createSession(clientContext)) {
 
             awaitFirstMessage(client);
-            declareBrokerExchange();
             client.sendMessage(Ping.create().type(EventType.PING).sentDate(OffsetDateTime.now()));
 
             shouldReceiveEventWithType(client, "pong", 2);
@@ -419,8 +415,8 @@ class VersionedWebsocketIT {
 
   private void dispatchEvent(DomainEvent domainEvent) throws IOException {
     channel.basicPublish(
+        EventDispatcherRabbitMq.EXCHANGE,
         DEFAULT_USER_ID,
-        "user-events",
         null,
         objectMapper.writeValueAsString(domainEvent).getBytes(StandardCharsets.UTF_8));
   }
@@ -457,10 +453,6 @@ class VersionedWebsocketIT {
     return () -> client.getMessages().size() == eventNumber;
   }
 
-  private void declareBrokerExchange() throws IOException {
-    channel.exchangeDeclare(DEFAULT_USER_ID, BuiltinExchangeType.DIRECT, false, false, null);
-  }
-
   private void shouldReceiveEventWithType(
       WebSocketClient client, String eventType, int atEventNumber) {
     awaitDomainEventReceived(client, atEventNumber);
@@ -475,12 +467,11 @@ class VersionedWebsocketIT {
     jettyServer = new Server(0);
     eventsWebSocketManager =
         new EventsWebSocketManagerImpl(
-            rabbitPool,
             objectMapper,
             websocketVersionMigrator,
             cacheVideoServerSession,
             participantService,
-            new EventWebSocketSessions(new SessionPingManager()));
+            sessions);
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
