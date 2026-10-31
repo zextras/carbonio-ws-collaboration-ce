@@ -4,84 +4,186 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.after;
-import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.MessageHandler;
+import jakarta.websocket.PongMessage;
 import jakarta.websocket.Session;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.eclipse.jetty.ee10.websocket.jakarta.common.JakartaWebSocketSession;
+import org.eclipse.jetty.websocket.core.CoreSession;
+import org.eclipse.jetty.websocket.core.OpCode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 class SessionPingManagerTest {
 
-  private Session newOpenSession(String id) {
-    Session s = mock(Session.class);
-    RemoteEndpoint.Async async = mock(RemoteEndpoint.Async.class);
-    when(s.getId()).thenReturn(id);
-    when(s.isOpen()).thenReturn(true);
-    when(s.getAsyncRemote()).thenReturn(async);
-    return s;
+  private ScheduledExecutorService scheduler;
+  private SessionPingManager pingManager;
+
+  @BeforeEach
+  void setUp() {
+    scheduler = mock(ScheduledExecutorService.class);
+    pingManager = new SessionPingManager(scheduler);
+  }
+
+  private JakartaWebSocketSession newOpenSession(String id) {
+    JakartaWebSocketSession session = mock(JakartaWebSocketSession.class);
+    CoreSession coreSession = mock(CoreSession.class);
+    when(session.getId()).thenReturn(id);
+    when(coreSession.isOutputOpen()).thenReturn(true);
+    when(session.getCoreSession()).thenReturn(coreSession);
+    return session;
+  }
+
+  private void tick(int times) {
+    for (int i = 0; i < times; i++) pingManager.tick();
+  }
+
+  private void verifyPinged(JakartaWebSocketSession session) {
+    verifyPinged(session, 1);
+  }
+
+  private void verifyPinged(JakartaWebSocketSession session, int times) {
+    verify(session.getCoreSession(), times(times))
+        .sendFrame(argThat(frame -> frame.getOpCode() == OpCode.PING), any(), eq(false));
+  }
+
+  private void verifyNotPinged(JakartaWebSocketSession session) {
+    verify(session.getCoreSession(), never()).sendFrame(any(), any(), anyBoolean());
+  }
+
+  private MessageHandler.Whole<PongMessage> pongHandlerOf(JakartaWebSocketSession session) {
+    ArgumentCaptor<MessageHandler.Whole<PongMessage>> captor = ArgumentCaptor.captor();
+    verify(session).addMessageHandler(eq(PongMessage.class), captor.capture());
+    return captor.getValue();
   }
 
   @Test
-  void start_sendsPing_promptly() throws IOException {
-    SessionPingManager pm = new SessionPingManager();
-    Session s = newOpenSession("s1");
-
-    pm.start(s);
-
-    verify(s.getAsyncRemote(), timeout(2000).atLeastOnce()).sendPing(any(ByteBuffer.class));
+  void schedulesOneTickerAtThePingInterval() {
+    verify(scheduler)
+        .scheduleWithFixedDelay(
+            any(Runnable.class), eq(15_000L), eq(15_000L), eq(TimeUnit.MILLISECONDS));
   }
 
   @Test
-  void stop_cancelsScheduledPings_andIsIdempotent() throws IOException {
-    SessionPingManager pm = new SessionPingManager();
-    Session s = newOpenSession("s2");
-    pm.start(s);
-    verify(s.getAsyncRemote(), timeout(2000).atLeastOnce()).sendPing(any(ByteBuffer.class));
+  void tick_pingsSession_withoutBlocking() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
 
-    pm.stop("s2");
-    assertDoesNotThrow(() -> pm.stop("s2"));
+    pingManager.tick();
+
+    verifyPinged(session);
+    verify(session.getCoreSession(), never()).abort();
   }
 
   @Test
-  void stop_unknownSession_isNoOp() {
-    SessionPingManager pm = new SessionPingManager();
-    assertDoesNotThrow(() -> pm.stop("never-registered"));
+  void tick_toleratesMaxMissedPongs() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
+
+    tick(3);
+
+    verifyPinged(session, 3);
+    verify(session.getCoreSession(), never()).abort();
   }
 
   @Test
-  void stopAll_cancelsEverything() throws IOException {
-    SessionPingManager pm = new SessionPingManager();
-    Session a = newOpenSession("a");
-    Session b = newOpenSession("b");
-    pm.start(a);
-    pm.start(b);
+  void tick_abortsSessionPastMaxMissedPongs_once() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
 
-    // Wait for at least one ping on each so we know the schedulers were live.
-    verify(a.getAsyncRemote(), timeout(2000).atLeastOnce()).sendPing(any(ByteBuffer.class));
-    verify(b.getAsyncRemote(), timeout(2000).atLeastOnce()).sendPing(any(ByteBuffer.class));
+    tick(5);
 
-    clearInvocations(a.getAsyncRemote(), b.getAsyncRemote());
+    verify(session.getCoreSession()).abort();
+    verifyPinged(session, 3);
+  }
 
-    pm.stopAll();
+  @Test
+  void pong_resetsMissedPongs() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
 
-    // After stopAll, no further pings to a or b for at least 500ms.
-    verify(a.getAsyncRemote(), after(500).never()).sendPing(any(ByteBuffer.class));
-    verify(b.getAsyncRemote(), after(500).never()).sendPing(any(ByteBuffer.class));
+    tick(3);
+    pongHandlerOf(session).onMessage(mock(PongMessage.class));
+    tick(3);
 
-    // And a brand-new session started after stopAll never gets a ping either.
-    Session c = newOpenSession("c");
-    assertDoesNotThrow(() -> pm.start(c));
-    verify(c.getAsyncRemote(), after(200).never()).sendPing(any(ByteBuffer.class));
+    verify(session.getCoreSession(), never()).abort();
+    verifyPinged(session, 6);
+  }
+
+  @Test
+  void tick_forgetsClosedSession() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
+    when(session.getCoreSession().isOutputOpen()).thenReturn(false);
+
+    pingManager.tick();
+    when(session.getCoreSession().isOutputOpen()).thenReturn(true);
+    pingManager.tick();
+
+    verifyNotPinged(session);
+    verify(session.getCoreSession(), never()).abort();
+  }
+
+  @Test
+  void stop_stopsPinging() {
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
+
+    pingManager.stop("s1");
+    pingManager.tick();
+
+    verifyNotPinged(session);
+  }
+
+  @Test
+  void tick_keepsPingingOthersWhenOneSessionFails() {
+    JakartaWebSocketSession failing = newOpenSession("a");
+    JakartaWebSocketSession healthy = newOpenSession("b");
+    CoreSession failingCore = failing.getCoreSession();
+    doThrow(new IllegalStateException("boom"))
+        .when(failingCore)
+        .sendFrame(any(), any(), anyBoolean());
+    pingManager.start(failing);
+    pingManager.start(healthy);
+
+    pingManager.tick();
+
+    verifyPinged(healthy);
+  }
+
+  @Test
+  void start_rejectsNonJettySession() {
+    Session session = mock(Session.class);
+
+    assertThrows(IllegalStateException.class, () -> pingManager.start(session));
+  }
+
+  @Test
+  void stopAll_shutsDownTheTicker_andIgnoresNewSessions() {
+    pingManager.stopAll();
+    when(scheduler.isShutdown()).thenReturn(true);
+
+    JakartaWebSocketSession session = newOpenSession("s1");
+    pingManager.start(session);
+    pingManager.tick();
+
+    verify(scheduler).shutdownNow();
+    verifyNotPinged(session);
   }
 }
