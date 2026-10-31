@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
+import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import com.zextras.carbonio.systemd.SystemdNotify;
@@ -44,6 +45,7 @@ public class Boot {
   private final AuthenticationService authenticationService;
   private final EventsWebSocketManager eventsWebSocketManager;
   private final VideoServerEventListener videoServerEventListener;
+  private final UserEventListener userEventListener;
   private final AppConfig appConfig;
 
   @Inject
@@ -55,6 +57,7 @@ public class Boot {
       AuthenticationService authenticationService,
       EventsWebSocketManager eventsWebSocketManager,
       VideoServerEventListener videoServerEventListener,
+      UserEventListener userEventListener,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
@@ -63,6 +66,7 @@ public class Boot {
     this.authenticationService = authenticationService;
     this.eventsWebSocketManager = eventsWebSocketManager;
     this.videoServerEventListener = videoServerEventListener;
+    this.userEventListener = userEventListener;
     this.appConfig = appConfig;
   }
 
@@ -121,6 +125,7 @@ public class Boot {
                     hikariDataSource.close();
                     ChatsLogger.info("Shutting down server...");
                     server.stop();
+                    userEventListener.stop();
                   } catch (Exception e) {
                     throw new InternalErrorException(e);
                   }
