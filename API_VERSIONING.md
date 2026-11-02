@@ -28,6 +28,9 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
   `MessageForwarded`, `MessageEdited`, `MessageDeleted`, `MessagePinned`, `MessageUnpinned`, `ReactionChanged`,
   `ReadUpdated`, `PresenceChanged`, `Typing`). Room and meeting events that create a
   system line carry its author, `systemEventId` and `systemEventCreatedAt`.
+- **Room name and description events**: `RoomUpdated` is removed. A name change sends `RoomNameChanged` and a
+  description change sends `RoomDescriptionChanged` (both when a request changes both, name first), each with
+  its own `systemEventId` and `systemEventCreatedAt`.
 - **Presence**: `POST /presence/batch` (at most 100 user ids), `GET /inbox` and `PresenceChanged` carry
   `online` and `lastActivity`.
 - **History visibility**: the per-user `clearedAt` floor is enforced by the server on every read path, quotes
@@ -39,6 +42,10 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
 - `MessageReceived.tempId` is echoed to every room member (earlier builds sent it to the sender alone).
 - One `MEMBER_ADDED` row and one `RoomMemberAdded` (with its own `systemEventId`) per added member;
   `POST /rooms/{roomId}/members` with an empty list answers `400`.
+- The `nameSystemEventId` / `descriptionSystemEventId` fields (and their `...CreatedAt`) of `RoomUpdated` are
+  gone with the event.
+- `MeetingDeclined` in ONE_TO_ONE rooms, where it writes the `MEETING_DECLINED` line, also reaches all room
+  members, so a caller who already left receives it.
 - Validation: blank `text` answers `400`; `text` at most 8192 characters; `tempId` at most 64;
   `limit` of timeline and search 1 to 200; `{reaction}` at most 32 characters.
 - Deleting the pinned message also unpins it (`MessageUnpinned` after `MessageDeleted`); unpinning a message
