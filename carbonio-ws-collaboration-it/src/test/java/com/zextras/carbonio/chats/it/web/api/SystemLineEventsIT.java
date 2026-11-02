@@ -34,7 +34,6 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -220,8 +219,7 @@ class SystemLineEventsIT {
     }
     assertEquals(dUserId.toString(), content(firstRow).get("addedUserIds").get(0).asText());
     assertEquals(eUserId.toString(), content(secondRow).get("addedUserIds").get(0).asText());
-    assertEquals(
-        1L, Duration.between(firstRow.getCreatedAt(), secondRow.getCreatedAt()).toMillis());
+    assertTrue(firstRow.getCreatedAt().isBefore(secondRow.getCreatedAt()));
     assertCreatedAt(firstRow, first, "systemEventCreatedAt");
     assertCreatedAt(secondRow, second, "systemEventCreatedAt");
     assertEquals(aUserId.toString(), first.get("addedBy").asText());
@@ -402,8 +400,7 @@ class SystemLineEventsIT {
     assertEquals("renamed", content(nameRow).get("name").asText());
     assertEquals(aUserId.toString(), content(descriptionRow).get("changedBy").asText());
     assertEquals("new description", content(descriptionRow).get("description").asText());
-    assertEquals(
-        1L, Duration.between(nameRow.getCreatedAt(), descriptionRow.getCreatedAt()).toMillis());
+    assertTrue(nameRow.getCreatedAt().isBefore(descriptionRow.getCreatedAt()));
     assertCreatedAt(nameRow, nameEvent, "systemEventCreatedAt");
     assertCreatedAt(descriptionRow, descriptionEvent, "systemEventCreatedAt");
 

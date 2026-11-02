@@ -236,8 +236,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   private Meeting activateMeeting(Meeting meeting) {
     videoServerService.startMeeting(meeting.getId());
-    meeting.active(true).startedAt(OffsetDateTime.now(clock));
-    return meetingRepository.update(meeting);
+    return meetingRepository.markStarted(meeting);
   }
 
   private Meeting deactivateMeeting(String userId, Meeting meeting) {

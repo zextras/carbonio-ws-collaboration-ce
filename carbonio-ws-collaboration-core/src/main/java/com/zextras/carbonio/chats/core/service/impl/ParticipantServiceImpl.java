@@ -42,7 +42,6 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +56,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
   protected final EventDispatcher eventDispatcher;
-  private final Clock clock;
 
   @Inject
   public ParticipantServiceImpl(
@@ -66,15 +64,13 @@ public class ParticipantServiceImpl implements ParticipantService {
       MembersService membersService,
       ParticipantRepository participantRepository,
       VideoServerService videoServerService,
-      EventDispatcher eventDispatcher,
-      Clock clock) {
+      EventDispatcher eventDispatcher) {
     this.meetingService = meetingService;
     this.roomService = roomService;
     this.membersService = membersService;
     this.participantRepository = participantRepository;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
-    this.clock = clock;
   }
 
   @Override
@@ -164,8 +160,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
       Participant participant =
           Participant.create(meeting, currentUser.getId())
-              .queueId(currentUser.getQueueId().toString())
-              .createdAt(OffsetDateTime.now(clock));
+              .queueId(currentUser.getQueueId().toString());
       participantRepository.insert(participant);
     }
     return JoinStatus.ACCEPTED;
@@ -606,8 +601,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     boolean handShouldBeRaised = handStatusDto.isRaised();
 
     if (handCurrentlyRaised != handShouldBeRaised) {
-      OffsetDateTime dateTime = handShouldBeRaised ? OffsetDateTime.now(clock) : null;
-      participantRepository.update(participant.handRaisedAt(dateTime));
+      participantRepository.setHandRaised(participant, handShouldBeRaised);
       List<Participant> participantsWithHandRaised =
           participantRepository.getHandRaisedByMeetingId(meetingId.toString());
       if (handShouldBeRaised) {
@@ -617,7 +611,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 .meetingId(meetingId)
                 .userId(currentUser.getUUID())
                 .raised(handStatusDto.isRaised())
-                .handRaisedAt(dateTime)
+                .handRaisedAt(participant.getHandRaisedAt())
                 .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
                 .sentDate(OffsetDateTime.now()));
       } else {

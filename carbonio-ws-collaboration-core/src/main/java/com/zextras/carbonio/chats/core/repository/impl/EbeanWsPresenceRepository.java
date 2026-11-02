@@ -30,8 +30,8 @@ public class EbeanWsPresenceRepository implements WsPresenceRepository {
 
   private static final String UPSERT_LAST_SEEN_SQL =
       "INSERT INTO chats.user_last_seen (user_id, last_seen_at)"
-          + " VALUES (:userId, NOW())"
-          + " ON CONFLICT (user_id) DO UPDATE SET last_seen_at = NOW()"
+          + " VALUES (:userId, clock_timestamp())"
+          + " ON CONFLICT (user_id) DO UPDATE SET last_seen_at = clock_timestamp()"
           + " RETURNING last_seen_at";
 
   // Data-modifying CTE: the INSERT runs inside the CTE, while the outer SELECT count(*) reads the
@@ -92,8 +92,8 @@ public class EbeanWsPresenceRepository implements WsPresenceRepository {
       ),
       upserted AS (
         INSERT INTO chats.user_last_seen (user_id, last_seen_at)
-        SELECT user_id, NOW() FROM offlined
-        ON CONFLICT (user_id) DO UPDATE SET last_seen_at = NOW()
+        SELECT user_id, clock_timestamp() FROM offlined
+        ON CONFLICT (user_id) DO UPDATE SET last_seen_at = clock_timestamp()
         RETURNING user_id, last_seen_at
       )
       SELECT user_id, last_seen_at FROM upserted

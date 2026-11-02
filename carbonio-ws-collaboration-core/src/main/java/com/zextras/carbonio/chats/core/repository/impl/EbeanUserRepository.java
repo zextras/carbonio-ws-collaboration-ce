@@ -34,7 +34,11 @@ public class EbeanUserRepository implements UserRepository {
 
   @Override
   public User save(User user) {
-    database.save(user);
+    if (database.beanState(user).isNew()) {
+      database.insert(user);
+    } else {
+      TimedUpdate.update(database, user, user.getId(), TimedUpdate.UPDATED_AT_NOW);
+    }
     return user;
   }
 }

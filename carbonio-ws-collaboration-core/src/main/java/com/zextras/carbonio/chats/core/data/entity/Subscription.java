@@ -4,8 +4,6 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
-import io.ebean.annotation.WhenCreated;
-import io.ebean.annotation.WhenModified;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -32,7 +30,7 @@ public class Subscription {
   @JoinColumn(name = "ROOM_ID")
   private Room room;
 
-  @Column(name = "JOINED_AT")
+  @Column(name = "JOINED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime joinedAt;
 
@@ -45,14 +43,12 @@ public class Subscription {
   @Column(name = "TEMPORARY")
   private Boolean isTemporary = false;
 
-  @Column(name = "CREATED_AT")
+  @Column(name = "CREATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenCreated
   private OffsetDateTime createdAt;
 
-  @Column(name = "UPDATED_AT")
+  @Column(name = "UPDATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenModified
   private OffsetDateTime updatedAt;
 
   public Subscription() {
@@ -115,11 +111,6 @@ public class Subscription {
   public Subscription room(Room room) {
     this.room = room;
     this.id.roomId(room.getId());
-    return this;
-  }
-
-  public Subscription joinedAt(OffsetDateTime joinedAt) {
-    this.joinedAt = joinedAt;
     return this;
   }
 

@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -284,7 +285,7 @@ class ChatMessageServiceImplTest {
     private final OffsetDateTime pinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00.123456Z");
 
     @Test
-    @DisplayName("Upserts the room pin and emits a MESSAGE_PINNED system event at the pin time")
+    @DisplayName("Upserts the room pin and emits a MESSAGE_PINNED system event")
     void pins() {
       Message message = message();
       when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message));
@@ -299,7 +300,7 @@ class ChatMessageServiceImplTest {
       verify(systemEventRepository).insert(captor.capture());
       assertEquals("MESSAGE_PINNED", captor.getValue().getType());
       assertEquals(USER_ID, captor.getValue().getActorId());
-      assertEquals(pinnedAt, captor.getValue().getCreatedAt());
+      assertNull(captor.getValue().getCreatedAt());
       assertEquals(captor.getValue().getId(), returned.systemEvent().getId());
       assertEquals(USER_ID, returned.systemEvent().getActorId());
       assertSame(message, returned.message());

@@ -95,8 +95,7 @@ class ParticipantServiceImplTest {
             membersService,
             participantRepository,
             videoServerService,
-            eventDispatcher,
-            clock);
+            eventDispatcher);
   }
 
   private UUID user1Id;
@@ -238,8 +237,7 @@ class ParticipantServiceImplTest {
       verify(participantRepository, times(1))
           .insert(
               Participant.create(permanentMeeting, user3Id.toString())
-                  .queueId(user3Queue1.toString())
-                  .createdAt(OffsetDateTime.now(clock)));
+                  .queueId(user3Queue1.toString()));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user3Id.toString(),
@@ -386,8 +384,7 @@ class ParticipantServiceImplTest {
       verify(participantRepository, times(1))
           .insert(
               Participant.create(scheduledMeeting, user1Id.toString())
-                  .queueId(user1Queue1.toString())
-                  .createdAt(OffsetDateTime.now(clock)));
+                  .queueId(user1Queue1.toString()));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user1Id.toString(),
@@ -1687,6 +1684,8 @@ class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
       OffsetDateTime dateTime = OffsetDateTime.now(clock);
+      when(participantRepository.setHandRaised(any(Participant.class), eq(true)))
+          .thenAnswer(i -> i.<Participant>getArgument(0).handRaisedAt(dateTime));
       when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
           .thenReturn(
               List.of(
@@ -1698,7 +1697,7 @@ class ParticipantServiceImplTest {
           UserPrincipal.create(user1Id).queueId(user1Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(participantRepository, times(1)).update(participant1Session1.handRaisedAt(dateTime));
+      verify(participantRepository, times(1)).setHandRaised(participant1Session1, true);
       verify(participantRepository, times(1))
           .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -1755,6 +1754,8 @@ class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
       OffsetDateTime dateTime = OffsetDateTime.now(clock);
+      when(participantRepository.setHandRaised(any(Participant.class), eq(true)))
+          .thenAnswer(i -> i.<Participant>getArgument(0).handRaisedAt(dateTime));
       when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
           .thenReturn(
               List.of(
@@ -1768,7 +1769,7 @@ class ParticipantServiceImplTest {
           UserPrincipal.create(user2Id).queueId(user2Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(participantRepository, times(1)).update(participant2Session1.handRaisedAt(dateTime));
+      verify(participantRepository, times(1)).setHandRaised(participant2Session1, true);
       verify(participantRepository, times(1))
           .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -1810,7 +1811,7 @@ class ParticipantServiceImplTest {
           UserPrincipal.create(user1Id).queueId(user1Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(participantRepository, times(1)).update(participant1Session1.handRaisedAt(null));
+      verify(participantRepository, times(1)).setHandRaised(participant1Session1, false);
       verify(participantRepository, times(1))
           .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -1856,7 +1857,7 @@ class ParticipantServiceImplTest {
           UserPrincipal.create(user4Id).queueId(user4Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(participantRepository, times(1)).update(participant4Session1.handRaisedAt(null));
+      verify(participantRepository, times(1)).setHandRaised(participant4Session1, false);
       verify(participantRepository, times(1))
           .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -1917,7 +1918,7 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
-      verify(participantRepository, times(1)).update(participant4Session1.handRaisedAt(null));
+      verify(participantRepository, times(1)).setHandRaised(participant4Session1, false);
       verify(participantRepository, times(1))
           .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))

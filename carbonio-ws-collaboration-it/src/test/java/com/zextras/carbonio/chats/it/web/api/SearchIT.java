@@ -14,7 +14,6 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
@@ -22,7 +21,6 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -40,7 +38,6 @@ class SearchIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final MessageRepository messageRepository;
-  private final AppClock clock;
 
   private static UUID meId;
   private static UUID otherId;
@@ -57,13 +54,11 @@ class SearchIT {
       ResteasyRequestDispatcher dispatcher,
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
-      MessageRepository messageRepository,
-      Clock clock) {
+      MessageRepository messageRepository) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.messageRepository = messageRepository;
-    this.clock = (AppClock) clock;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
 
@@ -84,13 +79,9 @@ class SearchIT {
 
   private String message(String text, int second) {
     String id = UUID.randomUUID().toString();
-    clock.fixTimeAt(T0.plusSeconds(second).toInstant());
-    try {
-      messageRepository.insert(
-          Message.create().id(id).roomId(roomId).senderId(otherId.toString()).text(text));
-    } finally {
-      clock.removeFixTime();
-    }
+    messageRepository.insert(
+        Message.create().id(id).roomId(roomId).senderId(otherId.toString()).text(text));
+    integrationTestUtils.setMessageTime(id, T0.plusSeconds(second));
     return id;
   }
 

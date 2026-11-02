@@ -10,7 +10,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -108,13 +107,12 @@ public interface MembersService {
   Optional<Subscription> getSubscription(UUID userId, UUID roomId);
 
   /**
-   * Adds every member into the specified room
+   * Inserts the subscription of every member into the specified room; the join time is the database
+   * one
    *
    * @param members {@link List} of member to add
    * @param room {@link Room} where to add the members to
-   * @param joinedAt instant the members join the room
    * @return {@link List} of {@link Subscription} added
    */
-  List<Subscription> initRoomSubscriptions(
-      List<MemberDto> members, Room room, OffsetDateTime joinedAt);
+  List<Subscription> initRoomSubscriptions(List<MemberDto> members, Room room);
 }

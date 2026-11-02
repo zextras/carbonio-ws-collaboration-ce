@@ -86,16 +86,23 @@ public class EbeanRoomRepository implements RoomRepository {
 
   @Override
   public Room insert(Room room) {
-    if (room.getCreatedAt() == null) {
-      throw new IllegalArgumentException("Room createdAt must be set before insert");
-    }
     db.insert(room);
+    db.refresh(room);
     return room;
   }
 
   @Override
   public Room update(Room room) {
-    db.update(room);
+    TimedUpdate.update(db, room, room.getId(), TimedUpdate.UPDATED_AT_NOW);
+    db.refresh(room);
+    return room;
+  }
+
+  @Override
+  public Room markPictureUpdated(Room room) {
+    TimedUpdate.update(
+        db, room, room.getId(), "pictureUpdatedAt = clock_timestamp()", TimedUpdate.UPDATED_AT_NOW);
+    db.refresh(room);
     return room;
   }
 

@@ -90,7 +90,7 @@ SELECT id, created_at FROM new_msg
           SELECT d.message_id
           FROM chats.message_send_dedup d CROSS JOIN ts
           WHERE d.room_id = :roomId AND d.sender_id = :userId AND d.temp_id = :tempId
-            AND d.created_at >= CAST(ts.t AS timestamp) - INTERVAL '1 hour'
+            AND d.created_at >= ts.t - INTERVAL '1 hour'
       )
       SELECT EXISTS (SELECT 1 FROM check_member) AS is_member,
              EXISTS (SELECT 1 FROM reply_ok) AS reply_visible,

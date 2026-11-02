@@ -14,9 +14,8 @@ import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
+import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -44,13 +43,15 @@ class MessageExportRepositoryIT {
 
   private final MessageRepository messageRepository;
   private final RoomRepository roomRepository;
-  private final AppClock clock;
+  private final IntegrationTestUtils integrationTestUtils;
 
   public MessageExportRepositoryIT(
-      MessageRepository messageRepository, RoomRepository roomRepository, Clock clock) {
+      MessageRepository messageRepository,
+      RoomRepository roomRepository,
+      IntegrationTestUtils integrationTestUtils) {
     this.messageRepository = messageRepository;
     this.roomRepository = roomRepository;
-    this.clock = (AppClock) clock;
+    this.integrationTestUtils = integrationTestUtils;
   }
 
   // Fixed instants used across all tests
@@ -94,7 +95,6 @@ class MessageExportRepositoryIT {
     // Create the room with the sender as member
     Room room = Room.create();
     room.id(roomId)
-        .createdAt(OffsetDateTime.now(ZoneOffset.UTC))
         .name("export-test-room")
         .type(RoomTypeDto.GROUP)
         .subscriptions(
@@ -102,28 +102,22 @@ class MessageExportRepositoryIT {
                 Subscription.create()
                     .id(new SubscriptionId(roomId, senderId))
                     .userId(senderId)
-                    .room(room)
-                    .joinedAt(OffsetDateTime.now(ZoneOffset.UTC))));
+                    .room(room)));
     roomRepository.insert(room);
 
-    // Insert messages with deterministic timestamps. Message.createdAt is @WhenCreated, which
-    // Ebean overwrites on insert with the configured clock's current time, so the timestamp
-    // cannot be set on the entity directly. Instead we drive the (test) AppClock that Ebean uses
-    // (see CoreModule#getDatabase -> DatabaseConfig.setClock) and let @WhenCreated stamp the value
-    // we want. T2 and T3 deliberately resolve to the same instant to exercise the same-ms edge.
+    // Messages get deterministic timestamps by rewriting the database-written ones. T2 and T3
+    // deliberately resolve to the same instant to exercise the same-ms edge.
     insertMessage(msgId0, T0, "before cleared");
     insertMessage(msgId1, T1, "first after cleared");
     insertMessage(msgId2, T2, "same-ms message A");
     insertMessage(msgId3, T3, "same-ms message B");
     insertMessage(msgId4, T4, "fourth after cleared");
     insertMessage(msgId5, T5, "fifth after cleared");
-
-    clock.removeFixTime();
   }
 
   private void insertMessage(String id, OffsetDateTime createdAt, String text) {
-    clock.fixTimeAt(createdAt.toInstant());
     messageRepository.insert(Message.create().id(id).roomId(roomId).senderId(senderId).text(text));
+    integrationTestUtils.setMessageTime(id, createdAt);
   }
 
   @Test

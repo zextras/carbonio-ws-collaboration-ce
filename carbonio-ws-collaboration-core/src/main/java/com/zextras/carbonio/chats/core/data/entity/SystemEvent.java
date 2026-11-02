@@ -33,7 +33,7 @@ public class SystemEvent {
   @Column(name = "CONTENT")
   private String content;
 
-  @Column(name = "CREATED_AT")
+  @Column(name = "CREATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime createdAt;
 

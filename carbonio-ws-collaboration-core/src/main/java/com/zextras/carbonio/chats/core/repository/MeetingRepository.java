@@ -20,5 +20,13 @@ public interface MeetingRepository {
 
   Meeting update(Meeting meeting);
 
+  /**
+   * Activates the {@link Meeting} setting its start time to the database clock
+   *
+   * @param meeting {@link Meeting} to start
+   * @return {@link Meeting} refreshed with the stored start time
+   */
+  Meeting markStarted(Meeting meeting);
+
   void delete(Meeting meeting);
 }

@@ -19,8 +19,8 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.Database;
 import jakarta.annotation.Nullable;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ public class IntegrationTestUtils {
   private final UserRepository userRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final MessageRepository messageRepository;
-  private final Clock clock;
+  private final Database database;
 
   @Inject
   public IntegrationTestUtils(
@@ -44,13 +44,13 @@ public class IntegrationTestUtils {
       UserRepository userRepository,
       RoomUserSettingsRepository roomUserSettingsRepository,
       MessageRepository messageRepository,
-      Clock clock) {
+      Database database) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.userRepository = userRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.messageRepository = messageRepository;
-    this.clock = clock;
+    this.database = database;
   }
 
   public Room generateAndSaveRoom(
@@ -86,7 +86,7 @@ public class IntegrationTestUtils {
       List<UUID> ownerIds,
       @Nullable List<UUID> mutedIds,
       @Nullable OffsetDateTime pictureUpdateTimestamp) {
-    Room room = Room.create().createdAt(OffsetDateTime.now(clock));
+    Room room = Room.create();
     room.id(id.toString())
         .name(name)
         .description(description)
@@ -98,8 +98,7 @@ public class IntegrationTestUtils {
                         Subscription.create()
                             .id(new SubscriptionId(room.getId(), userId.toString()))
                             .userId(userId.toString())
-                            .room(room)
-                            .joinedAt(OffsetDateTime.now()))
+                            .room(room))
                 .collect(Collectors.toList()));
     ownerIds.forEach(
         ownerId ->
@@ -129,7 +128,6 @@ public class IntegrationTestUtils {
   }
 
   public Room generateAndSaveRoom(Room room, List<RoomMemberField> members) {
-    room.createdAt(OffsetDateTime.now(clock));
     room.subscriptions(new ArrayList<>());
     room.userSettings(new ArrayList<>());
     members.forEach(
@@ -141,8 +139,7 @@ public class IntegrationTestUtils {
                       .userId(member.getId().toString())
                       .room(room)
                       .owner(member.isOwner())
-                      .temporary(member.isTemporary())
-                      .joinedAt(OffsetDateTime.now()));
+                      .temporary(member.isTemporary()));
 
           if (member.isMuted()) {
             room.getUserSettings()
@@ -291,6 +288,32 @@ public class IntegrationTestUtils {
             .roomId(roomId.toString())
             .senderId(senderId.toString())
             .text(text));
+  }
+
+  public void setTimes(
+      String table, String idColumn, String id, OffsetDateTime at, String... columns) {
+    String assignments =
+        java.util.Arrays.stream(columns)
+            .map(column -> column + " = :at")
+            .collect(Collectors.joining(", "));
+    database
+        .sqlUpdate(
+            "UPDATE chats." + table + " SET " + assignments + " WHERE " + idColumn + " = :id")
+        .setParameter("at", at)
+        .setParameter("id", id)
+        .execute();
+  }
+
+  public void setMessageTime(String messageId, OffsetDateTime at) {
+    setTimes("message", "id", messageId, at, "created_at", "updated_at");
+  }
+
+  public void setSystemEventTime(String eventId, OffsetDateTime at) {
+    setTimes("system_event", "id", eventId, at, "created_at");
+  }
+
+  public void setFileTime(String fileId, OffsetDateTime at) {
+    setTimes("file_metadata", "id", fileId, at, "created_at", "updated_at");
   }
 
   public Optional<Message> getMessageById(String messageId) {

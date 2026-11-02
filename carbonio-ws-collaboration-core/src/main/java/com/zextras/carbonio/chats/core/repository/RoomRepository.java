@@ -62,6 +62,14 @@ public interface RoomRepository {
   Room update(Room room);
 
   /**
+   * Sets the room picture update time and the update time to the database clock
+   *
+   * @param room {@link Room} whose picture changed
+   * @return {@link Room} refreshed with the stored times
+   */
+  Room markPictureUpdated(Room room);
+
+  /**
    * Deletes a {@link Room} by its identifier
    *
    * @param roomId room identifier

@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
-import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import io.ebean.Database;
 import io.ebean.Query;
@@ -20,12 +19,10 @@ import java.util.Optional;
 public class EbeanSystemEventRepository implements SystemEventRepository {
 
   private final Database db;
-  private final DatabaseClock databaseClock;
 
   @Inject
-  public EbeanSystemEventRepository(Database db, DatabaseClock databaseClock) {
+  public EbeanSystemEventRepository(Database db) {
     this.db = db;
-    this.databaseClock = databaseClock;
   }
 
   @Override
@@ -43,10 +40,8 @@ public class EbeanSystemEventRepository implements SystemEventRepository {
 
   @Override
   public SystemEvent insert(SystemEvent event) {
-    if (event.getCreatedAt() == null) {
-      event.createdAt(databaseClock.now());
-    }
     db.insert(event);
+    db.refresh(event);
     return event;
   }
 

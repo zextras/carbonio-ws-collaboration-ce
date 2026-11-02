@@ -225,7 +225,12 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
 
   @Override
   public FileMetadata save(FileMetadata metadata) {
-    db.save(metadata);
+    if (db.beanState(metadata).isNew()) {
+      db.insert(metadata);
+      db.refresh(metadata);
+    } else {
+      TimedUpdate.update(db, metadata, metadata.getId(), TimedUpdate.UPDATED_AT_NOW);
+    }
     return metadata;
   }
 

@@ -28,7 +28,7 @@ public class EbeanMessagePinRepository implements MessagePinRepository {
       ON CONFLICT (room_id)
       DO UPDATE SET message_id = EXCLUDED.message_id,
                     pinned_by = EXCLUDED.pinned_by,
-                    pinned_at = EXCLUDED.pinned_at
+                    pinned_at = clock_timestamp()
       RETURNING room_id, message_id, pinned_by, pinned_at
       """;
 

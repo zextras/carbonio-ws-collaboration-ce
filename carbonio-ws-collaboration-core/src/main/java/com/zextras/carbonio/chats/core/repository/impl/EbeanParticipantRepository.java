@@ -61,7 +61,24 @@ public class EbeanParticipantRepository implements ParticipantRepository {
 
   @Override
   public Participant update(Participant participant) {
-    db.update(participant);
+    TimedUpdate.update(db, participant, participant.getId(), TimedUpdate.UPDATED_AT_NOW);
+    return participant;
+  }
+
+  @Override
+  public Participant setHandRaised(Participant participant, boolean raised) {
+    if (raised) {
+      TimedUpdate.update(
+          db,
+          participant,
+          participant.getId(),
+          "handRaisedAt = clock_timestamp()",
+          TimedUpdate.UPDATED_AT_NOW);
+    } else {
+      participant.handRaisedAt(null);
+      TimedUpdate.update(db, participant, participant.getId(), TimedUpdate.UPDATED_AT_NOW);
+    }
+    db.refresh(participant);
     return participant;
   }
 

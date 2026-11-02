@@ -30,7 +30,6 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -108,11 +107,7 @@ class RoomMemberFanOutIT {
     assertNoEvent(moverQueue);
 
     subscriptionRepository.insert(
-        Subscription.create(room, mover.toString())
-            .joinedAt(OffsetDateTime.now())
-            .owner(false)
-            .temporary(false)
-            .external(false));
+        Subscription.create(room, mover.toString()).owner(false).temporary(false).external(false));
     send("second");
 
     assertEquals("second", nextEvent(moverQueue).get("message").get("text").asText());

@@ -288,8 +288,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             .roomId(roomId)
             .type("MESSAGE_PINNED")
             .actorId(userId)
-            .content(content)
-            .createdAt(pin.getPinnedAt());
+            .content(content);
     systemEventRepository.insert(event);
     return new PinResult(message, event);
   }

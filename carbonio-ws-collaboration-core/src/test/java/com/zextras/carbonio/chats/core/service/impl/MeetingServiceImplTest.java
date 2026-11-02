@@ -260,12 +260,12 @@ class MeetingServiceImplTest {
               .active(true);
       String xmppMessage = "xmpp-message";
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(meetingRepository.markStarted(meeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
       meetingService.startMeeting(currentUser, meetingId);
       verify(meetingRepository, times(1)).getById(meetingId.toString());
-      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(meetingRepository, times(1)).markStarted(meeting);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
@@ -300,7 +300,7 @@ class MeetingServiceImplTest {
               .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(meetingRepository.markStarted(meeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(
               RoomDto.create()
@@ -312,7 +312,7 @@ class MeetingServiceImplTest {
                           MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
       meetingService.startMeeting(currentUser, meetingId);
       verify(meetingRepository, times(1)).getById(meetingId.toString());
-      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(meetingRepository, times(1)).markStarted(meeting);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
       org.mockito.ArgumentCaptor<SystemEvent> inserted =
@@ -960,7 +960,7 @@ class MeetingServiceImplTest {
               .id(meetingId.toString())
               .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
+      when(meetingRepository.markStarted(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(
               RoomDto.create()
@@ -1076,6 +1076,7 @@ class MeetingServiceImplTest {
               .startedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z"))
               .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.markStarted(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(
