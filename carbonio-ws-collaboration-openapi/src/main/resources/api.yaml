@@ -806,6 +806,8 @@ paths:
             When provided alongside `before`, pagination uses a composite cursor
             (created_at, id) < (before, beforeId) to avoid skipping messages that
             share the same millisecond timestamp across page boundaries.
+            The server anchors the page on the stored creation time of the
+            `beforeId` item rather than on the client-supplied `before`, when the item exists.
           schema:
             type: string
           required: false
