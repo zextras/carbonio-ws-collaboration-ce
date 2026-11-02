@@ -181,7 +181,8 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | Event | Emitted when | Audience |
 |---|---|---|
 | `RoomCreated` | A new room is created | All room members |
-| `RoomUpdated` | Room name or description changes | All room members |
+| `RoomNameChanged` | Room name changes | All room members |
+| `RoomDescriptionChanged` | Room description changes | All room members |
 | `RoomDeleted` | Room is deleted | All room members |
 | `RoomMemberAdded` | A user is added to a room | All room members |
 | `RoomMemberRemoved` | A user is removed from a room | All room members |
@@ -261,8 +262,7 @@ row's `actorId`, and `systemEventId` is the id to use in `GET /rooms/{roomId}/ti
 counted as unread when the author is not the current user. The row is committed before the event is
 dispatched.
 
-Next to every `systemEventId` (and `nameSystemEventId` / `descriptionSystemEventId`) the event carries
-`systemEventCreatedAt` (`nameSystemEventCreatedAt` / `descriptionSystemEventCreatedAt`), the row's
+Next to every `systemEventId` the event carries `systemEventCreatedAt`, the row's
 `createdAt`: the same instant as the timeline item's `createdAt` and as the `itemCreatedAt` that
 `PUT /rooms/{roomId}/read` with that id stores. Date a live line with it, never with `sentDate`
 (later): a line dated by `sentDate` stays after the read marker and looks unread forever. It is
@@ -305,7 +305,8 @@ event.
 
 | Event | System line | Author field | `systemEventId` |
 |---|---|---|---|
-| `RoomUpdated` | `ROOM_NAME_CHANGED`, `ROOM_DESCRIPTION_CHANGED` | `updatedBy` (always) | `nameSystemEventId` only if the name changed, `descriptionSystemEventId` only if the description changed |
+| `RoomNameChanged` | `ROOM_NAME_CHANGED` | `updatedBy` (always) | `systemEventId`, always |
+| `RoomDescriptionChanged` | `ROOM_DESCRIPTION_CHANGED` | `updatedBy` (always) | `systemEventId`, always |
 | `RoomPictureChanged` | `ROOM_PICTURE_UPDATED` | `updatedBy` (always) | `systemEventId`, always |
 | `RoomPictureDeleted` | `ROOM_PICTURE_DELETED` | `deletedBy` (always) | `systemEventId`, always |
 | `RoomHistoryCleared` | `ROOM_HISTORY_CLEARED` | `clearedBy` | `systemEventId`; both present only for TEMPORARY rooms, absent for the per-user clear |

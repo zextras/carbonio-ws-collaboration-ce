@@ -27,12 +27,13 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.async.model.RoomCreated;
 import com.zextras.carbonio.async.model.RoomDeleted;
+import com.zextras.carbonio.async.model.RoomDescriptionChanged;
 import com.zextras.carbonio.async.model.RoomHistoryCleared;
 import com.zextras.carbonio.async.model.RoomMuted;
+import com.zextras.carbonio.async.model.RoomNameChanged;
 import com.zextras.carbonio.async.model.RoomPictureChanged;
 import com.zextras.carbonio.async.model.RoomPictureDeleted;
 import com.zextras.carbonio.async.model.RoomUnmuted;
-import com.zextras.carbonio.async.model.RoomUpdated;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
@@ -982,18 +983,28 @@ class RoomServiceImplTest {
       assertEquals("Room one changed", room.getDescription());
 
       List<SystemEvent> events = insertedSystemEvents(2);
-      verify(eventDispatcher, times(1))
+      List<String> receivers = List.of(user1Id.toString(), user2Id.toString(), user3Id.toString());
+      InOrder inOrder = inOrder(eventDispatcher);
+      inOrder
+          .verify(eventDispatcher, times(1))
           .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomUpdated.create()
+              receivers,
+              RoomNameChanged.create()
                   .roomId(roomGroup1Id)
                   .name("room1-changed")
+                  .updatedBy(user1Id)
+                  .systemEventId(events.get(0).getId())
+                  .systemEventCreatedAt(events.get(0).getCreatedAt()));
+      inOrder
+          .verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              receivers,
+              RoomDescriptionChanged.create()
+                  .roomId(roomGroup1Id)
                   .description("Room one changed")
                   .updatedBy(user1Id)
-                  .nameSystemEventId(events.get(0).getId())
-                  .nameSystemEventCreatedAt(events.get(0).getCreatedAt())
-                  .descriptionSystemEventId(events.get(1).getId())
-                  .descriptionSystemEventCreatedAt(events.get(1).getCreatedAt()));
+                  .systemEventId(events.get(1).getId())
+                  .systemEventCreatedAt(events.get(1).getCreatedAt()));
       verifyNoMoreInteractions(eventDispatcher);
       verifyNoMoreInteractions(messageDispatcher);
     }
@@ -1027,18 +1038,28 @@ class RoomServiceImplTest {
       assertEquals("Room one changed", room.getDescription());
 
       List<SystemEvent> events = insertedSystemEvents(2);
-      verify(eventDispatcher, times(1))
+      List<String> receivers = List.of(user1Id.toString(), user2Id.toString(), user3Id.toString());
+      InOrder inOrder = inOrder(eventDispatcher);
+      inOrder
+          .verify(eventDispatcher, times(1))
           .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomUpdated.create()
+              receivers,
+              RoomNameChanged.create()
                   .roomId(roomGroup1Id)
                   .name("room1-changed")
+                  .updatedBy(user1Id)
+                  .systemEventId(events.get(0).getId())
+                  .systemEventCreatedAt(events.get(0).getCreatedAt()));
+      inOrder
+          .verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              receivers,
+              RoomDescriptionChanged.create()
+                  .roomId(roomGroup1Id)
                   .description("Room one changed")
                   .updatedBy(user1Id)
-                  .nameSystemEventId(events.get(0).getId())
-                  .nameSystemEventCreatedAt(events.get(0).getCreatedAt())
-                  .descriptionSystemEventId(events.get(1).getId())
-                  .descriptionSystemEventCreatedAt(events.get(1).getCreatedAt()));
+                  .systemEventId(events.get(1).getId())
+                  .systemEventCreatedAt(events.get(1).getCreatedAt()));
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(meetingService, times(1)).updateMeeting(meeting1.name("room1-changed"));
       verifyNoMoreInteractions(eventDispatcher);
@@ -1091,13 +1112,13 @@ class RoomServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomUpdated.create()
+              RoomNameChanged.create()
                   .roomId(roomGroup1Id)
                   .name("new")
-                  .description("same")
                   .updatedBy(user1Id)
-                  .nameSystemEventId(events.get(0).getId())
-                  .nameSystemEventCreatedAt(events.get(0).getCreatedAt()));
+                  .systemEventId(events.get(0).getId())
+                  .systemEventCreatedAt(events.get(0).getCreatedAt()));
+      verifyNoMoreInteractions(eventDispatcher);
     }
 
     @Test
@@ -1119,13 +1140,13 @@ class RoomServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomUpdated.create()
+              RoomDescriptionChanged.create()
                   .roomId(roomGroup1Id)
-                  .name("same")
                   .description("")
                   .updatedBy(user1Id)
-                  .descriptionSystemEventId(events.get(0).getId())
-                  .descriptionSystemEventCreatedAt(events.get(0).getCreatedAt()));
+                  .systemEventId(events.get(0).getId())
+                  .systemEventCreatedAt(events.get(0).getCreatedAt()));
+      verifyNoMoreInteractions(eventDispatcher);
     }
 
     @Test

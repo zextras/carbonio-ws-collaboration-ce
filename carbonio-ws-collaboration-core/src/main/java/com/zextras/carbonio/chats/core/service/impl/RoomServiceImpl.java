@@ -330,20 +330,32 @@ public class RoomServiceImpl implements RoomService {
                         currentUser.getId(), room.getDescription()),
                     nameChanged ? eventInstant.plus(1, ChronoUnit.MILLIS) : eventInstant));
       }
-      eventDispatcher.sendToUserExchange(
-          room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-          RoomUpdated.create()
-              .roomId(roomId)
-              .name(room.getName())
-              .description(room.getDescription())
-              .updatedBy(currentUser.getUUID())
-              .nameSystemEventId(nameSystemEvent.map(SystemEvent::getId).orElse(null))
-              .nameSystemEventCreatedAt(nameSystemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-              .descriptionSystemEventId(descriptionSystemEvent.map(SystemEvent::getId).orElse(null))
-              .descriptionSystemEventCreatedAt(
-                  descriptionSystemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-              .type(EventType.ROOM_UPDATED)
-              .sentDate(OffsetDateTime.now()));
+      List<String> receivers =
+          room.getSubscriptions().stream().map(Subscription::getUserId).toList();
+      nameSystemEvent.ifPresent(
+          line ->
+              eventDispatcher.sendToUserExchange(
+                  receivers,
+                  RoomNameChanged.create()
+                      .roomId(roomId)
+                      .name(room.getName())
+                      .updatedBy(currentUser.getUUID())
+                      .systemEventId(line.getId())
+                      .systemEventCreatedAt(line.getCreatedAt())
+                      .type(EventType.ROOM_NAME_CHANGED)
+                      .sentDate(OffsetDateTime.now())));
+      descriptionSystemEvent.ifPresent(
+          line ->
+              eventDispatcher.sendToUserExchange(
+                  receivers,
+                  RoomDescriptionChanged.create()
+                      .roomId(roomId)
+                      .description(room.getDescription())
+                      .updatedBy(currentUser.getUUID())
+                      .systemEventId(line.getId())
+                      .systemEventCreatedAt(line.getCreatedAt())
+                      .type(EventType.ROOM_DESCRIPTION_CHANGED)
+                      .sentDate(OffsetDateTime.now())));
     }
 
     return roomMapper.ent2dto(

@@ -352,9 +352,30 @@ class SystemLineEventsIT {
     return objectMapper.writeValueAsString(body);
   }
 
+  private List<String> drainTypes(String queue) throws Exception {
+    List<String> types = new ArrayList<>();
+    int emptyPolls = 0;
+    while (emptyPolls < 10) {
+      GetResponse response = channel.basicGet(queue, true);
+      if (response == null) {
+        emptyPolls++;
+        Thread.sleep(100);
+      } else {
+        emptyPolls = 0;
+        types.add(
+            objectMapper
+                .readTree(new String(response.getBody(), StandardCharsets.UTF_8))
+                .get("type")
+                .asText());
+      }
+    }
+    return types;
+  }
+
   @Test
-  @DisplayName("RoomUpdated with name and description carries updatedBy and both persisted rows")
-  void roomUpdatedNameAndDescription() throws Exception {
+  @DisplayName(
+      "Changing name and description sends two events, each with its own system line, in order")
+  void nameAndDescriptionChangeSendsTwoEvents() throws Exception {
     assertEquals(
         200,
         dispatcher
@@ -364,10 +385,16 @@ class SystemLineEventsIT {
                 aToken)
             .getStatus());
 
-    JsonNode event = nextEvent(queueB, "RoomUpdated");
-    assertEquals(aUserId.toString(), event.get("updatedBy").asText());
-    SystemEvent nameRow = persisted(event.get("nameSystemEventId").asText());
-    SystemEvent descriptionRow = persisted(event.get("descriptionSystemEventId").asText());
+    JsonNode nameEvent = nextEvent(queueB, "RoomNameChanged");
+    JsonNode descriptionEvent = nextEvent(queueB, "RoomDescriptionChanged");
+    assertEquals(aUserId.toString(), nameEvent.get("updatedBy").asText());
+    assertEquals(aUserId.toString(), descriptionEvent.get("updatedBy").asText());
+    assertEquals("renamed", nameEvent.get("name").asText());
+    assertEquals("new description", descriptionEvent.get("description").asText());
+    assertFalse(nameEvent.has("description"));
+    assertFalse(descriptionEvent.has("name"));
+    SystemEvent nameRow = persisted(nameEvent.get("systemEventId").asText());
+    SystemEvent descriptionRow = persisted(descriptionEvent.get("systemEventId").asText());
     assertEquals("ROOM_NAME_CHANGED", nameRow.getType());
     assertEquals("ROOM_DESCRIPTION_CHANGED", descriptionRow.getType());
     assertEquals(roomId.toString(), nameRow.getRoomId());
@@ -379,8 +406,8 @@ class SystemLineEventsIT {
     assertEquals("new description", content(descriptionRow).get("description").asText());
     assertEquals(
         1L, Duration.between(nameRow.getCreatedAt(), descriptionRow.getCreatedAt()).toMillis());
-    assertCreatedAt(nameRow, event, "nameSystemEventCreatedAt");
-    assertCreatedAt(descriptionRow, event, "descriptionSystemEventCreatedAt");
+    assertCreatedAt(nameRow, nameEvent, "systemEventCreatedAt");
+    assertCreatedAt(descriptionRow, descriptionEvent, "systemEventCreatedAt");
 
     JsonNode timelineName = timelineEvent(roomId, bToken, nameRow.getId());
     assertEquals("ROOM_NAME_CHANGED", timelineName.get("type").asText());
@@ -394,10 +421,10 @@ class SystemLineEventsIT {
 
   @Test
   @DisplayName(
-      "RoomUpdated for a description cleared to empty carries only descriptionSystemEventId")
-  void roomUpdatedDescriptionCleared() throws Exception {
+      "A description cleared to empty sends only RoomDescriptionChanged with an empty value")
+  void descriptionClearedSendsOnlyDescriptionEvent() throws Exception {
     dispatcher.put(String.format("/rooms/%s", roomId), updateBody(null, "something"), aToken);
-    nextEvent(queueB, "RoomUpdated");
+    nextEvent(queueB, "RoomDescriptionChanged");
 
     assertEquals(
         200,
@@ -405,22 +432,26 @@ class SystemLineEventsIT {
             .put(String.format("/rooms/%s", roomId), updateBody(null, ""), aToken)
             .getStatus());
 
-    JsonNode event = nextEvent(queueB, "RoomUpdated");
-    assertFalse(event.has("nameSystemEventId"));
-    SystemEvent row = persisted(event.get("descriptionSystemEventId").asText());
+    JsonNode event = nextEvent(queueB, "RoomDescriptionChanged");
+    assertEquals("", event.get("description").asText());
+    assertFalse(event.has("name"));
+    SystemEvent row = persisted(event.get("systemEventId").asText());
     assertEquals("ROOM_DESCRIPTION_CHANGED", row.getType());
     assertEquals("", content(row).get("description").asText());
-    assertCreatedAt(row, event, "descriptionSystemEventCreatedAt");
-    assertFalse(event.has("nameSystemEventCreatedAt"));
+    assertCreatedAt(row, event, "systemEventCreatedAt");
     assertEquals(aUserId.toString(), event.get("updatedBy").asText());
+    assertFalse(drainTypes(queueB).contains("RoomNameChanged"));
   }
 
   @Test
-  @DisplayName("An update that changes nothing writes no system event and sends no RoomUpdated")
-  void roomUpdatedNothingChanged() throws Exception {
+  @DisplayName(
+      "An update that changes nothing writes no system event and sends neither RoomNameChanged nor"
+          + " RoomDescriptionChanged")
+  void nothingChangedSendsNoEvent() throws Exception {
     dispatcher.put(String.format("/rooms/%s", roomId), updateBody("same-name", null), aToken);
-    nextEvent(queueB, "RoomUpdated");
+    nextEvent(queueB, "RoomNameChanged");
     int before = timelineSystemEvents(roomId, aToken).size();
+    drainTypes(queueB);
 
     assertEquals(
         200,
@@ -429,6 +460,9 @@ class SystemLineEventsIT {
             .getStatus());
 
     assertEquals(before, timelineSystemEvents(roomId, aToken).size());
+    List<String> types = drainTypes(queueB);
+    assertFalse(types.contains("RoomNameChanged"));
+    assertFalse(types.contains("RoomDescriptionChanged"));
   }
 
   @Test

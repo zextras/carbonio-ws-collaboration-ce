@@ -21,7 +21,8 @@ components:
       enum:
         # Room Events
         - RoomCreated
-        - RoomUpdated
+        - RoomNameChanged
+        - RoomDescriptionChanged
         - RoomDeleted
         - RoomOwnerPromoted
         - RoomOwnerDemoted
@@ -80,7 +81,8 @@ components:
         propertyName: type
         mapping:
           roomCreated: "#/components/schemas/RoomCreated"
-          roomUpdated: "#/components/schemas/RoomUpdated"
+          roomNameChanged: "#/components/schemas/RoomNameChanged"
+          roomDescriptionChanged: "#/components/schemas/RoomDescriptionChanged"
           roomDeleted: "#/components/schemas/RoomDeleted"
           roomOwnerPromoted: "#/components/schemas/RoomOwnerPromoted"
           roomOwnerDemoted: "#/components/schemas/RoomOwnerDemoted"
@@ -146,7 +148,7 @@ components:
           required:
             - roomId
 
-    RoomUpdated:
+    RoomNameChanged:
       allOf:
         - $ref: "#/components/schemas/DomainEvent"
         - type: object
@@ -156,34 +158,51 @@ components:
               format: uuid
             name:
               type: string
-            description:
-              type: string
+              description: The new room name
             updatedBy:
               type: string
               format: uuid
-            nameSystemEventId:
+            systemEventId:
               type: string
-              description: "id of the ROOM_NAME_CHANGED system event (timeline item) created by this action, present only when the name changed"
-              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
-            nameSystemEventCreatedAt:
-              type: string
-              format: date-time
-              description: "createdAt of the nameSystemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when nameSystemEventId is"
-              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
-            descriptionSystemEventId:
-              type: string
-              description: "id of the ROOM_DESCRIPTION_CHANGED system event (timeline item) created by this action, present only when the description changed"
-              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
-            descriptionSystemEventCreatedAt:
+              description: "id of the ROOM_NAME_CHANGED system event (timeline item) written by this change"
+            systemEventCreatedAt:
               type: string
               format: date-time
-              description: "createdAt of the descriptionSystemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when descriptionSystemEventId is"
-              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets"
           required:
             - roomId
             - name
+            - updatedBy
+            - systemEventId
+            - systemEventCreatedAt
+
+    RoomDescriptionChanged:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            description:
+              type: string
+              description: The new room description, empty when it was cleared
+            updatedBy:
+              type: string
+              format: uuid
+            systemEventId:
+              type: string
+              description: "id of the ROOM_DESCRIPTION_CHANGED system event (timeline item) written by this change"
+            systemEventCreatedAt:
+              type: string
+              format: date-time
+              description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets"
+          required:
+            - roomId
             - description
             - updatedBy
+            - systemEventId
+            - systemEventCreatedAt
 
     RoomDeleted:
       allOf:
