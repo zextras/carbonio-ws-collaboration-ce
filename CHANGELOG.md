@@ -1,3 +1,9 @@
+## [1.15.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.0...v1.15.1) (2026-11-02)
+
+### Bug Fixes
+
+* **meeting:** make starting an already active meeting a no-op ([#300](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/300)) ([ec0e4e4](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/ec0e4e45751abd186d343ed061bd690607425e80))
+
 ## [1.15.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.14.3...v1.15.0) (2026-10-30)
 
 ### Features
