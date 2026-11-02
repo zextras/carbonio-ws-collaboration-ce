@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
@@ -352,24 +353,22 @@ class SystemLineEventsIT {
     return objectMapper.writeValueAsString(body);
   }
 
-  private List<String> drainTypes(String queue) throws Exception {
-    List<String> types = new ArrayList<>();
-    int emptyPolls = 0;
-    while (emptyPolls < 10) {
+  private List<JsonNode> eventsUntil(String queue, String type) throws Exception {
+    List<JsonNode> events = new ArrayList<>();
+    for (int i = 0; i < 50; i++) {
       GetResponse response = channel.basicGet(queue, true);
-      if (response == null) {
-        emptyPolls++;
-        Thread.sleep(100);
+      if (response != null) {
+        JsonNode event =
+            objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
+        events.add(event);
+        if (type.equals(event.get("type").asText())) {
+          return events;
+        }
       } else {
-        emptyPolls = 0;
-        types.add(
-            objectMapper
-                .readTree(new String(response.getBody(), StandardCharsets.UTF_8))
-                .get("type")
-                .asText());
+        Thread.sleep(100);
       }
     }
-    return types;
+    throw new AssertionError("no " + type + " event received on " + queue);
   }
 
   @Test
@@ -440,7 +439,18 @@ class SystemLineEventsIT {
     assertEquals("", content(row).get("description").asText());
     assertCreatedAt(row, event, "systemEventCreatedAt");
     assertEquals(aUserId.toString(), event.get("updatedBy").asText());
-    assertFalse(drainTypes(queueB).contains("RoomNameChanged"));
+
+    assertEquals(
+        200,
+        dispatcher
+            .put(String.format("/rooms/%s", roomId), updateBody("sentinel-name", null), aToken)
+            .getStatus());
+    List<JsonNode> nameEvents =
+        eventsUntil(queueB, "RoomNameChanged").stream()
+            .filter(e -> "RoomNameChanged".equals(e.get("type").asText()))
+            .toList();
+    assertEquals(1, nameEvents.size());
+    assertEquals("sentinel-name", nameEvents.get(0).get("name").asText());
   }
 
   @Test
@@ -451,7 +461,6 @@ class SystemLineEventsIT {
     dispatcher.put(String.format("/rooms/%s", roomId), updateBody("same-name", null), aToken);
     nextEvent(queueB, "RoomNameChanged");
     int before = timelineSystemEvents(roomId, aToken).size();
-    drainTypes(queueB);
 
     assertEquals(
         200,
@@ -460,9 +469,27 @@ class SystemLineEventsIT {
             .getStatus());
 
     assertEquals(before, timelineSystemEvents(roomId, aToken).size());
-    List<String> types = drainTypes(queueB);
-    assertFalse(types.contains("RoomNameChanged"));
-    assertFalse(types.contains("RoomDescriptionChanged"));
+
+    assertEquals(
+        200,
+        dispatcher
+            .put(
+                String.format("/rooms/%s", roomId),
+                updateBody("sentinel-name", "sentinel-description"),
+                aToken)
+            .getStatus());
+    List<JsonNode> roomEvents =
+        eventsUntil(queueB, "RoomDescriptionChanged").stream()
+            .filter(
+                e ->
+                    Set.of("RoomNameChanged", "RoomDescriptionChanged")
+                        .contains(e.get("type").asText()))
+            .toList();
+    assertEquals(2, roomEvents.size());
+    assertEquals("RoomNameChanged", roomEvents.get(0).get("type").asText());
+    assertEquals("sentinel-name", roomEvents.get(0).get("name").asText());
+    assertEquals("RoomDescriptionChanged", roomEvents.get(1).get("type").asText());
+    assertEquals("sentinel-description", roomEvents.get(1).get("description").asText());
   }
 
   @Test
