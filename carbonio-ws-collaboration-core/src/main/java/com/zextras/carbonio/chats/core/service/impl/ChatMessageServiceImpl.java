@@ -90,6 +90,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
+  public SystemEvent updateSystemEvent(SystemEvent event) {
+    return systemEventRepository.update(event);
+  }
+
+  @Override
   public List<SystemEvent> getSystemEvents(String roomId) {
     return systemEventRepository.findByRoomId(roomId);
   }

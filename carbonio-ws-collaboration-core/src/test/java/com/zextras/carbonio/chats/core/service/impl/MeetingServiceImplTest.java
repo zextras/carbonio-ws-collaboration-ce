@@ -54,6 +54,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
@@ -939,6 +940,17 @@ class MeetingServiceImplTest {
       return captor.getValue();
     }
 
+    private Map<String, Object> readContent(SystemEvent event) {
+      try {
+        return new com.fasterxml.jackson.databind.ObjectMapper()
+            .readValue(
+                event.getContent(),
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
     private SystemEvent capturedEvent() {
       org.mockito.ArgumentCaptor<SystemEvent> captor =
           org.mockito.ArgumentCaptor.forClass(SystemEvent.class);
@@ -995,7 +1007,7 @@ class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
-              .startedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z"))
+              .startedAt(OffsetDateTime.parse("2026-10-23T08:57:55Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
@@ -1015,6 +1027,14 @@ class MeetingServiceImplTest {
       SystemEvent event = capturedEvent();
       assertEquals("MEETING_ENDED", event.getType());
       assertEquals(user2Id.toString(), event.getActorId());
+      verify(chatMessageService).updateSystemEvent(event);
+      Map<String, Object> content = readContent(event);
+      assertEquals(125, ((Number) content.get("durationSec")).longValue());
+      assertEquals(
+          OffsetDateTime.parse("2026-10-23T08:57:55Z").toInstant().toEpochMilli(),
+          ((Number) content.get("startedAt")).longValue());
+      assertEquals(user2Id.toString(), content.get("endedBy"));
+      assertEquals(meetingId.toString(), content.get("meetingId"));
       MeetingStopped stopped = dispatched(MeetingStopped.class);
       assertEquals(event.getId(), stopped.getSystemEventId());
       assertEquals(persistedAt, stopped.getSystemEventCreatedAt());

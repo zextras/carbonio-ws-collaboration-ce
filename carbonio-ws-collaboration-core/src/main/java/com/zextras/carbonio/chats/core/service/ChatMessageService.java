@@ -32,6 +32,14 @@ public interface ChatMessageService {
   SystemEvent insertSystemEvent(SystemEvent event);
 
   /**
+   * Updates an already persisted system event.
+   *
+   * @param event {@link SystemEvent} to update
+   * @return the updated {@link SystemEvent}
+   */
+  SystemEvent updateSystemEvent(SystemEvent event);
+
+  /**
    * Retrieves all system events for a room ordered by {@code createdAt} ascending.
    *
    * @param roomId room identifier

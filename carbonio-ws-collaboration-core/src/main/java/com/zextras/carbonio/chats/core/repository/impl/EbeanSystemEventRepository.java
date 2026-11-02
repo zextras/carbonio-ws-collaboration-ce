@@ -46,6 +46,12 @@ public class EbeanSystemEventRepository implements SystemEventRepository {
   }
 
   @Override
+  public SystemEvent update(SystemEvent event) {
+    db.update(event);
+    return event;
+  }
+
+  @Override
   public List<SystemEvent> findByRoomId(String roomId) {
     return db.find(SystemEvent.class)
         .where()

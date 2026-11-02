@@ -289,7 +289,7 @@ Every system line has a `content` JSON object, returned parsed by the timeline. 
 | `MESSAGE_PINNED` | `PUT .../messages/{messageId}/pin` | the pinner | `{"pinnedBy": <user>, "messageId": <message>}` |
 | `MESSAGE_UNPINNED` | `DELETE .../messages/{messageId}/pin` of the current pin, or deletion of the pinned message | the unpinner or the deleter | `{"unpinnedBy": <user>, "messageId": <message>}` |
 | `MEETING_STARTED` | A ONE_TO_ONE meeting starts | the starter | `{"startedBy": <user>, "meetingId": <meeting>}` |
-| `MEETING_ENDED` | A ONE_TO_ONE meeting that had started stops | the user whose action stopped it | `{"endedBy": <user>, "meetingId": <meeting>, "startedAt": <epoch milliseconds, number>, "durationSec": <seconds, number>}` |
+| `MEETING_ENDED` | A ONE_TO_ONE meeting that had started stops | the user whose action stopped it | `{"endedBy": <user>, "meetingId": <meeting>, "startedAt": <epoch milliseconds, number>, "durationSec": <seconds, number>}`; `durationSec` is the whole seconds between the meeting start and the line's `createdAt`, both database times |
 | `MEETING_DECLINED` | `POST /meetings/{meetingId}/decline` in a ONE_TO_ONE room | the decliner | `{"declinedBy": <user>, "meetingId": <meeting>}` |
 | `ROOM_NAME_CHANGED` | `PUT /rooms/{roomId}`, the name actually changed | the current user | `{"changedBy": <user>, "name": <new name>}` |
 | `ROOM_DESCRIPTION_CHANGED` | `PUT /rooms/{roomId}`, the description actually changed (also to `""`) | the current user | `{"changedBy": <user>, "description": <new description>}` |

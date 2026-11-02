@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -150,18 +151,9 @@ public class MeetingServiceImpl implements MeetingService {
             room -> {
               Optional<SystemEvent> systemEvent = Optional.empty();
               if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && startedAt != null) {
-                OffsetDateTime now = OffsetDateTime.now(clock);
-                long durationSec = Duration.between(startedAt, now).toSeconds();
                 systemEvent =
-                    insertMeetingSystemEvent(
-                        room.getId(),
-                        "MEETING_ENDED",
-                        user.getId(),
-                        Map.of(
-                            "endedBy", user.getId(),
-                            "meetingId", updatedMeeting.getId(),
-                            "startedAt", startedAt.toInstant().toEpochMilli(),
-                            "durationSec", durationSec));
+                    insertMeetingEndedEvent(
+                        room.getId(), user.getId(), updatedMeeting.getId(), startedAt);
               }
               notifyMeetingStopped(
                   updatedMeeting, room, extraReceivers, user.getUUID(), systemEvent);
@@ -299,6 +291,38 @@ public class MeetingServiceImpl implements MeetingService {
             .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
             .type(EventType.MEETING_STOPPED)
             .sentDate(OffsetDateTime.now(clock)));
+  }
+
+  @Transactional
+  private Optional<SystemEvent> insertMeetingEndedEvent(
+      String roomId, String endedBy, String meetingId, OffsetDateTime startedAt) {
+    long startedAtMillis = startedAt.toInstant().toEpochMilli();
+    Optional<SystemEvent> inserted =
+        insertMeetingSystemEvent(
+            roomId,
+            "MEETING_ENDED",
+            endedBy,
+            Map.of("endedBy", endedBy, "meetingId", meetingId, "startedAt", startedAtMillis));
+    inserted.ifPresent(
+        event -> {
+          long durationSec =
+              Math.max(0, Duration.between(startedAt, event.getCreatedAt()).toSeconds());
+          try {
+            event.content(
+                objectMapper.writeValueAsString(
+                    Map.of(
+                        "endedBy", endedBy,
+                        "meetingId", meetingId,
+                        "startedAt", startedAtMillis,
+                        "durationSec", durationSec)));
+          } catch (Exception e) {
+            ChatsLogger.warn(
+                "Failed to serialize MEETING_ENDED system event content: " + e.getMessage());
+            return;
+          }
+          chatMessageService.updateSystemEvent(event);
+        });
+    return inserted;
   }
 
   private Optional<SystemEvent> insertMeetingSystemEvent(

@@ -25,6 +25,15 @@ public interface SystemEventRepository {
   SystemEvent insert(SystemEvent event);
 
   /**
+   * Updates an existing system event. System events have no {@code updated_at} column, so a plain
+   * bean update is enough.
+   *
+   * @param event {@link SystemEvent} to update
+   * @return the updated {@link SystemEvent}
+   */
+  SystemEvent update(SystemEvent event);
+
+  /**
    * Deletes all system events of a room (used by the temporary-room full history purge).
    *
    * @param roomId room identifier
