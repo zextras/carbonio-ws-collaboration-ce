@@ -170,12 +170,14 @@ class TimedUpdateIT {
 
     Subscription subscription =
         database.find(Subscription.class, new SubscriptionId(roomId.toString(), userId.toString()));
-    subscription.room(database.find(Room.class, roomId.toString()));
-    if (database.beanState(subscription).dirtyValues().containsKey("room")) {
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> TimedUpdate.update(database, subscription, TimedUpdate.UPDATED_AT_NOW));
-    }
+    UUID otherRoomId = UUID.randomUUID();
+    integrationTestUtils.generateAndSaveRoom(
+        otherRoomId, RoomTypeDto.GROUP, "other", List.of(UUID.randomUUID()));
+    subscription.room(database.find(Room.class, otherRoomId.toString()));
+    assertTrue(database.beanState(subscription).dirtyValues().containsKey("room"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> TimedUpdate.update(database, subscription, TimedUpdate.UPDATED_AT_NOW));
   }
 
   @Test

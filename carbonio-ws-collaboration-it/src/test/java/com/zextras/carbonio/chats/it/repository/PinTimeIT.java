@@ -47,15 +47,17 @@ class PinTimeIT {
     this.database = database;
   }
 
-  private boolean pinStatementIsWaitingForALock(Transaction observer) {
-    return database
-            .sqlQuery(
-                "SELECT count(*) AS waiting FROM pg_stat_activity"
-                    + " WHERE wait_event_type = 'Lock' AND query LIKE '%chats.message_pin%'")
-            .usingTransaction(observer)
-            .findOne()
-            .getLong("waiting")
-        > 0;
+  private boolean pinStatementIsWaitingForALock() {
+    try (Transaction observer = database.createTransaction()) {
+      return database
+              .sqlQuery(
+                  "SELECT count(*) AS waiting FROM pg_stat_activity"
+                      + " WHERE wait_event_type = 'Lock' AND query LIKE '%chats.message_pin%'")
+              .usingTransaction(observer)
+              .findOne()
+              .getLong("waiting")
+          > 0;
+    }
   }
 
   private OffsetDateTime pinnedAt(UUID roomId) {
@@ -89,15 +91,13 @@ class PinTimeIT {
 
       Future<Optional<MessagePin>> pinB =
           executor.submit(() -> pinRepository.pin(roomId.toString(), messageB, userId.toString()));
-      try (Transaction observer = database.createTransaction()) {
-        assertTimeoutPreemptively(
-            Duration.ofSeconds(30),
-            () -> {
-              while (!pinStatementIsWaitingForALock(observer)) {
-                Thread.onSpinWait();
-              }
-            });
-      }
+      assertTimeoutPreemptively(
+          Duration.ofSeconds(30),
+          () -> {
+            while (!pinStatementIsWaitingForALock()) {
+              Thread.onSpinWait();
+            }
+          });
       OffsetDateTime beforeRelease =
           database
               .sqlQuery("SELECT clock_timestamp() AS now")

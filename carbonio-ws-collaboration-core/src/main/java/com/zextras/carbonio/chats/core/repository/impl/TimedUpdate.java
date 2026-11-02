@@ -31,7 +31,9 @@ final class TimedUpdate {
     dirty.forEach(
         (name, values) -> {
           Property property = beanType.property(name);
-          if (property == null || property.isMany() || isEntity(db, property.type())) {
+          if (property == null
+              || property.isMany()
+              || db.pluginApi().beanType(property.type()) != null) {
             throw new IllegalArgumentException(
                 "Property '" + name + "' is not a plain column of " + type.getSimpleName());
           }
@@ -49,9 +51,5 @@ final class TimedUpdate {
       throw new EntityNotFoundException(
           type.getSimpleName() + " " + id + " was not updated: " + updated + " rows matched");
     }
-  }
-
-  private static boolean isEntity(Database db, Class<?> type) {
-    return db.pluginApi().beanTypes().stream().anyMatch(candidate -> candidate.type() == type);
   }
 }
