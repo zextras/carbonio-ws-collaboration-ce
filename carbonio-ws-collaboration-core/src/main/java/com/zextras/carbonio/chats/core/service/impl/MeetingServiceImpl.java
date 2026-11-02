@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 @Singleton
@@ -188,9 +189,13 @@ public class MeetingServiceImpl implements MeetingService {
     }
 
     eventDispatcher.sendToUserExchange(
-        Stream.concat(
+        Stream.of(
                 meeting.getParticipants().stream().map(Participant::getUserId),
+                systemEvent.isPresent()
+                    ? room.getSubscriptions().stream().map(Subscription::getUserId)
+                    : Stream.<String>empty(),
                 Stream.of(currentUser.getId()))
+            .flatMap(Function.identity())
             .distinct()
             .toList(),
         MeetingDeclined.create()

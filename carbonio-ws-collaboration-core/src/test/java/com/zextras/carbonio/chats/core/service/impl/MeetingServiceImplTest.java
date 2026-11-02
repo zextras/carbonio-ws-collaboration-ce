@@ -1217,5 +1217,58 @@ class MeetingServiceImplTest {
           .sendToUserExchange(
               eq(List.of(user1Id.toString(), user2Id.toString())), any(MeetingDeclined.class));
     }
+
+    @Test
+    @DisplayName("In a one-to-one room MeetingDeclined also reaches the room members")
+    void declineInOneToOneReachesRoomMembers() {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      Meeting meeting = meetingWith(meetingId, roomId, List.of());
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .type(RoomTypeDto.ONE_TO_ONE)
+              .meetingId(meetingId.toString());
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()),
+              Subscription.create(room, user2Id.toString())));
+      UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
+
+      meetingService.declineMeeting(meetingId, decliner);
+
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              eq(List.of(user1Id.toString(), user2Id.toString())), any(MeetingDeclined.class));
+    }
+
+    @Test
+    @DisplayName("In a one-to-one room each recipient of MeetingDeclined receives it once")
+    void declineInOneToOneDoesNotDuplicateRecipients() {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      Meeting meeting = meetingWith(meetingId, roomId, List.of(user1Id));
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .type(RoomTypeDto.ONE_TO_ONE)
+              .meetingId(meetingId.toString());
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()),
+              Subscription.create(room, user2Id.toString())));
+      UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
+      when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
+
+      meetingService.declineMeeting(meetingId, decliner);
+
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              eq(List.of(user1Id.toString(), user2Id.toString())), any(MeetingDeclined.class));
+    }
   }
 }
