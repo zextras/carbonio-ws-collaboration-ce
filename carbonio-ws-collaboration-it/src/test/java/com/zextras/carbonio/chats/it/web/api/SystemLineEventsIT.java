@@ -120,19 +120,8 @@ class SystemLineEventsIT {
   }
 
   private JsonNode nextEvent(String queue, String type) throws Exception {
-    for (int i = 0; i < 50; i++) {
-      GetResponse response = channel.basicGet(queue, true);
-      if (response != null) {
-        JsonNode event =
-            objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
-        if (type.equals(event.get("type").asText())) {
-          return event;
-        }
-      } else {
-        Thread.sleep(100);
-      }
-    }
-    throw new AssertionError("no " + type + " event received on " + queue);
+    List<JsonNode> events = eventsUntil(queue, type);
+    return events.get(events.size() - 1);
   }
 
   private SystemEvent persisted(String id) {
@@ -384,8 +373,18 @@ class SystemLineEventsIT {
                 aToken)
             .getStatus());
 
-    JsonNode nameEvent = nextEvent(queueB, "RoomNameChanged");
-    JsonNode descriptionEvent = nextEvent(queueB, "RoomDescriptionChanged");
+    List<JsonNode> roomEvents =
+        eventsUntil(queueB, "RoomDescriptionChanged").stream()
+            .filter(
+                e ->
+                    Set.of("RoomNameChanged", "RoomDescriptionChanged")
+                        .contains(e.get("type").asText()))
+            .toList();
+    assertEquals(
+        List.of("RoomNameChanged", "RoomDescriptionChanged"),
+        roomEvents.stream().map(e -> e.get("type").asText()).toList());
+    JsonNode nameEvent = roomEvents.get(0);
+    JsonNode descriptionEvent = roomEvents.get(1);
     assertEquals(aUserId.toString(), nameEvent.get("updatedBy").asText());
     assertEquals(aUserId.toString(), descriptionEvent.get("updatedBy").asText());
     assertEquals("renamed", nameEvent.get("name").asText());
