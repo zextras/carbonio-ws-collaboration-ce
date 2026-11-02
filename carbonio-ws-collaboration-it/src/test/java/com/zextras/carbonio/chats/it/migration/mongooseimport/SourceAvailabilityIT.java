@@ -637,7 +637,7 @@ class SourceAvailabilityIT {
   }
 
   @Nested
-  @DisplayName("ROOM-V1/TIME-2/APP-2: no zone check, times follow the JVM zone")
+  @DisplayName("ROOM-V1/TIME-2/APP-2: no zone check, instants do not depend on the JVM zone")
   class ForeignJvmZone {
 
     @Test

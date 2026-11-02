@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
@@ -81,8 +80,7 @@ final class CopyRows {
       row.append("\\N");
       return this;
     }
-    Instant rounded = value.getNano() % 1000 > 499 ? value.plusNanos(1000) : value;
-    row.append(TIMESTAMP.format(rounded.truncatedTo(ChronoUnit.MICROS).atOffset(ZoneOffset.UTC)));
+    row.append(TIMESTAMP.format(MamTime.roundToMicros(value).atOffset(ZoneOffset.UTC)));
     return this;
   }
 

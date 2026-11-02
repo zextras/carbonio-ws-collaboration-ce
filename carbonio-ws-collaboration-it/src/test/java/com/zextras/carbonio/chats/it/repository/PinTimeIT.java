@@ -94,7 +94,7 @@ class PinTimeIT {
       assertTimeoutPreemptively(
           Duration.ofSeconds(30),
           () -> {
-            while (!pinStatementIsWaitingForALock()) {
+            while (!Thread.currentThread().isInterrupted() && !pinStatementIsWaitingForALock()) {
               Thread.onSpinWait();
             }
           });

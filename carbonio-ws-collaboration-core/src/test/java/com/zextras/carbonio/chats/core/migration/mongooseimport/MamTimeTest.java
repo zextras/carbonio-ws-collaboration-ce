@@ -38,4 +38,27 @@ class MamTimeTest {
     assertFalse(MamTime.inRange(Instant.parse("0000-12-31T23:59:59.999999Z")));
     assertFalse(MamTime.inRange(Instant.parse("+10000-01-01T00:00:00Z")));
   }
+
+  @Test
+  @DisplayName("Rounds to the microsecond, half up")
+  void roundToMicros() {
+    assertEquals(
+        Instant.parse("2026-01-01T00:00:00.000001Z"),
+        MamTime.roundToMicros(Instant.parse("2026-01-01T00:00:00.000001499Z")));
+    assertEquals(
+        Instant.parse("2026-01-01T00:00:00.000002Z"),
+        MamTime.roundToMicros(Instant.parse("2026-01-01T00:00:00.000001500Z")));
+  }
+
+  @Test
+  @DisplayName("A client stamp that rounds to year 10000 falls back instead of being kept")
+  void stampRoundingIntoYear10000() {
+    Instant fallback = Instant.parse("2026-01-01T00:00:00Z");
+    assertEquals(
+        fallback, RoomImporter.stamp(Instant.parse("9999-12-31T23:59:59.9999995Z"), fallback));
+    assertEquals(
+        Instant.parse("9999-12-31T23:59:59.999999Z"),
+        RoomImporter.stamp(Instant.parse("9999-12-31T23:59:59.9999994Z"), fallback));
+    assertEquals(fallback, RoomImporter.stamp(null, fallback));
+  }
 }

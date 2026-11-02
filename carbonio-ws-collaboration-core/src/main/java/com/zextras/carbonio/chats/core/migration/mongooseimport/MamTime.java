@@ -22,6 +22,11 @@ public final class MamTime {
     return !time.isBefore(MIN) && time.isBefore(MAX_EXCLUSIVE);
   }
 
+  public static Instant roundToMicros(Instant time) {
+    Instant rounded = time.getNano() % 1000 > 499 ? time.plusNanos(1000) : time;
+    return rounded.truncatedTo(ChronoUnit.MICROS);
+  }
+
   public static Instant micros(long epochMicros) {
     return Instant.EPOCH.plus(epochMicros, ChronoUnit.MICROS);
   }

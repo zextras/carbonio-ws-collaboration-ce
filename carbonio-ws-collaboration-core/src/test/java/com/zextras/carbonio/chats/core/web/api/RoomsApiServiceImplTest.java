@@ -3241,7 +3241,7 @@ class RoomsApiServiceImplTest {
           .thenReturn(List.of(makeSe("e4", t4), makeSe("e3", t3), makeSe("e2", t2)));
 
       when(systemEventRepository.findByRoomIdForward(
-              eq(roomId.toString()), eq(aroundTs), isNull(), isNull(), eq(3)))
+              eq(roomId.toString()), eq(aroundTs.plusNanos(999_000)), isNull(), isNull(), eq(3)))
           .thenReturn(List.of(makeSe("e6", t6), makeSe("e7", t7), makeSe("e8", t8)));
 
       Response response =

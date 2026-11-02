@@ -24,8 +24,9 @@ public interface TimelineRepository {
   TimelinePage findLatest(String roomId, OffsetDateTime after, int limit);
 
   /**
-   * Page strictly older than the composite cursor {@code (before, beforeId)} (or {@code before}
-   * alone when {@code beforeId} is null). Sets {@code hasMoreBefore}.
+   * Page strictly older than the composite cursor {@code (before, beforeId)}, where {@code before}
+   * is replaced by the stored time of {@code beforeId} when that item exists in the room; with a
+   * null or unknown {@code beforeId} only {@code before} is used. Sets {@code hasMoreBefore}.
    */
   TimelinePage findBefore(
       String roomId, OffsetDateTime before, String beforeId, OffsetDateTime after, int limit);

@@ -705,7 +705,9 @@ class MessageTimeIT {
           () ->
               assertEquals(
                   LocalDateTime.parse("2026-10-07T17:29:22.192297"), timeline.get(1).createdAt()),
-          () -> assertTrue(timeline.get(0).createdAt().isBefore(timeline.get(1).createdAt())));
+          () ->
+              assertEquals(
+                  timeline.get(1).createdAt().minusNanos(1_000), timeline.get(0).createdAt()));
     }
 
     @Test

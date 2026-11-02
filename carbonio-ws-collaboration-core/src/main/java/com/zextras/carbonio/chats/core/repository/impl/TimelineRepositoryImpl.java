@@ -82,7 +82,8 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     int half = limit / 2;
     int fetch = half + 1;
     OffsetDateTime olderUpperBound = around.plusNanos(1_000_000);
-    OffsetDateTime newerAfter = after != null && after.isAfter(around) ? after : around;
+    OffsetDateTime newerFloor = around.plusNanos(999_000);
+    OffsetDateTime newerAfter = after != null && after.isAfter(newerFloor) ? after : newerFloor;
 
     List<TimelineItem> olderMessages =
         wrapMessages(messageRepository.getByRoomId(roomId, olderUpperBound, after, fetch));

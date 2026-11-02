@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -23,22 +25,40 @@ class ZoneIndependenceIT {
   private static final ZoneId LEGACY_COLUMNS_ZONE = ZoneId.of("UTC");
   private static final String PIN_TABLE = "message_pin";
 
+  private static final String PARITY_ROOM = "e0df7f4a-7a19-4ab7-9af7-49be3b7874b6";
+  private static final long TEMPLATE_MEMBER_ADDED_MAM = 458596905521228033L;
+  private static final Instant FALL_BACK_HOUR = Instant.parse("2026-10-25T00:30:00Z");
+  private static final long FALL_BACK_MAM = (micros(FALL_BACK_HOUR) << 8) | 1;
+
   private static ImportedChats utc;
   private static ImportedChats rome;
+
+  private static long micros(Instant instant) {
+    return instant.getEpochSecond() * 1_000_000 + instant.getNano() / 1_000;
+  }
 
   @BeforeAll
   static void importTwice() {
     MongooseImportDatabase database = MongooseImportDatabase.get();
+    String source = database.newSourceDatabase();
+    database.execute(
+        source,
+        "INSERT INTO mam_muc_message (id, room_id, sender_id, nick_name, message, search_body,"
+            + " origin_id) SELECT "
+            + FALL_BACK_MAM
+            + ", room_id, sender_id, nick_name, message, search_body, origin_id"
+            + " FROM mam_muc_message WHERE id = "
+            + TEMPLATE_MEMBER_ADDED_MAM);
     ImportRun inUtc =
         MongooseImport.run(
             database.newTargetDatabase(),
-            database.sourceCredentials(),
+            database.credentialsFor(source),
             ZoneId.of("UTC"),
             LEGACY_COLUMNS_ZONE);
     ImportRun inRome =
         MongooseImport.run(
             database.newTargetDatabase(),
-            database.sourceCredentials(),
+            database.credentialsFor(source),
             ZoneId.of("Europe/Rome"),
             LEGACY_COLUMNS_ZONE);
     assertTrue(inUtc.succeeded(), inUtc::failureText);
@@ -106,15 +126,27 @@ class ZoneIndependenceIT {
 
     assertTrue(inUtc.size() > 0);
     assertEquals(inUtc.keySet(), inRome.keySet());
+    int withoutArchivedRow = 0;
     for (String pin : inUtc.keySet()) {
       OffsetDateTime a = inUtc.get(pin);
       OffsetDateTime b = inRome.get(pin);
       if (archived.get(pin)) {
         assertEquals(a.toInstant(), b.toInstant(), "pin with an archived row " + pin);
-      } else if (!a.toInstant().equals(b.toInstant())) {
+      } else {
+        withoutArchivedRow++;
         long hours = Duration.between(b, a).toHours();
-        assertTrue(hours == 1 || hours == 2, "zone offset applied to " + pin + ": " + hours);
+        assertTrue(
+            hours == 1 || hours == 2, "zone offset not applied to " + pin + ": " + hours + "h");
       }
     }
+    assertTrue(withoutArchivedRow > 0, "fixture has no pin without an archived MESSAGE_PINNED row");
+  }
+
+  @Test
+  @DisplayName("TIME-2: an item inside the autumn DST fall-back hour keeps its instant in any zone")
+  void itemInsideTheFallBackHour() {
+    LocalDateTime expected = ExpectedTimes.mamTime(FALL_BACK_MAM);
+    assertEquals(expected, utc.systemEvent(PARITY_ROOM, FALL_BACK_MAM).orElseThrow().createdAt());
+    assertEquals(expected, rome.systemEvent(PARITY_ROOM, FALL_BACK_MAM).orElseThrow().createdAt());
   }
 }

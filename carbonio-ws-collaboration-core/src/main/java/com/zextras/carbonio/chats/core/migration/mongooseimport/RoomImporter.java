@@ -11,7 +11,6 @@ import com.zextras.carbonio.chats.core.migration.mongooseimport.RoomRows.Row;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +28,6 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   }
 
   private static final int ANALYZE_THRESHOLD = 1000;
-  private static final Instant EPOCH = Instant.EPOCH;
 
   private final LegacyIds ids;
   private final FileLinker files;
@@ -127,7 +125,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     archived = true;
     Instant raw = rawTime(mam);
     if (raw == null) {
-      rows.record(p.rootId(), Row.notImported(mam, null, EPOCH));
+      rows.record(p.rootId(), Row.notImported(mam, null, Instant.EPOCH));
       return;
     }
     String sender = "carbonio".equals(server) && validUser(user) ? user : null;
@@ -297,7 +295,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
                 sender,
                 p.text(),
                 p.forwardFrom(),
-                stamp(p.forwardStamp(), EPOCH),
+                stamp(p.forwardStamp(), Instant.EPOCH),
                 decision.attachmentId(),
                 t)
             : TimelineWriter.Message.attachment(
@@ -336,16 +334,16 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     if (mam <= 0) {
       return null;
     }
-    try {
-      Instant time = MamTime.instant(mam);
-      return MamTime.inRange(time) ? time : null;
-    } catch (DateTimeException e) {
-      return null;
-    }
+    Instant time = MamTime.instant(mam);
+    return MamTime.inRange(time) ? time : null;
   }
 
-  private static Instant stamp(Instant instant, Instant fallback) {
-    return instant != null && MamTime.inRange(instant) ? instant : fallback;
+  static Instant stamp(Instant instant, Instant fallback) {
+    if (instant == null) {
+      return fallback;
+    }
+    Instant rounded = MamTime.roundToMicros(instant);
+    return MamTime.inRange(rounded) ? rounded : fallback;
   }
 
   private static boolean validUser(String id) {

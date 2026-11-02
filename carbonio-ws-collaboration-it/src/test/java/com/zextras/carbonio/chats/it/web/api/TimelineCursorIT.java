@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.it.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,13 +81,32 @@ class TimelineCursorIT {
     stored.add(saveMessage(BASE.plusNanos(200_000)));
     stored.add(saveEvent(BASE.plusNanos(250_000)));
     stored.add(saveMessage(BASE.plusNanos(300_000)));
-    expectedNewestFirst =
-        stored.stream()
-            .sorted(
-                Comparator.comparing(Stored::at)
-                    .thenComparing(Stored::id, Comparator.naturalOrder())
-                    .reversed())
-            .toList();
+    expectedNewestFirst = newestFirst(stored);
+  }
+
+  private static List<Stored> newestFirst(List<Stored> stored) {
+    return stored.stream()
+        .sorted(
+            Comparator.comparing(Stored::at)
+                .thenComparing(Stored::id, Comparator.naturalOrder())
+                .reversed())
+        .toList();
+  }
+
+  private UUID freshRoom() {
+    roomId = UUID.randomUUID();
+    integrationTestUtils.generateAndSaveRoom(
+        roomId, RoomTypeDto.GROUP, "cursor-room", List.of(userId));
+    return roomId;
+  }
+
+  private List<String> timelineIds(String query) throws Exception {
+    var response = dispatcher.get(String.format("/rooms/%s/timeline%s", roomId, query), token);
+    assertEquals(200, response.getStatus());
+    JsonNode root = objectMapper.readTree(response.getContentAsString());
+    List<String> ids = new ArrayList<>();
+    root.get("items").forEach(item -> ids.add(itemId(item)));
+    return ids;
   }
 
   private Stored saveMessage(OffsetDateTime at) {
@@ -146,7 +165,7 @@ class TimelineCursorIT {
               "?limit=1&before=%s&beforeId=%s",
               enc(clientPrecision.apply(createdAt)), itemId(oldest));
     }
-    assertFalse(true, "walk did not terminate, collected " + walked);
+    fail("walk did not terminate, collected " + walked);
     return walked;
   }
 
@@ -162,5 +181,53 @@ class TimelineCursorIT {
   @DisplayName("Paging with microsecond before returns every item once")
   void pagingWithMicrosecondBefore() throws Exception {
     assertEquals(expectedNewestFirst.stream().map(Stored::id).toList(), walk(t -> t));
+  }
+
+  @Test
+  @DisplayName("Paging with a message and a system event at the same microsecond is stable")
+  void pagingWithSameMicrosecondTie() throws Exception {
+    freshRoom();
+    List<Stored> stored = new ArrayList<>();
+    stored.add(saveMessage(BASE.plusNanos(100_000)));
+    stored.add(saveMessage(BASE.plusNanos(500_000)));
+    stored.add(saveEvent(BASE.plusNanos(500_000)));
+    stored.add(saveMessage(BASE.plusNanos(900_000)));
+    expectedNewestFirst = newestFirst(stored);
+    List<String> expected = expectedNewestFirst.stream().map(Stored::id).toList();
+    assertEquals(expected, walk(t -> t.truncatedTo(ChronoUnit.MILLIS)));
+    assertEquals(expected, walk(t -> t));
+  }
+
+  @Test
+  @DisplayName("A beforeId belonging to another room falls back to the client before")
+  void beforeIdOfAnotherRoomFallsBackToBefore() throws Exception {
+    String foreignId = saveMessage(BASE.plusNanos(10_000_000)).id();
+    List<Stored> stored = new ArrayList<>();
+    freshRoom();
+    stored.add(saveMessage(BASE.plusNanos(100_000)));
+    stored.add(saveMessage(BASE.plusNanos(200_000)));
+    stored.add(saveMessage(BASE.plusNanos(300_000)));
+    assertEquals(
+        List.of(stored.get(0).id(), stored.get(1).id()),
+        timelineIds("?limit=10&before=" + enc(BASE.plusNanos(250_000)) + "&beforeId=" + foreignId));
+  }
+
+  private void assertAroundHalvesDisjoint(OffsetDateTime around, List<String> expected)
+      throws Exception {
+    assertEquals(expected, timelineIds("?limit=10&around=" + enc(around)));
+  }
+
+  @Test
+  @DisplayName("Around keeps the halves disjoint for a millisecond or microsecond target")
+  void aroundHalvesAreDisjoint() throws Exception {
+    freshRoom();
+    Stored earlier = saveMessage(BASE.minusNanos(1_000_000));
+    Stored first = saveMessage(BASE.plusNanos(100_000));
+    Stored middle = saveEvent(BASE.plusNanos(400_000));
+    Stored last = saveMessage(BASE.plusNanos(700_000));
+    Stored later = saveMessage(BASE.plusNanos(2_000_000));
+    List<String> expected = List.of(earlier.id(), first.id(), middle.id(), last.id(), later.id());
+    assertAroundHalvesDisjoint(middle.at().truncatedTo(ChronoUnit.MILLIS), expected);
+    assertAroundHalvesDisjoint(middle.at(), expected);
   }
 }
