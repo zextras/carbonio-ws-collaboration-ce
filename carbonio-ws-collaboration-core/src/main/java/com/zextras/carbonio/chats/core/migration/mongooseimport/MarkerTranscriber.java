@@ -10,8 +10,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -26,13 +26,10 @@ public final class MarkerTranscriber implements AutoCloseable {
   private static final String INSERT =
       "INSERT INTO chats.read_marker (user_id, room_id, item_created_at) VALUES (?, ?, ?)";
 
-  private final ZoneId zone;
   private final PreparedStatement select;
   private final PreparedStatement insert;
 
-  public MarkerTranscriber(MongooseSource.Ready source, Connection target, ZoneId zone)
-      throws SQLException {
-    this.zone = zone;
+  public MarkerTranscriber(MongooseSource.Ready source, Connection target) throws SQLException {
     this.select = source.hasMarkers() ? source.connection().prepareStatement(SELECT) : null;
     this.insert = target.prepareStatement(INSERT);
   }
@@ -42,9 +39,9 @@ public final class MarkerTranscriber implements AutoCloseable {
   // Client markers can lag behind the user's own rows, so the read position is the later of both.
   public void endRoom(TargetRoom room, RoomRows rows, Map<String, Marker> markers)
       throws SQLException {
-    Map<String, LocalDateTime> readUpTo = rows.lastRowTimeBySender();
+    Map<String, Instant> readUpTo = rows.lastRowTimeBySender();
     for (Map.Entry<String, Marker> entry : markers.entrySet()) {
-      LocalDateTime marked = markedItemTime(entry.getValue(), rows);
+      Instant marked = markedItemTime(entry.getValue(), rows);
       if (marked != null) {
         readUpTo.merge(entry.getKey(), marked, (a, b) -> a.isAfter(b) ? a : b);
       }
@@ -52,21 +49,21 @@ public final class MarkerTranscriber implements AutoCloseable {
     if (readUpTo.isEmpty()) {
       return;
     }
-    for (Map.Entry<String, LocalDateTime> entry : readUpTo.entrySet()) {
+    for (Map.Entry<String, Instant> entry : readUpTo.entrySet()) {
       insert.setString(1, entry.getKey());
       insert.setString(2, room.id());
-      insert.setObject(3, entry.getValue());
+      insert.setObject(3, entry.getValue().atOffset(ZoneOffset.UTC));
       insert.addBatch();
     }
     insert.executeBatch();
   }
 
-  private LocalDateTime markedItemTime(Marker marker, RoomRows rows) throws SQLException {
+  private Instant markedItemTime(Marker marker, RoomRows rows) throws SQLException {
     if (marker.msgId().isEmpty()) {
       return null;
     }
     Row row = rows.latestByClientIdUpTo(marker.msgId(), marker.timestamp());
-    if (row == null || !MamTime.inRange(MamTime.micros(marker.timestamp(), zone))) {
+    if (row == null || !MamTime.inRange(MamTime.micros(marker.timestamp()))) {
       return null;
     }
     boolean imported = row.outcome() == RoomRows.MESSAGE || row.outcome() == RoomRows.EVENT;

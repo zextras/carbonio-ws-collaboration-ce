@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.migration.mongooseimport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -52,25 +52,25 @@ class CopyRowsTest {
   }
 
   @Test
-  @DisplayName("Formats timestamps with six fractional digits")
+  @DisplayName("Formats timestamps with six fractional digits and a UTC offset")
   void timestamp() {
-    rows.time(LocalDateTime.of(2026, 10, 7, 17, 29, 22, 192_297_000))
-        .time(LocalDateTime.of(2026, 1, 2, 3, 4, 5))
+    rows.time(Instant.parse("2026-10-07T17:29:22.192297Z"))
+        .time(Instant.parse("2026-01-02T03:04:05Z"))
         .endRow();
-    assertEquals("2026-10-07 17:29:22.192297\t2026-01-02 03:04:05.000000\n", rows.contents());
+    assertEquals("2026-10-07 17:29:22.192297+00\t2026-01-02 03:04:05.000000+00\n", rows.contents());
   }
 
   @Test
   @DisplayName("Rounds nanoseconds to the microsecond like pgjdbc")
   void timestampRounding() {
-    rows.time(LocalDateTime.of(2026, 1, 1, 0, 0, 0, 1_499))
-        .time(LocalDateTime.of(2026, 1, 1, 0, 0, 0, 1_500))
-        .time(LocalDateTime.of(2026, 1, 1, 0, 0, 0, 999_999_500))
-        .time(LocalDateTime.of(2026, 12, 31, 23, 59, 59, 999_999_999))
+    rows.time(Instant.parse("2026-01-01T00:00:00.000001499Z"))
+        .time(Instant.parse("2026-01-01T00:00:00.000001500Z"))
+        .time(Instant.parse("2026-01-01T00:00:00.999999500Z"))
+        .time(Instant.parse("2026-12-31T23:59:59.999999999Z"))
         .endRow();
     assertEquals(
-        "2026-01-01 00:00:00.000001\t2026-01-01 00:00:00.000002\t"
-            + "2026-01-01 00:00:01.000000\t2027-01-01 00:00:00.000000\n",
+        "2026-01-01 00:00:00.000001+00\t2026-01-01 00:00:00.000002+00\t"
+            + "2026-01-01 00:00:01.000000+00\t2027-01-01 00:00:00.000000+00\n",
         rows.contents());
   }
 

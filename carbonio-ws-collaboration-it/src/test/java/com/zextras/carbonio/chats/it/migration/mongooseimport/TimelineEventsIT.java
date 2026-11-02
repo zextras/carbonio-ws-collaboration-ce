@@ -493,8 +493,8 @@ class TimelineEventsIT {
           () -> assertEquals(USER_E7A2, second.json().get("addedByUserId").asText()),
           () -> assertEquals(1, second.json().get("addedUserIds").size()),
           () -> assertEquals(USER_B26C, second.json().get("addedUserIds").get(0).asText()),
-          () -> assertEquals(ExpectedTimes.mamMillis(F0CA_MEMBER_ADDED_1_MAM), first.createdAt()),
-          () -> assertEquals(ExpectedTimes.mamMillis(F0CA_MEMBER_ADDED_2_MAM), second.createdAt()));
+          () -> assertEquals(ExpectedTimes.mamTime(F0CA_MEMBER_ADDED_1_MAM), first.createdAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(F0CA_MEMBER_ADDED_2_MAM), second.createdAt()));
     }
 
     @Test
@@ -508,7 +508,7 @@ class TimelineEventsIT {
           () -> assertEquals(USER_4F82, initial.json().get("addedUserIds").get(0).asText()),
           () -> assertEquals(USER_4F82, readded.json().get("addedUserIds").get(0).asText()),
           () -> assertEquals(USER_3B60, readded.json().get("addedByUserId").asText()),
-          () -> assertEquals(ExpectedTimes.mamMillis(R7BE2_RE_ADDED_MAM), readded.createdAt()));
+          () -> assertEquals(ExpectedTimes.mamTime(R7BE2_RE_ADDED_MAM), readded.createdAt()));
     }
 
     @Test
@@ -534,11 +534,10 @@ class TimelineEventsIT {
           () -> assertEquals(USER_4F82, second.json().get("removedUserId").asText()),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(R7BE2_REMOVED_BY_PROMOTED_OWNER_1_MAM),
-                  first.createdAt()),
+                  ExpectedTimes.mamTime(R7BE2_REMOVED_BY_PROMOTED_OWNER_1_MAM), first.createdAt()),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(R7BE2_REMOVED_BY_PROMOTED_OWNER_2_MAM),
+                  ExpectedTimes.mamTime(R7BE2_REMOVED_BY_PROMOTED_OWNER_2_MAM),
                   second.createdAt()));
     }
 
@@ -681,7 +680,7 @@ class TimelineEventsIT {
                   pinned.json().get("messageId").asText()),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(AF0B_PINNED_TEXT_NOTIFICATION_MAM), pinned.createdAt()));
+                  ExpectedTimes.mamTime(AF0B_PINNED_TEXT_NOTIFICATION_MAM), pinned.createdAt()));
     }
 
     @Test
@@ -703,7 +702,7 @@ class TimelineEventsIT {
                   unpinned.json().get("messageId").asText()),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(AF0B_UNPINNED_TEXT_NOTIFICATION_MAM),
+                  ExpectedTimes.mamTime(AF0B_UNPINNED_TEXT_NOTIFICATION_MAM),
                   unpinned.createdAt()));
     }
 
@@ -1453,7 +1452,7 @@ class TimelineEventsIT {
       assertAll(
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(AF0B_MEMBER_REMOVED_MAM),
+                  ExpectedTimes.mamTime(AF0B_MEMBER_REMOVED_MAM),
                   event(
                           GROUP_PINNED_BY_REMOVED_MEMBER_ROOM,
                           AF0B_MEMBER_REMOVED_MAM,
@@ -1461,7 +1460,7 @@ class TimelineEventsIT {
                       .createdAt()),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(A992_PINNED_EDIT_ROW_NOTIFICATION_MAM),
+                  ExpectedTimes.mamTime(A992_PINNED_EDIT_ROW_NOTIFICATION_MAM),
                   event(
                           GROUP_PIN_ON_EDIT_OF_FORWARD_ROOM,
                           A992_PINNED_EDIT_ROW_NOTIFICATION_MAM,
@@ -1469,7 +1468,7 @@ class TimelineEventsIT {
                       .createdAt()),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(E0DF_UNPIN_NOTIFICATION_TEXT_MAM),
+                  ExpectedTimes.mamTime(E0DF_UNPIN_NOTIFICATION_TEXT_MAM),
                   event(
                           GROUP_PINNED_BY_NON_MEMBER_ROOM,
                           E0DF_UNPIN_NOTIFICATION_TEXT_MAM,

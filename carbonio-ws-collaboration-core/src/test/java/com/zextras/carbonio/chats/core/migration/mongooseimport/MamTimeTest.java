@@ -5,12 +5,11 @@
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -26,21 +25,17 @@ class MamTimeTest {
   }
 
   @Test
-  @DisplayName("Truncates to milliseconds in the given zone")
-  void millis() {
-    assertEquals(
-        LocalDateTime.of(2026, 10, 7, 17, 29, 22, 192_000_000),
-        MamTime.millis(MAM, ZoneOffset.UTC));
-    assertEquals(
-        LocalDateTime.of(2026, 10, 7, 19, 29, 22, 192_000_000),
-        MamTime.millis(MAM, ZoneId.of("Europe/Rome")));
+  @DisplayName("Keeps microsecond precision for epoch microseconds")
+  void micros() {
+    assertEquals(Instant.parse("1970-01-01T00:00:01.123456Z"), MamTime.micros(1_123_456L));
   }
 
   @Test
-  @DisplayName("Keeps microsecond precision for epoch microseconds")
-  void micros() {
-    assertEquals(
-        LocalDateTime.of(1970, 1, 1, 0, 0, 1, 123_456_000),
-        MamTime.micros(1_123_456L, ZoneOffset.UTC));
+  @DisplayName("Accepts years 1 to 9999 only")
+  void range() {
+    assertTrue(MamTime.inRange(Instant.parse("0001-01-01T00:00:00Z")));
+    assertTrue(MamTime.inRange(Instant.parse("9999-12-31T23:59:59.999999Z")));
+    assertFalse(MamTime.inRange(Instant.parse("0000-12-31T23:59:59.999999Z")));
+    assertFalse(MamTime.inRange(Instant.parse("+10000-01-01T00:00:00Z")));
   }
 }

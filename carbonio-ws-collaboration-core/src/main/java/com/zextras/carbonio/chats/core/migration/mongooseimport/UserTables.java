@@ -10,8 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 public final class UserTables {
 
@@ -32,9 +31,9 @@ public final class UserTables {
 
   private UserTables() {}
 
-  public static Counts run(Connection source, boolean hasLast, Connection target, ZoneId zone)
+  public static Counts run(Connection source, boolean hasLast, Connection target)
       throws SQLException {
-    int lastSeen = hasLast ? importLastSeen(source, target, zone) : 0;
+    int lastSeen = hasLast ? importLastSeen(source, target) : 0;
     int contacts;
     try (Statement st = target.createStatement()) {
       contacts = st.executeUpdate(INSERT_CONTACTS);
@@ -50,8 +49,7 @@ public final class UserTables {
     return total;
   }
 
-  private static int importLastSeen(Connection source, Connection target, ZoneId zone)
-      throws SQLException {
+  private static int importLastSeen(Connection source, Connection target) throws SQLException {
     int inserted = 0;
     int pending = 0;
     try (Statement read = source.createStatement();
@@ -64,8 +62,7 @@ public final class UserTables {
             continue;
           }
           insert.setString(1, user);
-          insert.setObject(
-              2, LocalDateTime.ofInstant(Instant.ofEpochSecond(rows.getLong(2)), zone));
+          insert.setObject(2, Instant.ofEpochSecond(rows.getLong(2)).atOffset(ZoneOffset.UTC));
           insert.addBatch();
           if (++pending == PAGE_SIZE) {
             inserted += sum(insert.executeBatch());

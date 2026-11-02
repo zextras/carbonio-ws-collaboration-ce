@@ -209,7 +209,7 @@ class MeetingLinesIT {
     assertAll(
         () -> assertEquals("MEETING_STARTED", started.type()),
         () -> assertEquals(CALLER, started.actorId()),
-        () -> assertEquals(ExpectedTimes.mamMillis(STARTED_MAM), started.createdAt()),
+        () -> assertEquals(ExpectedTimes.mamTime(STARTED_MAM), started.createdAt()),
         () -> assertEquals(Set.of("startedBy", "meetingId"), keys(json)),
         () -> assertEquals(CALLER, json.get("startedBy").asText()),
         () -> assertEquals(MEETING, json.get("meetingId").asText()));
@@ -223,7 +223,7 @@ class MeetingLinesIT {
     assertAll(
         () -> assertEquals("MEETING_DECLINED", declined.type()),
         () -> assertEquals(CALLEE, declined.actorId()),
-        () -> assertEquals(ExpectedTimes.mamMillis(DECLINED_MAM), declined.createdAt()),
+        () -> assertEquals(ExpectedTimes.mamTime(DECLINED_MAM), declined.createdAt()),
         () -> assertEquals(Set.of("declinedBy", "meetingId"), keys(json)),
         () -> assertEquals(CALLEE, json.get("declinedBy").asText()),
         () -> assertEquals(MEETING, json.get("meetingId").asText()));
@@ -237,7 +237,7 @@ class MeetingLinesIT {
     assertAll(
         () -> assertEquals("MEETING_ENDED", ended.type()),
         () -> assertEquals(CALLEE, ended.actorId()),
-        () -> assertEquals(ExpectedTimes.mamMillis(ENDED_MAM), ended.createdAt()),
+        () -> assertEquals(ExpectedTimes.mamTime(ENDED_MAM), ended.createdAt()),
         () -> assertEquals(Set.of("endedBy", "meetingId", "startedAt", "durationSec"), keys(json)),
         () -> assertEquals(CALLEE, json.get("endedBy").asText()),
         () -> assertEquals(MEETING, json.get("meetingId").asText()),

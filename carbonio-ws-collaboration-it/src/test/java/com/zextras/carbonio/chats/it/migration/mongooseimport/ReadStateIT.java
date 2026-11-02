@@ -193,7 +193,7 @@ class ReadStateIT {
   private static final int IMPORTED_MARKER_ROWS = 24;
   private static final int OWN_ROW_PAIRS = 92;
   private static final int OWN_ROW_ONLY_PAIRS = 69;
-  private static final int UNANCHORED_ROWS = 19;
+  private static final int UNANCHORED_ROWS = 20;
   private static final int VALID_SYNTHETIC_MARKER_ROWS = 25;
 
   private static ImportRun run;
@@ -439,7 +439,7 @@ class ReadStateIT {
         () -> assertTrue(imported.message(room, mam).isEmpty()),
         () -> assertTrue(imported.systemEvent(room, mam).isEmpty()));
     ReadMarker marker = readMarker(imported, user, room);
-    assertEquals(ExpectedTimes.mamMillis(mam), marker.itemCreatedAt());
+    assertEquals(ExpectedTimes.mamTime(mam), marker.itemCreatedAt());
   }
 
   private static void assertNoRow(
@@ -1151,7 +1151,7 @@ class ReadStateIT {
     @Test
     @DisplayName(
         "READ-D9: item_created_at is the created_at of a message or system event of the same room,"
-            + " except for the 19 rows whose marker or last own row is not imported")
+            + " except for the 20 rows whose marker or last own row is not imported")
     void itemCreatedAtMatchesAnImportedItemTime() {
       assertEquals(
           UNANCHORED_ROWS,

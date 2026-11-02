@@ -16,7 +16,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -97,15 +96,6 @@ class MessageTimeIT {
 
   private static final LocalDateTime YEAR_START = LocalDateTime.of(2026, 1, 1, 0, 0);
 
-  private static final Map<Long, LocalDateTime> REPAIRED_ROWS =
-      Map.of(
-          BURST_SECOND_MAM, LocalDateTime.parse("2026-10-07T17:40:25.948"),
-          BURST_THIRD_MAM, LocalDateTime.parse("2026-10-07T17:40:25.949"),
-          CHAIN_THIRD_MAM, LocalDateTime.parse("2026-06-21T14:25:19.884"),
-          CHAIN_FOURTH_MAM, LocalDateTime.parse("2026-06-21T14:25:19.885"),
-          PAIR_ONE_SECOND_MAM, LocalDateTime.parse("2026-06-21T15:46:41.667"),
-          PAIR_TWO_SECOND_MAM, LocalDateTime.parse("2026-06-21T15:46:43.478"));
-
   private record Tombstone(String roomId, long mamId, String deletedAt) {}
 
   private static final List<Tombstone> TOMBSTONES =
@@ -185,10 +175,6 @@ class MessageTimeIT {
         .get(0);
   }
 
-  private static LocalDateTime ms(LocalDateTime value) {
-    return value.truncatedTo(ChronoUnit.MILLIS);
-  }
-
   private static Map<String, List<Long>> sourceMamIdsByRoom() throws SQLException {
     Map<String, List<Long>> ids = new LinkedHashMap<>();
     try (Connection connection =
@@ -234,10 +220,10 @@ class MessageTimeIT {
       ImportedChats.Message ios = message(ONE_TO_ONE_NEW_ROOM, NEW_IOS_MESSAGE_MAM);
 
       assertAll(
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:27:42.988"), emoji.createdAt()),
-          () -> assertEquals(ExpectedTimes.mamMillis(NEW_EMOJI_MESSAGE_MAM), emoji.createdAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:27:54.580"), ios.createdAt()),
-          () -> assertEquals(ExpectedTimes.mamMillis(NEW_IOS_MESSAGE_MAM), ios.createdAt()));
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:27:42.988036"), emoji.createdAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(NEW_EMOJI_MESSAGE_MAM), emoji.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:27:54.580514"), ios.createdAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(NEW_IOS_MESSAGE_MAM), ios.createdAt()));
     }
 
     @Test
@@ -248,12 +234,11 @@ class MessageTimeIT {
       ImportedChats.Message june = message(ONE_TO_ONE_ATTACHMENTS_ROOM, JUNE_MESSAGE_MAM);
 
       assertAll(
-          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:01:28.373"), first.createdAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:26:16.150"), last.createdAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-06-12T11:21:14.581"), june.createdAt()),
-          () ->
-              assertEquals(ExpectedTimes.mamMillis(HISTORIC_FIRST_MESSAGE_MAM), first.createdAt()),
-          () -> assertEquals(ExpectedTimes.mamMillis(JUNE_MESSAGE_MAM), june.createdAt()));
+          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:01:28.373709"), first.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:26:16.150090"), last.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-06-12T11:21:14.581014"), june.createdAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(HISTORIC_FIRST_MESSAGE_MAM), first.createdAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(JUNE_MESSAGE_MAM), june.createdAt()));
     }
 
     @Test
@@ -264,7 +249,9 @@ class MessageTimeIT {
       ImportedChats.Message tombstone = message(ONE_TO_ONE_HISTORIC_ROOM, HISTORIC_TOMBSTONE_MAM);
 
       assertAll(
-          () -> assertEquals(LocalDateTime.parse("2026-06-12T11:19:57.442"), tombstone.createdAt()),
+          () ->
+              assertEquals(
+                  LocalDateTime.parse("2026-06-12T11:19:57.442435"), tombstone.createdAt()),
           () ->
               assertTrue(
                   chats
@@ -297,10 +284,8 @@ class MessageTimeIT {
     }
 
     @Test
-    @DisplayName(
-        "TIME-1/TIME-3: every imported row without a same-millisecond predecessor is exactly its"
-            + " MAM id time in UTC milliseconds")
-    void everyUnrepairedRowIsExactlyItsMamMillis() throws SQLException {
+    @DisplayName("TIME-1/TIME-3: every imported row is exactly its MAM id time in UTC microseconds")
+    void everyImportedRowIsExactlyItsMamMicroseconds() throws SQLException {
       Map<String, LocalDateTime> messages = createdAtById("message");
       Map<String, LocalDateTime> events = createdAtById("system_event");
       List<String> mismatches = new ArrayList<>();
@@ -312,8 +297,7 @@ class MessageTimeIT {
             continue;
           }
           checked++;
-          LocalDateTime expected =
-              REPAIRED_ROWS.getOrDefault(mamId, ExpectedTimes.mamMillis(mamId));
+          LocalDateTime expected = ExpectedTimes.mamTime(mamId);
           if (!expected.equals(actual)) {
             mismatches.add(
                 room.getKey() + "/" + mamId + " expected " + expected + " got " + actual);
@@ -402,38 +386,39 @@ class MessageTimeIT {
     }
 
     @Test
-    @DisplayName("TIME-3: message created_at is stored at millisecond precision")
-    void messageCreatedAtHasMillisecondPrecision() {
+    @DisplayName("TIME-3: message created_at keeps the microseconds of the MAM id")
+    void messageCreatedAtHasMicrosecondPrecision() {
       assertAll(
           () -> assertTrue(chats.count("SELECT count(*) FROM chats.message") > 600),
           () ->
-              assertEquals(
-                  0,
+              assertTrue(
                   chats.count(
-                      "SELECT count(*) FROM chats.message WHERE created_at <>"
-                          + " date_trunc('milliseconds', created_at)")));
+                          "SELECT count(*) FROM chats.message WHERE created_at <>"
+                              + " date_trunc('milliseconds', created_at)")
+                      > 600));
     }
 
     @Test
     @DisplayName(
-        "TIME-3/C78: three messages inside one millisecond get consecutive milliseconds in MAM"
-            + " order")
-    void sameMillisecondMessagesGetConsecutiveMilliseconds() {
+        "TIME-3/C78: three messages inside one millisecond keep their own consecutive"
+            + " microseconds in MAM order")
+    void sameMillisecondMessagesKeepTheirMicroseconds() {
       ImportedChats.Message first = message(GROUP_BURST_ROOM, BURST_FIRST_MAM);
       ImportedChats.Message second = message(GROUP_BURST_ROOM, BURST_SECOND_MAM);
       ImportedChats.Message third = message(GROUP_BURST_ROOM, BURST_THIRD_MAM);
       ImportedChats.SystemEvent removed = event(GROUP_BURST_ROOM, AFTER_BURST_MEMBER_REMOVED_MAM);
 
       assertAll(
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:25.947"), first.createdAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:25.948"), second.createdAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:25.949"), third.createdAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:29.723"), removed.createdAt()));
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:25.947192"), first.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:25.947193"), second.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:40:25.947194"), third.createdAt()),
+          () ->
+              assertEquals(LocalDateTime.parse("2026-10-07T17:40:29.723633"), removed.createdAt()));
     }
 
     @Test
-    @DisplayName("TIME-3/C78: a burst repair cascades onto the next row and stops after it")
-    void burstRepairCascadesToTheNextMillisecond() {
+    @DisplayName("TIME-3/C78: messages 0.1 to 4 ms apart keep their exact MAM microseconds")
+    void closeMessagesKeepTheirMicroseconds() {
       List<Long> chain =
           List.of(
               CHAIN_BEFORE_MAM,
@@ -449,34 +434,34 @@ class MessageTimeIT {
 
       assertEquals(
           List.of(
-              LocalDateTime.parse("2026-06-21T14:25:19.783"),
-              LocalDateTime.parse("2026-06-21T14:25:19.882"),
-              LocalDateTime.parse("2026-06-21T14:25:19.883"),
-              LocalDateTime.parse("2026-06-21T14:25:19.884"),
-              LocalDateTime.parse("2026-06-21T14:25:19.885"),
-              LocalDateTime.parse("2026-06-21T14:25:19.888")),
+              LocalDateTime.parse("2026-06-21T14:25:19.783150"),
+              LocalDateTime.parse("2026-06-21T14:25:19.882990"),
+              LocalDateTime.parse("2026-06-21T14:25:19.883095"),
+              LocalDateTime.parse("2026-06-21T14:25:19.883405"),
+              LocalDateTime.parse("2026-06-21T14:25:19.884100"),
+              LocalDateTime.parse("2026-06-21T14:25:19.888151")),
           actual);
     }
 
     @Test
-    @DisplayName("TIME-3/C78: two attachment pairs in the same millisecond are separated by 1 ms")
-    void sameMillisecondPairsAreSeparatedByOneMillisecond() {
+    @DisplayName("TIME-3/C78: two attachment pairs in the same millisecond keep their microseconds")
+    void sameMillisecondPairsKeepTheirMicroseconds() {
       assertAll(
           () ->
               assertEquals(
-                  LocalDateTime.parse("2026-06-21T15:46:41.666"),
+                  LocalDateTime.parse("2026-06-21T15:46:41.666536"),
                   message(ONE_TO_ONE_ATTACHMENTS_ROOM, PAIR_ONE_FIRST_MAM).createdAt()),
           () ->
               assertEquals(
-                  LocalDateTime.parse("2026-06-21T15:46:41.667"),
+                  LocalDateTime.parse("2026-06-21T15:46:41.666724"),
                   message(ONE_TO_ONE_ATTACHMENTS_ROOM, PAIR_ONE_SECOND_MAM).createdAt()),
           () ->
               assertEquals(
-                  LocalDateTime.parse("2026-06-21T15:46:43.477"),
+                  LocalDateTime.parse("2026-06-21T15:46:43.477372"),
                   message(ONE_TO_ONE_ATTACHMENTS_ROOM, PAIR_TWO_FIRST_MAM).createdAt()),
           () ->
               assertEquals(
-                  LocalDateTime.parse("2026-06-21T15:46:43.478"),
+                  LocalDateTime.parse("2026-06-21T15:46:43.477812"),
                   message(ONE_TO_ONE_ATTACHMENTS_ROOM, PAIR_TWO_SECOND_MAM).createdAt()));
     }
 
@@ -529,22 +514,21 @@ class MessageTimeIT {
       ImportedChats.Message tripled = message(GROUP_EDITS_ROOM, TRIPLE_EDIT_TARGET_MAM);
 
       assertAll(
-          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:02:40.052"), single.createdAt()),
-          () ->
-              assertEquals(LocalDateTime.parse("2026-05-08T09:02:51.754"), ms(single.updatedAt())),
-          () -> assertEquals(ExpectedTimes.mamMillis(SINGLE_EDIT_MAM), ms(single.updatedAt())),
-          () ->
-              assertEquals(LocalDateTime.parse("2026-10-07T15:48:29.294"), inPinsRoom.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:02:40.052095"), single.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-05-08T09:02:51.754454"), single.updatedAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(SINGLE_EDIT_MAM), single.updatedAt()),
           () ->
               assertEquals(
-                  LocalDateTime.parse("2026-10-07T15:48:29.552"), ms(inPinsRoom.updatedAt())),
+                  LocalDateTime.parse("2026-10-07T15:48:29.294834"), inPinsRoom.createdAt()),
           () ->
-              assertEquals(ExpectedTimes.mamMillis(PINS_ROOM_EDIT_MAM), ms(inPinsRoom.updatedAt())),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:35:27.640"), tripled.createdAt()),
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T15:48:29.552497"), inPinsRoom.updatedAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(PINS_ROOM_EDIT_MAM), inPinsRoom.updatedAt()),
           () ->
-              assertEquals(LocalDateTime.parse("2026-10-07T16:35:30.469"), ms(tripled.updatedAt())),
+              assertEquals(LocalDateTime.parse("2026-10-07T16:35:27.640558"), tripled.createdAt()),
           () ->
-              assertEquals(ExpectedTimes.mamMillis(TRIPLE_EDIT_LAST_MAM), ms(tripled.updatedAt())));
+              assertEquals(LocalDateTime.parse("2026-10-07T16:35:30.469991"), tripled.updatedAt()),
+          () -> assertEquals(ExpectedTimes.mamTime(TRIPLE_EDIT_LAST_MAM), tripled.updatedAt()));
     }
 
     @Test
@@ -564,7 +548,7 @@ class MessageTimeIT {
                     () -> assertTrue(row.deleted()),
                     () -> assertEquals(expectedDeletedAt, row.deletedAt()),
                     () -> assertEquals(row.deletedAt(), row.updatedAt()),
-                    () -> assertEquals(ExpectedTimes.mamMillis(tombstone.mamId()), row.createdAt()),
+                    () -> assertEquals(ExpectedTimes.mamTime(tombstone.mamId()), row.createdAt()),
                     () -> assertFalse(row.deletedAt().isBefore(row.createdAt()))));
       }
       assertAll(checks);
@@ -579,9 +563,9 @@ class MessageTimeIT {
       ImportedChats.Message historic = message(ONE_TO_ONE_HISTORIC_ROOM, HISTORIC_TOMBSTONE_MAM);
 
       assertAll(
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:35:24.831"), quick.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T16:35:24.831715"), quick.createdAt()),
           () -> assertEquals(LocalDateTime.parse("2026-10-07T16:35:25"), quick.deletedAt()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:29:25.995"), slow.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:29:25.995027"), slow.createdAt()),
           () -> assertEquals(LocalDateTime.parse("2026-10-07T17:30:40"), slow.deletedAt()),
           () -> assertEquals(LocalDateTime.parse("2026-06-12T11:20:17"), historic.deletedAt()),
           () -> assertEquals(LocalDateTime.parse("2026-06-12T11:20:17"), historic.updatedAt()));
@@ -594,7 +578,7 @@ class MessageTimeIT {
 
       assertAll(
           () -> assertTrue(legacy.deleted()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:30:10.029"), legacy.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:30:10.029399"), legacy.createdAt()),
           () -> assertEquals(LocalDateTime.parse("2026-10-07T17:30:11"), legacy.deletedAt()),
           () -> assertEquals(legacy.deletedAt(), legacy.updatedAt()));
     }
@@ -607,9 +591,11 @@ class MessageTimeIT {
 
       assertAll(
           () -> assertEquals("MESSAGE_PINNED", pinned.type()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T15:48:50.055"), pinned.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T15:48:50.055342"), pinned.createdAt()),
           () -> assertEquals("MESSAGE_UNPINNED", unpinned.type()),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T15:48:51.761"), unpinned.createdAt()));
+          () ->
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T15:48:51.761217"), unpinned.createdAt()));
     }
   }
 
@@ -666,7 +652,7 @@ class MessageTimeIT {
                   rs -> ImportedChats.utc(rs, 1))
               .get(0);
 
-      assertEquals(LocalDateTime.parse("2026-10-08T14:06:15.711"), latest);
+      assertEquals(LocalDateTime.parse("2026-10-08T14:06:15.711018"), latest);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -674,9 +660,9 @@ class MessageTimeIT {
         "TIME-4/C88: the first imported row of a room that precedes room.created_at is still"
             + " imported with its own MAM time")
     @CsvSource({
-      "e0df7f4a-7a19-4ab7-9af7-49be3b7874b6, 458596905521228033, 2026-10-07T17:29:22.192,"
+      "e0df7f4a-7a19-4ab7-9af7-49be3b7874b6, 458596905521228033, 2026-10-07T17:29:22.192297,"
           + " 2026-10-07T17:29:22.244",
-      "8a10332b-0a46-4a7f-8f1a-db54f0dabf02, 458597073649314305, 2026-10-07T17:40:18.942,"
+      "8a10332b-0a46-4a7f-8f1a-db54f0dabf02, 458597073649314305, 2026-10-07T17:40:18.942634,"
           + " 2026-10-07T17:40:19.172"
     })
     void firstRowOlderThanTheRoomIsStillImported(
@@ -718,7 +704,7 @@ class MessageTimeIT {
           () -> assertEquals("MEMBER_ADDED", timeline.get(1).kind()),
           () ->
               assertEquals(
-                  LocalDateTime.parse("2026-10-07T17:29:22.192"), timeline.get(1).createdAt()),
+                  LocalDateTime.parse("2026-10-07T17:29:22.192297"), timeline.get(1).createdAt()),
           () -> assertTrue(timeline.get(0).createdAt().isBefore(timeline.get(1).createdAt())));
     }
 
@@ -771,9 +757,9 @@ class MessageTimeIT {
 
       assertAll(
           () -> assertEquals(LocalDateTime.parse("2026-10-07T17:39:22.242058"), cleared),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:39:05.108"), before.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:39:05.108488"), before.createdAt()),
           () -> assertFalse(before.createdAt().isAfter(cleared)),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:39:25.134"), after.createdAt()),
+          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:39:25.134412"), after.createdAt()),
           () -> assertTrue(after.createdAt().isAfter(cleared)));
     }
 
@@ -797,18 +783,24 @@ class MessageTimeIT {
 
       assertAll(
           () ->
-              assertEquals(LocalDateTime.parse("2026-10-07T17:36:11.030"), e0dfBefore.createdAt()),
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T17:36:11.030353"), e0dfBefore.createdAt()),
           () -> assertTrue(e0dfBefore.createdAt().isBefore(e0dfCleared)),
-          () -> assertEquals(LocalDateTime.parse("2026-10-07T17:36:13.369"), e0dfAfter.createdAt()),
+          () ->
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T17:36:13.369573"), e0dfAfter.createdAt()),
           () -> assertTrue(e0dfAfter.createdAt().isAfter(e0dfCleared)),
           () ->
-              assertEquals(LocalDateTime.parse("2026-10-07T17:36:14.915"), e0dfMessage.createdAt()),
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T17:36:14.915657"), e0dfMessage.createdAt()),
           () -> assertTrue(e0dfMessage.createdAt().isAfter(e0dfCleared)),
           () ->
-              assertEquals(LocalDateTime.parse("2026-10-07T17:40:30.035"), burstBefore.createdAt()),
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T17:40:30.035790"), burstBefore.createdAt()),
           () -> assertTrue(burstBefore.createdAt().isBefore(burstCleared)),
           () ->
-              assertEquals(LocalDateTime.parse("2026-10-07T17:40:34.231"), burstAfter.createdAt()),
+              assertEquals(
+                  LocalDateTime.parse("2026-10-07T17:40:34.231592"), burstAfter.createdAt()),
           () -> assertTrue(burstAfter.createdAt().isAfter(burstCleared)));
     }
 

@@ -8,7 +8,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 public final class Fastenings implements AutoCloseable {
 
@@ -55,11 +56,11 @@ public final class Fastenings implements AutoCloseable {
     try (Statement st = target.createStatement()) {
       st.execute(
           "CREATE TEMP TABLE mongoose_edits (mam BIGINT, target_mam BIGINT NOT NULL,"
-              + " sender_id TEXT NOT NULL, body TEXT NOT NULL, edit_time TIMESTAMP NOT NULL)"
+              + " sender_id TEXT NOT NULL, body TEXT NOT NULL, edit_time TIMESTAMPTZ NOT NULL)"
               + " ON COMMIT DROP");
       st.execute(
           "CREATE TEMP TABLE mongoose_reactions (mam BIGINT, target_mam BIGINT NOT NULL,"
-              + " sender_id TEXT NOT NULL, body TEXT NOT NULL, reaction_time TIMESTAMP NOT NULL)"
+              + " sender_id TEXT NOT NULL, body TEXT NOT NULL, reaction_time TIMESTAMPTZ NOT NULL)"
               + " ON COMMIT DROP");
     }
     this.edits = target.prepareStatement(STAGE_EDIT);
@@ -79,8 +80,7 @@ public final class Fastenings implements AutoCloseable {
     }
   }
 
-  public void stageEdit(
-      long mam, long targetMam, String senderId, String body, LocalDateTime editTime)
+  public void stageEdit(long mam, long targetMam, String senderId, String body, Instant editTime)
       throws SQLException {
     stage(edits, mam, targetMam, senderId, body, editTime);
     pendingEditChars += body.length();
@@ -91,7 +91,7 @@ public final class Fastenings implements AutoCloseable {
   }
 
   public void stageReaction(
-      long mam, long targetMam, String senderId, String body, LocalDateTime reactionTime)
+      long mam, long targetMam, String senderId, String body, Instant reactionTime)
       throws SQLException {
     stage(reactions, mam, targetMam, senderId, body, reactionTime);
     pendingReactionChars += body.length();
@@ -150,13 +150,13 @@ public final class Fastenings implements AutoCloseable {
   }
 
   private static void stage(
-      PreparedStatement ps, long mam, long targetMam, String senderId, String body, LocalDateTime t)
+      PreparedStatement ps, long mam, long targetMam, String senderId, String body, Instant t)
       throws SQLException {
     ps.setLong(1, mam);
     ps.setLong(2, targetMam);
     ps.setString(3, senderId);
     ps.setString(4, body);
-    ps.setObject(5, t);
+    ps.setObject(5, t.atOffset(ZoneOffset.UTC));
     ps.addBatch();
   }
 }

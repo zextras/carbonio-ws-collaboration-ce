@@ -7,8 +7,10 @@ package com.zextras.carbonio.chats.core.migration.mongooseimport;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
@@ -16,7 +18,7 @@ import org.postgresql.copy.CopyIn;
 final class CopyRows {
 
   private static final DateTimeFormatter TIMESTAMP =
-      DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSS");
+      DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSS'+00'");
 
   private static final int INITIAL_BYTES = 1 << 16;
   private static final int RETAINED_BYTES = 1 << 22;
@@ -72,15 +74,15 @@ final class CopyRows {
     return this;
   }
 
-  // Rounded to the microsecond like pgjdbc does for a bound LocalDateTime.
-  CopyRows time(LocalDateTime value) {
+  // Rounded to the microsecond like pgjdbc does for a bound timestamp.
+  CopyRows time(Instant value) {
     separate();
     if (value == null) {
       row.append("\\N");
       return this;
     }
-    LocalDateTime rounded = value.getNano() % 1000 > 499 ? value.plusNanos(1000) : value;
-    row.append(TIMESTAMP.format(rounded));
+    Instant rounded = value.getNano() % 1000 > 499 ? value.plusNanos(1000) : value;
+    row.append(TIMESTAMP.format(rounded.truncatedTo(ChronoUnit.MICROS).atOffset(ZoneOffset.UTC)));
     return this;
   }
 

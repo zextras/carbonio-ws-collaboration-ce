@@ -6,8 +6,7 @@ package com.zextras.carbonio.chats.it.migration.mongooseimport;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
+import java.time.ZoneOffset;
 
 public final class ExpectedTimes {
 
@@ -18,11 +17,7 @@ public final class ExpectedTimes {
     return Instant.ofEpochSecond(micros / 1_000_000, (micros % 1_000_000) * 1_000);
   }
 
-  public static LocalDateTime mamMillis(long mamId) {
-    return mamMillis(mamId, MongooseImport.DUMP_ZONE);
-  }
-
-  public static LocalDateTime mamMillis(long mamId, ZoneId zone) {
-    return LocalDateTime.ofInstant(mamInstant(mamId).truncatedTo(ChronoUnit.MILLIS), zone);
+  public static LocalDateTime mamTime(long mamId) {
+    return LocalDateTime.ofInstant(mamInstant(mamId), ZoneOffset.UTC);
   }
 }

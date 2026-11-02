@@ -5,11 +5,12 @@
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 public final class MamTime {
+
+  private static final Instant MIN = Instant.parse("0001-01-01T00:00:00Z");
+  private static final Instant MAX_EXCLUSIVE = Instant.parse("+10000-01-01T00:00:00Z");
 
   private MamTime() {}
 
@@ -17,15 +18,11 @@ public final class MamTime {
     return Instant.EPOCH.plus(mam >> 8, ChronoUnit.MICROS);
   }
 
-  public static LocalDateTime millis(long mam, ZoneId zone) {
-    return LocalDateTime.ofInstant(instant(mam).truncatedTo(ChronoUnit.MILLIS), zone);
+  public static boolean inRange(Instant time) {
+    return !time.isBefore(MIN) && time.isBefore(MAX_EXCLUSIVE);
   }
 
-  public static boolean inRange(LocalDateTime time) {
-    return time.getYear() >= 1 && time.getYear() <= 9999;
-  }
-
-  public static LocalDateTime micros(long epochMicros, ZoneId zone) {
-    return LocalDateTime.ofInstant(Instant.EPOCH.plus(epochMicros, ChronoUnit.MICROS), zone);
+  public static Instant micros(long epochMicros) {
+    return Instant.EPOCH.plus(epochMicros, ChronoUnit.MICROS);
   }
 }

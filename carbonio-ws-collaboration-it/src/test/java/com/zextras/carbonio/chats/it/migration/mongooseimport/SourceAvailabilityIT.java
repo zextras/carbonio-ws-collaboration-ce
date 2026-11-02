@@ -653,7 +653,7 @@ class SourceAvailabilityIT {
           () -> assertImportedLikeTheDump(run, 0),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(ZONE_ROOM_MEMBER_ADDED_MAM, MongooseImport.DUMP_ZONE),
+                  ExpectedTimes.mamTime(ZONE_ROOM_MEMBER_ADDED_MAM),
                   run.chats()
                       .systemEvent(ZONE_PARITY_ROOM, ZONE_ROOM_MEMBER_ADDED_MAM)
                       .orElseThrow()

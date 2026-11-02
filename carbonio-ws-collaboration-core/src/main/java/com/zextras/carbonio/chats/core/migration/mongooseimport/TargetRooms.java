@@ -8,14 +8,15 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class TargetRooms {
 
   public record TargetRoom(
-      String id, String type, LocalDateTime createdAt, String creatorId, String meetingId) {}
+      String id, String type, Instant createdAt, String creatorId, String meetingId) {}
 
   private static final String ROOMS =
       "SELECT r.id, r.type, r.created_at, COALESCE((SELECT s.user_id FROM chats.subscription s"
@@ -39,7 +40,7 @@ public final class TargetRooms {
             new TargetRoom(
                 rows.getString(1),
                 rows.getString(2),
-                rows.getTimestamp(3).toLocalDateTime(),
+                rows.getObject(3, OffsetDateTime.class).toInstant(),
                 rows.getString(4),
                 rows.getString(5)));
       }

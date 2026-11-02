@@ -45,11 +45,19 @@ public final class MongooseImport {
 
   public static ImportRun run(
       String targetDatabase, MessageDispatcherCredentials source, ZoneId jvmZone) {
+    return run(targetDatabase, source, jvmZone, jvmZone);
+  }
+
+  public static ImportRun run(
+      String targetDatabase,
+      MessageDispatcherCredentials source,
+      ZoneId jvmZone,
+      ZoneId legacyColumnsZone) {
     MongooseImportDatabase database = MongooseImportDatabase.get();
     Flyway flyway =
         Flyway.configure()
             .locations("classpath:migration/ce")
-            .placeholders(Map.of("jvm_zone", jvmZone.getId()))
+            .placeholders(Map.of("jvm_zone", legacyColumnsZone.getId()))
             .schemas("chats")
             .dataSource(database.jdbcUrl(targetDatabase), database.user(), database.password())
             .validateMigrationNaming(true)
