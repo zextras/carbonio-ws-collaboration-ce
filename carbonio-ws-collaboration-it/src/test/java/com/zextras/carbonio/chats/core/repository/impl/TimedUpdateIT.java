@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
@@ -88,10 +89,8 @@ class TimedUpdateIT {
     participant.audioStreamOn(true);
     assertEquals(
         java.util.Set.of("audioStreamOn"), database.beanState(participant).dirtyValues().keySet());
-    int updated =
-        TimedUpdate.update(database, participant, participant.getId(), TimedUpdate.UPDATED_AT_NOW);
+    TimedUpdate.update(database, participant, TimedUpdate.UPDATED_AT_NOW);
 
-    assertEquals(1, updated);
     Participant reloaded =
         database
             .find(Participant.class)
@@ -128,9 +127,8 @@ class TimedUpdateIT {
     subscription.owner(false);
     assertEquals(
         java.util.Set.of("isOwner"), database.beanState(subscription).dirtyValues().keySet());
-    int updated = TimedUpdate.update(database, subscription, id, TimedUpdate.UPDATED_AT_NOW);
+    TimedUpdate.update(database, subscription, TimedUpdate.UPDATED_AT_NOW);
 
-    assertEquals(1, updated);
     var row =
         database
             .sqlQuery(
@@ -147,6 +145,58 @@ class TimedUpdateIT {
             .toInstant()
             .isAfter(row.getTimestamp("created_at").toInstant()));
     assertNotNull(room);
+  }
+
+  @Test
+  @DisplayName("A new bean is rejected")
+  void newBean_rejected() {
+    Room room = Room.create().id(UUID.randomUUID().toString()).name("n");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> TimedUpdate.update(database, room, TimedUpdate.UPDATED_AT_NOW));
+  }
+
+  @Test
+  @DisplayName("A dirty collection or association property is rejected")
+  void nonScalarProperty_rejected() {
+    UUID roomId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(userId));
+    Room room = database.find(Room.class, roomId.toString());
+    room.subscriptions(new java.util.ArrayList<>());
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> TimedUpdate.update(database, room, TimedUpdate.UPDATED_AT_NOW));
+
+    Subscription subscription =
+        database.find(Subscription.class, new SubscriptionId(roomId.toString(), userId.toString()));
+    subscription.room(database.find(Room.class, roomId.toString()));
+    if (database.beanState(subscription).dirtyValues().containsKey("room")) {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> TimedUpdate.update(database, subscription, TimedUpdate.UPDATED_AT_NOW));
+    }
+  }
+
+  @Test
+  @DisplayName("Updating a row deleted in the meantime throws EntityNotFoundException")
+  void missingRow_throws() {
+    UUID roomId = UUID.randomUUID();
+    integrationTestUtils.generateAndSaveRoom(
+        roomId, RoomTypeDto.GROUP, "room", List.of(UUID.randomUUID()));
+    Room room = database.find(Room.class, roomId.toString());
+    room.name("renamed");
+    database
+        .sqlUpdate("DELETE FROM chats.subscription WHERE room_id = :id")
+        .setParameter("id", roomId.toString())
+        .execute();
+    database
+        .sqlUpdate("DELETE FROM chats.room WHERE id = :id")
+        .setParameter("id", roomId.toString())
+        .execute();
+    assertThrows(
+        jakarta.persistence.EntityNotFoundException.class,
+        () -> TimedUpdate.update(database, room, TimedUpdate.UPDATED_AT_NOW));
   }
 
   @Test
@@ -167,9 +217,8 @@ class TimedUpdateIT {
 
     Room room = database.find(Room.class, roomId.toString());
     room.pictureUpdatedAt(null);
-    int updated = TimedUpdate.update(database, room, room.getId());
+    TimedUpdate.update(database, room);
 
-    assertEquals(1, updated);
     assertNull(column(sql, roomId.toString(), null));
   }
 
@@ -183,15 +232,9 @@ class TimedUpdateIT {
 
     Room room = database.find(Room.class, roomId.toString());
     room.name("renamed");
-    int updated =
-        TimedUpdate.update(
-            database,
-            room,
-            room.getId(),
-            "pictureUpdatedAt = clock_timestamp()",
-            TimedUpdate.UPDATED_AT_NOW);
+    TimedUpdate.update(
+        database, room, "pictureUpdatedAt = clock_timestamp()", TimedUpdate.UPDATED_AT_NOW);
 
-    assertEquals(1, updated);
     String id = roomId.toString();
     OffsetDateTime picture =
         column("SELECT picture_updated_at AS v FROM chats.room WHERE id = :p1", id, null);

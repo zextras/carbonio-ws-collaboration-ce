@@ -162,6 +162,7 @@ class MeetingApiIT {
       assertEquals(false, meeting.isActive());
       assertEquals(MeetingTypeDto.PERMANENT, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
+      assertNotNull(meeting.getCreatedAt());
     }
 
     @Test

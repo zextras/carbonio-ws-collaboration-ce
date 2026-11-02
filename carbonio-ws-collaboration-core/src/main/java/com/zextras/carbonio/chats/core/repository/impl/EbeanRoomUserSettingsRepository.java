@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import io.ebean.Database;
+import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -22,9 +23,8 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
 
   private static final String SET_CLEARED_AT_NOW_SQL =
       """
-      WITH ts AS (SELECT clock_timestamp() AS t)
       INSERT INTO chats.room_user_settings (user_id, room_id, cleared_at)
-      SELECT :userId, :roomId, ts.t FROM ts
+      VALUES (:userId, :roomId, clock_timestamp())
       ON CONFLICT (user_id, room_id)
       DO UPDATE SET cleared_at = clock_timestamp(), updated_at = clock_timestamp()
       RETURNING cleared_at
@@ -74,13 +74,13 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
     if (db.beanState(roomUserSettings).isNew()) {
       db.insert(roomUserSettings);
     } else {
-      TimedUpdate.update(
-          db, roomUserSettings, roomUserSettings.getId(), TimedUpdate.UPDATED_AT_NOW);
+      TimedUpdate.update(db, roomUserSettings, TimedUpdate.UPDATED_AT_NOW);
     }
     return roomUserSettings;
   }
 
   @Override
+  @Transactional
   public void save(Collection<RoomUserSettings> roomUserSettingsList) {
     roomUserSettingsList.forEach(this::save);
   }

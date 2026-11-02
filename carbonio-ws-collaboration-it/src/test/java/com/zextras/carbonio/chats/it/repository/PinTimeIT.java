@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.it.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
@@ -16,6 +17,7 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.Transaction;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -45,17 +47,15 @@ class PinTimeIT {
     this.database = database;
   }
 
-  private boolean pinStatementIsWaitingForALock() {
-    try (Transaction observer = database.createTransaction()) {
-      return database
-              .sqlQuery(
-                  "SELECT count(*) AS waiting FROM pg_stat_activity"
-                      + " WHERE wait_event_type = 'Lock' AND query LIKE '%chats.message_pin%'")
-              .usingTransaction(observer)
-              .findOne()
-              .getLong("waiting")
-          > 0;
-    }
+  private boolean pinStatementIsWaitingForALock(Transaction observer) {
+    return database
+            .sqlQuery(
+                "SELECT count(*) AS waiting FROM pg_stat_activity"
+                    + " WHERE wait_event_type = 'Lock' AND query LIKE '%chats.message_pin%'")
+            .usingTransaction(observer)
+            .findOne()
+            .getLong("waiting")
+        > 0;
   }
 
   private OffsetDateTime pinnedAt(UUID roomId) {
@@ -89,8 +89,14 @@ class PinTimeIT {
 
       Future<Optional<MessagePin>> pinB =
           executor.submit(() -> pinRepository.pin(roomId.toString(), messageB, userId.toString()));
-      while (!pinStatementIsWaitingForALock()) {
-        Thread.onSpinWait();
+      try (Transaction observer = database.createTransaction()) {
+        assertTimeoutPreemptively(
+            Duration.ofSeconds(30),
+            () -> {
+              while (!pinStatementIsWaitingForALock(observer)) {
+                Thread.onSpinWait();
+              }
+            });
       }
       OffsetDateTime beforeRelease =
           database

@@ -61,7 +61,7 @@ public class EbeanParticipantRepository implements ParticipantRepository {
 
   @Override
   public Participant update(Participant participant) {
-    TimedUpdate.update(db, participant, participant.getId(), TimedUpdate.UPDATED_AT_NOW);
+    TimedUpdate.update(db, participant, TimedUpdate.UPDATED_AT_NOW);
     return participant;
   }
 
@@ -69,14 +69,10 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   public Participant setHandRaised(Participant participant, boolean raised) {
     if (raised) {
       TimedUpdate.update(
-          db,
-          participant,
-          participant.getId(),
-          "handRaisedAt = clock_timestamp()",
-          TimedUpdate.UPDATED_AT_NOW);
+          db, participant, "handRaisedAt = clock_timestamp()", TimedUpdate.UPDATED_AT_NOW);
     } else {
       participant.handRaisedAt(null);
-      TimedUpdate.update(db, participant, participant.getId(), TimedUpdate.UPDATED_AT_NOW);
+      TimedUpdate.update(db, participant, TimedUpdate.UPDATED_AT_NOW);
     }
     db.refresh(participant);
     return participant;

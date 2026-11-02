@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.it.migration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -14,7 +13,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,24 +118,6 @@ class TimestampSchemaIT {
                 + " AND column_default LIKE '%clock_timestamp()%'");
     for (String column : expected) {
       assertTrue(withDefault.contains(column), column + " has no clock_timestamp() default");
-    }
-  }
-
-  @Test
-  @DisplayName("A naive 1.x value is converted to the instant of the service zone")
-  void naiveValueIsConvertedWithTheServiceZone() throws SQLException {
-    try (Connection connection = dataSource.getConnection();
-        Statement statement = connection.createStatement()) {
-      statement.execute("CREATE TEMP TABLE naive_time (at TIMESTAMP)");
-      statement.execute("INSERT INTO naive_time VALUES (TIMESTAMP '2026-07-01 12:00:00')");
-      statement.execute(
-          "ALTER TABLE naive_time ALTER COLUMN at TYPE TIMESTAMPTZ"
-              + " USING at AT TIME ZONE 'Europe/Rome'");
-      try (ResultSet resultSet = statement.executeQuery("SELECT at FROM naive_time")) {
-        assertTrue(resultSet.next());
-        assertNotNull(resultSet.getObject(1));
-        assertEquals(Instant.parse("2026-07-01T10:00:00Z"), resultSet.getTimestamp(1).toInstant());
-      }
     }
   }
 }

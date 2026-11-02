@@ -37,7 +37,7 @@ public class EbeanUserRepository implements UserRepository {
     if (database.beanState(user).isNew()) {
       database.insert(user);
     } else {
-      TimedUpdate.update(database, user, user.getId(), TimedUpdate.UPDATED_AT_NOW);
+      TimedUpdate.update(database, user, TimedUpdate.UPDATED_AT_NOW);
     }
     return user;
   }

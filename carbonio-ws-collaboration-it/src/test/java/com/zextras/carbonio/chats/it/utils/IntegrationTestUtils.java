@@ -304,6 +304,24 @@ public class IntegrationTestUtils {
         .execute();
   }
 
+  public java.time.Instant dbNow() {
+    return database
+        .sqlQuery("SELECT clock_timestamp() AS now")
+        .findOne()
+        .getTimestamp("now")
+        .toInstant();
+  }
+
+  public void editMessageText(String messageId, String text) {
+    database
+        .sqlUpdate(
+            "UPDATE chats.message SET text = :text, edited = true, updated_at = clock_timestamp()"
+                + " WHERE id = :id")
+        .setParameter("text", text)
+        .setParameter("id", messageId)
+        .execute();
+  }
+
   public void setMessageTime(String messageId, OffsetDateTime at) {
     setTimes("message", "id", messageId, at, "created_at", "updated_at");
   }

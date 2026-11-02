@@ -160,14 +160,6 @@ public interface MessageRepository {
   Message insert(Message message);
 
   /**
-   * Updates a message (for edit/delete)
-   *
-   * @param message {@link Message} to update
-   * @return {@link Message} updated
-   */
-  Message update(Message message);
-
-  /**
    * Deletes all messages in a room
    *
    * @param roomId room identifier

@@ -136,18 +136,8 @@ public class Participant {
     return createdAt;
   }
 
-  public Participant createdAt(OffsetDateTime createdAt) {
-    this.createdAt = createdAt;
-    return this;
-  }
-
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
-  }
-
-  public Participant updatedAt(OffsetDateTime updatedAt) {
-    this.updatedAt = updatedAt;
-    return this;
   }
 
   public OffsetDateTime getHandRaisedAt() {

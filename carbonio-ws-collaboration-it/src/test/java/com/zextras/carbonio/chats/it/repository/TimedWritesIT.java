@@ -101,7 +101,9 @@ class TimedWritesIT {
             "SELECT created_at AS t FROM chats.system_event WHERE room_id = ? AND type ="
                 + " 'ROOM_DESCRIPTION_CHANGED'",
             roomId.toString());
-    assertTrue(nameLine.isAfter(YESTERDAY));
+    OffsetDateTime roomUpdatedAt =
+        time("SELECT updated_at AS t FROM chats.room WHERE id = ?", roomId.toString());
+    assertTrue(roomUpdatedAt.isBefore(nameLine));
     assertTrue(nameLine.isBefore(descriptionLine));
   }
 

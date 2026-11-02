@@ -93,7 +93,7 @@ public class EbeanRoomRepository implements RoomRepository {
 
   @Override
   public Room update(Room room) {
-    TimedUpdate.update(db, room, room.getId(), TimedUpdate.UPDATED_AT_NOW);
+    TimedUpdate.update(db, room, TimedUpdate.UPDATED_AT_NOW);
     db.refresh(room);
     return room;
   }
@@ -101,7 +101,7 @@ public class EbeanRoomRepository implements RoomRepository {
   @Override
   public Room markPictureUpdated(Room room) {
     TimedUpdate.update(
-        db, room, room.getId(), "pictureUpdatedAt = clock_timestamp()", TimedUpdate.UPDATED_AT_NOW);
+        db, room, "pictureUpdatedAt = clock_timestamp()", TimedUpdate.UPDATED_AT_NOW);
     db.refresh(room);
     return room;
   }

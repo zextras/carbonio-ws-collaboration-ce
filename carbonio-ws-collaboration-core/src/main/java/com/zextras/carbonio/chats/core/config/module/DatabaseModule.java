@@ -22,6 +22,7 @@ import io.ebean.annotation.Platform;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
@@ -82,10 +83,25 @@ public class DatabaseModule extends AbstractModule {
         .build();
   }
 
+  static String migrationZone(ZoneId zone) {
+    ZoneId normalized = zone.normalized();
+    if (normalized instanceof ZoneOffset offset) {
+      if (offset.getTotalSeconds() == 0) {
+        return "UTC";
+      }
+      throw new IllegalStateException(
+          "The service zone '"
+              + zone
+              + "' is a fixed offset, which PostgreSQL reads with the opposite sign: run the"
+              + " service with a region zone id (e.g. Europe/Rome) or UTC");
+    }
+    return zone.getId();
+  }
+
   @Singleton
   @Provides
   private Flyway getFlyway(HikariDataSource dataSource, MessageDispatcherCredentials credentials) {
-    String jvmZone = ZoneId.systemDefault().getId();
+    String jvmZone = migrationZone(ZoneId.systemDefault());
     ChatsLogger.info("Flyway 1.x time conversion zone: " + jvmZone);
     Flyway flyway =
         Flyway.configure()

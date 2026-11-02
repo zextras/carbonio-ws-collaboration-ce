@@ -1087,6 +1087,8 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly initialize a group room subscriptions")
     void initRoomSubscriptions_groupRoom() {
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenAnswer(i -> i.getArgument(0));
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
               List.of(
@@ -1114,6 +1116,8 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly initialize a one-to-one room subscriptions")
     void initRoomSubscriptions_oneToOneRoom() {
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenAnswer(i -> i.getArgument(0));
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
               List.of(MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id)),

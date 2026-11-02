@@ -229,7 +229,7 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
       db.insert(metadata);
       db.refresh(metadata);
     } else {
-      TimedUpdate.update(db, metadata, metadata.getId(), TimedUpdate.UPDATED_AT_NOW);
+      TimedUpdate.update(db, metadata, TimedUpdate.UPDATED_AT_NOW);
     }
     return metadata;
   }

@@ -283,12 +283,6 @@ public class EbeanMessageRepository implements MessageRepository {
   }
 
   @Override
-  public Message update(Message message) {
-    db.update(message);
-    return message;
-  }
-
-  @Override
   public void deleteByRoomId(String roomId) {
     db.find(Message.class).where().eq("roomId", roomId).delete();
   }

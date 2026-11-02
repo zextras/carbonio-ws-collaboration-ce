@@ -332,7 +332,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName("Given creation fields, inserts a new group room and returns its data")
       void insertGroupRoom_testOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
@@ -381,9 +381,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getUpdatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -392,7 +392,7 @@ public class RoomsApiIT {
           "Given creation fields, inserts a new group room settings the owners and returns its"
               + " data")
       void insertGroupRoom_testOkWithOwners() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
@@ -442,9 +442,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getUpdatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -493,7 +493,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName("Given creation fields, inserts a new temporary room and returns its data")
       void insertTemporaryRoom_testOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
@@ -542,9 +542,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getUpdatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -553,7 +553,7 @@ public class RoomsApiIT {
           "Given creation fields, inserts a new temporary room settings the owners and returns its"
               + " data")
       void insertTemporaryRoom_testOkWithOwners() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
@@ -603,9 +603,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getUpdatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -632,7 +632,7 @@ public class RoomsApiIT {
           "Given creation fields, create a room without adding more members but only creator as"
               + " owner")
       void insertTemporaryRoom_testOkWithOneMember() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
@@ -662,9 +662,9 @@ public class RoomsApiIT {
         assertTrue(user1.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getUpdatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
     }
@@ -676,7 +676,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName("Given creation fields, inserts a new one-to-one room and returns its data")
       void insertOneToOneRoom_testOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
@@ -712,9 +712,9 @@ public class RoomsApiIT {
         assertTrue(
             room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getUpdatedAt().toInstant().isAfter(Instant.now()));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -1048,7 +1048,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier and update fields, correctly updates the room")
     void updateRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       integrationTestUtils.generateAndSaveRoom(
@@ -1086,7 +1086,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier and update only name, correctly updates the room")
     void updateRoom_testOkWithNameAndWithoutDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       integrationTestUtils.generateAndSaveRoom(
@@ -1124,7 +1124,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier and update only description, correctly updates the room")
     void updateRoom_testOkWithoutNameAndWithDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       integrationTestUtils.generateAndSaveRoom(
@@ -1163,7 +1163,7 @@ public class RoomsApiIT {
             + " associated meeting name")
     void updateRoomWithMeeting_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       Room roomCreated =
@@ -1757,7 +1757,7 @@ public class RoomsApiIT {
               .digestAlgorithm("")
               .size(newImage.getSize()),
           true);
-      Instant now = Instant.now();
+      Instant now = integrationTestUtils.dbNow();
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(newImage.getUUID());

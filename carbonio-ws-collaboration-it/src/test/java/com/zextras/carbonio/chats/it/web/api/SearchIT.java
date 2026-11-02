@@ -192,8 +192,7 @@ class SearchIT {
   @DisplayName("Search runs on the current text of edited messages")
   void editedText() throws Exception {
     String id = message("old wording", 1);
-    messageRepository.update(
-        messageRepository.getById(id).orElseThrow().text("new wording").edited(true));
+    integrationTestUtils.editMessageText(id, "new wording");
 
     assertEquals(List.of(), found("old"));
     assertEquals(List.of(id), found("new wording"));

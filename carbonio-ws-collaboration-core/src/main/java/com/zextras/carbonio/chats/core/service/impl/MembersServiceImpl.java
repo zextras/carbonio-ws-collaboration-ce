@@ -402,7 +402,7 @@ public class MembersServiceImpl implements MembersService {
                     .room(room)
                     // When we have a one-to-one, both members are owners
                     .owner(member.isOwner() || RoomTypeDto.ONE_TO_ONE.equals(room.getType())))
-        .peek(subscriptionRepository::insert)
+        .map(subscriptionRepository::insert)
         .toList();
   }
 }
