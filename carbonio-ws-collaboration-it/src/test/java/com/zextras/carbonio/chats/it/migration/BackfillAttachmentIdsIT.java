@@ -18,7 +18,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.configuration.Configuration;
 import org.flywaydb.core.api.migration.Context;
@@ -60,6 +62,7 @@ class BackfillAttachmentIdsIT {
     Flyway.configure()
         .cleanDisabled(false)
         .locations("classpath:migration/ce")
+        .placeholders(Map.of("jvm_zone", ZoneId.systemDefault().getId()))
         .schemas("chats")
         .dataSource(wscDataSource)
         .validateMigrationNaming(true)

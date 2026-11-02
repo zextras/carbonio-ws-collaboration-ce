@@ -11,6 +11,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -237,6 +239,11 @@ public final class ImportedChats {
   }
 
   private static LocalDateTime time(ResultSet rs, int column) throws SQLException {
-    return rs.getObject(column, LocalDateTime.class);
+    return utc(rs, column);
+  }
+
+  static LocalDateTime utc(ResultSet rs, int column) throws SQLException {
+    OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
+    return value == null ? null : value.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
   }
 }

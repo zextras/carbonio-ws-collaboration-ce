@@ -39,7 +39,7 @@ public final class TargetRooms {
             new TargetRoom(
                 rows.getString(1),
                 rows.getString(2),
-                rows.getObject(3, LocalDateTime.class),
+                rows.getTimestamp(3).toLocalDateTime(),
                 rows.getString(4),
                 rows.getString(5)));
       }

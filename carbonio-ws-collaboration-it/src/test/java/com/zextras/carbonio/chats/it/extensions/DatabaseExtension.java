@@ -12,6 +12,8 @@ import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.CloseablePostgreSQLContainer;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.ZoneId;
+import java.util.Map;
 import java.util.Optional;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -73,6 +75,7 @@ public class DatabaseExtension implements BeforeAllCallback, BeforeEachCallback,
               return Flyway.configure()
                   .cleanDisabled(false)
                   .locations("classpath:migration/ce")
+                  .placeholders(Map.of("jvm_zone", ZoneId.systemDefault().getId()))
                   .schemas("chats")
                   .dataSource(dataSource)
                   .validateMigrationNaming(true)

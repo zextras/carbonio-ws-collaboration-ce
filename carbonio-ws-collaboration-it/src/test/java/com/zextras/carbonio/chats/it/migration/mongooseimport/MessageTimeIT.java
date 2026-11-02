@@ -170,7 +170,7 @@ class MessageTimeIT {
     return chats
         .query(
             "SELECT created_at FROM chats.room WHERE id = ?",
-            rs -> rs.getObject(1, LocalDateTime.class),
+            rs -> ImportedChats.utc(rs, 1),
             roomId)
         .get(0);
   }
@@ -179,7 +179,7 @@ class MessageTimeIT {
     return chats
         .query(
             "SELECT cleared_at FROM chats.room_user_settings WHERE user_id = ? AND room_id = ?",
-            rs -> rs.getObject(1, LocalDateTime.class),
+            rs -> ImportedChats.utc(rs, 1),
             userId,
             roomId)
         .get(0);
@@ -209,7 +209,7 @@ class MessageTimeIT {
     return chats
         .query(
             "SELECT id, created_at FROM chats." + table,
-            rs -> Map.entry(rs.getString(1), rs.getObject(2, LocalDateTime.class)))
+            rs -> Map.entry(rs.getString(1), ImportedChats.utc(rs, 2)))
         .stream()
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
@@ -355,7 +355,7 @@ class MessageTimeIT {
           chats
               .query(
                   "SELECT room_id, created_at FROM chats.system_event WHERE type = 'ROOM_CREATED'",
-                  rs -> Map.entry(rs.getString(1), rs.getObject(2, LocalDateTime.class)))
+                  rs -> Map.entry(rs.getString(1), ImportedChats.utc(rs, 2)))
               .stream()
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> violations = new ArrayList<>();
@@ -663,7 +663,7 @@ class MessageTimeIT {
               .query(
                   "SELECT max(created_at) FROM (SELECT created_at FROM chats.message UNION ALL"
                       + " SELECT created_at FROM chats.system_event) t",
-                  rs -> rs.getObject(1, LocalDateTime.class))
+                  rs -> ImportedChats.utc(rs, 1))
               .get(0);
 
       assertEquals(LocalDateTime.parse("2026-10-08T14:06:15.711"), latest);
@@ -859,7 +859,7 @@ class MessageTimeIT {
                   chats
                       .query(
                           "SELECT min(last_seen_at) FROM chats.user_last_seen",
-                          rs -> rs.getObject(1, LocalDateTime.class))
+                          rs -> ImportedChats.utc(rs, 1))
                       .get(0)),
           () ->
               assertEquals(
@@ -867,7 +867,7 @@ class MessageTimeIT {
                   chats
                       .query(
                           "SELECT max(last_seen_at) FROM chats.user_last_seen",
-                          rs -> rs.getObject(1, LocalDateTime.class))
+                          rs -> ImportedChats.utc(rs, 1))
                       .get(0)));
     }
   }

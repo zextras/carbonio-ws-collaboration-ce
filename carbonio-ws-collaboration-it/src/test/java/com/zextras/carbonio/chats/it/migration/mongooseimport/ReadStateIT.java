@@ -1257,7 +1257,7 @@ class ReadStateIT {
                       "SELECT created_at FROM chats.user_contact WHERE (user_id = ? AND"
                           + " contact_id = ?) OR (user_id = ? AND contact_id = ?) ORDER BY"
                           + " user_id",
-                      rs -> rs.getObject(1, LocalDateTime.class),
+                      rs -> ImportedChats.utc(rs, 1),
                       CONTACT_A,
                       CONTACT_B,
                       CONTACT_B,

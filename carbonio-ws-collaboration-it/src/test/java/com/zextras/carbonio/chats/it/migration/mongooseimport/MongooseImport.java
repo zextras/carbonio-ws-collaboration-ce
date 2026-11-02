@@ -15,6 +15,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
@@ -48,6 +49,7 @@ public final class MongooseImport {
     Flyway flyway =
         Flyway.configure()
             .locations("classpath:migration/ce")
+            .placeholders(Map.of("jvm_zone", jvmZone.getId()))
             .schemas("chats")
             .dataSource(database.jdbcUrl(targetDatabase), database.user(), database.password())
             .validateMigrationNaming(true)
