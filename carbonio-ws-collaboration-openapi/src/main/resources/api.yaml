@@ -548,7 +548,9 @@ paths:
           required: false
         - in: query
           name: before
-          description: ISO-8601 timestamp cursor — return messages older than this date (for pagination)
+          description: >
+            ISO-8601 timestamp cursor — return messages older than this date (for pagination).
+            Stored times have microsecond precision: send the exact value of the oldest result.
           schema:
             type: string
           required: false
@@ -795,7 +797,9 @@ paths:
         - $ref: '#/components/parameters/pathRoomId'
         - in: query
           name: before
-          description: ISO-8601 timestamp cursor - return items before this date
+          description: >
+            ISO-8601 timestamp cursor - return items before this date.
+            Stored times have microsecond precision: send the full value, not a millisecond-truncated one.
           schema:
             type: string
           required: false
@@ -805,7 +809,7 @@ paths:
             Message ID that anchors the page boundary together with `before`.
             When provided alongside `before`, pagination uses a composite cursor
             (created_at, id) < (before, beforeId) to avoid skipping messages that
-            share the same millisecond timestamp across page boundaries.
+            share the same timestamp across page boundaries.
             The server anchors the page on the stored creation time of the
             `beforeId` item rather than on the client-supplied `before`, when the item exists.
           schema:

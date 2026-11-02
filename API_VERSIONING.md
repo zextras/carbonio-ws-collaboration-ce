@@ -39,6 +39,9 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
 ### Changes against earlier 2.0.0 development builds
 
 - `GET /rooms/{roomId}/messages` is removed: use `GET /rooms/{roomId}/timeline`.
+- Every stored time is a database time (UTC instant, microsecond precision); system lines of one action have
+  strictly increasing times instead of 1 ms offsets, and `GET /rooms/{roomId}/timeline` with `beforeId`
+  anchors the page on the stored time of that item (`MIGRATION.md` §4).
 - `MessageReceived.tempId` is echoed to every room member (earlier builds sent it to the sender alone).
 - One `MEMBER_ADDED` row and one `RoomMemberAdded` (with its own `systemEventId`) per added member;
   `POST /rooms/{roomId}/members` with an empty list answers `400`.

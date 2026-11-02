@@ -298,7 +298,7 @@ Every system line has a `content` JSON object, returned parsed by the timeline. 
 | `ROOM_HISTORY_CLEARED` | `PUT /rooms/{roomId}/clear` on a TEMPORARY room (the owner clears for everyone) | the owner | `{"clearedBy": <user>}` |
 
 An update that changes nothing writes no event. If name and description change in one request, two rows are
-written, name first, with `createdAt` 1 ms apart. `ROOM_HISTORY_CLEARED` is written after the purge, so it is
+written, name first, each with its own database time (strictly increasing). `ROOM_HISTORY_CLEARED` is written after the purge, so it is
 the only row left in the room; its `createdAt` is the `clearedAt` returned by `PUT /rooms/{roomId}/clear` and
 carried by `RoomHistoryCleared`. The per-user clear of GROUP and ONE_TO_ONE rooms (`cleared_at`) writes no
 event.
@@ -312,7 +312,7 @@ event.
 | `RoomHistoryCleared` | `ROOM_HISTORY_CLEARED` | `clearedBy` | `systemEventId`; both present only for TEMPORARY rooms, absent for the per-user clear |
 
 A member add writes one `MEMBER_ADDED` row per added user (`addedUserIds` holds that single user;
-the rows of one request are 1 ms apart, in request order) and sends one `RoomMemberAdded` per user,
+the rows of one request are written in request order, each with its own database time) and sends one `RoomMemberAdded` per user,
 each carrying the `systemEventId`/`systemEventCreatedAt` of its own row, to every member of the room
 after the add (the added users included). A user listed twice is added once; an empty list is
 rejected with 400. Room creation lines are not announced through these events.
@@ -322,6 +322,25 @@ rejected with 400. Room creation lines are not announced through these events.
 **Ordering.** Every event carries a database timestamp. The broker preserves FIFO per session,
 but clients should still insert by `(createdAt, id)` — that matches the server's own ordering
 (`ORDER BY createdAt, id`).
+
+**Times.** Every stored time (`createdAt`, `pinnedAt`, `clearedAt`, markers, `joinedAt`, ...) is read from
+the PostgreSQL clock in the statement that writes the row: a UTC instant with microsecond precision
+(`TIMESTAMPTZ`). The serialised offset may vary, so compare times as instants, never as strings.
+
+- **Keep full precision in cursors.** A client that truncates a time to milliseconds can skip or repeat
+  items. `GET /rooms/{roomId}/timeline` with `beforeId` anchors the page on the stored time of that item,
+  so the `before` value is not trusted to the microsecond. `GET /rooms/{roomId}/messages/search` has
+  only `before`: send the exact value of the oldest result.
+- **Lines of one action are ordered by write.** There are no synthetic offsets: room creation writes
+  `ROOM_CREATED` then one `MEMBER_ADDED` per member, a bulk add writes its lines in request order, a name and
+  description change writes name first. Each line has its own, strictly increasing time.
+- **Room creation:** the members' `joinedAt` follows the creation lines, and these lines are not unread.
+  A bulk add writes its lines after the new subscriptions: they are unread for existing and added members,
+  not for the adder.
+- **Pins:** the `MESSAGE_PINNED` line has its own database time, a few microseconds after the pin's
+  `pinnedAt`, not equal to it.
+- **WebSocket events** are unchanged for now: their own `sentDate` and `timestamp` values are not database
+  times (`systemEventCreatedAt` is).
 
 ## 5. WebSocket messages (client → server)
 
@@ -444,6 +463,9 @@ Upgrade procedure (administrators):
    Consul, the database does not exist or it has no MongooseIM tables, it logs
    `MongooseIM import skipped: <reason>` and is recorded as done: it is never retried. If you expected data,
    check this line before going live.
+   Imported times are the exact MAM microsecond instants (UTC); ties are repaired by adding 1 µs. Data
+   already in 1.x columns is converted with the service JVM time zone, which must be a region id or UTC:
+   a fixed non-zero offset makes the service fail at startup with an explicit message.
 4. Check the WSC log for `MongooseIM import completed: rooms=… messages=…`. The warning
    `other sessions are connected to the MongooseIM database` means MongooseIM was still running during the
    import.
