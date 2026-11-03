@@ -33,8 +33,8 @@ class WsEventWireFormatTest {
   @Test
   void reactionChangedOmitsAbsentTimesAndPreviousReaction() throws Exception {
     String json =
-        new ObjectMapper()
-            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+        new com.zextras.carbonio.chats.core.config.JacksonConfig()
+            .get()
             .writeValueAsString(
                 ReactionChanged.create()
                     .messageId("message-id")
@@ -47,7 +47,7 @@ class WsEventWireFormatTest {
 
     assertTrue(json.contains("\"operation\":\"updated\""), json);
     assertTrue(json.contains("\"previousReaction\":\"y\""), json);
-    assertTrue(json.contains("\"updatedAt\""), json);
+    assertTrue(json.contains("\"updatedAt\":\"2026-01-01T10:00:00Z\""), json);
     assertFalse(json.contains("deletedAt"), json);
   }
 

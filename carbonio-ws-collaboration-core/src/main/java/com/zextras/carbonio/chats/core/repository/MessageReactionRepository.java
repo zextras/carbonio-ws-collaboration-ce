@@ -19,15 +19,6 @@ public interface MessageReactionRepository {
    */
   List<MessageReaction> getByMessageId(String messageId);
 
-  /**
-   * Retrieves the single reaction a user set on a message
-   *
-   * @param messageId message identifier
-   * @param userId user identifier
-   * @return The {@link MessageReaction} wrapped in an {@link Optional}
-   */
-  Optional<MessageReaction> getByUserAndMessage(String messageId, String userId);
-
   enum SetKind {
     ADDED,
     UPDATED,

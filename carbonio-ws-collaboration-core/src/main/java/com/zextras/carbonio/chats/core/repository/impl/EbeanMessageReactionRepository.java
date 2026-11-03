@@ -7,11 +7,11 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
-import com.zextras.carbonio.chats.core.data.entity.MessageReactionId;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
 import io.ebean.Database;
 import io.ebean.SqlRow;
 import io.ebean.annotation.Transactional;
+import io.ebean.annotation.TxIsolation;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -53,13 +53,7 @@ public class EbeanMessageReactionRepository implements MessageReactionRepository
   }
 
   @Override
-  public Optional<MessageReaction> getByUserAndMessage(String messageId, String userId) {
-    return Optional.ofNullable(
-        db.find(MessageReaction.class, new MessageReactionId(messageId, userId)));
-  }
-
-  @Override
-  @Transactional
+  @Transactional(isolation = TxIsolation.READ_COMMITED)
   public SetResult set(String messageId, String userId, String reaction) {
     for (int attempt = 0; attempt < MAX_SET_ATTEMPTS; attempt++) {
       Optional<String> current = lockCurrent(messageId, userId);
@@ -77,7 +71,7 @@ public class EbeanMessageReactionRepository implements MessageReactionRepository
         continue;
       }
       if (current.get().equals(reaction)) {
-        return new SetResult(SetKind.UNCHANGED, current.get(), null);
+        return new SetResult(SetKind.UNCHANGED, null, null);
       }
       SqlRow updated =
           db.sqlQuery(UPDATE_SQL)

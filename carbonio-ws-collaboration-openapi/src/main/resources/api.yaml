@@ -3284,6 +3284,7 @@ components:
           type: string
           minLength: 1
           maxLength: 32
+          description: The emoji; at most 32 UTF-16 code units (blank is rejected with 400)
       required: [reaction]
     ReactionUser:
       type: object
@@ -3293,7 +3294,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-          description: the reaction's updatedAt
+          description: database time of the last set of this reaction (insert or replace)
       required: [userId, updatedAt]
     ReactionGroup:
       type: object

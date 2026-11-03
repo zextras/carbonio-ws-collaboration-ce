@@ -118,7 +118,6 @@ import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 @Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
 
-  private static final int MAX_REACTION_LENGTH = 32;
   public static final String MIME_TYPE_NOT_FOUND = "Mime type not found";
   public static final String FILE_NAME_NOT_FOUND = "File name not found";
   private final RoomService roomService;
@@ -816,13 +815,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       SetReactionRequestDto setReactionRequest,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    String reaction = setReactionRequest == null ? null : setReactionRequest.getReaction();
-    if (reaction == null
-        || reaction.isBlank()
-        || reaction.codePointCount(0, reaction.length()) > MAX_REACTION_LENGTH) {
-      throw new BadRequestException("Reaction must be between 1 and 32 characters");
+    String reaction = setReactionRequest.getReaction();
+    if (reaction.isBlank()) {
+      throw new BadRequestException("Reaction must not be blank");
     }
-    chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
     SetResult result =
         chatMessageService.setReaction(
             roomId.toString(), messageId.toString(), currentUser.getId(), reaction);

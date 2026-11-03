@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -105,19 +106,36 @@ class ReactionTimesIT {
     return dispatcher.delete(path(message), token).getStatus();
   }
 
-  private List<JsonNode> reactionEvents() throws Exception {
-    Thread.sleep(500);
-    List<JsonNode> events = new ArrayList<>();
-    GetResponse response;
-    while ((response = channel.basicGet(queueB, true)) != null) {
-      JsonNode event =
-          objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
-      assertFalse(event.has("sentDate"), "sentDate must not be sent: " + event);
-      if ("ReactionChanged".equals(event.get("type").asText())) {
-        events.add(event);
+  private JsonNode nextEvent() throws Exception {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    while (System.nanoTime() < deadline) {
+      GetResponse response = channel.basicGet(queueB, true);
+      if (response != null) {
+        JsonNode event =
+            objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
+        assertFalse(event.has("sentDate"), "sentDate must not be sent: " + event);
+        return event;
       }
+      Thread.sleep(20);
     }
-    return events;
+    throw new AssertionError("no WS event received");
+  }
+
+  private List<JsonNode> reactionEvents() throws Exception {
+    String syncId = UUID.randomUUID().toString();
+    integrationTestUtils.generateAndSaveMessage(syncId, roomId, aUserId, "sync");
+    assertEquals(204, put(syncId, UP, aToken));
+    List<JsonNode> events = new ArrayList<>();
+    while (true) {
+      JsonNode event = nextEvent();
+      if (!"ReactionChanged".equals(event.get("type").asText())) {
+        continue;
+      }
+      if (syncId.equals(event.get("messageId").asText())) {
+        return events;
+      }
+      events.add(event);
+    }
   }
 
   private JsonNode onlyEvent() throws Exception {
@@ -251,6 +269,9 @@ class ReactionTimesIT {
   void unknownMessage() throws Exception {
     String unknown = UUID.randomUUID().toString();
 
+    assertEquals(204, put(messageId, UP, aToken));
+    reactionEvents();
+
     assertEquals(404, put(unknown, UP, aToken));
     assertEquals(404, delete(unknown, aToken));
     assertTrue(reactionEvents().isEmpty());
@@ -280,6 +301,8 @@ class ReactionTimesIT {
   @Test
   @DisplayName("PUT on a deleted message is 404")
   void deletedMessage() throws Exception {
+    assertEquals(204, put(messageId, UP, bToken));
+    assertEquals(204, delete(messageId, bToken));
     assertEquals(
         204,
         dispatcher
@@ -288,5 +311,12 @@ class ReactionTimesIT {
 
     assertEquals(404, put(messageId, UP, bToken));
     assertEquals(0, rowCount());
+  }
+
+  @Test
+  @DisplayName("The length limit is 32 UTF-16 code units: 16 thumbs-up pass, 17 are 400")
+  void lengthBoundary() throws Exception {
+    assertEquals(204, put(messageId, UP.repeat(16), aToken));
+    assertEquals(400, put(messageId, UP.repeat(17), aToken));
   }
 }
