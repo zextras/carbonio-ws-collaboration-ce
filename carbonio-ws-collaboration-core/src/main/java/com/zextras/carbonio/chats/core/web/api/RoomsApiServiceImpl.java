@@ -1146,7 +1146,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .messageId(deleted.messageId())
               .roomId(roomId.toString())
               .deletedBy(currentUser.getId())
-              .deletedAt(OffsetDateTime.now())
+              .deletedAt(deleted.deletedAt())
               .sentDate(OffsetDateTime.now());
       broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
     } catch (Exception e) {

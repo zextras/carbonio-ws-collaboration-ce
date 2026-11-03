@@ -2811,7 +2811,10 @@ class RoomsApiServiceImplTest {
         .thenReturn(
             Optional.of(
                 new MessageWriteRepository.DeleteResult(
-                    messageId.toString(), UUID.randomUUID().toString())));
+                    messageId.toString(),
+                    UUID.randomUUID().toString(),
+                    OffsetDateTime.now(),
+                    null)));
 
     Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
 
@@ -2951,6 +2954,7 @@ class RoomsApiServiceImplTest {
                   new MessageWriteRepository.DeleteResult(
                       messageId.toString(),
                       null,
+                      OffsetDateTime.now(),
                       new MessageWriteRepository.Unpinned("unpin-event", unpinnedAt))));
 
       Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
@@ -2980,7 +2984,9 @@ class RoomsApiServiceImplTest {
       when(messageWriteRepository.deleteMessage(
               messageId.toString(), roomId.toString(), user1Id.toString()))
           .thenReturn(
-              Optional.of(new MessageWriteRepository.DeleteResult(messageId.toString(), null)));
+              Optional.of(
+                  new MessageWriteRepository.DeleteResult(
+                      messageId.toString(), null, OffsetDateTime.now(), null)));
 
       Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
 

@@ -71,12 +71,8 @@ public interface MessageWriteRepository {
   record EditResult(
       String messageId, String text, OffsetDateTime updatedAt, OffsetDateTime createdAt) {}
 
-  record DeleteResult(String messageId, String attachmentId, Unpinned unpinned) {
-
-    public DeleteResult(String messageId, String attachmentId) {
-      this(messageId, attachmentId, null);
-    }
-  }
+  record DeleteResult(
+      String messageId, String attachmentId, OffsetDateTime deletedAt, Unpinned unpinned) {}
 
   record Unpinned(String systemEventId, OffsetDateTime systemEventCreatedAt) {}
 

@@ -33,8 +33,11 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.Database;
+import io.ebean.SqlRow;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +61,7 @@ class SystemLineEventsIT {
   private final SystemEventRepository systemEventRepository;
   private final Channel channel;
   private final StorageMockServer storageMockServer;
+  private final Database database;
 
   private static UUID aUserId;
   private static UUID bUserId;
@@ -79,13 +83,15 @@ class SystemLineEventsIT {
       IntegrationTestUtils integrationTestUtils,
       SystemEventRepository systemEventRepository,
       Channel channel,
-      StorageMockServer storageMockServer) {
+      StorageMockServer storageMockServer,
+      Database database) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.systemEventRepository = systemEventRepository;
     this.channel = channel;
     this.storageMockServer = storageMockServer;
+    this.database = database;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
 
@@ -613,5 +619,30 @@ class SystemLineEventsIT {
     assertTrue(
         timelineSystemEvents(roomId, aToken).stream()
             .noneMatch(e -> "ROOM_HISTORY_CLEARED".equals(e.get("type").asText())));
+  }
+
+  @Test
+  @DisplayName("MessageDeleted carries the persisted deletedAt, equal to the row's updatedAt")
+  void deletedAt() throws Exception {
+    assertEquals(
+        204,
+        dispatcher
+            .delete(String.format("/rooms/%s/messages/%s", roomId, messageId), aToken)
+            .getStatus());
+
+    JsonNode event = nextEvent(queueB, "MessageDeleted");
+    SqlRow row =
+        database
+            .sqlQuery("SELECT deleted_at, updated_at FROM chats.message WHERE id = :id")
+            .setParameter("id", messageId)
+            .findOne();
+    OffsetDateTime deletedAt = row.getTimestamp("deleted_at").toInstant().atOffset(ZoneOffset.UTC);
+    assertEquals(
+        deletedAt.toInstant(),
+        row.getTimestamp("updated_at").toInstant(),
+        "deleted_at and updated_at must come from one clock read");
+    assertTrue(
+        deletedAt.isEqual(OffsetDateTime.parse(event.get("deletedAt").asText())),
+        "event " + event.get("deletedAt").asText() + " != persisted " + deletedAt);
   }
 }
