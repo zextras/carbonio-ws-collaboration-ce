@@ -757,8 +757,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .systemEventId(systemEvent.getId())
               .systemEventCreatedAt(systemEvent.getCreatedAt())
               .timestamp(systemEvent.getCreatedAt())
-              .message(message)
-              .sentDate(OffsetDateTime.now()),
+              .message(message),
           message);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting pin event: " + e.getMessage());
@@ -798,8 +797,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .unpinnedBy(unpinnedBy)
               .systemEventId(systemEventId)
               .systemEventCreatedAt(systemEventCreatedAt)
-              .timestamp(systemEventCreatedAt)
-              .sentDate(OffsetDateTime.now());
+              .timestamp(systemEventCreatedAt);
       broadcastToRoomMembers(roomId, objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting unpin event: " + e.getMessage());
@@ -868,8 +866,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             .roomId(roomId.toString())
             .userId(userId)
             .reaction(reaction)
-            .operation(operation)
-            .sentDate(OffsetDateTime.now());
+            .operation(operation);
     broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
   }
 
@@ -1095,8 +1092,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       }
       WsEvent event =
           MessageForwarded.create()
-              .message(buildResolvedTimelineMessage(forwardedMsg, knownAttachments))
-              .sentDate(OffsetDateTime.now());
+              .message(buildResolvedTimelineMessage(forwardedMsg, knownAttachments));
       broadcastToRoomMembers(toRoomIdStr, objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-forwarded event: " + e.getMessage());
@@ -1146,8 +1142,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .messageId(deleted.messageId())
               .roomId(roomId.toString())
               .deletedBy(currentUser.getId())
-              .deletedAt(deleted.deletedAt())
-              .sentDate(OffsetDateTime.now());
+              .deletedAt(deleted.deletedAt());
       broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-deleted event: " + e.getMessage());
@@ -1192,8 +1187,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .messageId(edited.messageId())
               .roomId(roomId.toString())
               .text(edited.text())
-              .editedAt(edited.updatedAt())
-              .sentDate(OffsetDateTime.now());
+              .editedAt(edited.updatedAt());
       messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
           roomId.toString(), edited.createdAt(), objectMapper.writeValueAsString(event));
     } catch (Exception e) {
@@ -1229,8 +1223,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                     ReadUpdated.create()
                         .roomId(roomId.toString())
                         .userId(currentUser.getId())
-                        .itemCreatedAt(itemCreatedAt)
-                        .sentDate(OffsetDateTime.now());
+                        .itemCreatedAt(itemCreatedAt);
                 broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
               } catch (Exception e) {
                 ChatsLogger.warn(

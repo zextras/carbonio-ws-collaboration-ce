@@ -154,10 +154,7 @@ public class RoomServiceImpl implements RoomService {
 
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomCreated.create()
-            .roomId(UUID.fromString(room.getId()))
-            .type(EventType.ROOM_CREATED)
-            .sentDate(OffsetDateTime.now()));
+        RoomCreated.create().roomId(UUID.fromString(room.getId())).type(EventType.ROOM_CREATED));
 
     return mapRoomToDto(room, currentUser);
   }
@@ -331,8 +328,7 @@ public class RoomServiceImpl implements RoomService {
                       .updatedBy(currentUser.getUUID())
                       .systemEventId(line.getId())
                       .systemEventCreatedAt(line.getCreatedAt())
-                      .type(EventType.ROOM_NAME_CHANGED)
-                      .sentDate(OffsetDateTime.now())));
+                      .type(EventType.ROOM_NAME_CHANGED)));
       descriptionSystemEvent.ifPresent(
           line ->
               eventDispatcher.sendToUserExchange(
@@ -343,8 +339,7 @@ public class RoomServiceImpl implements RoomService {
                       .updatedBy(currentUser.getUUID())
                       .systemEventId(line.getId())
                       .systemEventCreatedAt(line.getCreatedAt())
-                      .type(EventType.ROOM_DESCRIPTION_CHANGED)
-                      .sentDate(OffsetDateTime.now())));
+                      .type(EventType.ROOM_DESCRIPTION_CHANGED)));
     }
 
     return roomMapper.ent2dto(
@@ -424,10 +419,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.delete(roomId.toString());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomDeleted.create()
-            .roomId(roomId)
-            .type(EventType.ROOM_DELETED)
-            .sentDate(OffsetDateTime.now()));
+        RoomDeleted.create().roomId(roomId).type(EventType.ROOM_DELETED));
   }
 
   @Override
@@ -440,11 +432,7 @@ public class RoomServiceImpl implements RoomService {
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToUserExchange(
-          currentUser.getId(),
-          RoomMuted.create()
-              .roomId(roomId)
-              .type(EventType.ROOM_MUTED)
-              .sentDate(OffsetDateTime.now()));
+          currentUser.getId(), RoomMuted.create().roomId(roomId).type(EventType.ROOM_MUTED));
     }
   }
 
@@ -459,10 +447,7 @@ public class RoomServiceImpl implements RoomService {
                 roomUserSettingsRepository.save(settings.mutedUntil(null));
                 eventDispatcher.sendToUserExchange(
                     currentUser.getId(),
-                    RoomUnmuted.create()
-                        .roomId(roomId)
-                        .type(EventType.ROOM_UNMUTED)
-                        .sentDate(OffsetDateTime.now()));
+                    RoomUnmuted.create().roomId(roomId).type(EventType.ROOM_UNMUTED));
               }
             });
   }
@@ -509,8 +494,7 @@ public class RoomServiceImpl implements RoomService {
             .clearedBy(currentUser.getUUID())
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_HISTORY_CLEARED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_HISTORY_CLEARED));
 
     attachmentService.deleteAttachmentFiles(purged.attachmentIds(), currentUser);
 
@@ -554,8 +538,7 @@ public class RoomServiceImpl implements RoomService {
         RoomHistoryCleared.create()
             .roomId(UUID.fromString(room.getId()))
             .clearedAt(clearedAt)
-            .type(EventType.ROOM_HISTORY_CLEARED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_HISTORY_CLEARED));
 
     return clearedAt;
   }
@@ -656,8 +639,7 @@ public class RoomServiceImpl implements RoomService {
             .updatedBy(currentUser.getUUID())
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_PICTURE_CHANGED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_PICTURE_CHANGED));
   }
 
   @Override
@@ -684,8 +666,7 @@ public class RoomServiceImpl implements RoomService {
             .deletedBy(currentUser.getUUID())
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_PICTURE_DELETED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_PICTURE_DELETED));
   }
 
   @Override

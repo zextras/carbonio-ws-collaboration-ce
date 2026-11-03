@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,5 +37,7 @@ class WsEventWireFormatTest {
             Typing.create().roomId("room-id").userId("user-id").status(Typing.StatusEnum.STOPPED));
 
     assertTrue(json.contains("\"status\":\"stopped\""), json);
+    assertFalse(json.contains("timestamp"), json);
+    assertFalse(json.contains("sentDate"), json);
   }
 }

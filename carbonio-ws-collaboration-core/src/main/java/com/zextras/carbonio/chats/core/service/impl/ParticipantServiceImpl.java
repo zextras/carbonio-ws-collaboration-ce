@@ -199,8 +199,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID())
             .joinedAt(joinedAt)
-            .type(EventType.MEETING_PARTICIPANT_JOINED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.MEETING_PARTICIPANT_JOINED));
   }
 
   private void destroyMeetingParticipantClashed(
@@ -212,15 +211,13 @@ public class ParticipantServiceImpl implements ParticipantService {
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID())
             .reason(MeetingParticipantLeftReason.LEFT)
-            .type(EventType.MEETING_PARTICIPANT_LEFT)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.MEETING_PARTICIPANT_LEFT));
     eventDispatcher.sendToUserQueue(
         currentUser.getId(),
         participant.getQueueId(),
         MeetingParticipantClashed.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .type(EventType.MEETING_PARTICIPANT_CLASHED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.MEETING_PARTICIPANT_CLASHED));
   }
 
   /**
@@ -321,8 +318,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId()))
             .reason(reason)
-            .type(EventType.MEETING_PARTICIPANT_LEFT)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.MEETING_PARTICIPANT_LEFT));
     if (participantRepository.getByMeetingId(meeting.getId()).isEmpty()) {
       meetingService.stopMeeting(
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
@@ -373,8 +369,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.VIDEO)
                     .active(false)
-                    .type(EventType.MEETING_MEDIA_STREAM_CHANGED)
-                    .sentDate(OffsetDateTime.now()));
+                    .type(EventType.MEETING_MEDIA_STREAM_CHANGED));
           }
         }
         break;
@@ -391,8 +386,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.SCREEN)
                     .active(false)
-                    .type(EventType.MEETING_MEDIA_STREAM_CHANGED)
-                    .sentDate(OffsetDateTime.now()));
+                    .type(EventType.MEETING_MEDIA_STREAM_CHANGED));
           }
         }
         break;
@@ -428,8 +422,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                           .userId(UUID.fromString(targetUserId))
                           .moderatorId(currentUser.getUUID())
                           .active(enabled)
-                          .type(EventType.MEETING_AUDIO_STREAM_CHANGED)
-                          .sentDate(OffsetDateTime.now())),
+                          .type(EventType.MEETING_AUDIO_STREAM_CHANGED)),
               () ->
                   eventDispatcher.sendToUserExchange(
                       meeting.getParticipants().stream()
@@ -440,8 +433,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                           .meetingId(meetingId)
                           .userId(currentUser.getUUID())
                           .active(enabled)
-                          .type(EventType.MEETING_AUDIO_STREAM_CHANGED)
-                          .sentDate(OffsetDateTime.now())));
+                          .type(EventType.MEETING_AUDIO_STREAM_CHANGED)));
     }
   }
 
@@ -531,8 +523,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .changedAt(changedAt)
             .maxUplinkTier(maxUplinkTier)
             .maxHardwareTier(maxHardwareTier)
-            .type(EventType.MEETING_PARTICIPANT_UPLINK_STATUS_CHANGED)
-            .sentDate(OffsetDateTime.now());
+            .type(EventType.MEETING_PARTICIPANT_UPLINK_STATUS_CHANGED);
 
     ChatsLogger.debug(
         String.format(
@@ -619,8 +610,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 .userId(currentUser.getUUID())
                 .raised(handStatusDto.isRaised())
                 .handRaisedAt(participant.getHandRaisedAt())
-                .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
-                .sentDate(OffsetDateTime.now()));
+                .type(EventType.MEETING_PARTICIPANT_HAND_RAISED));
       } else {
         Optional.ofNullable(handStatusDto.getUserToModerate())
             .ifPresentOrElse(
@@ -635,8 +625,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                             .userId(UUID.fromString(targetUserId))
                             .moderatorId(currentUser.getUUID())
                             .raised(handStatusDto.isRaised())
-                            .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
-                            .sentDate(OffsetDateTime.now())),
+                            .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)),
                 () ->
                     eventDispatcher.sendToUserExchange(
                         meeting.getParticipants().stream()
@@ -647,8 +636,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                             .meetingId(meetingId)
                             .userId(currentUser.getUUID())
                             .raised(handStatusDto.isRaised())
-                            .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
-                            .sentDate(OffsetDateTime.now())));
+                            .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)));
       }
       eventDispatcher.sendToUserExchange(
           meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
@@ -659,8 +647,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                       .map(Participant::getUserId)
                       .map(UUID::fromString)
                       .toList())
-              .type(EventType.MEETING_PARTICIPANT_HAND_RAISED_LIST)
-              .sentDate(OffsetDateTime.now()));
+              .type(EventType.MEETING_PARTICIPANT_HAND_RAISED_LIST));
     }
   }
 

@@ -15,7 +15,6 @@ import com.zextras.carbonio.async.model.MessageBrokerRestored;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
@@ -68,15 +67,11 @@ public class MessageBrokerVideoserverHealthMonitor {
   }
 
   private DomainEvent buildDisconnected() {
-    return MessageBrokerDisconnected.create()
-        .type(EventType.MESSAGE_BROKER_DISCONNECTED)
-        .sentDate(OffsetDateTime.now());
+    return MessageBrokerDisconnected.create().type(EventType.MESSAGE_BROKER_DISCONNECTED);
   }
 
   private DomainEvent buildRestored() {
-    return MessageBrokerRestored.create()
-        .type(EventType.MESSAGE_BROKER_RESTORED)
-        .sentDate(OffsetDateTime.now());
+    return MessageBrokerRestored.create().type(EventType.MESSAGE_BROKER_RESTORED);
   }
 
   private void broadcast(DomainEvent event) {

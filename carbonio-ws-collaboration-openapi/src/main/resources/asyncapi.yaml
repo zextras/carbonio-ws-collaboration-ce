@@ -126,14 +126,8 @@ components:
       properties:
         type:
           $ref: "#/components/schemas/EventType"
-        sentDate:
-          type: string
-          format: date-time
-          description: Timestamp when the event was sent (ISO 8601 format with offset)
-          example: "2025-07-09T10:30:00.000Z"
       required:
         - type
-        - sentDate
 
     # Room Events
     RoomCreated:
@@ -961,12 +955,8 @@ components:
       properties:
         type:
           type: string
-        sentDate:
-          type: string
-          format: date-time
       required:
         - type
-        - sentDate
 
     MessageReceived:
       allOf:
@@ -1207,14 +1197,10 @@ components:
                 started while the user is typing, stopped when they stop. The server relays any other
                 value sent by a client as started. Best-effort: hide the indicator after about 7 seconds
                 without a new started.
-            timestamp:
-              type: string
-              format: date-time
           required:
             - roomId
             - userId
             - status
-            - timestamp
 
     WsError:
       allOf:

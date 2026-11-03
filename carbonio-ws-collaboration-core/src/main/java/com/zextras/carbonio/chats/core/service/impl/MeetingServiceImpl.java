@@ -104,8 +104,7 @@ public class MeetingServiceImpl implements MeetingService {
             .meetingId(UUID.fromString(meeting.getId()))
             .roomId(UUID.fromString(room.getId()))
             .createdAt(meeting.getCreatedAt())
-            .type(EventType.MEETING_CREATED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_CREATED));
 
     return meetingMapper.ent2dto(meeting);
   }
@@ -195,8 +194,7 @@ public class MeetingServiceImpl implements MeetingService {
             .userId(currentUser.getUUID())
             .systemEventId(systemEvent.map(SystemEvent::getId).orElse(null))
             .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-            .type(EventType.MEETING_DECLINED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_DECLINED));
     afterMeetingDeclined(currentUser, room);
 
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && meeting.getParticipants().size() == 1) {
@@ -262,8 +260,7 @@ public class MeetingServiceImpl implements MeetingService {
             .startedAt(updatedMeeting.getStartedAt())
             .systemEventId(systemEvent.map(SystemEvent::getId).orElse(null))
             .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-            .type(EventType.MEETING_STARTED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_STARTED));
 
     afterMeetingStarted(user, room, allReceivers);
   }
@@ -290,8 +287,7 @@ public class MeetingServiceImpl implements MeetingService {
             .systemEventId(endedLine.map(l -> l.event().getId()).orElse(null))
             .systemEventCreatedAt(endedLine.map(l -> l.event().getCreatedAt()).orElse(null))
             .durationSec(endedLine.map(EndedLine::durationSec).orElse(null))
-            .type(EventType.MEETING_STOPPED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_STOPPED));
   }
 
   private record EndedLine(SystemEvent event, Long durationSec) {}
@@ -409,8 +405,7 @@ public class MeetingServiceImpl implements MeetingService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingDeleted.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .type(EventType.MEETING_DELETED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_DELETED));
   }
 
   @Override

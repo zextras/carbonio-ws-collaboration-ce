@@ -35,7 +35,6 @@ import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -104,8 +103,7 @@ public class MembersServiceImpl implements MembersService {
               .addedBy(UUID.fromString(added.systemEvent().getActorId()))
               .systemEventId(added.systemEvent().getId())
               .systemEventCreatedAt(added.systemEvent().getCreatedAt())
-              .type(EventType.ROOM_MEMBER_ADDED)
-              .sentDate(OffsetDateTime.now()));
+              .type(EventType.ROOM_MEMBER_ADDED));
     }
 
     return addedMembers.stream().map(AddedMember::inserted).toList();
@@ -267,8 +265,7 @@ public class MembersServiceImpl implements MembersService {
             .removedBy(UUID.fromString(systemEvent.getActorId()))
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_MEMBER_REMOVED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_MEMBER_REMOVED));
   }
 
   private void validateLastRoomOwner(String userId, Room room) {
@@ -302,8 +299,7 @@ public class MembersServiceImpl implements MembersService {
         RoomOwnerPromoted.create()
             .roomId(roomId)
             .userId(userId)
-            .type(EventType.ROOM_OWNER_PROMOTED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_OWNER_PROMOTED));
   }
 
   @Override
@@ -315,11 +311,7 @@ public class MembersServiceImpl implements MembersService {
     subscriptionRepository.update(subscription);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomOwnerDemoted.create()
-            .roomId(roomId)
-            .userId(userId)
-            .type(EventType.ROOM_OWNER_DEMOTED)
-            .sentDate(OffsetDateTime.now()));
+        RoomOwnerDemoted.create().roomId(roomId).userId(userId).type(EventType.ROOM_OWNER_DEMOTED));
   }
 
   private static Subscription getSubscriptionFromRoom(UUID userId, Room room) {
@@ -372,12 +364,10 @@ public class MembersServiceImpl implements MembersService {
                         .roomId(roomId)
                         .userId(UUID.fromString(subscription.getUserId()))
                         .type(EventType.ROOM_OWNER_PROMOTED)
-                        .sentDate(OffsetDateTime.now())
                     : RoomOwnerDemoted.create()
                         .roomId(roomId)
                         .userId(UUID.fromString(subscription.getUserId()))
-                        .type(EventType.ROOM_OWNER_DEMOTED)
-                        .sentDate(OffsetDateTime.now())));
+                        .type(EventType.ROOM_OWNER_DEMOTED)));
   }
 
   private static void validateUserRequest(List<MemberDto> members, UserPrincipal currentUser) {

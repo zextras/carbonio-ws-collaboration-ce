@@ -690,8 +690,8 @@ class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("Owner update events carry their type and sent date")
-    void updateOwners_eventsCarryTypeAndSentDate() {
+    @DisplayName("Owner update events carry their type")
+    void updateOwners_eventsCarryType() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
       Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
@@ -716,9 +716,7 @@ class MembersServiceImplTest {
       ArgumentCaptor<DomainEvent> events = ArgumentCaptor.forClass(DomainEvent.class);
       verify(eventDispatcher, times(2)).sendToUserExchange(anyList(), events.capture());
       assertEquals(EventType.ROOM_OWNER_PROMOTED, events.getAllValues().get(0).getType());
-      assertNotNull(events.getAllValues().get(0).getSentDate());
       assertEquals(EventType.ROOM_OWNER_DEMOTED, events.getAllValues().get(1).getType());
-      assertNotNull(events.getAllValues().get(1).getSentDate());
     }
 
     @Test

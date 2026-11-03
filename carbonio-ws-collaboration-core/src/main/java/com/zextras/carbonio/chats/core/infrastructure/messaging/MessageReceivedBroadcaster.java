@@ -50,9 +50,7 @@ public class MessageReceivedBroadcaster {
   public void broadcast(String roomId, TimelineMessageDto message, @Nullable String tempId)
       throws JsonProcessingException {
     broadcastWithReplyVisibility(
-        roomId,
-        MessageReceived.create().message(message).tempId(tempId).sentDate(OffsetDateTime.now()),
-        message);
+        roomId, MessageReceived.create().message(message).tempId(tempId), message);
   }
 
   /**

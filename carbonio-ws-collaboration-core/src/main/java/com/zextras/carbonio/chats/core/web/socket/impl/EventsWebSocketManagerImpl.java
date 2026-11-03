@@ -34,7 +34,6 @@ import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -118,10 +117,7 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
 
     // Sent once subscribed: events published after the client receives it reach this socket.
     DomainEvent wsConnected =
-        WebsocketConnected.create()
-            .queueId(queueId)
-            .type(EventType.WEBSOCKET_CONNECTED)
-            .sentDate(OffsetDateTime.now());
+        WebsocketConnected.create().queueId(queueId).type(EventType.WEBSOCKET_CONNECTED);
     session
         .getAsyncRemote()
         .sendObject(migrator.downgradeIfNeeded(wsConnected, getVersion(session)));
@@ -169,7 +165,7 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
   }
 
   private void sendPong(Session session) throws JsonProcessingException {
-    var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
+    var pong = DomainEvent.create().type(EventType.PONG);
     session.getAsyncRemote().sendObject(migrator.downgradeIfNeeded(pong, getVersion(session)));
   }
 

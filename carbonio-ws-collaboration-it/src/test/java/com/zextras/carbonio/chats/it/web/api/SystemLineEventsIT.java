@@ -126,6 +126,7 @@ class SystemLineEventsIT {
 
   private JsonNode nextEvent(String queue, String type) throws Exception {
     List<JsonNode> events = eventsUntil(queue, type);
+    events.forEach(e -> assertFalse(e.has("sentDate"), "sentDate must not be sent: " + e));
     return events.get(events.size() - 1);
   }
 
