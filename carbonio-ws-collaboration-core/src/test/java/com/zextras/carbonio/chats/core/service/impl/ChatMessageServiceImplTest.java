@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -293,11 +294,14 @@ class ChatMessageServiceImplTest {
           .thenReturn(
               Optional.of(MessagePin.create(ROOM_ID, MESSAGE_ID, USER_ID).pinnedAt(pinnedAt)));
 
+      when(systemEventRepository.insertAt(any(SystemEvent.class), eq(pinnedAt)))
+          .thenAnswer(invocation -> invocation.getArgument(0));
+
       PinResult returned = chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
 
       verify(pinRepository).pin(ROOM_ID, MESSAGE_ID, USER_ID);
       ArgumentCaptor<SystemEvent> captor = ArgumentCaptor.forClass(SystemEvent.class);
-      verify(systemEventRepository).insert(captor.capture());
+      verify(systemEventRepository).insertAt(captor.capture(), eq(pinnedAt));
       assertEquals("MESSAGE_PINNED", captor.getValue().getType());
       assertEquals(USER_ID, captor.getValue().getActorId());
       assertNull(captor.getValue().getCreatedAt());
@@ -338,7 +342,7 @@ class ChatMessageServiceImplTest {
       assertThrows(
           NotFoundException.class,
           () -> chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
-      verify(systemEventRepository, never()).insert(any(SystemEvent.class));
+      verify(systemEventRepository, never()).insertAt(any(SystemEvent.class), any());
     }
   }
 

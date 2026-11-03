@@ -798,7 +798,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .unpinnedBy(unpinnedBy)
               .systemEventId(systemEventId)
               .systemEventCreatedAt(systemEventCreatedAt)
-              .timestamp(OffsetDateTime.now())
+              .timestamp(systemEventCreatedAt)
               .sentDate(OffsetDateTime.now());
       broadcastToRoomMembers(roomId, objectMapper.writeValueAsString(event));
     } catch (Exception e) {

@@ -294,8 +294,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             .type("MESSAGE_PINNED")
             .actorId(userId)
             .content(content);
-    systemEventRepository.insert(event);
-    return new PinResult(message, event);
+    return new PinResult(message, systemEventRepository.insertAt(event, pin.getPinnedAt()));
   }
 
   @Transactional

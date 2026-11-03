@@ -645,4 +645,38 @@ class SystemLineEventsIT {
         deletedAt.isEqual(OffsetDateTime.parse(event.get("deletedAt").asText())),
         "event " + event.get("deletedAt").asText() + " != persisted " + deletedAt);
   }
+
+  @Test
+  @DisplayName("Pin: REST pinnedAt, the MESSAGE_PINNED line and the event share one time")
+  void pinTimesAligned() throws Exception {
+    dispatcher.put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken);
+
+    JsonNode event = nextEvent(queueB, "MessagePinned");
+    SystemEvent row = persisted(event.get("systemEventId").asText());
+    OffsetDateTime pinnedAt =
+        database
+            .sqlQuery("SELECT pinned_at FROM chats.message_pin WHERE room_id = :roomId")
+            .setParameter("roomId", roomId.toString())
+            .findOne()
+            .getTimestamp("pinned_at")
+            .toInstant()
+            .atOffset(ZoneOffset.UTC);
+    assertTrue(row.getCreatedAt().isEqual(pinnedAt), row.getCreatedAt() + " != " + pinnedAt);
+    assertCreatedAt(row, event, "systemEventCreatedAt");
+    assertCreatedAt(row, event, "timestamp");
+  }
+
+  @Test
+  @DisplayName("Unpin and unpin-on-delete: timestamp equals the MESSAGE_UNPINNED line time")
+  void unpinTimesAligned() throws Exception {
+    dispatcher.put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken);
+    dispatcher.delete(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), aToken);
+    JsonNode unpinned = nextEvent(queueB, "MessageUnpinned");
+    assertCreatedAt(persisted(unpinned.get("systemEventId").asText()), unpinned, "timestamp");
+
+    dispatcher.put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken);
+    dispatcher.delete(String.format("/rooms/%s/messages/%s", roomId, messageId), aToken);
+    JsonNode onDelete = nextEvent(queueB, "MessageUnpinned");
+    assertCreatedAt(persisted(onDelete.get("systemEventId").asText()), onDelete, "timestamp");
+  }
 }

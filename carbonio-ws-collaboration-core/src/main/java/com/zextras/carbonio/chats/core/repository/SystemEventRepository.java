@@ -25,6 +25,15 @@ public interface SystemEventRepository {
   SystemEvent insert(SystemEvent event);
 
   /**
+   * Inserts a new system event into the timeline with an explicit {@code createdAt}.
+   *
+   * @param event {@link SystemEvent} to insert
+   * @param createdAt time to store as the event's creation time
+   * @return the persisted {@link SystemEvent}
+   */
+  SystemEvent insertAt(SystemEvent event, OffsetDateTime createdAt);
+
+  /**
    * Updates an existing system event. System events have no {@code updated_at} column, so a plain
    * bean update is enough.
    *

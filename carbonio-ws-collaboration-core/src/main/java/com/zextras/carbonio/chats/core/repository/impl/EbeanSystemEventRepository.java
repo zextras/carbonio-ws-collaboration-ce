@@ -18,6 +18,12 @@ import java.util.Optional;
 @Singleton
 public class EbeanSystemEventRepository implements SystemEventRepository {
 
+  private static final String INSERT_AT_SQL =
+      """
+      INSERT INTO chats.system_event (id, room_id, type, actor_id, content, created_at)
+      VALUES (:id, :roomId, :type, :actorId, :content, :createdAt)
+      """;
+
   private final Database db;
 
   @Inject
@@ -43,6 +49,19 @@ public class EbeanSystemEventRepository implements SystemEventRepository {
     db.insert(event);
     db.refresh(event);
     return event;
+  }
+
+  @Override
+  public SystemEvent insertAt(SystemEvent event, OffsetDateTime createdAt) {
+    db.sqlUpdate(INSERT_AT_SQL)
+        .setParameter("id", event.getId())
+        .setParameter("roomId", event.getRoomId())
+        .setParameter("type", event.getType())
+        .setParameter("actorId", event.getActorId())
+        .setParameter("content", event.getContent())
+        .setParameter("createdAt", createdAt)
+        .execute();
+    return getById(event.getId()).orElseThrow();
   }
 
   @Override
