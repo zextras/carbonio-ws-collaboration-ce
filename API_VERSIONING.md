@@ -55,11 +55,19 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
 - `MeetingDeclined` in ONE_TO_ONE rooms, where it writes the `MEETING_DECLINED` line, also reaches all room
   members, so a caller who already left receives it.
 - Validation: blank `text` answers `400`; `text` at most 8192 characters; `tempId` at most 64;
-  `limit` of timeline and search 1 to 200; `{reaction}` at most 32 characters.
+  `limit` of timeline and search 1 to 200; `reaction` 1 to 32 UTF-16 code units.
 - Deleting the pinned message also unpins it (`MessageUnpinned` after `MessageDeleted`); unpinning a message
   that is not pinned is a `204` no-op; pinning or reacting to a deleted message answers `404`; `DELETE` of a
   reaction answers `404` when the message is not in the room.
-- `ReactionChanged.operation` (`added`, `removed`) and `Typing.status` (`started`, `stopped`) document their
+- `sentDate` and `Typing.timestamp` are removed from the WebSocket events; every time an event carries is the
+  stored value of its object.
+- Reactions are one resource, `PUT` and `DELETE /rooms/{roomId}/messages/{messageId}/reaction`, replacing
+  `POST` and `DELETE .../reactions/{reaction}` (removed). `PUT` takes `{reaction}` (1 to 32 UTF-16 code units),
+  creates or replaces, and a same-emoji `PUT` or a `DELETE` without a reaction sends no event. `ReactionChanged`
+  sends one event per write: `added` and `updated` carry `updatedAt` (`updated` also `previousReaction`),
+  `removed` carries `deletedAt` and the removed emoji. The column is `message_reaction.updated_at`.
+- `ReactionGroup.users` (`{userId, updatedAt}`) replaces `userIds`.
+- `ReactionChanged.operation` (`added`, `updated`, `removed`) and `Typing.status` (`started`, `stopped`) document their
   values in `asyncapi.yaml`.
 - A TEMPORARY-room clear returns and announces the `createdAt` of its `ROOM_HISTORY_CLEARED` row as
   `clearedAt`.
