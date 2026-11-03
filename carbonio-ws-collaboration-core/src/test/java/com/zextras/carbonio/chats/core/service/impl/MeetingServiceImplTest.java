@@ -407,13 +407,10 @@ class MeetingServiceImplTest {
       verify(participantService, times(1)).clear(meetingId);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
-      org.mockito.ArgumentCaptor<MeetingStopped> stopped =
-          org.mockito.ArgumentCaptor.forClass(MeetingStopped.class);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
-              eq(List.of(user1Id.toString(), user2Id.toString())), stopped.capture());
-      assertNull(stopped.getValue().getSystemEventId());
-      assertNull(stopped.getValue().getDurationSec());
+              List.of(user1Id.toString(), user2Id.toString()),
+              MeetingStopped.create().meetingId(meetingId).endedBy(user1Id));
       verifyNoMoreInteractions(
           participantService, videoServerService, membersService, meetingRepository);
     }
