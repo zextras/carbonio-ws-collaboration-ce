@@ -129,7 +129,7 @@ Not everything became REST. Ephemeral, high-frequency signals stay on the socket
 
 - There is **no outbound presence action**. You never subscribe or announce; the socket lifecycle does it.
 - Initial state comes from REST (`GET /inbox`, or `POST /presence/batch`, at most 100 user ids per request).
-- Live changes come from the `PresenceChanged` event. Events, `/presence/batch` and `/inbox` all carry `online` and `lastActivity` (last time the user went offline, also while online); the client decides to show `lastActivity` only when offline.
+- Live changes come from the `PresenceChanged` event. Events, `/presence/batch` and `/inbox` all carry `online` and `lastActivity` (last time the user went offline, also while online); the client decides to show `lastActivity` only when offline. An ONLINE event reads `lastActivity` in the same transaction as the transition, so the pair `(lastActivity, online)` orders a user's presence states and a client can drop an event or snapshot older than the one it holds.
 - Transition events are best-effort: on every `WebsocketConnected` (first connect and reconnects) reload presence from REST; it is sent only once the socket is subscribed, so nothing published after it is missed.
 
 Typing, by contrast, is WebSocket in both directions.
@@ -319,9 +319,11 @@ rejected with 400. Room creation lines are not announced through these events.
 
 `MessageReceived` is the event for both a sent message and an attachment upload.
 
-**Ordering.** Every event carries a database timestamp. The broker preserves FIFO per session,
-but clients should still insert by `(createdAt, id)` — that matches the server's own ordering
-(`ORDER BY createdAt, id`).
+**Ordering.** Every time field an event carries is the stored value of the object it describes (the
+same value REST returns), except `sentDate` (JVM time at publish), `Typing.timestamp` and the uplink
+`changedAt` (client values). FIFO holds only for events published one after another by the same request on
+one node; events from different nodes or threads can arrive in any order, so clients insert by
+`(createdAt, id)` — that matches the server's own ordering (`ORDER BY createdAt, id`).
 
 **Times.** Every stored time (`createdAt`, `pinnedAt`, `clearedAt`, markers, `joinedAt`, ...) is read from
 the PostgreSQL clock in the statement that writes the row: a UTC instant with microsecond precision
@@ -337,10 +339,20 @@ the PostgreSQL clock in the statement that writes the row: a UTC instant with mi
 - **Room creation:** the members' `joinedAt` follows the creation lines, and these lines are not unread.
   A bulk add writes its lines after the new subscriptions: they are unread for existing and added members,
   not for the adder.
-- **Pins:** the `MESSAGE_PINNED` line has its own database time, a few microseconds after the pin's
-  `pinnedAt`, not equal to it.
-- **WebSocket events** are unchanged for now: their own `sentDate` and `timestamp` values are not database
-  times (`systemEventCreatedAt` is).
+- **Pins:** the `MESSAGE_PINNED` line's `createdAt` equals the pin's `pinnedAt`. `MessagePinned.timestamp`
+  and `systemEventCreatedAt` carry it; `MessageUnpinned.timestamp` is the `MESSAGE_UNPINNED` line's `createdAt`.
+- **Attachments:** an attachment's `createdAt` (gallery order) equals its message's `createdAt`, also for a
+  forwarded copy.
+- **WebSocket event times** and their stored source:
+  - `MessageDeleted.deletedAt` = the message's `deletedAt` (one clock read with its `updatedAt`).
+  - `MessagePinned.timestamp` / `MessageUnpinned.timestamp`: see Pins.
+  - `MeetingCreated.createdAt` = the meeting's `createdAt`.
+  - `MeetingParticipantJoined.joinedAt` = the REST `joinedAt`; the event is published after the participant is
+    stored, and a re-join after a clash keeps the first `joinedAt`.
+  - `MeetingStopped.durationSec` = the `MEETING_ENDED` line's `durationSec`, present exactly when
+    `systemEventId` is; show it instead of computing `sentDate - startedAt`.
+  - `MeetingRecordingStarted.startedAt` (Advanced edition): the stored recording start.
+  - `PresenceChanged.lastActivity`: see the presence notes in §3.
 
 ## 5. WebSocket messages (client → server)
 
