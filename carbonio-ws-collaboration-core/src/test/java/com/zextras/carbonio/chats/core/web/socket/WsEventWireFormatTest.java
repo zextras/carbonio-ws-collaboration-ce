@@ -31,6 +31,27 @@ class WsEventWireFormatTest {
   }
 
   @Test
+  void reactionChangedOmitsAbsentTimesAndPreviousReaction() throws Exception {
+    String json =
+        new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .writeValueAsString(
+                ReactionChanged.create()
+                    .messageId("message-id")
+                    .roomId("room-id")
+                    .userId("user-id")
+                    .reaction("x")
+                    .operation(ReactionChanged.OperationEnum.UPDATED)
+                    .previousReaction("y")
+                    .updatedAt(java.time.OffsetDateTime.parse("2026-01-01T10:00:00Z")));
+
+    assertTrue(json.contains("\"operation\":\"updated\""), json);
+    assertTrue(json.contains("\"previousReaction\":\"y\""), json);
+    assertTrue(json.contains("\"updatedAt\""), json);
+    assertFalse(json.contains("deletedAt"), json);
+  }
+
+  @Test
   void typingStatusKeepsItsLowerCaseWireValue() throws Exception {
     String json =
         objectMapper.writeValueAsString(

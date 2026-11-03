@@ -107,7 +107,7 @@ class TimestampSchemaIT {
             "chats_user.updated_at",
             "message.created_at",
             "message.updated_at",
-            "message_reaction.created_at",
+            "message_reaction.updated_at",
             "message_pin.pinned_at",
             "system_event.created_at",
             "user_contact.created_at",

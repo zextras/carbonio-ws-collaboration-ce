@@ -368,7 +368,7 @@ class InboxApiIT {
 
       assertEquals(1, reactions.size());
       assertEquals("up", reactions.get(0).get("reaction").asText());
-      assertEquals(2, reactions.get(0).get("userIds").size());
+      assertEquals(2, reactions.get(0).get("users").size());
     }
 
     @Test

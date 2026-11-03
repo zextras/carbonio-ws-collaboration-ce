@@ -34,7 +34,7 @@ public final class Fastenings implements AutoCloseable {
           + " ORDER BY e.target_mam, e.mam DESC) w WHERE m.id = w.item_id";
 
   private static final String FOLD_REACTIONS =
-      "INSERT INTO chats.message_reaction (message_id, user_id, reaction, created_at)"
+      "INSERT INTO chats.message_reaction (message_id, user_id, reaction, updated_at)"
           + " SELECT w.item_id, w.sender_id, w.body, w.reaction_time FROM"
           + " (SELECT DISTINCT ON (x.target_mam, x.sender_id) t.item_id, x.sender_id, x.body,"
           + " x.reaction_time FROM mongoose_reactions x JOIN mongoose_room_rows t"

@@ -46,6 +46,9 @@ import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetKind;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
@@ -83,6 +86,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SendMessageRequestDto;
+import com.zextras.carbonio.chats.model.SetReactionRequestDto;
 import com.zextras.carbonio.chats.model.TimelineDto;
 import com.zextras.carbonio.chats.model.TimelineItemDto;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
@@ -114,6 +118,7 @@ import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 @Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
 
+  private static final int MAX_REACTION_LENGTH = 32;
   public static final String MIME_TYPE_NOT_FOUND = "Mime type not found";
   public static final String FILE_NAME_NOT_FOUND = "File name not found";
   private final RoomService roomService;
@@ -805,24 +810,34 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response addReaction(
-      UUID roomId, UUID messageId, String reaction, SecurityContext securityContext) {
+  public Response setReaction(
+      UUID roomId,
+      UUID messageId,
+      SetReactionRequestDto setReactionRequest,
+      SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    // A user has a single reaction per message: replacing a different emoji removes the old one.
-    Optional<String> replaced =
-        chatMessageService.addReaction(
+    String reaction = setReactionRequest == null ? null : setReactionRequest.getReaction();
+    if (reaction == null
+        || reaction.isBlank()
+        || reaction.codePointCount(0, reaction.length()) > MAX_REACTION_LENGTH) {
+      throw new BadRequestException("Reaction must be between 1 and 32 characters");
+    }
+    chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
+    SetResult result =
+        chatMessageService.setReaction(
             roomId.toString(), messageId.toString(), currentUser.getId(), reaction);
     try {
-      if (replaced.isPresent()) {
-        broadcastReactionChanged(
-            roomId,
-            messageId,
-            currentUser.getId(),
-            replaced.get(),
-            ReactionChanged.OperationEnum.REMOVED);
+      if (result.kind() != SetKind.UNCHANGED) {
+        ReactionChanged event =
+            reactionEvent(roomId, messageId, currentUser.getId(), reaction)
+                .operation(
+                    result.kind() == SetKind.ADDED
+                        ? ReactionChanged.OperationEnum.ADDED
+                        : ReactionChanged.OperationEnum.UPDATED)
+                .previousReaction(result.previousReaction())
+                .updatedAt(result.updatedAt());
+        broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
       }
-      broadcastReactionChanged(
-          roomId, messageId, currentUser.getId(), reaction, ReactionChanged.OperationEnum.ADDED);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
@@ -830,22 +845,19 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response removeReaction(
-      UUID roomId, UUID messageId, String reaction, SecurityContext securityContext) {
+  public Response removeReaction(UUID roomId, UUID messageId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
-    // A user has a single reaction per message, so the path emoji is not needed to identify it.
-    Optional<String> removed =
+    Optional<Removed> removed =
         chatMessageService.removeReaction(
             roomId.toString(), messageId.toString(), currentUser.getId());
     try {
       if (removed.isPresent()) {
-        broadcastReactionChanged(
-            roomId,
-            messageId,
-            currentUser.getId(),
-            removed.get(),
-            ReactionChanged.OperationEnum.REMOVED);
+        ReactionChanged event =
+            reactionEvent(roomId, messageId, currentUser.getId(), removed.get().reaction())
+                .operation(ReactionChanged.OperationEnum.REMOVED)
+                .deletedAt(removed.get().deletedAt());
+        broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
@@ -853,21 +865,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
-  private void broadcastReactionChanged(
-      UUID roomId,
-      UUID messageId,
-      String userId,
-      String reaction,
-      ReactionChanged.OperationEnum operation)
-      throws com.fasterxml.jackson.core.JsonProcessingException {
-    WsEvent event =
-        ReactionChanged.create()
-            .messageId(messageId.toString())
-            .roomId(roomId.toString())
-            .userId(userId)
-            .reaction(reaction)
-            .operation(operation);
-    broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+  private ReactionChanged reactionEvent(
+      UUID roomId, UUID messageId, String userId, String reaction) {
+    return ReactionChanged.create()
+        .messageId(messageId.toString())
+        .roomId(roomId.toString())
+        .userId(userId)
+        .reaction(reaction);
   }
 
   /**

@@ -62,7 +62,7 @@ public final class ImportedChats {
   }
 
   public record Reaction(
-      String messageId, String userId, String reaction, LocalDateTime createdAt) {}
+      String messageId, String userId, String reaction, LocalDateTime updatedAt) {}
 
   public record Pin(String roomId, String messageId, String pinnedBy, LocalDateTime pinnedAt) {}
 
@@ -113,7 +113,7 @@ public final class ImportedChats {
 
   public List<Reaction> reactions(String messageId) {
     return query(
-        "SELECT message_id, user_id, reaction, created_at FROM chats.message_reaction"
+        "SELECT message_id, user_id, reaction, updated_at FROM chats.message_reaction"
             + " WHERE message_id = ? ORDER BY user_id",
         rs -> new Reaction(rs.getString(1), rs.getString(2), rs.getString(3), time(rs, 4)),
         messageId);

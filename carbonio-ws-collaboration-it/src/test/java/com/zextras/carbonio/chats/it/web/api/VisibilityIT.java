@@ -259,9 +259,10 @@ class VisibilityIT {
   }
 
   private MockHttpResponse react(String messageId, String token) throws Exception {
-    String emoji = URLEncoder.encode("\uD83D\uDC4D", StandardCharsets.UTF_8);
-    return dispatcher.post(
-        String.format("/rooms/%s/messages/%s/reactions/%s", roomId, messageId, emoji), token);
+    return putJson(
+        String.format("/rooms/%s/messages/%s/reaction", roomId, messageId),
+        Map.of("reaction", "\uD83D\uDC4D"),
+        token);
   }
 
   private MockHttpResponse pin(String messageId, String token) throws Exception {

@@ -24,6 +24,8 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessagePinRepository;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -197,56 +199,26 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   // ==================== REACTION OPERATIONS ====================
 
   @Override
-  public Optional<String> addReaction(
-      String roomId, String messageId, String userId, String reaction) {
+  public SetResult setReaction(String roomId, String messageId, String userId, String reaction) {
     VisibilityFloor floor = getVisibilityFloor(roomId, userId);
-    Message message =
-        messageRepository
-            .getById(messageId)
-            .filter(m -> roomId.equals(m.getRoomId()))
-            .filter(m -> !Boolean.TRUE.equals(m.isDeleted()))
-            .filter(m -> floor.canAccess(m.getCreatedAt()))
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
-
-    // A user has a single reaction per message. Replace an existing different emoji in place.
-    Optional<MessageReaction> existing = reactionRepository.getByUserAndMessage(messageId, userId);
-    if (existing.isPresent()) {
-      MessageReaction current = existing.get();
-      if (reaction.equals(current.getReaction())) {
-        return Optional.empty();
-      }
-      String previous = current.getReaction();
-      reactionRepository.update(current.reaction(reaction));
-      return Optional.of(previous);
-    }
-
-    // Two concurrent first-time requests can both pass the check above (TOCTOU). Catch the
-    // resulting duplicate-key violation and fall back to an update.
-    try {
-      reactionRepository.insert(MessageReaction.create(message, userId, reaction));
-    } catch (io.ebean.DuplicateKeyException e) {
-      reactionRepository
-          .getByUserAndMessage(messageId, userId)
-          .ifPresent(r -> reactionRepository.update(r.reaction(reaction)));
-    }
-    return Optional.empty();
+    messageRepository
+        .getById(messageId)
+        .filter(m -> roomId.equals(m.getRoomId()))
+        .filter(m -> !Boolean.TRUE.equals(m.isDeleted()))
+        .filter(m -> floor.canAccess(m.getCreatedAt()))
+        .orElseThrow(
+            () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
+    return reactionRepository.set(messageId, userId, reaction);
   }
 
   @Override
-  public Optional<String> removeReaction(String roomId, String messageId, String userId) {
+  public Optional<Removed> removeReaction(String roomId, String messageId, String userId) {
     messageRepository
         .getById(messageId)
         .filter(m -> roomId.equals(m.getRoomId()))
         .orElseThrow(
             () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
-    Optional<MessageReaction> existing = reactionRepository.getByUserAndMessage(messageId, userId);
-    if (existing.isEmpty()) {
-      return Optional.empty();
-    }
-    String removed = existing.get().getReaction();
-    reactionRepository.delete(messageId, userId);
-    return Optional.of(removed);
+    return reactionRepository.remove(messageId, userId);
   }
 
   @Override

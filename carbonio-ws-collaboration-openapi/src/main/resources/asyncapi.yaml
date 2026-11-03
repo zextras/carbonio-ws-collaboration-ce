@@ -1122,11 +1122,24 @@ components:
               type: string
             operation:
               type: string
-              enum: [added, removed]
+              enum: [added, updated, removed]
               description: >
-                added when the user added this reaction, removed when the user removed it. A user has
-                one reaction per message: replacing it sends removed for the old emoji, then added for
-                the new one.
+                added: the user had no reaction; updated: the user replaced a different reaction
+                (previousReaction); removed: the user removed it. One event per write.
+            previousReaction:
+              type: string
+              description: "the replaced emoji, only on updated"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            updatedAt:
+              type: string
+              format: date-time
+              description: "the reaction's updatedAt, the same value REST returns; on added and updated"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            deletedAt:
+              type: string
+              format: date-time
+              description: "database time of the removal, not stored; only on removed"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - messageId
             - roomId

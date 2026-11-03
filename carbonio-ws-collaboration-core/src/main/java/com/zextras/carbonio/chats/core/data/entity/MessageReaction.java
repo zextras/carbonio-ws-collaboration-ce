@@ -34,9 +34,9 @@ public class MessageReaction {
   @Column(name = "REACTION", length = 32, nullable = false)
   private String reaction;
 
-  @Column(name = "CREATED_AT", insertable = false, updatable = false)
+  @Column(name = "UPDATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  private OffsetDateTime createdAt;
+  private OffsetDateTime updatedAt;
 
   public MessageReaction() {
     this.id = new MessageReactionId();
@@ -97,8 +97,8 @@ public class MessageReaction {
     return this;
   }
 
-  public OffsetDateTime getCreatedAt() {
-    return createdAt;
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
   }
 
   @Override
