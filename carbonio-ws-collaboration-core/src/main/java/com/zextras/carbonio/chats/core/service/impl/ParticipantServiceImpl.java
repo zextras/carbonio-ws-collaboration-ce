@@ -116,13 +116,14 @@ public class ParticipantServiceImpl implements ParticipantService {
       throw new ConflictException("User is already inserted into the meeting");
     } else {
       destroyMeetingParticipantClashed(meeting, participant, currentUser, room);
-      addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+      addVideoServerParticipant(meeting, joinSettingsDto, currentUser);
       participantRepository.update(
           participant
               .audioStreamOn(false)
               .videoStreamOn(false)
               .screenStreamOn(false)
               .queueId(currentUser.getQueueId().toString()));
+      notifyParticipantJoined(meeting, currentUser, room, participant.getCreatedAt());
     }
     return JoinStatus.ACCEPTED;
   }
@@ -157,11 +158,12 @@ public class ParticipantServiceImpl implements ParticipantService {
   protected JoinStatus joinMeetingParticipant(
       Meeting meeting, UserPrincipal currentUser, Room room, JoinSettingsDto joinSettingsDto) {
     if (participantRepository.getById(meeting.getId(), currentUser.getId()).isEmpty()) {
-      addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+      addVideoServerParticipant(meeting, joinSettingsDto, currentUser);
       Participant participant =
-          Participant.create(meeting, currentUser.getId())
-              .queueId(currentUser.getQueueId().toString());
-      participantRepository.insert(participant);
+          participantRepository.insert(
+              Participant.create(meeting, currentUser.getId())
+                  .queueId(currentUser.getQueueId().toString()));
+      notifyParticipantJoined(meeting, currentUser, room, participant.getCreatedAt());
     }
     return JoinStatus.ACCEPTED;
   }
@@ -179,19 +181,24 @@ public class ParticipantServiceImpl implements ParticipantService {
     return joinMeetingParticipant(meeting, currentUser, room, joinSettingsDto);
   }
 
-  private void addMeetingParticipant(
-      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
+  private void addVideoServerParticipant(
+      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     videoServerService.addMeetingParticipant(
         currentUser.getId(),
         currentUser.getQueueId().toString(),
         meeting.getId(),
         joinSettingsDto.isVideoStreamEnabled(),
         joinSettingsDto.isAudioStreamEnabled());
+  }
+
+  private void notifyParticipantJoined(
+      Meeting meeting, UserPrincipal currentUser, Room room, OffsetDateTime joinedAt) {
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantJoined.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID())
+            .joinedAt(joinedAt)
             .type(EventType.MEETING_PARTICIPANT_JOINED)
             .sentDate(OffsetDateTime.now()));
   }

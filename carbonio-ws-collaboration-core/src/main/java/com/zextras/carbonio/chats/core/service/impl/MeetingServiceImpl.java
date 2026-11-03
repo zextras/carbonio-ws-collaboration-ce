@@ -103,6 +103,7 @@ public class MeetingServiceImpl implements MeetingService {
         MeetingCreated.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .roomId(UUID.fromString(room.getId()))
+            .createdAt(meeting.getCreatedAt())
             .type(EventType.MEETING_CREATED)
             .sentDate(OffsetDateTime.now(clock)));
 
@@ -156,7 +157,7 @@ public class MeetingServiceImpl implements MeetingService {
                         room.getId(), user.getId(), updatedMeeting.getId(), startedAt);
               }
               notifyMeetingStopped(
-                  updatedMeeting, room, extraReceivers, user.getUUID(), systemEvent);
+                  updatedMeeting, room, extraReceivers, user.getUUID(), systemEvent, startedAt);
               cleanUpRoomMembers(room);
             });
 
@@ -202,7 +203,7 @@ public class MeetingServiceImpl implements MeetingService {
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && meeting.getParticipants().size() == 1) {
       Meeting updatedMeeting = deactivateMeeting(currentUser.getId(), meeting);
       notifyMeetingStopped(
-          updatedMeeting, room, List.of(), currentUser.getUUID(), Optional.empty());
+          updatedMeeting, room, List.of(), currentUser.getUUID(), Optional.empty(), null);
     }
   }
 
@@ -273,7 +274,8 @@ public class MeetingServiceImpl implements MeetingService {
       Room room,
       List<String> extraReceivers,
       UUID endedBy,
-      Optional<SystemEvent> systemEvent) {
+      Optional<SystemEvent> systemEvent,
+      OffsetDateTime startedAt) {
     List<String> receivers =
         extraReceivers.isEmpty()
             ? room.getSubscriptions().stream().map(Subscription::getUserId).toList()
@@ -289,8 +291,14 @@ public class MeetingServiceImpl implements MeetingService {
             .endedBy(endedBy)
             .systemEventId(systemEvent.map(SystemEvent::getId).orElse(null))
             .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
+            .durationSec(
+                systemEvent.map(e -> endedDurationSec(startedAt, e.getCreatedAt())).orElse(null))
             .type(EventType.MEETING_STOPPED)
             .sentDate(OffsetDateTime.now(clock)));
+  }
+
+  static long endedDurationSec(OffsetDateTime startedAt, OffsetDateTime endedAt) {
+    return Math.max(0, Duration.between(startedAt, endedAt).toSeconds());
   }
 
   @Transactional
@@ -305,8 +313,7 @@ public class MeetingServiceImpl implements MeetingService {
             Map.of("endedBy", endedBy, "meetingId", meetingId, "startedAt", startedAtMillis));
     inserted.ifPresent(
         event -> {
-          long durationSec =
-              Math.max(0, Duration.between(startedAt, event.getCreatedAt()).toSeconds());
+          long durationSec = endedDurationSec(startedAt, event.getCreatedAt());
           try {
             event.content(
                 objectMapper.writeValueAsString(

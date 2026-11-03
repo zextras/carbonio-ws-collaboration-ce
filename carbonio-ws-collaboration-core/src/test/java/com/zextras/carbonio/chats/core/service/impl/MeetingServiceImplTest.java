@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -202,6 +203,7 @@ class MeetingServiceImplTest {
       UserPrincipal user = UserPrincipal.create(user1Id);
       String meetingName = "test";
       MeetingType meetingType = MeetingType.PERMANENT;
+      OffsetDateTime createdAt = OffsetDateTime.parse("2022-01-01T10:00:00Z");
       UUID meetingId = UUID.randomUUID();
       Meeting meeting =
           Meeting.create()
@@ -209,7 +211,8 @@ class MeetingServiceImplTest {
               .name(meetingName)
               .meetingType(meetingType)
               .roomId(room1Id.toString())
-              .active(false);
+              .active(false)
+              .createdAt(createdAt);
       when(roomService.getRoomAndValidateUser(room1Id, user, false)).thenReturn(room1);
       when(meetingRepository.insert(any(Meeting.class))).thenReturn(meeting);
 
@@ -217,6 +220,14 @@ class MeetingServiceImplTest {
           meetingService.createMeeting(user, meetingName, MeetingTypeDto.PERMANENT, room1Id, null);
       assertEquals(createdMeeting.getId(), meetingId);
       assertEquals(createdMeeting.getRoomId(), room1Id);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              anyList(),
+              eq(
+                  MeetingCreated.create()
+                      .meetingId(meetingId)
+                      .roomId(room1Id)
+                      .createdAt(createdAt)));
     }
 
     @Test
@@ -1038,6 +1049,7 @@ class MeetingServiceImplTest {
       MeetingStopped stopped = dispatched(MeetingStopped.class);
       assertEquals(event.getId(), stopped.getSystemEventId());
       assertEquals(persistedAt, stopped.getSystemEventCreatedAt());
+      assertEquals(((Number) content.get("durationSec")).longValue(), stopped.getDurationSec());
       assertEquals(event.getActorId(), stopped.getEndedBy().toString());
     }
 

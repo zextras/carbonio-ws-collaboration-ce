@@ -117,6 +117,11 @@ public class Meeting {
     return createdAt;
   }
 
+  public Meeting createdAt(OffsetDateTime createdAt) {
+    this.createdAt = createdAt;
+    return this;
+  }
+
   public OffsetDateTime getStartedAt() {
     return startedAt;
   }

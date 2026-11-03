@@ -56,6 +56,7 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   @Override
   public Participant insert(Participant participant) {
     db.insert(participant);
+    db.refresh(participant);
     return participant;
   }
 
