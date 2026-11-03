@@ -46,7 +46,13 @@ new_msg AS (
             WHERE r.id = :replyToId AND r.room_id = :roomId
               AND (cm.cleared_at IS NULL OR r.created_at > cm.cleared_at))
     ON CONFLICT (id) DO NOTHING
-    RETURNING id, created_at
+    RETURNING id, created_at, attachment_id
+),
+att AS (
+    UPDATE chats.file_metadata f
+    SET created_at = new_msg.created_at, updated_at = new_msg.created_at
+    FROM new_msg
+    WHERE f.id = new_msg.attachment_id
 )
 SELECT id, created_at FROM new_msg
 """;
@@ -181,6 +187,12 @@ new_msg AS (
     FROM orig_msg CROSS JOIN ts
     WHERE EXISTS (SELECT 1 FROM check_target)
     RETURNING id, created_at, attachment_id
+),
+att AS (
+    UPDATE chats.file_metadata f
+    SET created_at = new_msg.created_at, updated_at = new_msg.created_at
+    FROM new_msg
+    WHERE f.id = CAST(:newAttachmentId AS text) AND new_msg.attachment_id = f.id
 ),
 file_meta AS (
     SELECT id, name, mime_type, original_size, area

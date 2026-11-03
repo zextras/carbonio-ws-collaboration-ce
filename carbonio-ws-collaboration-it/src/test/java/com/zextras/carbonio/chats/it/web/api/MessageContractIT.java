@@ -35,6 +35,7 @@ import com.zextras.storages.internal.pojo.StoragesUploadResponse;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -450,6 +451,95 @@ class MessageContractIT {
       assertEquals(
           "640x480",
           timelineMessage(forwarded.get("id").asText()).get("attachment").path("area").asText());
+    }
+  }
+
+  @Nested
+  @DisplayName("Attachment times")
+  class AttachmentTimes {
+
+    private void assertSameTime(String messageId, String fileId) {
+      OffsetDateTime messageAt =
+          integrationTestUtils.getMessageById(messageId).orElseThrow().getCreatedAt();
+      OffsetDateTime fileAt =
+          integrationTestUtils
+              .getFileMetadataById(UUID.fromString(fileId))
+              .orElseThrow()
+              .getCreatedAt();
+      assertTrue(messageAt.isEqual(fileAt), "message " + messageAt + " != attachment " + fileAt);
+    }
+
+    @Test
+    @DisplayName("An uploaded attachment has the created_at of its message")
+    void uploadSharesMessageTime() throws Exception {
+      MockHttpResponse response =
+          dispatcher.postMultipart(
+              String.format("/rooms/%s/attachments", roomId),
+              new byte[] {1, 2, 3},
+              Map.of("contentLength", "3"),
+              StringFormatUtils.encodeToUtf8("time.png"),
+              ContentType.create("image/png"),
+              aToken);
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      JsonNode created = objectMapper.readTree(response.getContentAsString());
+      assertSameTime(created.get("id").asText(), created.get("attachmentId").asText());
+    }
+
+    @Test
+    @DisplayName("A forwarded copy has the created_at of its message; the original is untouched")
+    void forwardCopySharesMessageTime() throws Exception {
+      UUID sourceRoom = newRoom();
+      String fileId = UUID.randomUUID().toString();
+      String messageId = UUID.randomUUID().toString();
+      fileMetadataRepository.save(
+          FileMetadata.create()
+              .id(fileId)
+              .name("pic.png")
+              .originalSize(3L)
+              .mimeType("image/png")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(aUserId.toString())
+              .roomId(sourceRoom.toString())
+              .messageId(messageId));
+      messageRepository.insert(
+          Message.create()
+              .id(messageId)
+              .roomId(sourceRoom.toString())
+              .senderId(aUserId.toString())
+              .text("")
+              .attachmentId(fileId));
+      OffsetDateTime originalBefore =
+          integrationTestUtils
+              .getFileMetadataById(UUID.fromString(fileId))
+              .orElseThrow()
+              .getCreatedAt();
+      StoragesUploadResponse copied = new StoragesUploadResponse();
+      copied.setQuery(new Query());
+      copied.getQuery().setType("chats");
+      storageMockServer
+          .when(
+              request()
+                  .withMethod("PUT")
+                  .withPath("/copy")
+                  .withQueryStringParameter(param("sourceNode", fileId)))
+          .respond(HttpResponse.response().withStatusCode(200).withBody(JsonBody.json(copied)));
+
+      MockHttpResponse response =
+          dispatcher.post(
+              String.format("/rooms/%s/messages/%s/forward", sourceRoom, messageId),
+              objectMapper.writeValueAsString(Map.of("toRoomId", roomId.toString())),
+              aToken);
+
+      assertEquals(201, response.getStatus(), response.getContentAsString());
+      JsonNode forwarded = objectMapper.readTree(response.getContentAsString());
+      assertSameTime(forwarded.get("id").asText(), forwarded.get("attachmentId").asText());
+      assertTrue(
+          originalBefore.isEqual(
+              integrationTestUtils
+                  .getFileMetadataById(UUID.fromString(fileId))
+                  .orElseThrow()
+                  .getCreatedAt()),
+          "the original attachment's created_at must not change");
     }
   }
 
