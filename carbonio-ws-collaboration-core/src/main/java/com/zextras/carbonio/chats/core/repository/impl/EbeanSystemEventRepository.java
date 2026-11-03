@@ -13,6 +13,7 @@ import io.ebean.Query;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
@@ -53,6 +54,7 @@ public class EbeanSystemEventRepository implements SystemEventRepository {
 
   @Override
   public SystemEvent insertAt(SystemEvent event, OffsetDateTime createdAt) {
+    Objects.requireNonNull(createdAt, "createdAt");
     db.sqlUpdate(INSERT_AT_SQL)
         .setParameter("id", event.getId())
         .setParameter("roomId", event.getRoomId())

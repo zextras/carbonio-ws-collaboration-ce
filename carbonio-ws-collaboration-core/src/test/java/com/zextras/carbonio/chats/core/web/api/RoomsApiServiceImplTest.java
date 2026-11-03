@@ -2813,7 +2813,7 @@ class RoomsApiServiceImplTest {
                 new MessageWriteRepository.DeleteResult(
                     messageId.toString(),
                     UUID.randomUUID().toString(),
-                    OffsetDateTime.now(),
+                    OffsetDateTime.parse("2026-10-30T10:00:00Z"),
                     null)));
 
     Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
@@ -2895,6 +2895,9 @@ class RoomsApiServiceImplTest {
       assertEquals(messageId.toString(), event.get("messageId").asText());
       assertEquals(user1Id.toString(), event.get("unpinnedBy").asText());
       assertEquals("unpin-event", event.get("systemEventId").asText());
+      assertEquals(
+          OffsetDateTime.parse("2026-10-30T10:00:00Z").toInstant(),
+          OffsetDateTime.parse(event.get("timestamp").asText()).toInstant());
     }
 
     @Test
@@ -2944,6 +2947,7 @@ class RoomsApiServiceImplTest {
     void deleteMessage_pinned_sendsDeletedThenUnpinned() throws Exception {
       UUID messageId = UUID.randomUUID();
       OffsetDateTime unpinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      OffsetDateTime deletedAt = OffsetDateTime.parse("2026-10-30T10:00:00.5Z");
       List<String> members = List.of(user1Id.toString(), user2Id.toString());
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
@@ -2954,7 +2958,7 @@ class RoomsApiServiceImplTest {
                   new MessageWriteRepository.DeleteResult(
                       messageId.toString(),
                       null,
-                      OffsetDateTime.now(),
+                      deletedAt,
                       new MessageWriteRepository.Unpinned("unpin-event", unpinnedAt))));
 
       Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
@@ -2965,7 +2969,13 @@ class RoomsApiServiceImplTest {
       JsonNode deleted = objectMapper.readTree(payloads.getAllValues().get(0));
       JsonNode unpinned = objectMapper.readTree(payloads.getAllValues().get(1));
       assertEquals("MessageDeleted", deleted.get("type").asText());
+      assertEquals(
+          deletedAt.toInstant(),
+          OffsetDateTime.parse(deleted.get("deletedAt").asText()).toInstant());
       assertEquals("MessageUnpinned", unpinned.get("type").asText());
+      assertEquals(
+          unpinnedAt.toInstant(),
+          OffsetDateTime.parse(unpinned.get("timestamp").asText()).toInstant());
       assertEquals(messageId.toString(), unpinned.get("messageId").asText());
       assertEquals(user1Id.toString(), unpinned.get("unpinnedBy").asText());
       assertEquals("unpin-event", unpinned.get("systemEventId").asText());
@@ -2986,7 +2996,10 @@ class RoomsApiServiceImplTest {
           .thenReturn(
               Optional.of(
                   new MessageWriteRepository.DeleteResult(
-                      messageId.toString(), null, OffsetDateTime.now(), null)));
+                      messageId.toString(),
+                      null,
+                      OffsetDateTime.parse("2026-10-30T10:00:00Z"),
+                      null)));
 
       Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
 

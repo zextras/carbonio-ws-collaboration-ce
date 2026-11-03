@@ -294,8 +294,15 @@ class ChatMessageServiceImplTest {
           .thenReturn(
               Optional.of(MessagePin.create(ROOM_ID, MESSAGE_ID, USER_ID).pinnedAt(pinnedAt)));
 
+      SystemEvent stubbed =
+          SystemEvent.create()
+              .id("stored-event")
+              .roomId(ROOM_ID)
+              .type("MESSAGE_PINNED")
+              .actorId(USER_ID)
+              .createdAt(pinnedAt);
       when(systemEventRepository.insertAt(any(SystemEvent.class), eq(pinnedAt)))
-          .thenAnswer(invocation -> invocation.getArgument(0));
+          .thenReturn(stubbed);
 
       PinResult returned = chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
 
@@ -305,8 +312,8 @@ class ChatMessageServiceImplTest {
       assertEquals("MESSAGE_PINNED", captor.getValue().getType());
       assertEquals(USER_ID, captor.getValue().getActorId());
       assertNull(captor.getValue().getCreatedAt());
-      assertEquals(captor.getValue().getId(), returned.systemEvent().getId());
-      assertEquals(USER_ID, returned.systemEvent().getActorId());
+      assertSame(stubbed, returned.systemEvent());
+      assertEquals(pinnedAt, returned.systemEvent().getCreatedAt());
       assertSame(message, returned.message());
     }
 

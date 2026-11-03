@@ -640,7 +640,7 @@ class SystemLineEventsIT {
     assertEquals(
         deletedAt.toInstant(),
         row.getTimestamp("updated_at").toInstant(),
-        "deleted_at and updated_at must come from one clock read");
+        "deleted_at must equal updated_at");
     assertTrue(
         deletedAt.isEqual(OffsetDateTime.parse(event.get("deletedAt").asText())),
         "event " + event.get("deletedAt").asText() + " != persisted " + deletedAt);
@@ -649,7 +649,11 @@ class SystemLineEventsIT {
   @Test
   @DisplayName("Pin: REST pinnedAt, the MESSAGE_PINNED line and the event share one time")
   void pinTimesAligned() throws Exception {
-    dispatcher.put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken);
+    assertEquals(
+        204,
+        dispatcher
+            .put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken)
+            .getStatus());
 
     JsonNode event = nextEvent(queueB, "MessagePinned");
     SystemEvent row = persisted(event.get("systemEventId").asText());
@@ -669,13 +673,29 @@ class SystemLineEventsIT {
   @Test
   @DisplayName("Unpin and unpin-on-delete: timestamp equals the MESSAGE_UNPINNED line time")
   void unpinTimesAligned() throws Exception {
-    dispatcher.put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken);
-    dispatcher.delete(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), aToken);
+    assertEquals(
+        204,
+        dispatcher
+            .put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken)
+            .getStatus());
+    assertEquals(
+        204,
+        dispatcher
+            .delete(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), aToken)
+            .getStatus());
     JsonNode unpinned = nextEvent(queueB, "MessageUnpinned");
     assertCreatedAt(persisted(unpinned.get("systemEventId").asText()), unpinned, "timestamp");
 
-    dispatcher.put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken);
-    dispatcher.delete(String.format("/rooms/%s/messages/%s", roomId, messageId), aToken);
+    assertEquals(
+        204,
+        dispatcher
+            .put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken)
+            .getStatus());
+    assertEquals(
+        204,
+        dispatcher
+            .delete(String.format("/rooms/%s/messages/%s", roomId, messageId), aToken)
+            .getStatus());
     JsonNode onDelete = nextEvent(queueB, "MessageUnpinned");
     assertCreatedAt(persisted(onDelete.get("systemEventId").asText()), onDelete, "timestamp");
   }

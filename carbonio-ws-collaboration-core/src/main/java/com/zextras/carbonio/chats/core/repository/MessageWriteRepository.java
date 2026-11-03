@@ -9,13 +9,13 @@ import java.util.Optional;
 
 /**
  * Repository for write-path message operations using single-CTE queries. Each method performs
- * membership validation, data mutation, and ancillary updates (read markers) in a single database
- * round-trip.
+ * membership validation, data mutation, and ancillary updates in a single database round-trip.
  */
 public interface MessageWriteRepository {
 
   /**
-   * Inserts a new message and updates the sender's read marker atomically.
+   * Inserts a new message atomically. When the message has an attachment, the attachment's {@code
+   * file_metadata.created_at} and {@code updated_at} take the message's {@code created_at}.
    *
    * @return empty if the user is not a room member or message ID conflicts
    */
@@ -53,7 +53,9 @@ public interface MessageWriteRepository {
   Optional<DeleteResult> deleteMessage(String messageId, String roomId, String userId);
 
   /**
-   * Forwards a message from one room to another, inserting a new message and updating read marker.
+   * Forwards a message from one room to another, inserting a new message. The {@code
+   * file_metadata.created_at} and {@code updated_at} of the {@code newAttachmentId} copy (never of
+   * the original attachment) take the new message's {@code created_at}.
    *
    * @param newAttachmentId the ID of the already-copied blob (null if no attachment)
    * @return empty if the user is not a member of either room or original message not found
