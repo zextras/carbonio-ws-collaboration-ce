@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.migration.scripts.V1_4_2__backfill_attachment_ids;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -62,7 +63,7 @@ class BackfillAttachmentIdsIT {
     Flyway.configure()
         .cleanDisabled(false)
         .locations("classpath:migration/ce")
-        .placeholders(Map.of("jvm_zone", ZoneId.systemDefault().getId()))
+        .placeholders(Map.of("jvm_zone", DatabaseModule.migrationZone(ZoneId.systemDefault())))
         .schemas("chats")
         .dataSource(wscDataSource)
         .validateMigrationNaming(true)

@@ -464,8 +464,9 @@ Upgrade procedure (administrators):
    `MongooseIM import skipped: <reason>` and is recorded as done: it is never retried. If you expected data,
    check this line before going live.
    Imported times are the exact MAM microsecond instants (UTC); ties are repaired by adding 1 µs. Data
-   already in 1.x columns is converted with the service JVM time zone, which must be a region id or UTC:
-   a fixed non-zero offset makes the service fail at startup with an explicit message.
+   already in 1.x columns is converted once, by the Flyway migration, with the zone of the service JVM (region id, UTC
+   or fixed offset: the startup log shows the expression used). After the upgrade the service has no zone
+   dependency: every API time is a UTC instant.
 4. Check the WSC log for `MongooseIM import completed: rooms=… messages=…`. The warning
    `other sessions are connected to the MongooseIM database` means MongooseIM was still running during the
    import.

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.it.extensions;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.CloseablePostgreSQLContainer;
@@ -75,7 +76,8 @@ public class DatabaseExtension implements BeforeAllCallback, BeforeEachCallback,
               return Flyway.configure()
                   .cleanDisabled(false)
                   .locations("classpath:migration/ce")
-                  .placeholders(Map.of("jvm_zone", ZoneId.systemDefault().getId()))
+                  .placeholders(
+                      Map.of("jvm_zone", DatabaseModule.migrationZone(ZoneId.systemDefault())))
                   .schemas("chats")
                   .dataSource(dataSource)
                   .validateMigrationNaming(true)

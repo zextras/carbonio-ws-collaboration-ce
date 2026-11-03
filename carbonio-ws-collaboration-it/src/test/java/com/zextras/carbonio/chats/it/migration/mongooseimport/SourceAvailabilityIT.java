@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.migration.scripts.V1_4_2__backfill_attachment_ids;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -559,7 +560,8 @@ class SourceAvailabilityIT {
       Flyway flyway =
           Flyway.configure()
               .locations("classpath:migration/ce")
-              .placeholders(Map.of("jvm_zone", ZoneId.systemDefault().getId()))
+              .placeholders(
+                  Map.of("jvm_zone", DatabaseModule.migrationZone(ZoneId.systemDefault())))
               .schemas("chats")
               .dataSource(database.jdbcUrl(target), database.user(), database.password())
               .validateMigrationNaming(true)

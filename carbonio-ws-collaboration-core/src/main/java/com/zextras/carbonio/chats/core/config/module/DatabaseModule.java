@@ -79,23 +79,20 @@ public class DatabaseModule extends AbstractModule {
     return Database.builder()
         .dataSource(dataSource)
         .clock(clock)
+        .dataTimeZone("UTC")
         .databasePlatformName(Platform.POSTGRES.toString())
         .build();
   }
 
-  static String migrationZone(ZoneId zone) {
+  public static String migrationZone(ZoneId zone) {
     ZoneId normalized = zone.normalized();
     if (normalized instanceof ZoneOffset offset) {
       if (offset.getTotalSeconds() == 0) {
-        return "UTC";
+        return "'UTC'";
       }
-      throw new IllegalStateException(
-          "The service zone '"
-              + zone
-              + "' is a fixed offset, which PostgreSQL reads with the opposite sign: run the"
-              + " service with a region zone id (e.g. Europe/Rome) or UTC");
+      return "INTERVAL '" + offset.getId() + "'";
     }
-    return zone.getId();
+    return "'" + zone.getId() + "'";
   }
 
   @Singleton

@@ -9,6 +9,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.read.ListAppender;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.migration.V2_0_1__migrate_mongoose_data;
 import com.zextras.carbonio.chats.core.migration.scripts.V1_4_2__backfill_attachment_ids;
 import java.time.ZoneId;
@@ -57,7 +58,7 @@ public final class MongooseImport {
     Flyway flyway =
         Flyway.configure()
             .locations("classpath:migration/ce")
-            .placeholders(Map.of("jvm_zone", legacyColumnsZone.getId()))
+            .placeholders(Map.of("jvm_zone", DatabaseModule.migrationZone(legacyColumnsZone)))
             .schemas("chats")
             .dataSource(database.jdbcUrl(targetDatabase), database.user(), database.password())
             .validateMigrationNaming(true)

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -48,7 +49,7 @@ class TimestampSchemaIT {
     dataSource = new HikariDataSource(config);
     Flyway.configure()
         .locations("classpath:migration/ce")
-        .placeholders(Map.of("jvm_zone", ZoneId.systemDefault().getId()))
+        .placeholders(Map.of("jvm_zone", DatabaseModule.migrationZone(ZoneId.systemDefault())))
         .schemas("chats")
         .dataSource(dataSource)
         .validateMigrationNaming(true)

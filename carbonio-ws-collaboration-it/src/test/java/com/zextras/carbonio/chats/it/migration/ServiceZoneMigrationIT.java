@@ -9,12 +9,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
@@ -46,10 +49,10 @@ class ServiceZoneMigrationIT {
 
   private static HikariDataSource dataSource;
 
-  private static Flyway flyway(String target) {
+  private static Flyway flyway(String target, ZoneId zone) {
     return Flyway.configure()
         .locations("classpath:migration/ce")
-        .placeholders(Map.of("jvm_zone", "Europe/Rome"))
+        .placeholders(Map.of("jvm_zone", DatabaseModule.migrationZone(zone)))
         .schemas("chats")
         .dataSource(dataSource)
         .validateMigrationNaming(true)
@@ -143,7 +146,25 @@ class ServiceZoneMigrationIT {
   @Test
   @DisplayName("Summer, winter and NULL values keep the right instant per column")
   void convertsEveryTimeColumn() throws SQLException {
-    flyway("1.4.1").migrate();
+    convertsWith(ZoneId.of("Europe/Rome"), SUMMER_INSTANT, WINTER_INSTANT);
+  }
+
+  @Test
+  @DisplayName("A fixed offset shifts summer and winter alike by that offset")
+  void convertsWithFixedOffset() throws SQLException {
+    convertsWith(
+        ZoneOffset.ofHours(1),
+        Instant.parse("2026-07-01T11:00:00Z"),
+        Instant.parse("2026-01-15T11:00:00Z"));
+  }
+
+  private void convertsWith(ZoneId zone, Instant summerInstant, Instant winterInstant)
+      throws SQLException {
+    try (Connection connection = dataSource.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("DROP SCHEMA IF EXISTS chats CASCADE");
+    }
+    flyway("1.4.1", zone).migrate();
     try (Connection connection = dataSource.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute(insertRows("summer", SUMMER, false));
@@ -151,12 +172,12 @@ class ServiceZoneMigrationIT {
       statement.execute(insertRows("nulls", SUMMER, true));
     }
 
-    flyway("2.0.0").migrate();
+    flyway("2.0.0", zone).migrate();
 
     List<Check> all = new java.util.ArrayList<>();
-    all.addAll(checks("summer", SUMMER_INSTANT, false));
-    all.addAll(checks("winter", WINTER_INSTANT, false));
-    all.addAll(checks("nulls", SUMMER_INSTANT, true));
+    all.addAll(checks("summer", summerInstant, false));
+    all.addAll(checks("winter", winterInstant, false));
+    all.addAll(checks("nulls", summerInstant, true));
     try (Connection connection = dataSource.getConnection();
         Statement statement = connection.createStatement()) {
       for (Check check : all) {
