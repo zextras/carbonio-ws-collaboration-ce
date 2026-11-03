@@ -27,6 +27,8 @@ import java.util.Optional;
 @Singleton
 public class WsPresenceManager {
 
+  private record OnlineTransition(OffsetDateTime lastSeen) {}
+
   private final WsPresenceRepository wsPresenceRepository;
   private final ServiceIdProvider serviceIdProvider;
   private final PresenceBroadcaster presenceBroadcaster;
@@ -56,17 +58,17 @@ public class WsPresenceManager {
    *
    * <p>The insert and the count are fused into a single data-modifying CTE round-trip: the returned
    * count is the user's session count <em>before</em> this insert, so a value of {@code 0} means
-   * this is the {@code 0 -> 1} online transition.
+   * this is the {@code 0 -> 1} online transition. On that transition the user's last offline time
+   * is read in the same locked transaction and carried by the ONLINE event, so it orders the user's
+   * presence states.
    *
    * @param userId user identifier
    * @param session WebSocket session
    */
   public void onConnect(String userId, Session session) {
     try {
-      if (registerSession(userId, session.getId())) {
-        presenceBroadcaster.broadcastPresence(
-            userId, true, wsPresenceRepository.findLastSeenForUser(userId).orElse(null));
-      }
+      registerSession(userId, session.getId())
+          .ifPresent(t -> presenceBroadcaster.broadcastPresence(userId, true, t.lastSeen()));
     } catch (Exception e) {
       ChatsLogger.warn(
           "Could not insert session '%s' for user '%s': %s"
@@ -101,10 +103,8 @@ public class WsPresenceManager {
   }
 
   public void restoreSession(String userId, String sessionId) {
-    if (restoreIfOpen(userId, sessionId)) {
-      presenceBroadcaster.broadcastPresence(
-          userId, true, wsPresenceRepository.findLastSeenForUser(userId).orElse(null));
-    }
+    restoreIfOpen(userId, sessionId)
+        .ifPresent(t -> presenceBroadcaster.broadcastPresence(userId, true, t.lastSeen()));
   }
 
   public void removeOrphanSession(String userId, String sessionId) {
@@ -113,7 +113,7 @@ public class WsPresenceManager {
   }
 
   @Transactional
-  private boolean registerSession(String userId, String sessionId) {
+  private Optional<OnlineTransition> registerSession(String userId, String sessionId) {
     lockUser(userId);
     return insertSession(userId, sessionId);
   }
@@ -129,9 +129,9 @@ public class WsPresenceManager {
    * #onDisconnect} locks, so a session still open here is deleted later by its own disconnect.
    */
   @Transactional
-  private boolean restoreIfOpen(String userId, String sessionId) {
+  private Optional<OnlineTransition> restoreIfOpen(String userId, String sessionId) {
     lockUser(userId);
-    return sessions.isOpen(sessionId) && insertSession(userId, sessionId);
+    return sessions.isOpen(sessionId) ? insertSession(userId, sessionId) : Optional.empty();
   }
 
   @Transactional
@@ -140,9 +140,13 @@ public class WsPresenceManager {
     return sessions.isOpen(sessionId) ? Optional.empty() : deleteSession(userId, sessionId);
   }
 
-  private boolean insertSession(String userId, String sessionId) {
-    return wsPresenceRepository.insertAndCountOnline(sessionId, userId, serviceIdProvider.get())
-        == 0;
+  private Optional<OnlineTransition> insertSession(String userId, String sessionId) {
+    if (wsPresenceRepository.insertAndCountOnline(sessionId, userId, serviceIdProvider.get())
+        != 0) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new OnlineTransition(wsPresenceRepository.findLastSeenForUser(userId).orElse(null)));
   }
 
   private Optional<OffsetDateTime> deleteSession(String userId, String sessionId) {

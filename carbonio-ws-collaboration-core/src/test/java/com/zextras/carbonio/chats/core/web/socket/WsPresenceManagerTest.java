@@ -100,6 +100,7 @@ class WsPresenceManagerTest {
       order
           .verify(wsPresenceRepository)
           .insertAndCountOnline("session-1", userId, "service-uuid-1");
+      order.verify(wsPresenceRepository).findLastSeenForUser(userId);
       order.verify(presenceBroadcaster).broadcastPresence(userId, true, LAST_SEEN);
     }
 
@@ -138,6 +139,7 @@ class WsPresenceManagerTest {
       wsPresenceManager.onConnect(userId, session);
 
       verify(wsPresenceRepository).insertAndCountOnline("session-2", userId, "service-uuid-1");
+      verify(wsPresenceRepository, never()).findLastSeenForUser(anyString());
       verifyNoBroadcast();
     }
 
@@ -279,6 +281,7 @@ class WsPresenceManagerTest {
       order
           .verify(wsPresenceRepository)
           .insertAndCountOnline("session-1", "user-1", "service-uuid-1");
+      order.verify(wsPresenceRepository).findLastSeenForUser("user-1");
       order.verify(presenceBroadcaster).broadcastPresence("user-1", true, LAST_SEEN);
     }
 
@@ -292,6 +295,7 @@ class WsPresenceManagerTest {
       wsPresenceManager.restoreSession("user-1", "session-1");
 
       verify(wsPresenceRepository).insertAndCountOnline("session-1", "user-1", "service-uuid-1");
+      verify(wsPresenceRepository, never()).findLastSeenForUser(anyString());
       verifyNoBroadcast();
     }
 
@@ -304,6 +308,7 @@ class WsPresenceManagerTest {
 
       verify(wsPresenceRepository, never())
           .insertAndCountOnline(anyString(), anyString(), anyString());
+      verify(wsPresenceRepository, never()).findLastSeenForUser(anyString());
       verifyNoBroadcast();
     }
 
