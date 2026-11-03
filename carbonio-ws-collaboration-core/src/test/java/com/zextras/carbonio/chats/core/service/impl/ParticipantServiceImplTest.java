@@ -73,6 +73,8 @@ import org.mockito.Mockito;
 @UnitTest
 class ParticipantServiceImplTest {
 
+  private static final OffsetDateTime JOINED_AT = OffsetDateTime.parse("2022-01-01T14:30:00Z");
+
   private final ParticipantService participantService;
   private final MeetingService meetingService;
   private final RoomService roomService;
@@ -81,7 +83,6 @@ class ParticipantServiceImplTest {
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
-  private static final OffsetDateTime JOINED_AT = OffsetDateTime.parse("2022-01-01T13:00:00Z");
 
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
@@ -228,7 +229,11 @@ class ParticipantServiceImplTest {
           .thenReturn(Optional.of(permanentMeeting));
       when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
       when(participantRepository.insert(any(Participant.class)))
-          .thenAnswer(i -> ((Participant) i.getArgument(0)).createdAt(JOINED_AT));
+          .thenReturn(
+              ParticipantBuilder.create(permanentMeeting, user3Id.toString())
+                  .queueId(user3Queue1)
+                  .createdAt(JOINED_AT)
+                  .build());
 
       participantService.insertMeetingParticipant(
           permanentMeetingId,
@@ -242,8 +247,7 @@ class ParticipantServiceImplTest {
       verify(participantRepository, times(1))
           .insert(
               Participant.create(permanentMeeting, user3Id.toString())
-                  .queueId(user3Queue1.toString())
-                  .createdAt(JOINED_AT));
+                  .queueId(user3Queue1.toString()));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user3Id.toString(),
@@ -314,7 +318,12 @@ class ParticipantServiceImplTest {
               MeetingParticipantJoined.create()
                   .meetingId(permanentMeetingId)
                   .userId(user2Id)
-                  .joinedAt(JOINED_AT));
+                  .joinedAt(participant2Session1.getCreatedAt()));
+      InOrder inOrder = Mockito.inOrder(participantRepository, eventDispatcher);
+      inOrder.verify(participantRepository).update(any(Participant.class));
+      inOrder
+          .verify(eventDispatcher)
+          .sendToUserExchange(anyList(), any(MeetingParticipantJoined.class));
       verifyNoMoreInteractions(
           meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
@@ -387,7 +396,11 @@ class ParticipantServiceImplTest {
           .thenReturn(Optional.of(scheduledMeeting));
       when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
       when(participantRepository.insert(any(Participant.class)))
-          .thenAnswer(i -> ((Participant) i.getArgument(0)).createdAt(JOINED_AT));
+          .thenReturn(
+              ParticipantBuilder.create(scheduledMeeting, user1Id.toString())
+                  .queueId(user1Queue1)
+                  .createdAt(JOINED_AT)
+                  .build());
 
       JoinStatus meetingJoinStatus =
           participantService.insertMeetingParticipant(
@@ -403,8 +416,7 @@ class ParticipantServiceImplTest {
       verify(participantRepository, times(1))
           .insert(
               Participant.create(scheduledMeeting, user1Id.toString())
-                  .queueId(user1Queue1.toString())
-                  .createdAt(JOINED_AT));
+                  .queueId(user1Queue1.toString()));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user1Id.toString(),
@@ -478,7 +490,12 @@ class ParticipantServiceImplTest {
               MeetingParticipantJoined.create()
                   .meetingId(scheduledMeetingId)
                   .userId(user1Id)
-                  .joinedAt(JOINED_AT));
+                  .joinedAt(participant1Session1.getCreatedAt()));
+      InOrder inOrder = Mockito.inOrder(participantRepository, eventDispatcher);
+      inOrder.verify(participantRepository).update(any(Participant.class));
+      inOrder
+          .verify(eventDispatcher)
+          .sendToUserExchange(anyList(), any(MeetingParticipantJoined.class));
       verifyNoMoreInteractions(
           meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }

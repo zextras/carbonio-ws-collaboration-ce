@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +22,7 @@ import com.zextras.carbonio.async.model.MeetingStarted;
 import com.zextras.carbonio.async.model.MeetingStopped;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.MeetingBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -206,13 +206,13 @@ class MeetingServiceImplTest {
       OffsetDateTime createdAt = OffsetDateTime.parse("2022-01-01T10:00:00Z");
       UUID meetingId = UUID.randomUUID();
       Meeting meeting =
-          Meeting.create()
-              .id(meetingId.toString())
-              .name(meetingName)
+          MeetingBuilder.create(meetingId)
+              .roomId(room1Id)
               .meetingType(meetingType)
-              .roomId(room1Id.toString())
-              .active(false)
-              .createdAt(createdAt);
+              .createdAt(createdAt)
+              .build()
+              .name(meetingName)
+              .active(false);
       when(roomService.getRoomAndValidateUser(room1Id, user, false)).thenReturn(room1);
       when(meetingRepository.insert(any(Meeting.class))).thenReturn(meeting);
 
@@ -407,10 +407,13 @@ class MeetingServiceImplTest {
       verify(participantService, times(1)).clear(meetingId);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
+      org.mockito.ArgumentCaptor<MeetingStopped> stopped =
+          org.mockito.ArgumentCaptor.forClass(MeetingStopped.class);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString()),
-              MeetingStopped.create().meetingId(meetingId).endedBy(user1Id));
+              eq(List.of(user1Id.toString(), user2Id.toString())), stopped.capture());
+      assertNull(stopped.getValue().getSystemEventId());
+      assertNull(stopped.getValue().getDurationSec());
       verifyNoMoreInteractions(
           participantService, videoServerService, membersService, meetingRepository);
     }
@@ -1302,6 +1305,11 @@ class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               eq(List.of(user1Id.toString(), user2Id.toString())), any(MeetingDeclined.class));
+      org.mockito.ArgumentCaptor<MeetingStopped> stopped =
+          org.mockito.ArgumentCaptor.forClass(MeetingStopped.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), stopped.capture());
+      assertNull(stopped.getValue().getSystemEventId());
+      assertNull(stopped.getValue().getDurationSec());
     }
   }
 }
