@@ -7,25 +7,29 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
-import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import io.ebean.Database;
 import io.ebean.Query;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
 public class EbeanSystemEventRepository implements SystemEventRepository {
 
+  private static final String INSERT_AT_SQL =
+      """
+      INSERT INTO chats.system_event (id, room_id, type, actor_id, content, created_at)
+      VALUES (:id, :roomId, :type, :actorId, :content, :createdAt)
+      """;
+
   private final Database db;
-  private final DatabaseClock databaseClock;
 
   @Inject
-  public EbeanSystemEventRepository(Database db, DatabaseClock databaseClock) {
+  public EbeanSystemEventRepository(Database db) {
     this.db = db;
-    this.databaseClock = databaseClock;
   }
 
   @Override
@@ -43,10 +47,28 @@ public class EbeanSystemEventRepository implements SystemEventRepository {
 
   @Override
   public SystemEvent insert(SystemEvent event) {
-    if (event.getCreatedAt() == null) {
-      event.createdAt(databaseClock.now());
-    }
     db.insert(event);
+    db.refresh(event);
+    return event;
+  }
+
+  @Override
+  public SystemEvent insertAt(SystemEvent event, OffsetDateTime createdAt) {
+    Objects.requireNonNull(createdAt, "createdAt");
+    db.sqlUpdate(INSERT_AT_SQL)
+        .setParameter("id", event.getId())
+        .setParameter("roomId", event.getRoomId())
+        .setParameter("type", event.getType())
+        .setParameter("actorId", event.getActorId())
+        .setParameter("content", event.getContent())
+        .setParameter("createdAt", createdAt)
+        .execute();
+    return getById(event.getId()).orElseThrow();
+  }
+
+  @Override
+  public SystemEvent update(SystemEvent event) {
+    db.update(event);
     return event;
   }
 

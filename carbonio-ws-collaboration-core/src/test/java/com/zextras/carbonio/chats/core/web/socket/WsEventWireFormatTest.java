@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,11 +31,34 @@ class WsEventWireFormatTest {
   }
 
   @Test
+  void reactionChangedOmitsAbsentTimesAndPreviousReaction() throws Exception {
+    String json =
+        new com.zextras.carbonio.chats.core.config.JacksonConfig()
+            .get()
+            .writeValueAsString(
+                ReactionChanged.create()
+                    .messageId("message-id")
+                    .roomId("room-id")
+                    .userId("user-id")
+                    .reaction("x")
+                    .operation(ReactionChanged.OperationEnum.UPDATED)
+                    .previousReaction("y")
+                    .updatedAt(java.time.OffsetDateTime.parse("2026-01-01T10:00:00Z")));
+
+    assertTrue(json.contains("\"operation\":\"updated\""), json);
+    assertTrue(json.contains("\"previousReaction\":\"y\""), json);
+    assertTrue(json.contains("\"updatedAt\":\"2026-01-01T10:00:00Z\""), json);
+    assertFalse(json.contains("deletedAt"), json);
+  }
+
+  @Test
   void typingStatusKeepsItsLowerCaseWireValue() throws Exception {
     String json =
         objectMapper.writeValueAsString(
             Typing.create().roomId("room-id").userId("user-id").status(Typing.StatusEnum.STOPPED));
 
     assertTrue(json.contains("\"status\":\"stopped\""), json);
+    assertFalse(json.contains("timestamp"), json);
+    assertFalse(json.contains("sentDate"), json);
   }
 }

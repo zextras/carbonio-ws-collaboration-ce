@@ -11,10 +11,7 @@ import com.zextras.carbonio.chats.core.migration.mongooseimport.RoomRows.Row;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.DateTimeException;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,17 +28,15 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   }
 
   private static final int ANALYZE_THRESHOLD = 1000;
-  private static final LocalDateTime EPOCH = LocalDateTime.of(1970, 1, 1, 0, 0);
 
   private final LegacyIds ids;
-  private final ZoneId zone;
   private final FileLinker files;
   private final PinImporter pins;
   private final MarkerTranscriber markers;
   private final RoomRows rows;
   private final Fastenings fastenings;
   private final TimelineWriter writer;
-  private final Map<String, LocalDateTime> pinTimes = new HashMap<>();
+  private final Map<String, Instant> pinTimes = new HashMap<>();
 
   private int rooms;
   private int edits;
@@ -53,13 +48,11 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   public RoomImporter(
       Connection target,
       LegacyIds ids,
-      ZoneId zone,
       FileLinker files,
       PinImporter pins,
       MarkerTranscriber markers)
       throws SQLException {
     this.ids = ids;
-    this.zone = zone;
     this.files = files;
     this.pins = pins;
     this.markers = markers;
@@ -130,9 +123,9 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     Context c = context;
     currentMam = mam;
     archived = true;
-    LocalDateTime raw = rawTime(mam);
+    Instant raw = rawTime(mam);
     if (raw == null) {
-      rows.record(p.rootId(), Row.notImported(mam, null, EPOCH));
+      rows.record(p.rootId(), Row.notImported(mam, null, Instant.EPOCH));
       return;
     }
     String sender = "carbonio".equals(server) && validUser(user) ? user : null;
@@ -144,15 +137,15 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     switch (p.kind()) {
       case TEXT -> {
         String id = ids.of(LegacyIds.MESSAGE, roomId, mam);
-        LocalDateTime t = c.clock().next(raw);
+        Instant t = c.clock().next(raw);
         writer.addMessage(mam, TimelineWriter.Message.text(id, sender, p.text(), replyTo(p), t));
         rows.record(p.rootId(), Row.message(mam, sender, id, t, raw, false));
       }
       case TOMBSTONE -> {
         String id = ids.of(LegacyIds.MESSAGE, roomId, mam);
-        LocalDateTime t = c.clock().next(raw);
+        Instant t = c.clock().next(raw);
         String attachment = files.onTombstone(mam, id);
-        LocalDateTime deletedAt = local(p.retractedStamp(), t);
+        Instant deletedAt = stamp(p.retractedStamp(), t);
         writer.addMessage(
             mam, TimelineWriter.Message.tombstone(id, sender, attachment, deletedAt, t));
         rows.record(p.rootId(), Row.message(mam, sender, id, t, raw, true));
@@ -242,7 +235,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     }
   }
 
-  private void meetingLine(Context c, ParsedRow p, long mam, String sender, LocalDateTime raw)
+  private void meetingLine(Context c, ParsedRow p, long mam, String sender, Instant raw)
       throws SQLException {
     String meetingId = c.room().meetingId();
     if (!c.oneToOne() || meetingId == null) {
@@ -271,7 +264,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
         long startedAt =
             p.startedAtMillis() != null
                 ? p.startedAtMillis()
-                : raw.atZone(zone).toInstant().toEpochMilli() - p.durationSec() * 1000;
+                : raw.toEpochMilli() - p.durationSec() * 1000;
         content.put("endedBy", sender);
         content.put("meetingId", meetingId);
         content.put("startedAt", startedAt);
@@ -281,10 +274,10 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     event(c, p, mam, sender, raw, type, content);
   }
 
-  private void attachmentOrForward(
-      Context c, ParsedRow p, long mam, String sender, LocalDateTime raw) throws SQLException {
+  private void attachmentOrForward(Context c, ParsedRow p, long mam, String sender, Instant raw)
+      throws SQLException {
     String id = ids.of(LegacyIds.MESSAGE, c.room().id(), mam);
-    LocalDateTime t = c.clock().next(raw);
+    Instant t = c.clock().next(raw);
     boolean forward = p.kind() == Kind.FORWARD;
     FileLinker.AttachmentDecision decision =
         !forward || p.attachmentId() != null
@@ -302,7 +295,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
                 sender,
                 p.text(),
                 p.forwardFrom(),
-                local(p.forwardStamp(), EPOCH),
+                stamp(p.forwardStamp(), Instant.EPOCH),
                 decision.attachmentId(),
                 t)
             : TimelineWriter.Message.attachment(
@@ -312,22 +305,15 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   }
 
   private void event(
-      Context c,
-      ParsedRow p,
-      long mam,
-      String sender,
-      LocalDateTime raw,
-      String type,
-      ObjectNode content)
+      Context c, ParsedRow p, long mam, String sender, Instant raw, String type, ObjectNode content)
       throws SQLException {
     String id = ids.of(LegacyIds.SYSTEM_EVENT, c.room().id(), mam);
-    LocalDateTime t = c.clock().next(raw);
+    Instant t = c.clock().next(raw);
     writer.addEvent(mam, id, type, sender, content.toString(), t);
     rows.record(p.rootId(), Row.event(mam, sender, id, t, raw));
   }
 
-  private void notImported(ParsedRow p, long mam, String sender, LocalDateTime raw)
-      throws SQLException {
+  private void notImported(ParsedRow p, long mam, String sender, Instant raw) throws SQLException {
     rows.record(p.rootId(), Row.notImported(mam, sender, raw));
   }
 
@@ -344,28 +330,20 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     return row != null && row.outcome() == RoomRows.MESSAGE ? row.itemId() : null;
   }
 
-  private LocalDateTime rawTime(long mam) {
+  private Instant rawTime(long mam) {
     if (mam <= 0) {
       return null;
     }
-    try {
-      LocalDateTime time = MamTime.millis(mam, zone);
-      return MamTime.inRange(time) ? time : null;
-    } catch (DateTimeException e) {
-      return null;
-    }
+    Instant time = MamTime.instant(mam);
+    return MamTime.inRange(time) ? time : null;
   }
 
-  private LocalDateTime local(Instant instant, LocalDateTime fallback) {
+  static Instant stamp(Instant instant, Instant fallback) {
     if (instant == null) {
       return fallback;
     }
-    try {
-      LocalDateTime time = LocalDateTime.ofInstant(instant, zone);
-      return MamTime.inRange(time) ? time : fallback;
-    } catch (DateTimeException e) {
-      return fallback;
-    }
+    Instant rounded = MamTime.roundToMicros(instant);
+    return MamTime.inRange(rounded) ? rounded : fallback;
   }
 
   private static boolean validUser(String id) {

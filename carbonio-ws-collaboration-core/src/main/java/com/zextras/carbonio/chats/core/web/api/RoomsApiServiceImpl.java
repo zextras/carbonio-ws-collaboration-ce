@@ -46,6 +46,9 @@ import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetKind;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
@@ -83,6 +86,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SendMessageRequestDto;
+import com.zextras.carbonio.chats.model.SetReactionRequestDto;
 import com.zextras.carbonio.chats.model.TimelineDto;
 import com.zextras.carbonio.chats.model.TimelineItemDto;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
@@ -757,8 +761,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .systemEventId(systemEvent.getId())
               .systemEventCreatedAt(systemEvent.getCreatedAt())
               .timestamp(systemEvent.getCreatedAt())
-              .message(message)
-              .sentDate(OffsetDateTime.now()),
+              .message(message),
           message);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting pin event: " + e.getMessage());
@@ -798,8 +801,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .unpinnedBy(unpinnedBy)
               .systemEventId(systemEventId)
               .systemEventCreatedAt(systemEventCreatedAt)
-              .timestamp(OffsetDateTime.now())
-              .sentDate(OffsetDateTime.now());
+              .timestamp(systemEventCreatedAt);
       broadcastToRoomMembers(roomId, objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting unpin event: " + e.getMessage());
@@ -807,24 +809,31 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response addReaction(
-      UUID roomId, UUID messageId, String reaction, SecurityContext securityContext) {
+  public Response setReaction(
+      UUID roomId,
+      UUID messageId,
+      SetReactionRequestDto setReactionRequest,
+      SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    // A user has a single reaction per message: replacing a different emoji removes the old one.
-    Optional<String> replaced =
-        chatMessageService.addReaction(
+    String reaction = setReactionRequest.getReaction();
+    if (reaction.isBlank()) {
+      throw new BadRequestException("Reaction must not be blank");
+    }
+    SetResult result =
+        chatMessageService.setReaction(
             roomId.toString(), messageId.toString(), currentUser.getId(), reaction);
     try {
-      if (replaced.isPresent()) {
-        broadcastReactionChanged(
-            roomId,
-            messageId,
-            currentUser.getId(),
-            replaced.get(),
-            ReactionChanged.OperationEnum.REMOVED);
+      if (result.kind() != SetKind.UNCHANGED) {
+        ReactionChanged event =
+            reactionEvent(roomId, messageId, currentUser.getId(), reaction)
+                .operation(
+                    result.kind() == SetKind.ADDED
+                        ? ReactionChanged.OperationEnum.ADDED
+                        : ReactionChanged.OperationEnum.UPDATED)
+                .previousReaction(result.previousReaction())
+                .updatedAt(result.updatedAt());
+        broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
       }
-      broadcastReactionChanged(
-          roomId, messageId, currentUser.getId(), reaction, ReactionChanged.OperationEnum.ADDED);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
@@ -832,22 +841,19 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response removeReaction(
-      UUID roomId, UUID messageId, String reaction, SecurityContext securityContext) {
+  public Response removeReaction(UUID roomId, UUID messageId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
-    // A user has a single reaction per message, so the path emoji is not needed to identify it.
-    Optional<String> removed =
+    Optional<Removed> removed =
         chatMessageService.removeReaction(
             roomId.toString(), messageId.toString(), currentUser.getId());
     try {
       if (removed.isPresent()) {
-        broadcastReactionChanged(
-            roomId,
-            messageId,
-            currentUser.getId(),
-            removed.get(),
-            ReactionChanged.OperationEnum.REMOVED);
+        ReactionChanged event =
+            reactionEvent(roomId, messageId, currentUser.getId(), removed.get().reaction())
+                .operation(ReactionChanged.OperationEnum.REMOVED)
+                .deletedAt(removed.get().deletedAt());
+        broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
@@ -855,22 +861,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
-  private void broadcastReactionChanged(
-      UUID roomId,
-      UUID messageId,
-      String userId,
-      String reaction,
-      ReactionChanged.OperationEnum operation)
-      throws com.fasterxml.jackson.core.JsonProcessingException {
-    WsEvent event =
-        ReactionChanged.create()
-            .messageId(messageId.toString())
-            .roomId(roomId.toString())
-            .userId(userId)
-            .reaction(reaction)
-            .operation(operation)
-            .sentDate(OffsetDateTime.now());
-    broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+  private ReactionChanged reactionEvent(
+      UUID roomId, UUID messageId, String userId, String reaction) {
+    return ReactionChanged.create()
+        .messageId(messageId.toString())
+        .roomId(roomId.toString())
+        .userId(userId)
+        .reaction(reaction);
   }
 
   /**
@@ -1095,8 +1092,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       }
       WsEvent event =
           MessageForwarded.create()
-              .message(buildResolvedTimelineMessage(forwardedMsg, knownAttachments))
-              .sentDate(OffsetDateTime.now());
+              .message(buildResolvedTimelineMessage(forwardedMsg, knownAttachments));
       broadcastToRoomMembers(toRoomIdStr, objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-forwarded event: " + e.getMessage());
@@ -1146,8 +1142,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .messageId(deleted.messageId())
               .roomId(roomId.toString())
               .deletedBy(currentUser.getId())
-              .deletedAt(OffsetDateTime.now())
-              .sentDate(OffsetDateTime.now());
+              .deletedAt(deleted.deletedAt());
       broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-deleted event: " + e.getMessage());
@@ -1192,8 +1187,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .messageId(edited.messageId())
               .roomId(roomId.toString())
               .text(edited.text())
-              .editedAt(edited.updatedAt())
-              .sentDate(OffsetDateTime.now());
+              .editedAt(edited.updatedAt());
       messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
           roomId.toString(), edited.createdAt(), objectMapper.writeValueAsString(event));
     } catch (Exception e) {
@@ -1229,8 +1223,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                     ReadUpdated.create()
                         .roomId(roomId.toString())
                         .userId(currentUser.getId())
-                        .itemCreatedAt(itemCreatedAt)
-                        .sentDate(OffsetDateTime.now());
+                        .itemCreatedAt(itemCreatedAt);
                 broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
               } catch (Exception e) {
                 ChatsLogger.warn(

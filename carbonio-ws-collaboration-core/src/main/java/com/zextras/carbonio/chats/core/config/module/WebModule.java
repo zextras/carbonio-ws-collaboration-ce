@@ -31,7 +31,6 @@ import com.zextras.carbonio.chats.core.web.exceptions.OffsetDateTimeParamConvert
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import java.time.Clock;
-import java.time.ZoneId;
 
 public class WebModule extends AbstractModule {
 
@@ -68,6 +67,6 @@ public class WebModule extends AbstractModule {
   @Singleton
   @Provides
   private Clock getClock() {
-    return Clock.system(ZoneId.systemDefault());
+    return Clock.systemUTC();
   }
 }

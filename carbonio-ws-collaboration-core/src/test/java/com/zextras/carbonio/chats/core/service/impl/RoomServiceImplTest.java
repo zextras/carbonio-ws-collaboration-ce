@@ -54,7 +54,6 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -85,6 +84,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,7 +114,6 @@ class RoomServiceImplTest {
   private final StoragesService storagesService;
   private final Clock clock;
   private final ChatMessageService chatMessageService;
-  private final DatabaseClock databaseClock;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -131,8 +130,6 @@ class RoomServiceImplTest {
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.clock = mock(Clock.class);
     this.chatMessageService = mock(ChatMessageService.class);
-    this.databaseClock = mock(DatabaseClock.class);
-    when(databaseClock.now()).thenReturn(OffsetDateTime.parse("2026-01-01T10:00:00Z"));
     this.roomService =
         new RoomServiceImpl(
             this.roomRepository,
@@ -148,11 +145,20 @@ class RoomServiceImplTest {
             this.eventDispatcher,
             this.messageDispatcher,
             roomMapper,
-            this.clock,
             this.chatMessageService,
             new ObjectMapper(),
-            databaseClock,
             new SystemEventContentFactory(new ObjectMapper()));
+  }
+
+  private void insertIncreasesCreatedAt() {
+    AtomicInteger persistedLines = new AtomicInteger();
+    when(chatMessageService.insertSystemEvent(any(SystemEvent.class)))
+        .thenAnswer(
+            i ->
+                i.<SystemEvent>getArgument(0)
+                    .createdAt(
+                        OffsetDateTime.parse("2026-01-01T10:00:00Z")
+                            .plusNanos(1_000L * persistedLines.incrementAndGet())));
   }
 
   private List<SystemEvent> insertedSystemEvents(int expected) {
@@ -507,6 +513,7 @@ class RoomServiceImplTest {
       @Test
       @DisplayName("It creates the room and returns it")
       void createGroupRoom_testOk() {
+        insertIncreasesCreatedAt();
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).queueId(UUID.randomUUID());
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
@@ -516,8 +523,7 @@ class RoomServiceImplTest {
                         MemberDto.create().userId(user1Id).owner(true),
                         MemberDto.create().userId(user2Id),
                         MemberDto.create().userId(user3Id))),
-                any(Room.class),
-                any()))
+                any(Room.class)))
             .thenReturn(
                 List.of(
                     Subscription.create(roomGroup1, user1Id.toString()).owner(true),
@@ -572,11 +578,7 @@ class RoomServiceImplTest {
         assertEquals("ROOM_CREATED", events.get(0).getType());
         assertEquals("MEMBER_ADDED", events.get(1).getType());
         assertEquals("MEMBER_ADDED", events.get(2).getType());
-        ArgumentCaptor<OffsetDateTime> joinedAtCaptor =
-            ArgumentCaptor.forClass(OffsetDateTime.class);
-        verify(membersService)
-            .initRoomSubscriptions(any(), any(Room.class), joinedAtCaptor.capture());
-        assertEquals(events.get(2).getCreatedAt(), joinedAtCaptor.getValue());
+        verify(membersService).initRoomSubscriptions(any(), any(Room.class));
         assertEquals(user1Id.toString(), events.get(0).getActorId());
         assertEquals(user1Id.toString(), events.get(1).getActorId());
         assertEquals(user1Id.toString(), events.get(2).getActorId());
@@ -586,10 +588,8 @@ class RoomServiceImplTest {
         assertEquals(
             "{\"addedByUserId\":\"" + user1Id + "\",\"addedUserIds\":[\"" + user3Id + "\"]}",
             events.get(2).getContent());
-        assertEquals(
-            events.get(0).getCreatedAt().plusNanos(1_000_000), events.get(1).getCreatedAt());
-        assertEquals(
-            events.get(0).getCreatedAt().plusNanos(2_000_000), events.get(2).getCreatedAt());
+        assertTrue(events.get(0).getCreatedAt().isBefore(events.get(1).getCreatedAt()));
+        assertTrue(events.get(1).getCreatedAt().isBefore(events.get(2).getCreatedAt()));
 
         verify(eventDispatcher, times(1))
             .sendToUserExchange(
@@ -612,8 +612,7 @@ class RoomServiceImplTest {
                         MemberDto.create().userId(user1Id).owner(true),
                         MemberDto.create().userId(user2Id).owner(true),
                         MemberDto.create().userId(user3Id))),
-                any(Room.class),
-                any()))
+                any(Room.class)))
             .thenReturn(
                 List.of(
                     Subscription.create(roomGroup1, user1Id.toString()).owner(true),
@@ -757,9 +756,7 @@ class RoomServiceImplTest {
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
         when(membersService.initRoomSubscriptions(
-                eq(List.of(MemberDto.create().userId(user1Id).owner(true))),
-                any(Room.class),
-                any()))
+                eq(List.of(MemberDto.create().userId(user1Id).owner(true))), any(Room.class)))
             .thenReturn(
                 List.of(Subscription.create(roomTemporary1, user1Id.toString()).owner(true)));
         when(roomRepository.insert(roomTemporary1)).thenReturn(roomTemporary1);
@@ -808,8 +805,7 @@ class RoomServiceImplTest {
                         MemberDto.create().userId(user1Id).owner(true),
                         MemberDto.create().userId(user2Id).owner(true),
                         MemberDto.create().userId(user3Id))),
-                any(Room.class),
-                any()))
+                any(Room.class)))
             .thenReturn(
                 List.of(
                     Subscription.create(roomTemporary2, user1Id.toString()).owner(true),
@@ -824,7 +820,8 @@ class RoomServiceImplTest {
                 .type(RoomTypeDto.TEMPORARY)
                 .members(
                     List.of(
-                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id)));
+                        MemberDto.create().userId(user2Id).owner(true),
+                        MemberDto.create().userId(user3Id)));
         RoomDto room;
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomTemporary2Id);
@@ -878,9 +875,13 @@ class RoomServiceImplTest {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(membersService.initRoomSubscriptions(
-                eq(List.of(MemberDto.create().userId(user2Id))), any(Room.class), any()))
+                eq(
+                    List.of(
+                        MemberDto.create().userId(user1Id).owner(true),
+                        MemberDto.create().userId(user2Id))),
+                any(Room.class)))
             .thenReturn(
-                Stream.of(user2Id, user1Id)
+                Stream.of(user1Id, user2Id)
                     .map(
                         userId ->
                             Subscription.create(roomOneToOne1, userId.toString())
@@ -1068,8 +1069,9 @@ class RoomServiceImplTest {
     }
 
     @Test
-    @DisplayName("It writes name and description events in order, one millisecond apart")
+    @DisplayName("It writes name and description events in order")
     void updateRoom_testWritesNameThenDescriptionEvents() {
+      insertIncreasesCreatedAt();
       when(roomRepository.getById(roomGroup1Id.toString()))
           .thenReturn(Optional.of(roomGroup1.name("old").description("old description")));
 
@@ -1085,14 +1087,12 @@ class RoomServiceImplTest {
       assertEquals(user1Id.toString(), nameEvent.getActorId());
       assertEquals(roomGroup1Id.toString(), nameEvent.getRoomId());
       assertEquals("{\"changedBy\":\"" + user1Id + "\",\"name\":\"new\"}", nameEvent.getContent());
-      assertEquals(OffsetDateTime.parse("2026-01-01T10:00:00Z"), nameEvent.getCreatedAt());
       assertEquals("ROOM_DESCRIPTION_CHANGED", descriptionEvent.getType());
       assertEquals(user1Id.toString(), descriptionEvent.getActorId());
       assertEquals(
           "{\"changedBy\":\"" + user1Id + "\",\"description\":\"new description\"}",
           descriptionEvent.getContent());
-      assertEquals(
-          OffsetDateTime.parse("2026-01-01T10:00:00.001Z"), descriptionEvent.getCreatedAt());
+      assertTrue(nameEvent.getCreatedAt().isBefore(descriptionEvent.getCreatedAt()));
     }
 
     @Test
@@ -1108,7 +1108,6 @@ class RoomServiceImplTest {
 
       List<SystemEvent> events = insertedSystemEvents(1);
       assertEquals("ROOM_NAME_CHANGED", events.get(0).getType());
-      assertEquals(OffsetDateTime.parse("2026-01-01T10:00:00Z"), events.get(0).getCreatedAt());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1136,7 +1135,6 @@ class RoomServiceImplTest {
       assertEquals("ROOM_DESCRIPTION_CHANGED", events.get(0).getType());
       assertEquals(
           "{\"changedBy\":\"" + user1Id + "\",\"description\":\"\"}", events.get(0).getContent());
-      assertEquals(OffsetDateTime.parse("2026-01-01T10:00:00Z"), events.get(0).getCreatedAt());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1991,6 +1989,13 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("It sets the room picture if it didn't exists")
     void setRoomPicture_testOkInsert() {
+      when(roomRepository.markPictureUpdated(roomGroup1))
+          .thenAnswer(
+              i ->
+                  i.<Room>getArgument(0)
+                      .pictureUpdatedAt(
+                          OffsetDateTime.ofInstant(
+                              Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.empty());
@@ -1998,11 +2003,9 @@ class RoomServiceImplTest {
       InputStream fileStream = mock(InputStream.class);
       roomService.setRoomPicture(
           roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
-      roomGroup1.pictureUpdatedAt(
-          OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
-      verify(roomRepository, times(1)).update(roomGroup1);
+      verify(roomRepository, times(1)).markPictureUpdated(roomGroup1);
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1))
@@ -2042,6 +2045,13 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("It update the room picture if it already exists")
     void setRoomPicture_testOkUpdate() {
+      when(roomRepository.markPictureUpdated(roomGroup1))
+          .thenAnswer(
+              i ->
+                  i.<Room>getArgument(0)
+                      .pictureUpdatedAt(
+                          OffsetDateTime.ofInstant(
+                              Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       FileMetadata existingMetadata =
           FileMetadata.create()
@@ -2055,11 +2065,9 @@ class RoomServiceImplTest {
       InputStream fileStream = mock(InputStream.class);
       roomService.setRoomPicture(
           roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
-      roomGroup1.pictureUpdatedAt(
-          OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
-      verify(roomRepository, times(1)).update(roomGroup1);
+      verify(roomRepository, times(1)).markPictureUpdated(roomGroup1);
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).deleteFile("123", "fake-old-user");

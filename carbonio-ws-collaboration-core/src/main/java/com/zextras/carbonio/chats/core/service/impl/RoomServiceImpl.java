@@ -25,7 +25,6 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -48,9 +47,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
 import java.io.InputStream;
-import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -77,10 +74,8 @@ public class RoomServiceImpl implements RoomService {
   private final EventDispatcher eventDispatcher;
   private final MessageDispatcher messageDispatcher;
   private final RoomMapper roomMapper;
-  private final Clock clock;
   private final ChatMessageService chatMessageService;
   private final ObjectMapper objectMapper;
-  private final DatabaseClock databaseClock;
   private final SystemEventContentFactory systemEventContentFactory;
 
   @Inject
@@ -98,10 +93,8 @@ public class RoomServiceImpl implements RoomService {
       EventDispatcher eventDispatcher,
       MessageDispatcher messageDispatcher,
       RoomMapper roomMapper,
-      Clock clock,
       ChatMessageService chatMessageService,
       ObjectMapper objectMapper,
-      DatabaseClock databaseClock,
       SystemEventContentFactory systemEventContentFactory) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -116,10 +109,8 @@ public class RoomServiceImpl implements RoomService {
     this.eventDispatcher = eventDispatcher;
     this.messageDispatcher = messageDispatcher;
     this.roomMapper = roomMapper;
-    this.clock = clock;
     this.chatMessageService = chatMessageService;
     this.objectMapper = objectMapper;
-    this.databaseClock = databaseClock;
     this.systemEventContentFactory = systemEventContentFactory;
   }
 
@@ -155,16 +146,21 @@ public class RoomServiceImpl implements RoomService {
     validateCreateRoom(roomCreationFields, currentUser);
 
     List<MemberDto> members = prepareRoomMembers(roomCreationFields, currentUser.getUUID());
-    int creationEvents =
-        RoomTypeDto.ONE_TO_ONE.equals(roomCreationFields.getType()) ? 0 : members.size() - 1;
-    OffsetDateTime creationInstant = databaseClock.now().minus(creationEvents, ChronoUnit.MILLIS);
-    Room room = initializeRoom(roomCreationFields).createdAt(creationInstant);
+    Room room = initializeRoom(roomCreationFields);
 
     createRoom(room, currentUser, members, true);
 
-    room.subscriptions(
-        membersService.initRoomSubscriptions(
-            members, room, creationInstant.plus(creationEvents, ChronoUnit.MILLIS)));
+    room = persistCreatedRoom(room, currentUser, members);
+
+    eventDispatcher.sendToUserExchange(
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+        RoomCreated.create().roomId(UUID.fromString(room.getId())).type(EventType.ROOM_CREATED));
+
+    return mapRoomToDto(room, currentUser);
+  }
+
+  @Transactional
+  private Room persistCreatedRoom(Room room, UserPrincipal currentUser, List<MemberDto> members) {
     room = roomRepository.insert(room);
 
     String roomCreatedContent;
@@ -181,8 +177,7 @@ public class RoomServiceImpl implements RoomService {
             .roomId(room.getId())
             .type("ROOM_CREATED")
             .actorId(currentUser.getId())
-            .content(roomCreatedContent)
-            .createdAt(creationInstant));
+            .content(roomCreatedContent));
 
     if (!RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       for (int i = 1; i < members.size(); i++) {
@@ -194,19 +189,12 @@ public class RoomServiceImpl implements RoomService {
                 .actorId(currentUser.getId())
                 .content(
                     systemEventContentFactory.memberAdded(
-                        currentUser.getId(), List.of(members.get(i).getUserId().toString())))
-                .createdAt(creationInstant.plus(i, ChronoUnit.MILLIS)));
+                        currentUser.getId(), List.of(members.get(i).getUserId().toString()))));
       }
     }
 
-    eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomCreated.create()
-            .roomId(UUID.fromString(room.getId()))
-            .type(EventType.ROOM_CREATED)
-            .sentDate(OffsetDateTime.now()));
-
-    return mapRoomToDto(room, currentUser);
+    room.subscriptions(membersService.initRoomSubscriptions(members, room));
+    return room;
   }
 
   private List<MemberDto> prepareRoomMembers(
@@ -305,31 +293,9 @@ public class RoomServiceImpl implements RoomService {
     boolean isRoomUpdated = updateRoomDetails(room, updateRoomRequestDto);
 
     if (isRoomUpdated) {
-      roomRepository.update(room);
-      OffsetDateTime eventInstant = databaseClock.now();
-      Optional<SystemEvent> nameSystemEvent = Optional.empty();
-      Optional<SystemEvent> descriptionSystemEvent = Optional.empty();
-      if (nameChanged) {
-        nameSystemEvent =
-            Optional.of(
-                insertRoomSystemEvent(
-                    room,
-                    "ROOM_NAME_CHANGED",
-                    currentUser.getId(),
-                    systemEventContentFactory.roomNameChanged(currentUser.getId(), room.getName()),
-                    eventInstant));
-      }
-      if (descriptionChanged) {
-        descriptionSystemEvent =
-            Optional.of(
-                insertRoomSystemEvent(
-                    room,
-                    "ROOM_DESCRIPTION_CHANGED",
-                    currentUser.getId(),
-                    systemEventContentFactory.roomDescriptionChanged(
-                        currentUser.getId(), room.getDescription()),
-                    nameChanged ? eventInstant.plus(1, ChronoUnit.MILLIS) : eventInstant));
-      }
+      RoomUpdateLines lines = persistRoomUpdate(room, nameChanged, descriptionChanged, currentUser);
+      Optional<SystemEvent> nameSystemEvent = lines.name();
+      Optional<SystemEvent> descriptionSystemEvent = lines.description();
       List<String> receivers =
           room.getSubscriptions().stream().map(Subscription::getUserId).toList();
       nameSystemEvent.ifPresent(
@@ -342,8 +308,7 @@ public class RoomServiceImpl implements RoomService {
                       .updatedBy(currentUser.getUUID())
                       .systemEventId(line.getId())
                       .systemEventCreatedAt(line.getCreatedAt())
-                      .type(EventType.ROOM_NAME_CHANGED)
-                      .sentDate(OffsetDateTime.now())));
+                      .type(EventType.ROOM_NAME_CHANGED)));
       descriptionSystemEvent.ifPresent(
           line ->
               eventDispatcher.sendToUserExchange(
@@ -354,8 +319,7 @@ public class RoomServiceImpl implements RoomService {
                       .updatedBy(currentUser.getUUID())
                       .systemEventId(line.getId())
                       .systemEventCreatedAt(line.getCreatedAt())
-                      .type(EventType.ROOM_DESCRIPTION_CHANGED)
-                      .sentDate(OffsetDateTime.now())));
+                      .type(EventType.ROOM_DESCRIPTION_CHANGED)));
     }
 
     return roomMapper.ent2dto(
@@ -368,16 +332,44 @@ public class RoomServiceImpl implements RoomService {
         false);
   }
 
+  private record RoomUpdateLines(Optional<SystemEvent> name, Optional<SystemEvent> description) {}
+
+  // One transaction: a concurrent update waits on the room row until these lines are written
+  @Transactional
+  private RoomUpdateLines persistRoomUpdate(
+      Room room, boolean nameChanged, boolean descriptionChanged, UserPrincipal currentUser) {
+    roomRepository.update(room);
+    Optional<SystemEvent> name =
+        nameChanged
+            ? Optional.of(
+                insertRoomSystemEvent(
+                    room,
+                    "ROOM_NAME_CHANGED",
+                    currentUser.getId(),
+                    systemEventContentFactory.roomNameChanged(currentUser.getId(), room.getName())))
+            : Optional.empty();
+    Optional<SystemEvent> description =
+        descriptionChanged
+            ? Optional.of(
+                insertRoomSystemEvent(
+                    room,
+                    "ROOM_DESCRIPTION_CHANGED",
+                    currentUser.getId(),
+                    systemEventContentFactory.roomDescriptionChanged(
+                        currentUser.getId(), room.getDescription())))
+            : Optional.empty();
+    return new RoomUpdateLines(name, description);
+  }
+
   private SystemEvent insertRoomSystemEvent(
-      Room room, String type, String actorId, String content, OffsetDateTime createdAt) {
+      Room room, String type, String actorId, String content) {
     SystemEvent event =
         SystemEvent.create()
             .id(UUID.randomUUID().toString())
             .roomId(room.getId())
             .type(type)
             .actorId(actorId)
-            .content(content)
-            .createdAt(createdAt);
+            .content(content);
     chatMessageService.insertSystemEvent(event);
     return event;
   }
@@ -436,10 +428,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.delete(roomId.toString());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomDeleted.create()
-            .roomId(roomId)
-            .type(EventType.ROOM_DELETED)
-            .sentDate(OffsetDateTime.now()));
+        RoomDeleted.create().roomId(roomId).type(EventType.ROOM_DELETED));
   }
 
   @Override
@@ -452,11 +441,7 @@ public class RoomServiceImpl implements RoomService {
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToUserExchange(
-          currentUser.getId(),
-          RoomMuted.create()
-              .roomId(roomId)
-              .type(EventType.ROOM_MUTED)
-              .sentDate(OffsetDateTime.now()));
+          currentUser.getId(), RoomMuted.create().roomId(roomId).type(EventType.ROOM_MUTED));
     }
   }
 
@@ -471,10 +456,7 @@ public class RoomServiceImpl implements RoomService {
                 roomUserSettingsRepository.save(settings.mutedUntil(null));
                 eventDispatcher.sendToUserExchange(
                     currentUser.getId(),
-                    RoomUnmuted.create()
-                        .roomId(roomId)
-                        .type(EventType.ROOM_UNMUTED)
-                        .sentDate(OffsetDateTime.now()));
+                    RoomUnmuted.create().roomId(roomId).type(EventType.ROOM_UNMUTED));
               }
             });
   }
@@ -521,8 +503,7 @@ public class RoomServiceImpl implements RoomService {
             .clearedBy(currentUser.getUUID())
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_HISTORY_CLEARED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_HISTORY_CLEARED));
 
     attachmentService.deleteAttachmentFiles(purged.attachmentIds(), currentUser);
 
@@ -544,8 +525,7 @@ public class RoomServiceImpl implements RoomService {
             room,
             "ROOM_HISTORY_CLEARED",
             currentUser.getId(),
-            systemEventContentFactory.roomHistoryCleared(currentUser.getId()),
-            null);
+            systemEventContentFactory.roomHistoryCleared(currentUser.getId()));
     return new PurgedRoomHistory(attachmentIds, systemEvent);
   }
 
@@ -567,8 +547,7 @@ public class RoomServiceImpl implements RoomService {
         RoomHistoryCleared.create()
             .roomId(UUID.fromString(room.getId()))
             .clearedAt(clearedAt)
-            .type(EventType.ROOM_HISTORY_CLEARED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_HISTORY_CLEARED));
 
     return clearedAt;
   }
@@ -654,15 +633,13 @@ public class RoomServiceImpl implements RoomService {
             .originalSize(contentLength)
             .mimeType(mimeType)
             .userId(currentUser.getId()));
-    roomRepository.update(
-        room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
+    roomRepository.markPictureUpdated(room);
     SystemEvent systemEvent =
         insertRoomSystemEvent(
             room,
             "ROOM_PICTURE_UPDATED",
             currentUser.getId(),
-            systemEventContentFactory.roomPictureUpdated(currentUser.getId()),
-            null);
+            systemEventContentFactory.roomPictureUpdated(currentUser.getId()));
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureChanged.create()
@@ -671,8 +648,7 @@ public class RoomServiceImpl implements RoomService {
             .updatedBy(currentUser.getUUID())
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_PICTURE_CHANGED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_PICTURE_CHANGED));
   }
 
   @Override
@@ -691,8 +667,7 @@ public class RoomServiceImpl implements RoomService {
             room,
             "ROOM_PICTURE_DELETED",
             currentUser.getId(),
-            systemEventContentFactory.roomPictureDeleted(currentUser.getId()),
-            null);
+            systemEventContentFactory.roomPictureDeleted(currentUser.getId()));
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureDeleted.create()
@@ -700,8 +675,7 @@ public class RoomServiceImpl implements RoomService {
             .deletedBy(currentUser.getUUID())
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_PICTURE_DELETED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_PICTURE_DELETED));
   }
 
   @Override

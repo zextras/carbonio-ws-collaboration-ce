@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 public final class TimelineWriter implements AutoCloseable {
@@ -20,25 +20,19 @@ public final class TimelineWriter implements AutoCloseable {
       String replyTo,
       boolean forwarded,
       String forwardedSender,
-      LocalDateTime forwardedAt,
+      Instant forwardedAt,
       String attachmentId,
       boolean deleted,
-      LocalDateTime deletedAt,
-      LocalDateTime createdAt,
-      LocalDateTime updatedAt) {
+      Instant deletedAt,
+      Instant createdAt,
+      Instant updatedAt) {
 
-    public static Message text(
-        String id, String sender, String text, String replyTo, LocalDateTime t) {
+    public static Message text(String id, String sender, String text, String replyTo, Instant t) {
       return new Message(id, sender, text, replyTo, false, null, null, null, false, null, t, t);
     }
 
     public static Message attachment(
-        String id,
-        String sender,
-        String text,
-        String replyTo,
-        String attachmentId,
-        LocalDateTime t) {
+        String id, String sender, String text, String replyTo, String attachmentId, Instant t) {
       return new Message(
           id, sender, text, replyTo, false, null, null, attachmentId, false, null, t, t);
     }
@@ -48,9 +42,9 @@ public final class TimelineWriter implements AutoCloseable {
         String sender,
         String text,
         String forwardedSender,
-        LocalDateTime forwardedAt,
+        Instant forwardedAt,
         String attachmentId,
-        LocalDateTime t) {
+        Instant t) {
       return new Message(
           id,
           sender,
@@ -67,12 +61,12 @@ public final class TimelineWriter implements AutoCloseable {
     }
 
     public static Message tombstone(
-        String id, String sender, String attachmentId, LocalDateTime deletedAt, LocalDateTime t) {
+        String id, String sender, String attachmentId, Instant deletedAt, Instant t) {
       return new Message(
           id, sender, "", null, false, null, null, attachmentId, true, deletedAt, t, deletedAt);
     }
 
-    public static Message placeholder(String id, String sender, LocalDateTime t) {
+    public static Message placeholder(String id, String sender, Instant t) {
       return new Message(id, sender, "", null, false, null, null, null, true, t, t, t);
     }
   }
@@ -148,7 +142,7 @@ public final class TimelineWriter implements AutoCloseable {
   }
 
   public void addEvent(
-      long mam, String id, String type, String actorId, String content, LocalDateTime time)
+      long mam, String id, String type, String actorId, String content, Instant time)
       throws SQLException {
     bindEvent(id, type, actorId, content, time);
     if (pendingEvents == 0) {
@@ -166,10 +160,10 @@ public final class TimelineWriter implements AutoCloseable {
   }
 
   public void roomCreated(TargetRoom room, String id, RoomClock clock) throws SQLException {
-    LocalDateTime createdAt = room.createdAt();
-    LocalDateTime first = clock.first();
+    Instant createdAt = room.createdAt();
+    Instant first = clock.first();
     if (first != null) {
-      LocalDateTime before = first.minus(1, ChronoUnit.MILLIS);
+      Instant before = first.minus(1, ChronoUnit.MICROS);
       if (before.isBefore(createdAt)) {
         createdAt = before;
       }
@@ -211,7 +205,7 @@ public final class TimelineWriter implements AutoCloseable {
     pendingEvents = 0;
   }
 
-  private void bindEvent(String id, String type, String actorId, String content, LocalDateTime time)
+  private void bindEvent(String id, String type, String actorId, String content, Instant time)
       throws SQLException {
     insertEvent.text(id).text(roomId).text(type).text(actorId).text(content).time(time).endRow();
   }

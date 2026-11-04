@@ -10,7 +10,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -19,7 +22,7 @@ import java.util.OptionalLong;
 
 public final class PinImporter implements AutoCloseable {
 
-  public record Pin(String pinnedBy, String stanzaId, LocalDateTime pinnedAt) {}
+  public record Pin(String pinnedBy, String stanzaId, Instant pinnedAt) {}
 
   private static final String SELECT =
       "SELECT pinned_by, stanza_id, pinned_at FROM pin_message WHERE room_id = ?";
@@ -30,8 +33,11 @@ public final class PinImporter implements AutoCloseable {
 
   private final PreparedStatement select;
   private final PreparedStatement insert;
+  private final ZoneId zone;
 
-  public PinImporter(MongooseSource.Ready source, Connection target) throws SQLException {
+  public PinImporter(MongooseSource.Ready source, Connection target, ZoneId zone)
+      throws SQLException {
+    this.zone = zone;
     this.select = source.hasPins() ? source.connection().prepareStatement(SELECT) : null;
     this.insert = target.prepareStatement(INSERT);
   }
@@ -44,14 +50,19 @@ public final class PinImporter implements AutoCloseable {
     select.setString(1, room.id() + "@muclight.carbonio");
     try (ResultSet rs = select.executeQuery()) {
       while (rs.next()) {
-        pins.add(new Pin(rs.getString(1), rs.getString(2), rs.getObject(3, LocalDateTime.class)));
+        LocalDateTime pinnedAt = rs.getObject(3, LocalDateTime.class);
+        pins.add(
+            new Pin(
+                rs.getString(1),
+                rs.getString(2),
+                pinnedAt == null ? null : pinnedAt.atZone(zone).toInstant()));
       }
     }
     return pins;
   }
 
   public void importRoomPin(
-      TargetRoom room, RoomRows rows, List<Pin> pins, Map<String, LocalDateTime> pinTimes)
+      TargetRoom room, RoomRows rows, List<Pin> pins, Map<String, Instant> pinTimes)
       throws SQLException {
     for (Pin pin : pins) {
       String pinner = pinner(pin.pinnedBy());
@@ -67,15 +78,14 @@ public final class PinImporter implements AutoCloseable {
       if (row == null || row.outcome() != RoomRows.MESSAGE || row.deleted()) {
         continue;
       }
-      LocalDateTime pinnedAt =
-          sameAction(pinTimes.get(pinKey(mam.getAsLong(), pinner)), pin.pinnedAt());
+      Instant pinnedAt = sameAction(pinTimes.get(pinKey(mam.getAsLong(), pinner)), pin.pinnedAt());
       if (pinnedAt == null) {
         continue;
       }
       insert.setString(1, room.id());
       insert.setString(2, row.itemId());
       insert.setString(3, pinner);
-      insert.setObject(4, pinnedAt);
+      insert.setObject(4, pinnedAt.atOffset(ZoneOffset.UTC));
       insert.executeUpdate();
     }
   }
@@ -90,7 +100,7 @@ public final class PinImporter implements AutoCloseable {
 
   // pinned_at is PostgreSQL now() in the MongooseIM session zone: the archived pin row is the same
   // action when the two differ by whole quarter hours (a zone offset) plus less than a second.
-  private static LocalDateTime sameAction(LocalDateTime archived, LocalDateTime pinnedAt) {
+  private static Instant sameAction(Instant archived, Instant pinnedAt) {
     if (archived == null) {
       return pinnedAt;
     }

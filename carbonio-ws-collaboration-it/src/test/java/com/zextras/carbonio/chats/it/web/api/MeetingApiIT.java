@@ -44,7 +44,10 @@ import com.zextras.carbonio.chats.model.ParticipantDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import io.ebean.Database;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -71,6 +74,7 @@ class MeetingApiIT {
   private final com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
       healthMonitor;
   private final SystemEventRepository systemEventRepository;
+  private final Database database;
 
   public MeetingApiIT(
       MeetingsApi meetingsApi,
@@ -82,7 +86,8 @@ class MeetingApiIT {
       VideoServerMockServer videoServerMockServer,
       com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
           healthMonitor,
-      SystemEventRepository systemEventRepository) {
+      SystemEventRepository systemEventRepository,
+      Database database) {
     this.dispatcher = dispatcher;
     this.participantRepository = participantRepository;
     this.meetingTestUtils = meetingTestUtils;
@@ -91,6 +96,7 @@ class MeetingApiIT {
     this.videoServerMockServer = videoServerMockServer;
     this.healthMonitor = healthMonitor;
     this.systemEventRepository = systemEventRepository;
+    this.database = database;
     this.dispatcher.getRegistry().addSingletonResource(meetingsApi);
   }
 
@@ -162,6 +168,7 @@ class MeetingApiIT {
       assertEquals(false, meeting.isActive());
       assertEquals(MeetingTypeDto.PERMANENT, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
+      assertNotNull(meeting.getCreatedAt());
     }
 
     @Test
@@ -420,6 +427,54 @@ class MeetingApiIT {
       assertEquals(meeting1Id, meeting.getId());
       assertEquals(false, meeting.isActive());
       assertEquals(0, meeting.getParticipants().size());
+    }
+
+    @Test
+    @DisplayName("The ended line duration is computed from the database times")
+    void stopMeeting_testEndedLineDurationFromDatabaseTimes() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create().id(room1Id.toString()).type(RoomTypeDto.ONE_TO_ONE),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id)));
+      UUID meeting1Id =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              MeetingType.PERMANENT,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue),
+                  ParticipantBuilder.create(user2Id, user2Queue)),
+              true);
+      database
+          .sqlUpdate(
+              "UPDATE chats.meeting SET started_at = clock_timestamp() - interval '125 seconds'"
+                  + " WHERE id = ?")
+          .setParameter(1, meeting1Id.toString())
+          .execute();
+      Instant startedAt =
+          database
+              .sqlQuery("SELECT started_at FROM chats.meeting WHERE id = ?")
+              .setParameter(1, meeting1Id.toString())
+              .findOne()
+              .getTimestamp("started_at")
+              .toInstant();
+
+      MockHttpResponse response = dispatcher.post(url(meeting1Id), user1Token);
+      assertEquals(200, response.getStatus());
+
+      SystemEvent ended =
+          systemEventRepository.findByRoomId(room1Id.toString()).stream()
+              .filter(event -> "MEETING_ENDED".equals(event.getType()))
+              .findFirst()
+              .orElseThrow();
+      Map<String, Object> content =
+          objectMapper.readValue(ended.getContent(), new TypeReference<>() {});
+      long expected = Duration.between(startedAt, ended.getCreatedAt().toInstant()).toSeconds();
+      assertEquals(125L, expected);
+      assertEquals(expected, ((Number) content.get("durationSec")).longValue());
+      assertEquals(startedAt.toEpochMilli(), ((Number) content.get("startedAt")).longValue());
+      assertEquals(user1Id.toString(), content.get("endedBy"));
+      assertEquals(meeting1Id.toString(), content.get("meetingId"));
     }
 
     @Test

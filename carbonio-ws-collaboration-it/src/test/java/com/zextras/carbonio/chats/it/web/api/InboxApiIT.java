@@ -16,22 +16,18 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
-import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -53,7 +49,6 @@ class InboxApiIT {
   private final MessageRepository messageRepository;
   private final SystemEventRepository systemEventRepository;
   private final Database database;
-  private final AppClock clock;
   private final WsPresenceRepository wsPresenceRepository;
 
   private static UUID meId;
@@ -80,7 +75,6 @@ class InboxApiIT {
       MessageRepository messageRepository,
       SystemEventRepository systemEventRepository,
       Database database,
-      Clock clock,
       WsPresenceRepository wsPresenceRepository) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
@@ -88,7 +82,6 @@ class InboxApiIT {
     this.messageRepository = messageRepository;
     this.systemEventRepository = systemEventRepository;
     this.database = database;
-    this.clock = (AppClock) clock;
     this.wsPresenceRepository = wsPresenceRepository;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.dispatcher.getRegistry().addSingletonResource(inboxApi);
@@ -111,9 +104,14 @@ class InboxApiIT {
   }
 
   private void setJoinedAt(UUID userId, OffsetDateTime joinedAt) {
-    Subscription subscription =
-        database.find(Subscription.class, new SubscriptionId(roomId, userId.toString()));
-    database.update(subscription.joinedAt(joinedAt));
+    database
+        .sqlUpdate(
+            "UPDATE chats.subscription SET joined_at = :joinedAt"
+                + " WHERE room_id = :roomId AND user_id = :userId")
+        .setParameter("joinedAt", joinedAt)
+        .setParameter("roomId", roomId)
+        .setParameter("userId", userId.toString())
+        .execute();
   }
 
   private void clearHistoryAt(OffsetDateTime clearedAt) {
@@ -125,19 +123,17 @@ class InboxApiIT {
   }
 
   private Message message(String id, UUID sender, OffsetDateTime at, boolean deleted, String file) {
-    clock.fixTimeAt(at.toInstant());
-    try {
-      return messageRepository.insert(
-          Message.create()
-              .id(id)
-              .roomId(roomId)
-              .senderId(sender.toString())
-              .text("text-" + id)
-              .deleted(deleted)
-              .attachmentId(file));
-    } finally {
-      clock.removeFixTime();
-    }
+    Message inserted =
+        messageRepository.insert(
+            Message.create()
+                .id(id)
+                .roomId(roomId)
+                .senderId(sender.toString())
+                .text("text-" + id)
+                .deleted(deleted)
+                .attachmentId(file));
+    integrationTestUtils.setMessageTime(id, at);
+    return inserted;
   }
 
   private String message(UUID sender, OffsetDateTime at) {
@@ -159,8 +155,8 @@ class InboxApiIT {
             .roomId(roomId)
             .type("MESSAGE_PINNED")
             .actorId(actor.toString())
-            .content("{\"k\":\"v\"}")
-            .createdAt(at));
+            .content("{\"k\":\"v\"}"));
+    integrationTestUtils.setSystemEventTime(id, at);
     return id;
   }
 
@@ -173,8 +169,8 @@ class InboxApiIT {
         .sqlUpdate(
             "INSERT INTO chats.message (id, room_id, sender_id, text, created_at, updated_at)"
                 + " SELECT :roomId || '-m-' || CAST(g AS text), :roomId, :sender, 'bulk',"
-                + " TIMESTAMP '2026-06-01 10:00:10' + g * interval '1 second',"
-                + " TIMESTAMP '2026-06-01 10:00:10' + g * interval '1 second'"
+                + " TIMESTAMPTZ '2026-06-01 10:00:10+00' + g * interval '1 second',"
+                + " TIMESTAMPTZ '2026-06-01 10:00:10+00' + g * interval '1 second'"
                 + " FROM generate_series(1, :count) g")
         .setParameter("roomId", roomId)
         .setParameter("sender", sender.toString())
@@ -187,7 +183,7 @@ class InboxApiIT {
         .sqlUpdate(
             "INSERT INTO chats.system_event (id, room_id, type, actor_id, content, created_at)"
                 + " SELECT :roomId || '-e-' || CAST(g AS text), :roomId, 'MESSAGE_PINNED',"
-                + " :actor, '{}', TIMESTAMP '2026-06-01 10:00:10' + g * interval '1 second'"
+                + " :actor, '{}', TIMESTAMPTZ '2026-06-01 10:00:10+00' + g * interval '1 second'"
                 + " FROM generate_series(1, :count) g")
         .setParameter("roomId", roomId)
         .setParameter("actor", actor.toString())
@@ -197,18 +193,14 @@ class InboxApiIT {
 
   private String reply(UUID sender, OffsetDateTime at, String replyToId) {
     String id = UUID.randomUUID().toString();
-    clock.fixTimeAt(at.toInstant());
-    try {
-      messageRepository.insert(
-          Message.create()
-              .id(id)
-              .roomId(roomId)
-              .senderId(sender.toString())
-              .text("reply-" + id)
-              .replyToId(replyToId));
-    } finally {
-      clock.removeFixTime();
-    }
+    messageRepository.insert(
+        Message.create()
+            .id(id)
+            .roomId(roomId)
+            .senderId(sender.toString())
+            .text("reply-" + id)
+            .replyToId(replyToId));
+    integrationTestUtils.setMessageTime(id, at);
     return id;
   }
 
@@ -376,7 +368,7 @@ class InboxApiIT {
 
       assertEquals(1, reactions.size());
       assertEquals("up", reactions.get(0).get("reaction").asText());
-      assertEquals(2, reactions.get(0).get("userIds").size());
+      assertEquals(2, reactions.get(0).get("users").size());
     }
 
     @Test
@@ -536,7 +528,6 @@ class InboxApiIT {
     void creationLinesAreNotUnread() throws Exception {
       MockedAccount.MockUserProfile third =
           MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT);
-      clock.removeFixTime();
       MockHttpResponse created =
           dispatcher.post(
               "/rooms",

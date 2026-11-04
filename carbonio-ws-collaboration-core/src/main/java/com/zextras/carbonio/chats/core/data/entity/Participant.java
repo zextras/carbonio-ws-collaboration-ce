@@ -4,8 +4,6 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
-import io.ebean.annotation.WhenCreated;
-import io.ebean.annotation.WhenModified;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -45,14 +43,12 @@ public class Participant {
   @Column(name = "SCREEN_STREAM_ON")
   private Boolean screenStreamOn = false;
 
-  @Column(name = "CREATED_AT")
+  @Column(name = "CREATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenCreated
   private OffsetDateTime createdAt;
 
-  @Column(name = "UPDATED_AT")
+  @Column(name = "UPDATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenModified
   private OffsetDateTime updatedAt;
 
   @Column(name = "HAND_RAISED_AT")
@@ -140,18 +136,8 @@ public class Participant {
     return createdAt;
   }
 
-  public Participant createdAt(OffsetDateTime createdAt) {
-    this.createdAt = createdAt;
-    return this;
-  }
-
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
-  }
-
-  public Participant updatedAt(OffsetDateTime updatedAt) {
-    this.updatedAt = updatedAt;
-    return this;
   }
 
   public OffsetDateTime getHandRaisedAt() {

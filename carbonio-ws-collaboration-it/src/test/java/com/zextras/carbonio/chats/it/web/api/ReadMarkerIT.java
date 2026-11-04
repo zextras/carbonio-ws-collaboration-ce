@@ -22,7 +22,6 @@ import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
@@ -30,7 +29,6 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -53,7 +51,6 @@ class ReadMarkerIT {
   private final MessageRepository messageRepository;
   private final SystemEventRepository systemEventRepository;
   private final ReadMarkerRepository readRepository;
-  private final AppClock clock;
   private final Database database;
   private final Channel channel;
 
@@ -72,7 +69,6 @@ class ReadMarkerIT {
       SystemEventRepository systemEventRepository,
       ReadMarkerRepository readRepository,
       Database database,
-      Clock clock,
       Channel channel) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
@@ -82,7 +78,6 @@ class ReadMarkerIT {
     this.readRepository = readRepository;
     this.database = database;
     this.channel = channel;
-    this.clock = (AppClock) clock;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.dispatcher.getRegistry().addSingletonResource(inboxApi);
   }
@@ -121,9 +116,8 @@ class ReadMarkerIT {
         .setParameter("roomId", roomId)
         .execute();
 
-    clock.fixTimeAt(T1.toInstant());
     integrationTestUtils.generateAndSaveMessage(msgId, UUID.fromString(roomId), senderUserId, "hi");
-    clock.removeFixTime();
+    integrationTestUtils.setMessageTime(msgId, T1);
 
     systemEventRepository.insert(
         SystemEvent.create()
@@ -131,8 +125,8 @@ class ReadMarkerIT {
             .roomId(roomId)
             .type("MESSAGE_PINNED")
             .actorId(senderUserId.toString())
-            .content("{}")
-            .createdAt(T2));
+            .content("{}"));
+    integrationTestUtils.setSystemEventTime(eventId, T2);
   }
 
   private String url(String rId) {

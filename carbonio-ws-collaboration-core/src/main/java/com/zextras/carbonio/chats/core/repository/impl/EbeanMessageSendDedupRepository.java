@@ -30,14 +30,14 @@ public class EbeanMessageSendDedupRepository implements MessageSendDedupReposito
              (SELECT d.message_id
               FROM chats.message_send_dedup d CROSS JOIN ts
               WHERE d.room_id = :roomId AND d.sender_id = :senderId AND d.temp_id = :tempId
-                AND d.created_at >= CAST(ts.t AS timestamp) - INTERVAL '1 hour') AS existing_message_id
+                AND d.created_at >= ts.t - INTERVAL '1 hour') AS existing_message_id
       """;
 
   private static final String LIVE_CLAIM_SQL =
       """
       SELECT message_id FROM chats.message_send_dedup
       WHERE room_id = :roomId AND sender_id = :senderId AND temp_id = :tempId
-        AND created_at >= CAST(clock_timestamp() AS timestamp) - INTERVAL '1 hour'
+        AND created_at >= clock_timestamp() - INTERVAL '1 hour'
       """;
 
   private static final String RELEASE_SQL =
@@ -53,7 +53,7 @@ public class EbeanMessageSendDedupRepository implements MessageSendDedupReposito
       USING (
           SELECT room_id, sender_id, temp_id
           FROM chats.message_send_dedup
-          WHERE created_at < CAST(clock_timestamp() AS timestamp) - INTERVAL '1 hour'
+          WHERE created_at < clock_timestamp() - INTERVAL '1 hour'
           ORDER BY created_at
           LIMIT :batchSize
           FOR UPDATE SKIP LOCKED

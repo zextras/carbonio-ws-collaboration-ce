@@ -15,7 +15,6 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.web.socket.action.WsActionHandler;
 import jakarta.websocket.Session;
-import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -66,12 +65,7 @@ public class TypingHandler implements WsActionHandler {
 
       String json =
           objectMapper.writeValueAsString(
-              Typing.create()
-                  .roomId(roomId)
-                  .userId(userId)
-                  .status(normalizedStatus)
-                  .timestamp(OffsetDateTime.now())
-                  .sentDate(OffsetDateTime.now()));
+              Typing.create().roomId(roomId).userId(userId).status(normalizedStatus));
 
       // Relay to all room members except the sender — stateless, best-effort
       for (String memberId : memberIds) {
@@ -103,7 +97,6 @@ public class TypingHandler implements WsActionHandler {
     if (session == null || !session.isOpen()) return;
     try {
       WsError error = WsError.create();
-      error.setSentDate(OffsetDateTime.now());
       error.setCode(errorCode);
       error.setMessage(errorMessage);
       if (requestId != null) {

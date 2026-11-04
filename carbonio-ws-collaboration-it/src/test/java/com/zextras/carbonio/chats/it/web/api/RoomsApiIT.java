@@ -26,7 +26,6 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
@@ -52,10 +51,10 @@ import com.zextras.carbonio.chats.model.ParticipantDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.annotation.Nullable;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Collections;
@@ -85,7 +84,6 @@ public class RoomsApiIT {
   private final FileMetadataRepository fileMetadataRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final VideoServerMockServer videoServerMockServer;
-  private final AppClock clock;
 
   public RoomsApiIT(
       RoomsApi roomsApi,
@@ -95,7 +93,6 @@ public class RoomsApiIT {
       MeetingTestUtils meetingTestUtils,
       StorageMockServer storageMockServer,
       FileMetadataRepository fileMetadataRepository,
-      Clock clock,
       RoomRepository roomRepository,
       RoomUserSettingsRepository roomUserSettingsRepository,
       VideoServerMockServer videoServerMockServer) {
@@ -109,7 +106,6 @@ public class RoomsApiIT {
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.videoServerMockServer = videoServerMockServer;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
-    this.clock = (AppClock) clock;
   }
 
   private static UUID user1Id;
@@ -336,9 +332,8 @@ public class RoomsApiIT {
       @Test
       @DisplayName("Given creation fields, inserts a new group room and returns its data")
       void insertGroupRoom_testOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
-        clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
         UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
@@ -359,7 +354,6 @@ public class RoomsApiIT {
                           MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                   user1Token);
         }
-        clock.removeFixTime();
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -387,8 +381,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
+        assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -397,9 +392,8 @@ public class RoomsApiIT {
           "Given creation fields, inserts a new group room settings the owners and returns its"
               + " data")
       void insertGroupRoom_testOkWithOwners() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
-        clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
         UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
@@ -421,7 +415,6 @@ public class RoomsApiIT {
                           MemberDto.create().userId(user3Id))),
                   user1Token);
         }
-        clock.removeFixTime();
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -449,8 +442,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
+        assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -499,9 +493,8 @@ public class RoomsApiIT {
       @Test
       @DisplayName("Given creation fields, inserts a new temporary room and returns its data")
       void insertTemporaryRoom_testOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
-        clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
         UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
@@ -522,7 +515,6 @@ public class RoomsApiIT {
                           MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                   user1Token);
         }
-        clock.removeFixTime();
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -550,8 +542,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
+        assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -560,9 +553,8 @@ public class RoomsApiIT {
           "Given creation fields, inserts a new temporary room settings the owners and returns its"
               + " data")
       void insertTemporaryRoom_testOkWithOwners() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
-        clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
         UUID[] eventIds = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
@@ -584,7 +576,6 @@ public class RoomsApiIT {
                           MemberDto.create().userId(user3Id))),
                   user1Token);
         }
-        clock.removeFixTime();
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -612,8 +603,9 @@ public class RoomsApiIT {
         assertFalse(user3.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
+        assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -640,9 +632,8 @@ public class RoomsApiIT {
           "Given creation fields, create a room without adding more members but only creator as"
               + " owner")
       void insertTemporaryRoom_testOkWithOneMember() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
-        clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -656,7 +647,6 @@ public class RoomsApiIT {
                       "testRoom", "Test room", RoomTypeDto.TEMPORARY, Collections.emptyList()),
                   user1Token);
         }
-        clock.removeFixTime();
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -672,8 +662,9 @@ public class RoomsApiIT {
         assertTrue(user1.get().isOwner());
 
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
+        assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
     }
@@ -685,9 +676,8 @@ public class RoomsApiIT {
       @Test
       @DisplayName("Given creation fields, inserts a new one-to-one room and returns its data")
       void insertOneToOneRoom_testOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
 
-        clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -705,7 +695,6 @@ public class RoomsApiIT {
                       List.of(MemberDto.create().userId(user2Id))),
                   user1Token);
         }
-        clock.removeFixTime();
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertNull(room.getName());
@@ -723,8 +712,9 @@ public class RoomsApiIT {
         assertTrue(
             room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
         assertFalse(room.getCreatedAt().toInstant().isBefore(executionInstant));
-        assertFalse(room.getCreatedAt().toInstant().isAfter(Instant.now()));
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertFalse(room.getCreatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
+        assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+        assertFalse(room.getUpdatedAt().toInstant().isAfter(integrationTestUtils.dbNow()));
         assertNull(room.getPictureUpdatedAt());
       }
 
@@ -1058,10 +1048,9 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier and update fields, correctly updates the room")
     void updateRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
-      clock.fixTimeAt(insertRoomInstant);
       integrationTestUtils.generateAndSaveRoom(
           roomId,
           RoomTypeDto.GROUP,
@@ -1071,18 +1060,25 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      clock.fixTimeAt(executionInstant);
+      integrationTestUtils.setTimes(
+          "room",
+          "id",
+          roomId.toString(),
+          OffsetDateTime.ofInstant(insertRoomInstant, ZoneOffset.UTC),
+          "created_at",
+          "updated_at");
       MockHttpResponse response =
           dispatcher.put(
               url(roomId), getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
-      clock.removeFixTime();
       assertEquals(200, response.getStatus());
       RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
       assertEquals("updatedRoom", room.getName());
       assertEquals("Updated room", room.getDescription());
       assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
-      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+      assertFalse(
+          Duration.between(room.getCreatedAt(), room.getUpdatedAt()).compareTo(Duration.ofDays(1L))
+              < 0);
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
     }
 
@@ -1090,10 +1086,9 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier and update only name, correctly updates the room")
     void updateRoom_testOkWithNameAndWithoutDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
-      clock.fixTimeAt(insertRoomInstant);
       integrationTestUtils.generateAndSaveRoom(
           roomId,
           RoomTypeDto.GROUP,
@@ -1104,17 +1099,24 @@ public class RoomsApiIT {
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
-      clock.fixTimeAt(executionInstant);
+      integrationTestUtils.setTimes(
+          "room",
+          "id",
+          roomId.toString(),
+          OffsetDateTime.ofInstant(insertRoomInstant, ZoneOffset.UTC),
+          "created_at",
+          "updated_at");
       MockHttpResponse response =
           dispatcher.put(url(roomId), getUpdateRoomRequestBody("updatedRoom", null), user1Token);
-      clock.removeFixTime();
       assertEquals(200, response.getStatus());
       RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
       assertEquals("updatedRoom", room.getName());
       assertEquals("Test room", room.getDescription());
       assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
-      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+      assertFalse(
+          Duration.between(room.getCreatedAt(), room.getUpdatedAt()).compareTo(Duration.ofDays(1L))
+              < 0);
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
     }
 
@@ -1122,10 +1124,9 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier and update only description, correctly updates the room")
     void updateRoom_testOkWithoutNameAndWithDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
-      clock.fixTimeAt(insertRoomInstant);
       integrationTestUtils.generateAndSaveRoom(
           roomId,
           RoomTypeDto.GROUP,
@@ -1135,17 +1136,24 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      clock.fixTimeAt(executionInstant);
+      integrationTestUtils.setTimes(
+          "room",
+          "id",
+          roomId.toString(),
+          OffsetDateTime.ofInstant(insertRoomInstant, ZoneOffset.UTC),
+          "created_at",
+          "updated_at");
       MockHttpResponse response =
           dispatcher.put(url(roomId), getUpdateRoomRequestBody(null, "Updated room"), user1Token);
-      clock.removeFixTime();
       assertEquals(200, response.getStatus());
       RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
       assertEquals("testRoom", room.getName());
       assertEquals("Updated room", room.getDescription());
       assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
-      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+      assertFalse(
+          Duration.between(room.getCreatedAt(), room.getUpdatedAt()).compareTo(Duration.ofDays(1L))
+              < 0);
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
     }
 
@@ -1155,10 +1163,9 @@ public class RoomsApiIT {
             + " associated meeting name")
     void updateRoomWithMeeting_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant executionInstant = integrationTestUtils.dbNow().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
           executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
-      clock.fixTimeAt(insertRoomInstant);
       Room roomCreated =
           integrationTestUtils.generateAndSaveRoom(
               roomId,
@@ -1171,18 +1178,25 @@ public class RoomsApiIT {
               OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of());
       integrationTestUtils.updateRoom(roomCreated.meetingId(meetingId.toString()));
-      clock.fixTimeAt(executionInstant);
+      integrationTestUtils.setTimes(
+          "room",
+          "id",
+          roomId.toString(),
+          OffsetDateTime.ofInstant(insertRoomInstant, ZoneOffset.UTC),
+          "created_at",
+          "updated_at");
       MockHttpResponse response =
           dispatcher.put(
               url(roomId), getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
-      clock.removeFixTime();
       assertEquals(200, response.getStatus());
       RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
       assertEquals("updatedRoom", room.getName());
       assertEquals("Updated room", room.getDescription());
       assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
-      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertFalse(room.getUpdatedAt().toInstant().isBefore(executionInstant));
+      assertFalse(
+          Duration.between(room.getCreatedAt(), room.getUpdatedAt()).compareTo(Duration.ofDays(1L))
+              < 0);
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
       Optional<Meeting> meeting = meetingTestUtils.getMeetingById(meetingId);
       assertTrue(meeting.isPresent());
@@ -1743,8 +1757,7 @@ public class RoomsApiIT {
               .digestAlgorithm("")
               .size(newImage.getSize()),
           true);
-      Instant now = Instant.now();
-      clock.fixTimeAt(now);
+      Instant now = integrationTestUtils.dbNow();
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(newImage.getUUID());
@@ -1769,9 +1782,8 @@ public class RoomsApiIT {
       assertEquals(0, response.getOutput().length);
       Optional<Room> room = roomRepository.getById(roomId.toString());
       assertTrue(room.isPresent());
-      assertEquals(
-          OffsetDateTime.ofInstant(now, clock.getZone()).toEpochSecond(),
-          room.get().getUpdatedAt().toEpochSecond());
+      assertFalse(room.get().getUpdatedAt().toInstant().isBefore(now));
+      assertFalse(room.get().getPictureUpdatedAt().toInstant().isBefore(now));
     }
 
     @Test
@@ -3066,7 +3078,6 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 
-      clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
       FileMetadata file1 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("faec1132-567d-451c-a969-18ca9131bdfa"),
@@ -3075,7 +3086,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.fixTimeAt(Instant.parse("2020-12-31T00:00:00Z"));
+      integrationTestUtils.setFileTime(file1.getId(), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       FileMetadata file2 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("6a6a1f06-0947-4b5f-a6ac-7631426e3a62"),
@@ -3084,7 +3095,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.fixTimeAt(Instant.parse("2022-01-02T00:00:00Z"));
+      integrationTestUtils.setFileTime(file2.getId(), OffsetDateTime.parse("2020-12-31T00:00:00Z"));
       FileMetadata file3 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("991b5178-1108-459e-a017-4197647167ec"),
@@ -3093,6 +3104,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
+      integrationTestUtils.setFileTime(file3.getId(), OffsetDateTime.parse("2022-01-02T00:00:00Z"));
       FileMetadata file4 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("5a3d8dd2-f431-4195-acc1-5108948c6d26"),
@@ -3101,7 +3113,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.removeFixTime();
+      integrationTestUtils.setFileTime(file4.getId(), OffsetDateTime.parse("2022-01-02T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.get(url(room1Id), user1Token);
 
@@ -3126,7 +3138,6 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 
-      clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
       FileMetadata file1 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("faec1132-567d-451c-a969-18ca9131bdfa"),
@@ -3135,7 +3146,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.fixTimeAt(Instant.parse("2020-12-31T00:00:00Z"));
+      integrationTestUtils.setFileTime(file1.getId(), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       FileMetadata file2 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("6a6a1f06-0947-4b5f-a6ac-7631426e3a62"),
@@ -3144,7 +3155,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.fixTimeAt(Instant.parse("2022-01-02T00:00:00Z"));
+      integrationTestUtils.setFileTime(file2.getId(), OffsetDateTime.parse("2020-12-31T00:00:00Z"));
       FileMetadata file3 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("991b5178-1108-459e-a017-4197647167ec"),
@@ -3153,7 +3164,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.fixTimeAt(Instant.parse("2021-07-05T00:00:00Z"));
+      integrationTestUtils.setFileTime(file3.getId(), OffsetDateTime.parse("2022-01-02T00:00:00Z"));
       FileMetadata file4 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("5a3d8dd2-f431-4195-acc1-5108948c6d26"),
@@ -3162,7 +3173,7 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.removeFixTime();
+      integrationTestUtils.setFileTime(file4.getId(), OffsetDateTime.parse("2021-07-05T00:00:00Z"));
 
       MockHttpResponse response1 =
           dispatcher.get(String.join("", url(room1Id), "?limit=2"), user1Token);
@@ -3304,7 +3315,6 @@ public class RoomsApiIT {
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 
       // Page 1 will end with this item (small ID, newer timestamp → cursor encodes this)
-      clock.fixTimeAt(Instant.parse("2022-06-01T00:00:00Z"));
       FileMetadata smallIdFile =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("1aaaaaaa-0000-0000-0000-000000000000"),
@@ -3313,10 +3323,11 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
+      integrationTestUtils.setFileTime(
+          smallIdFile.getId(), OffsetDateTime.parse("2022-06-01T00:00:00Z"));
 
       // Page 2 must include this item: ID > cursor ID but timestamp < cursor timestamp
       // The buggy query would skip it because `id < cursor_id` fails for 'f' > '1'
-      clock.fixTimeAt(Instant.parse("2021-01-01T00:00:00Z"));
       FileMetadata largeIdFile =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("faaaaaaa-0000-0000-0000-000000000000"),
@@ -3325,7 +3336,8 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.removeFixTime();
+      integrationTestUtils.setFileTime(
+          largeIdFile.getId(), OffsetDateTime.parse("2021-01-01T00:00:00Z"));
 
       MockHttpResponse response1 = dispatcher.get(url(room1Id) + "?limit=1", user1Token);
       assertEquals(200, response1.getStatus());
@@ -3465,16 +3477,17 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 
-      clock.fixTimeAt(Instant.parse("2021-01-01T00:00:00Z"));
-      integrationTestUtils.generateAndSaveFileMetadata(
-          UUID.randomUUID(),
-          "old file",
-          "image/png",
-          FileMetadataType.ATTACHMENT,
-          user1Id,
-          room1Id);
+      FileMetadata oldFile =
+          integrationTestUtils.generateAndSaveFileMetadata(
+              UUID.randomUUID(),
+              "old file",
+              "image/png",
+              FileMetadataType.ATTACHMENT,
+              user1Id,
+              room1Id);
+      integrationTestUtils.setFileTime(
+          oldFile.getId(), OffsetDateTime.parse("2021-01-01T00:00:00Z"));
 
-      clock.fixTimeAt(Instant.parse("2022-06-15T00:00:00Z"));
       FileMetadata inRangeFile =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.randomUUID(),
@@ -3483,8 +3496,9 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
+      integrationTestUtils.setFileTime(
+          inRangeFile.getId(), OffsetDateTime.parse("2022-06-15T00:00:00Z"));
 
-      clock.fixTimeAt(Instant.parse("2023-12-31T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(
           UUID.randomUUID(),
           "new file",
@@ -3492,7 +3506,6 @@ public class RoomsApiIT {
           FileMetadataType.ATTACHMENT,
           user1Id,
           room1Id);
-      clock.removeFixTime();
 
       MockHttpResponse response =
           dispatcher.get(
@@ -3627,7 +3640,6 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 
-      clock.fixTimeAt(Instant.parse("2021-01-01T00:00:00Z"));
       FileMetadata oldestFile =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.randomUUID(),
@@ -3636,8 +3648,9 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
+      integrationTestUtils.setFileTime(
+          oldestFile.getId(), OffsetDateTime.parse("2021-01-01T00:00:00Z"));
 
-      clock.fixTimeAt(Instant.parse("2022-06-15T00:00:00Z"));
       FileMetadata middleFile =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.randomUUID(),
@@ -3646,8 +3659,9 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
+      integrationTestUtils.setFileTime(
+          middleFile.getId(), OffsetDateTime.parse("2022-06-15T00:00:00Z"));
 
-      clock.fixTimeAt(Instant.parse("2023-12-31T00:00:00Z"));
       FileMetadata newestFile =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.randomUUID(),
@@ -3656,7 +3670,8 @@ public class RoomsApiIT {
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
-      clock.removeFixTime();
+      integrationTestUtils.setFileTime(
+          newestFile.getId(), OffsetDateTime.parse("2023-12-31T00:00:00Z"));
 
       MockHttpResponse ascResponse =
           dispatcher.get(url(room1Id) + "?sortBy=created_at&order=asc", user1Token);

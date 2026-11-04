@@ -48,12 +48,21 @@ public class EbeanMeetingRepository implements MeetingRepository {
   @Override
   public Meeting insert(Meeting meeting) {
     db.insert(meeting);
+    db.refresh(meeting);
     return meeting;
   }
 
   @Override
   public Meeting update(Meeting meeting) {
     db.update(meeting);
+    return meeting;
+  }
+
+  @Override
+  public Meeting markStarted(Meeting meeting) {
+    meeting.active(true);
+    TimedUpdate.update(db, meeting, "startedAt = clock_timestamp()");
+    db.refresh(meeting);
     return meeting;
   }
 

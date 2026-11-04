@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.repository.TimelineRepository;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Singleton
 public class TimelineRepositoryImpl implements TimelineRepository {
@@ -47,11 +48,12 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     List<TimelineItem> messages;
     List<TimelineItem> events;
     if (beforeId != null) {
+      OffsetDateTime anchor = storedCreatedAt(roomId, beforeId).orElse(before);
       messages =
-          wrapMessages(messageRepository.getByRoomId(roomId, before, beforeId, after, fetch));
+          wrapMessages(messageRepository.getByRoomId(roomId, anchor, beforeId, after, fetch));
       events =
           wrapEvents(
-              systemEventRepository.findByRoomIdComposite(roomId, before, beforeId, after, fetch));
+              systemEventRepository.findByRoomIdComposite(roomId, anchor, beforeId, after, fetch));
     } else {
       messages = wrapMessages(messageRepository.getByRoomId(roomId, before, after, fetch));
       events = wrapEvents(systemEventRepository.findByRoomIdBounded(roomId, before, after, fetch));
@@ -80,7 +82,8 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     int half = limit / 2;
     int fetch = half + 1;
     OffsetDateTime olderUpperBound = around.plusNanos(1_000_000);
-    OffsetDateTime newerAfter = after != null && after.isAfter(around) ? after : around;
+    OffsetDateTime newerFloor = around.plusNanos(999_000);
+    OffsetDateTime newerAfter = after != null && after.isAfter(newerFloor) ? after : newerFloor;
 
     List<TimelineItem> olderMessages =
         wrapMessages(messageRepository.getByRoomId(roomId, olderUpperBound, after, fetch));
@@ -109,6 +112,19 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     List<TimelineItem> items = new ArrayList<>(older);
     items.addAll(newer);
     return new TimelinePage(items, hasMoreBefore, hasMoreAfter);
+  }
+
+  private Optional<OffsetDateTime> storedCreatedAt(String roomId, String id) {
+    return messageRepository
+        .getById(id)
+        .filter(message -> roomId.equals(message.getRoomId()))
+        .map(Message::getCreatedAt)
+        .or(
+            () ->
+                systemEventRepository
+                    .getById(id)
+                    .filter(event -> roomId.equals(event.getRoomId()))
+                    .map(SystemEvent::getCreatedAt));
   }
 
   private TimelinePage descendingPage(

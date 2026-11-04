@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.migration.scripts.V1_4_2__backfill_attachment_ids;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -28,6 +29,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,22 +63,30 @@ class SourceAvailabilityIT {
           "chats.user_contact",
           "chats.user_last_seen");
 
+  // epoch of the value read as UTC: equal for a naive 1.x time and its converted instant
   private static final String ROOM_FINGERPRINT =
       "SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r.id), '')) FROM (SELECT id, name,"
-          + " description, type, picture_updated_at, meeting_id, created_at, updated_at FROM"
+          + " description, type, extract(epoch FROM picture_updated_at AT TIME ZONE 'UTC') AS"
+          + " picture_updated_at, meeting_id, extract(epoch FROM created_at AT TIME ZONE 'UTC') AS"
+          + " created_at, extract(epoch FROM updated_at AT TIME ZONE 'UTC') AS updated_at FROM"
           + " chats.room) r";
   private static final String SUBSCRIPTION_FINGERPRINT =
       "SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r.user_id, r.room_id), '')) FROM"
-          + " (SELECT user_id, room_id, joined_at, owner, external, temporary, created_at,"
-          + " updated_at FROM chats.subscription) r";
+          + " (SELECT user_id, room_id, extract(epoch FROM joined_at AT TIME ZONE 'UTC') AS"
+          + " joined_at, owner, external, temporary, extract(epoch FROM created_at AT TIME ZONE"
+          + " 'UTC') AS created_at, extract(epoch FROM updated_at AT TIME ZONE 'UTC') AS updated_at"
+          + " FROM chats.subscription) r";
   private static final String SETTINGS_FINGERPRINT =
       "SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r.user_id, r.room_id), '')) FROM"
-          + " (SELECT user_id, room_id, muted_until, cleared_at, created_at, updated_at FROM"
-          + " chats.room_user_settings) r";
+          + " (SELECT user_id, room_id, extract(epoch FROM muted_until AT TIME ZONE 'UTC') AS"
+          + " muted_until, extract(epoch FROM cleared_at AT TIME ZONE 'UTC') AS cleared_at,"
+          + " extract(epoch FROM created_at AT TIME ZONE 'UTC') AS created_at, extract(epoch FROM"
+          + " updated_at AT TIME ZONE 'UTC') AS updated_at FROM chats.room_user_settings) r";
   private static final String FILE_FINGERPRINT =
       "SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r.id), '')) FROM (SELECT id, name,"
-          + " original_size, mime_type, type, user_id, room_id, created_at, updated_at, message_id"
-          + " FROM chats.file_metadata) r";
+          + " original_size, mime_type, type, user_id, room_id, extract(epoch FROM created_at AT"
+          + " TIME ZONE 'UTC') AS created_at, extract(epoch FROM updated_at AT TIME ZONE 'UTC') AS"
+          + " updated_at, message_id FROM chats.file_metadata) r";
 
   private static List<String> dumpTexts;
   private static ImportRun pinlessRun;
@@ -550,6 +560,8 @@ class SourceAvailabilityIT {
       Flyway flyway =
           Flyway.configure()
               .locations("classpath:migration/ce")
+              .placeholders(
+                  Map.of("jvm_zone", DatabaseModule.migrationZone(ZoneId.systemDefault())))
               .schemas("chats")
               .dataSource(database.jdbcUrl(target), database.user(), database.password())
               .validateMigrationNaming(true)
@@ -627,11 +639,11 @@ class SourceAvailabilityIT {
   }
 
   @Nested
-  @DisplayName("ROOM-V1/TIME-2/APP-2: no zone check, times follow the JVM zone")
+  @DisplayName("ROOM-V1/TIME-2/APP-2: no zone check, instants do not depend on the JVM zone")
   class ForeignJvmZone {
 
     @Test
-    @DisplayName("ROOM-V1/TIME-2/APP-2: JVM in Europe/Rome -> import, wall clock in Europe/Rome")
+    @DisplayName("ROOM-V1/TIME-2/APP-2: JVM in Europe/Rome -> import, same instants as in UTC")
     void foreignJvmZoneImportsInThatZone() {
       MongooseImportDatabase database = database();
       ZoneId rome = ZoneId.of("Europe/Rome");
@@ -643,7 +655,7 @@ class SourceAvailabilityIT {
           () -> assertImportedLikeTheDump(run, 0),
           () ->
               assertEquals(
-                  ExpectedTimes.mamMillis(ZONE_ROOM_MEMBER_ADDED_MAM, rome),
+                  ExpectedTimes.mamTime(ZONE_ROOM_MEMBER_ADDED_MAM),
                   run.chats()
                       .systemEvent(ZONE_PARITY_ROOM, ZONE_ROOM_MEMBER_ADDED_MAM)
                       .orElseThrow()

@@ -33,21 +33,20 @@ class WsEventSerializationTest {
 
   @Test
   void messageReceived_withTempId_containsAllFields() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime createdAt = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
     TimelineMessageDto msg =
         TimelineMessageDto.create()
             .id("msg-1")
             .roomId("room-1")
             .senderId("user-1")
             .text("hello")
-            .createdAt(sentDate);
+            .createdAt(createdAt);
 
     String json =
-        objectMapper.writeValueAsString(
-            MessageReceived.create().message(msg).tempId("tmp-abc").sentDate(sentDate));
+        objectMapper.writeValueAsString(MessageReceived.create().message(msg).tempId("tmp-abc"));
 
     assertThat(json).contains("\"type\":\"MessageReceived\"");
-    assertThat(json).contains("\"sentDate\":");
+    assertThat(json).doesNotContain("\"sentDate\"");
     assertThat(json).contains("\"message\":");
     assertThat(json).contains("\"tempId\":\"tmp-abc\"");
     assertThat(json).doesNotContain("\"requestId\"");
@@ -55,17 +54,16 @@ class WsEventSerializationTest {
 
   @Test
   void messageReceived_withoutTempId_tempIdAbsent() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime createdAt = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
     TimelineMessageDto msg =
         TimelineMessageDto.create()
             .id("msg-1")
             .roomId("room-1")
             .senderId("user-1")
             .text("hello")
-            .createdAt(sentDate);
+            .createdAt(createdAt);
 
-    String json =
-        objectMapper.writeValueAsString(MessageReceived.create().message(msg).sentDate(sentDate));
+    String json = objectMapper.writeValueAsString(MessageReceived.create().message(msg));
 
     assertThat(json).contains("\"type\":\"MessageReceived\"");
     assertThat(json).doesNotContain("\"tempId\"");
@@ -74,7 +72,6 @@ class WsEventSerializationTest {
 
   @Test
   void messageEdited_containsExpectedFields() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
     OffsetDateTime editedAt = OffsetDateTime.of(2025, 1, 1, 12, 5, 0, 0, ZoneOffset.UTC);
 
     String json =
@@ -83,8 +80,7 @@ class WsEventSerializationTest {
                 .messageId("msg-1")
                 .roomId("room-1")
                 .text("edited text")
-                .editedAt(editedAt)
-                .sentDate(sentDate));
+                .editedAt(editedAt));
 
     assertThat(json).contains("\"type\":\"MessageEdited\"");
     assertThat(json).contains("\"messageId\":\"msg-1\"");
@@ -96,7 +92,7 @@ class WsEventSerializationTest {
 
   @Test
   void messageDeleted_containsDeletedBy() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime createdAt = OffsetDateTime.of(2025, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
 
     String json =
         objectMapper.writeValueAsString(
@@ -104,8 +100,7 @@ class WsEventSerializationTest {
                 .messageId("msg-1")
                 .roomId("room-1")
                 .deletedBy("user-2")
-                .deletedAt(sentDate)
-                .sentDate(sentDate));
+                .deletedAt(createdAt));
 
     assertThat(json).contains("\"type\":\"MessageDeleted\"");
     assertThat(json).contains("\"deletedBy\":\"user-2\"");
@@ -113,39 +108,33 @@ class WsEventSerializationTest {
   }
 
   @Test
-  void wsPong_containsTypeAndSentDate() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 6, 1, 10, 0, 0, 0, ZoneOffset.UTC);
+  void wsPong_containsType() throws Exception {
     WsPong pong = WsPong.create();
-    pong.setSentDate(sentDate);
 
     String json = objectMapper.writeValueAsString(pong);
 
     assertThat(json).contains("\"type\":\"Pong\"");
-    assertThat(json).contains("\"sentDate\":");
+    assertThat(json).doesNotContain("\"sentDate\"");
     assertThat(json).doesNotContain("\"message\"");
     assertThat(json).doesNotContain("\"requestId\"");
     assertThat(json).doesNotContain("\"code\"");
   }
 
   @Test
-  void wsError_withRequiredMessageOnly_containsTypeAndSentDateAndMessage() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 6, 1, 10, 0, 0, 0, ZoneOffset.UTC);
+  void wsError_withRequiredMessageOnly_containsTypeAndMessage() throws Exception {
     WsError error = WsError.create();
-    error.setSentDate(sentDate);
     error.setMessage("Something went wrong");
 
     String json = objectMapper.writeValueAsString(error);
 
     assertThat(json).contains("\"type\":\"Error\"");
-    assertThat(json).contains("\"sentDate\":");
+    assertThat(json).doesNotContain("\"sentDate\"");
     assertThat(json).contains("\"message\":\"Something went wrong\"");
   }
 
   @Test
   void wsError_withRequestIdAndCode_containsAllFields() throws Exception {
-    OffsetDateTime sentDate = OffsetDateTime.of(2025, 6, 1, 10, 0, 0, 0, ZoneOffset.UTC);
     WsError error = WsError.create();
-    error.setSentDate(sentDate);
     error.setMessage("Forbidden");
     error.setRequestId("req-42");
     error.setCode("ERR_FORBIDDEN");
@@ -153,7 +142,7 @@ class WsEventSerializationTest {
     String json = objectMapper.writeValueAsString(error);
 
     assertThat(json).contains("\"type\":\"Error\"");
-    assertThat(json).contains("\"sentDate\":");
+    assertThat(json).doesNotContain("\"sentDate\"");
     assertThat(json).contains("\"message\":\"Forbidden\"");
     assertThat(json).contains("\"requestId\":\"req-42\"");
     assertThat(json).contains("\"code\":\"ERR_FORBIDDEN\"");

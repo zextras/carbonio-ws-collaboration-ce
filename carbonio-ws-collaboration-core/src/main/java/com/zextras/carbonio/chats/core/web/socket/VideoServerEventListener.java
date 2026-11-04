@@ -35,7 +35,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Use
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -184,8 +183,7 @@ public class VideoServerEventListener {
                   .userId(userId)
                   .mediaType(mediaType)
                   .sdp(rtc.getSdp())
-                  .type(EventType.MEETING_SDP_OFFERED)
-                  .sentDate(OffsetDateTime.now()));
+                  .type(EventType.MEETING_SDP_OFFERED));
 
       case ANSWER -> {
         dispatchAnswerEvent(userFeed, rtc.getSdp(), mediaType);
@@ -205,8 +203,7 @@ public class VideoServerEventListener {
                   .meetingId(meetingId)
                   .userId(userId)
                   .sdp(sdp)
-                  .type(EventType.MEETING_AUDIO_ANSWERED)
-                  .sentDate(OffsetDateTime.now()));
+                  .type(EventType.MEETING_AUDIO_ANSWERED));
 
       case VIDEO, SCREEN -> {
         eventDispatcher.sendToUserExchange(
@@ -216,8 +213,7 @@ public class VideoServerEventListener {
                 .userId(userId)
                 .mediaType(mediaType)
                 .sdp(sdp)
-                .type(EventType.MEETING_SDP_ANSWERED)
-                .sentDate(OffsetDateTime.now()));
+                .type(EventType.MEETING_SDP_ANSWERED));
       }
     }
   }
@@ -235,8 +231,7 @@ public class VideoServerEventListener {
             .meetingId(UUID.fromString(userFeed.getMeetingId()))
             .userId(UUID.fromString(userFeed.getUserId()))
             .isTalking(TALKING.equals(audioBridgeEvent))
-            .type(EventType.MEETING_PARTICIPANT_TALKING)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.MEETING_PARTICIPANT_TALKING));
   }
 
   private void handleStreamsEvent(VideoServerEvent event) {
@@ -280,8 +275,7 @@ public class VideoServerEventListener {
                                 .mid(s.getMid());
                           })
                       .toList())
-              .type(EventType.MEETING_PARTICIPANT_SUBSCRIBED)
-              .sentDate(OffsetDateTime.now()));
+              .type(EventType.MEETING_PARTICIPANT_SUBSCRIBED));
     }
   }
 
@@ -296,8 +290,7 @@ public class VideoServerEventListener {
             .userId(UUID.fromString(userFeed.getUserId()))
             .mediaType(mediaType)
             .active(PUBLISHED.equals(event.getEventInfo().getEventData().getEvent()))
-            .type(EventType.MEETING_MEDIA_STREAM_CHANGED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.MEETING_MEDIA_STREAM_CHANGED));
   }
 
   private @NotNull List<String> getMeetingVideoServerSessions(String meetingId) {

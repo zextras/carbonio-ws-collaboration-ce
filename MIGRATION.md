@@ -45,8 +45,8 @@ Practical consequences of the new architecture:
 | Send reply | + `<reply>` (`urn:xmpp:reply:0`) | `POST /rooms/{roomId}/messages` (`replyToId`) |
 | Edit message | Fastening (`urn:xmpp:fasten:0`) + `<edit>` (`zextras:xmpp:edit:0`) | `PUT /rooms/{roomId}/messages/{messageId}/edit` |
 | Delete message | Fastening + `<retract>` (`urn:esl:message-retract-by-stanza-id:0`) | `DELETE /rooms/{roomId}/messages/{messageId}` |
-| Add reaction | Fastening + `<reaction>` (`zextras:xmpp:reaction:0`) | `POST /rooms/{roomId}/messages/{messageId}/reactions/{reaction}` |
-| Remove reaction | same, empty `<body>` | `DELETE /rooms/{roomId}/messages/{messageId}/reactions/{reaction}` |
+| Add or replace reaction | Fastening + `<reaction>` (`zextras:xmpp:reaction:0`) | `PUT /rooms/{roomId}/messages/{messageId}/reaction` (body `{reaction}`) |
+| Remove reaction | same, empty `<body>` | `DELETE /rooms/{roomId}/messages/{messageId}/reaction` |
 | Forward message | MAM fetch of the source stanza, then `POST /rooms/{roomId}/forward` | `POST /rooms/{roomId}/forward` — server-side, no client fetch |
 | Load history | MAM (`urn:xmpp:mam:2`) + RSM paging | `GET /rooms/{roomId}/timeline` |
 | Jump to a message | MAM `to-id` / date-bounded queries | `GET /rooms/{roomId}/timeline` (`around`) |
@@ -70,11 +70,13 @@ Notes:
   current pin answers `204` and does nothing (no row, no event). Pinning a message that is deleted, not in the
   room, or below your visibility floor (§8) answers `404`. Deleting the pinned message unpins it: the server
   writes `MESSAGE_UNPINNED` (author = the deleter) and sends `MessageUnpinned` right after `MessageDeleted`.
-- **One reaction per user per message.** `POST .../reactions/{reaction}` with a different emoji replaces your
-  previous reaction and sends two `ReactionChanged` events: `removed` (old emoji), then `added` (new emoji).
-  `DELETE .../reactions/{reaction}` removes your reaction whatever emoji the path carries. Both answer `404`
-  when the message is not in the path room; `POST` also answers `404` for a deleted message or one below your
-  visibility floor. The `{reaction}` of the `POST` is at most 32 characters.
+- **One reaction per user per message.** `PUT .../reaction` with body `{reaction}` creates your reaction or
+  replaces the previous one, and sends exactly one `ReactionChanged`: `added` (you had none) or `updated` (you
+  replaced a different emoji; `previousReaction` carries the old one). The same emoji again is a no-op: no
+  write, no event. `DELETE .../reaction` removes your reaction whatever emoji it is and sends `removed`;
+  without a reaction it answers `204` and sends nothing. Both answer `403` to a non-member and `404` when the
+  message is not in the path room; `PUT` also answers `404` for a deleted message or one below your visibility
+  floor. `reaction` is 1 to 32 UTF-16 code units; blank answers `400`.
 - `GET /rooms/{roomId}/messages` (the cursor history of earlier 2.0.0 builds) is removed: use
   `GET /rooms/{roomId}/timeline`, which returns messages and system events in one discriminated list, supports
   `before`/`after`/`around` anchoring, and includes read markers.
@@ -129,7 +131,7 @@ Not everything became REST. Ephemeral, high-frequency signals stay on the socket
 
 - There is **no outbound presence action**. You never subscribe or announce; the socket lifecycle does it.
 - Initial state comes from REST (`GET /inbox`, or `POST /presence/batch`, at most 100 user ids per request).
-- Live changes come from the `PresenceChanged` event. Events, `/presence/batch` and `/inbox` all carry `online` and `lastActivity` (last time the user went offline, also while online); the client decides to show `lastActivity` only when offline.
+- Live changes come from the `PresenceChanged` event. Events, `/presence/batch` and `/inbox` all carry `online` and `lastActivity` (last time the user went offline, also while online); the client decides to show `lastActivity` only when offline. An ONLINE event reads `lastActivity` in the same transaction as the transition, so the pair `(lastActivity, online)` orders a user's presence states and a client can drop an event or snapshot older than the one it holds.
 - Transition events are best-effort: on every `WebsocketConnected` (first connect and reconnects) reload presence from REST; it is sent only once the socket is subscribed, so nothing published after it is missed.
 
 Typing, by contrast, is WebSocket in both directions.
@@ -159,7 +161,6 @@ Every event is a JSON object with at least:
 | Field | Type | Description |
 |---|---|---|
 | `type` | string | Event discriminator (PascalCase, unless the client did not declare a sub-protocol version — see above). |
-| `sentDate` | string (ISO 8601) | UTC timestamp when the event was generated. |
 
 **Exact payload schemas are defined in and generated from
 `carbonio-ws-collaboration-openapi/src/main/resources/asyncapi.yaml`** — that file is the single
@@ -228,7 +229,7 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | `MessageDeleted` | `DELETE .../messages/{messageId}` | All room members |
 | `MessagePinned` | `PUT .../messages/{messageId}/pin`, also when it replaces the current pin | All room members |
 | `MessageUnpinned` | `DELETE .../messages/{messageId}/pin` of the room pin (unpinning any other message is a 204 no-op: no system line, no event), or `DELETE .../messages/{messageId}` of the pinned message (sent right after `MessageDeleted`, `unpinnedBy` = the deleter) | All room members |
-| `ReactionChanged` | `POST` or `DELETE .../reactions/{reaction}` | All room members |
+| `ReactionChanged` | `PUT` (`added` or `updated`) or `DELETE` (`removed`) `.../reaction`; a same-emoji `PUT` and a `DELETE` without a reaction send nothing | All room members |
 | `ReadUpdated` | `PUT /rooms/{roomId}/read` that moves the marker forward (a same or older item writes nothing and sends nothing) | All room members |
 | `PresenceChanged` | A user opens their first or closes their last WebSocket, across all instances | Online users sharing at least one room with the affected user |
 | `Typing` | Client sends a `Typing` WebSocket action | All room members except the sender |
@@ -251,7 +252,7 @@ for edits; `deletedBy` and `deletedAt` for deletes. Clients update their local c
 rather than re-fetching.
 
 `MessagePinned`, `MessageUnpinned`, and `ReactionChanged` likewise identify the message by `messageId`
-and carry only the delta (pin actor/timestamp, or reaction emoji + operation).
+and carry only the delta (pin actor/timestamp, or reaction emoji + operation, with `previousReaction` on `updated`).
 
 **Events that create a system line.** Some actions persist a system event (a `chats.system_event`
 row, exposed as `SystemEvent{id, actorId, ...}` in the timeline) and announce it through the events
@@ -264,8 +265,8 @@ dispatched.
 
 Next to every `systemEventId` the event carries `systemEventCreatedAt`, the row's
 `createdAt`: the same instant as the timeline item's `createdAt` and as the `itemCreatedAt` that
-`PUT /rooms/{roomId}/read` with that id stores. Date a live line with it, never with `sentDate`
-(later): a line dated by `sentDate` stays after the read marker and looks unread forever. It is
+`PUT /rooms/{roomId}/read` with that id stores. Date a live line with it: events carry no
+generation time, and it is the value the read marker stores. It is
 present exactly when the id is. Compare it as an instant; the offset may differ from the timeline's.
 
 | Event | System line | Author field | `systemEventId` |
@@ -289,7 +290,7 @@ Every system line has a `content` JSON object, returned parsed by the timeline. 
 | `MESSAGE_PINNED` | `PUT .../messages/{messageId}/pin` | the pinner | `{"pinnedBy": <user>, "messageId": <message>}` |
 | `MESSAGE_UNPINNED` | `DELETE .../messages/{messageId}/pin` of the current pin, or deletion of the pinned message | the unpinner or the deleter | `{"unpinnedBy": <user>, "messageId": <message>}` |
 | `MEETING_STARTED` | A ONE_TO_ONE meeting starts | the starter | `{"startedBy": <user>, "meetingId": <meeting>}` |
-| `MEETING_ENDED` | A ONE_TO_ONE meeting that had started stops | the user whose action stopped it | `{"endedBy": <user>, "meetingId": <meeting>, "startedAt": <epoch milliseconds, number>, "durationSec": <seconds, number>}` |
+| `MEETING_ENDED` | A ONE_TO_ONE meeting that had started stops | the user whose action stopped it | `{"endedBy": <user>, "meetingId": <meeting>, "startedAt": <epoch milliseconds, number>, "durationSec": <seconds, number>}`; `durationSec` is the whole seconds between the meeting start and the line's `createdAt`, both database times |
 | `MEETING_DECLINED` | `POST /meetings/{meetingId}/decline` in a ONE_TO_ONE room | the decliner | `{"declinedBy": <user>, "meetingId": <meeting>}` |
 | `ROOM_NAME_CHANGED` | `PUT /rooms/{roomId}`, the name actually changed | the current user | `{"changedBy": <user>, "name": <new name>}` |
 | `ROOM_DESCRIPTION_CHANGED` | `PUT /rooms/{roomId}`, the description actually changed (also to `""`) | the current user | `{"changedBy": <user>, "description": <new description>}` |
@@ -298,7 +299,7 @@ Every system line has a `content` JSON object, returned parsed by the timeline. 
 | `ROOM_HISTORY_CLEARED` | `PUT /rooms/{roomId}/clear` on a TEMPORARY room (the owner clears for everyone) | the owner | `{"clearedBy": <user>}` |
 
 An update that changes nothing writes no event. If name and description change in one request, two rows are
-written, name first, with `createdAt` 1 ms apart. `ROOM_HISTORY_CLEARED` is written after the purge, so it is
+written, name first, each with its own database time (strictly increasing). `ROOM_HISTORY_CLEARED` is written after the purge, so it is
 the only row left in the room; its `createdAt` is the `clearedAt` returned by `PUT /rooms/{roomId}/clear` and
 carried by `RoomHistoryCleared`. The per-user clear of GROUP and ONE_TO_ONE rooms (`cleared_at`) writes no
 event.
@@ -312,16 +313,52 @@ event.
 | `RoomHistoryCleared` | `ROOM_HISTORY_CLEARED` | `clearedBy` | `systemEventId`; both present only for TEMPORARY rooms, absent for the per-user clear |
 
 A member add writes one `MEMBER_ADDED` row per added user (`addedUserIds` holds that single user;
-the rows of one request are 1 ms apart, in request order) and sends one `RoomMemberAdded` per user,
+the rows of one request are written in request order, each with its own database time) and sends one `RoomMemberAdded` per user,
 each carrying the `systemEventId`/`systemEventCreatedAt` of its own row, to every member of the room
 after the add (the added users included). A user listed twice is added once; an empty list is
 rejected with 400. Room creation lines are not announced through these events.
 
 `MessageReceived` is the event for both a sent message and an attachment upload.
 
-**Ordering.** Every event carries a database timestamp. The broker preserves FIFO per session,
-but clients should still insert by `(createdAt, id)` — that matches the server's own ordering
-(`ORDER BY createdAt, id`).
+**Ordering.** Every time field an event carries is the stored value of the object it describes (the
+same value REST returns), except the uplink
+`changedAt` (client value). Events have no `sentDate`, and `Typing` carries no time.
+FIFO holds only for events published one after another by the same request on
+one node; events from different nodes or threads can arrive in any order, so clients insert by
+`(createdAt, id)` — that matches the server's own ordering (`ORDER BY createdAt, id`).
+
+**Times.** Every stored time (`createdAt`, `pinnedAt`, `clearedAt`, markers, `joinedAt`, ...) is read from
+the PostgreSQL clock in the statement that writes the row: a UTC instant with microsecond precision
+(`TIMESTAMPTZ`). The serialised offset may vary, so compare times as instants, never as strings.
+
+- **Keep full precision in cursors.** A client that truncates a time to milliseconds can skip or repeat
+  items. `GET /rooms/{roomId}/timeline` with `beforeId` anchors the page on the stored time of that item,
+  so the `before` value is not trusted to the microsecond. `GET /rooms/{roomId}/messages/search` has
+  only `before`: send the exact value of the oldest result.
+- **Lines of one action are ordered by write.** There are no synthetic offsets: room creation writes
+  `ROOM_CREATED` then one `MEMBER_ADDED` per member, a bulk add writes its lines in request order, a name and
+  description change writes name first. Each line has its own, strictly increasing time.
+- **Room creation:** the members' `joinedAt` follows the creation lines, and these lines are not unread.
+  A bulk add writes its lines after the new subscriptions: they are unread for existing and added members,
+  not for the adder.
+- **Pins:** the `MESSAGE_PINNED` line's `createdAt` equals the pin's `pinnedAt`. `MessagePinned.timestamp`
+  and `systemEventCreatedAt` carry it; `MessageUnpinned.timestamp` is the `MESSAGE_UNPINNED` line's `createdAt`.
+- **Attachments:** an attachment's `createdAt` (gallery order) equals its message's `createdAt`, also for a
+  forwarded copy.
+- **WebSocket event times** and their stored source:
+  - `MessageDeleted.deletedAt` = the message's `deletedAt` (one clock read with its `updatedAt`).
+  - `MessagePinned.timestamp` / `MessageUnpinned.timestamp`: see Pins.
+  - `ReactionChanged.updatedAt` (`added`, `updated`) = the reaction's stored `updatedAt`, the value REST returns
+    in `users[].updatedAt`; `ReactionChanged.deletedAt` (`removed`) = the database time of the delete (not
+    stored). Order reactions of one user by `updatedAt` / `deletedAt`, comparable with the timeline
+    `users[].updatedAt`.
+  - `MeetingCreated.createdAt` = the meeting's `createdAt`.
+  - `MeetingParticipantJoined.joinedAt` = the REST `joinedAt`; the event is published after the participant is
+    stored, and a re-join after a clash keeps the first `joinedAt`.
+  - `MeetingStopped.durationSec` = the `MEETING_ENDED` line's `durationSec`, present exactly when
+    `systemEventId` is; show it instead of computing a duration client-side.
+  - `MeetingRecordingStarted.startedAt` (Advanced edition): the stored recording start.
+  - `PresenceChanged.lastActivity`: see the presence notes in §3.
 
 ## 5. WebSocket messages (client → server)
 
@@ -410,7 +447,7 @@ The authoritative bounds are in `api.yaml`; a request outside them answers `400`
 | `text` of `POST /rooms/{roomId}/messages` | Required and not blank (only spaces or control characters answers `400`); at most 8192 characters (UTF-16 code units) |
 | `tempId` of the send and of the attachment upload | Optional; at most 64 characters |
 | `limit` of `GET /rooms/{roomId}/timeline` and `GET /rooms/{roomId}/messages/search` | 1 to 200 |
-| `{reaction}` of `POST /rooms/{roomId}/messages/{messageId}/reactions/{reaction}` | At most 32 characters |
+| `reaction` of `PUT /rooms/{roomId}/messages/{messageId}/reaction` | 1 to 32 UTF-16 code units; blank answers `400` |
 | `POST /rooms/{roomId}/members` body | At least one member (`[]` answers `400`); a repeated user id is added once |
 | `POST /presence/batch` | At most 100 user ids |
 | `description` (caption) of the attachment upload | At most 8192 characters |
@@ -444,6 +481,10 @@ Upgrade procedure (administrators):
    Consul, the database does not exist or it has no MongooseIM tables, it logs
    `MongooseIM import skipped: <reason>` and is recorded as done: it is never retried. If you expected data,
    check this line before going live.
+   Imported times are the exact MAM microsecond instants (UTC); ties are repaired by adding 1 µs. Data
+   already in 1.x columns is converted once, by the Flyway migration, with the zone of the service JVM (region id, UTC
+   or fixed offset: the startup log shows the expression used). After the upgrade the service has no zone
+   dependency: every API time is a UTC instant.
 4. Check the WSC log for `MongooseIM import completed: rooms=… messages=…`. The warning
    `other sessions are connected to the MongooseIM database` means MongooseIM was still running during the
    import.

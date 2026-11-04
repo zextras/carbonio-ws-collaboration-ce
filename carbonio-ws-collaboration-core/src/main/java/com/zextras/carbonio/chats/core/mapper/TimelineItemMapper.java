@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.model.EditedInfoDto;
 import com.zextras.carbonio.chats.model.ForwardedInfoDto;
 import com.zextras.carbonio.chats.model.MessageAttachmentDto;
 import com.zextras.carbonio.chats.model.ReactionGroupDto;
+import com.zextras.carbonio.chats.model.ReactionUserDto;
 import com.zextras.carbonio.chats.model.SystemEventDto;
 import com.zextras.carbonio.chats.model.SystemEventTimelineItemDto;
 import com.zextras.carbonio.chats.model.TimelineItemDto;
@@ -105,13 +106,15 @@ public class TimelineItemMapper {
     // Group reactions by emoji (top-level only; the reply preview never shows them)
     List<MessageReaction> reactions = msg.getReactions();
     if (reactions != null && !reactions.isEmpty()) {
-      Map<String, List<String>> reactionGroups = new LinkedHashMap<>();
+      Map<String, List<ReactionUserDto>> reactionGroups = new LinkedHashMap<>();
       for (MessageReaction r : reactions) {
-        reactionGroups.computeIfAbsent(r.getReaction(), k -> new ArrayList<>()).add(r.getUserId());
+        reactionGroups
+            .computeIfAbsent(r.getReaction(), k -> new ArrayList<>())
+            .add(ReactionUserDto.create().userId(r.getUserId()).updatedAt(r.getUpdatedAt()));
       }
       List<ReactionGroupDto> reactionList =
           reactionGroups.entrySet().stream()
-              .map(e -> ReactionGroupDto.create().reaction(e.getKey()).userIds(e.getValue()))
+              .map(e -> ReactionGroupDto.create().reaction(e.getKey()).users(e.getValue()))
               .collect(Collectors.toList());
       messageDto.reactions(reactionList);
     }

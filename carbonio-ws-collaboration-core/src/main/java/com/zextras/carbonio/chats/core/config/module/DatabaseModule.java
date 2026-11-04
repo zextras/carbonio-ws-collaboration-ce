@@ -14,13 +14,17 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.migration.V2_0_1__migrate_mongoose_data;
 import com.zextras.carbonio.chats.core.migration.scripts.V1_4_2__backfill_attachment_ids;
 import io.ebean.Database;
 import io.ebean.annotation.Platform;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.migration.JavaMigration;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
@@ -75,16 +79,31 @@ public class DatabaseModule extends AbstractModule {
     return Database.builder()
         .dataSource(dataSource)
         .clock(clock)
+        .dataTimeZone("UTC")
         .databasePlatformName(Platform.POSTGRES.toString())
         .build();
+  }
+
+  public static String migrationZone(ZoneId zone) {
+    ZoneId normalized = zone.normalized();
+    if (normalized instanceof ZoneOffset offset) {
+      if (offset.getTotalSeconds() == 0) {
+        return "'UTC'";
+      }
+      return "INTERVAL '" + offset.getId() + "'";
+    }
+    return "'" + zone.getId() + "'";
   }
 
   @Singleton
   @Provides
   private Flyway getFlyway(HikariDataSource dataSource, MessageDispatcherCredentials credentials) {
+    String jvmZone = migrationZone(ZoneId.systemDefault());
+    ChatsLogger.info("Flyway 1.x time conversion zone: " + jvmZone);
     Flyway flyway =
         Flyway.configure()
             .locations(migrationsLocation())
+            .placeholders(Map.of("jvm_zone", jvmZone))
             .schemas("chats")
             .dataSource(dataSource)
             .validateMigrationNaming(true)

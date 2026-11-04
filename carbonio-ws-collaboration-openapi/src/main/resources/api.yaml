@@ -548,7 +548,9 @@ paths:
           required: false
         - in: query
           name: before
-          description: ISO-8601 timestamp cursor — return messages older than this date (for pagination)
+          description: >
+            ISO-8601 timestamp cursor — return messages older than this date (for pagination).
+            Stored times have microsecond precision: send the exact value of the oldest result.
           schema:
             type: string
           required: false
@@ -730,30 +732,31 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/{roomId}/messages/{messageId}/reactions/{reaction}:
-    post:
+  /rooms/{roomId}/messages/{messageId}/reaction:
+    put:
       tags:
         - Rooms
-      summary: Add a reaction to a message
-      operationId: addReaction
+      summary: Set the caller's reaction on a message
+      operationId: setReaction
       description: >
-        Sets the caller's reaction on the message. A user has one reaction per message: a different
-        emoji replaces the previous one and broadcasts ReactionChanged with operation removed (old
-        emoji) and then added (new emoji). Answers 404 when the message is not in the room, is
-        deleted, or is hidden by the caller's cleared history.
+        A user has one reaction per message. Creates it (ReactionChanged operation added) or
+        replaces a different one (operation updated, with previousReaction); the same emoji is a
+        no-op without any event. Answers 404 when the message is not in the room, is deleted, or is
+        hidden by the caller's cleared history.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathMessageId'
-        - in: path
-          name: reaction
-          description: The reaction emoji (URL encoded)
-          schema:
-            type: string
-            maxLength: 32
-          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetReactionRequest'
       responses:
         204:
-          description: Reaction added successfully
+          description: Reaction set successfully
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
@@ -761,23 +764,15 @@ paths:
     delete:
       tags:
         - Rooms
-      summary: Remove a reaction from a message
+      summary: Remove the caller's reaction from a message
       operationId: removeReaction
       description: >
-        Removes the caller's reaction from the message whatever emoji the path carries (a user has
-        one reaction per message) and broadcasts ReactionChanged with operation removed and the
-        removed emoji. Answers 204 without any event when the caller has no reaction on the message,
-        and 404 when the message is not in the room.
+        Removes the caller's reaction, whatever its emoji, and broadcasts ReactionChanged operation
+        removed. Answers 204 without any event when the caller has no reaction on the message, 404
+        when the message is not in the room.
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathMessageId'
-        - in: path
-          name: reaction
-          description: The reaction emoji (URL encoded)
-          schema:
-            type: string
-            maxLength: 32
-          required: true
       responses:
         204:
           description: Reaction removed successfully
@@ -795,7 +790,9 @@ paths:
         - $ref: '#/components/parameters/pathRoomId'
         - in: query
           name: before
-          description: ISO-8601 timestamp cursor - return items before this date
+          description: >
+            ISO-8601 timestamp cursor - return items before this date.
+            Stored times have microsecond precision: send the full value, not a millisecond-truncated one.
           schema:
             type: string
           required: false
@@ -805,7 +802,9 @@ paths:
             Message ID that anchors the page boundary together with `before`.
             When provided alongside `before`, pagination uses a composite cursor
             (created_at, id) < (before, beforeId) to avoid skipping messages that
-            share the same millisecond timestamp across page boundaries.
+            share the same timestamp across page boundaries.
+            The server anchors the page on the stored creation time of the
+            `beforeId` item rather than on the client-supplied `before`, when the item exists.
           schema:
             type: string
           required: false
@@ -3278,16 +3277,35 @@ components:
           type: string
           nullable: true
       required: [id, name, mimeType, size]
+    SetReactionRequest:
+      type: object
+      properties:
+        reaction:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: The emoji; at most 32 UTF-16 code units (blank is rejected with 400)
+      required: [reaction]
+    ReactionUser:
+      type: object
+      properties:
+        userId:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          description: database time of the last set of this reaction (insert or replace)
+      required: [userId, updatedAt]
     ReactionGroup:
       type: object
       properties:
         reaction:
           type: string
-        userIds:
+        users:
           type: array
           items:
-            type: string
-      required: [reaction, userIds]
+            $ref: '#/components/schemas/ReactionUser'
+      required: [reaction, users]
     SystemEvent:
       type: object
       properties:

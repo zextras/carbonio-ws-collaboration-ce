@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.data.entity;
 
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import io.ebean.annotation.WhenModified;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,13 +46,12 @@ public class Room {
   @Column(name = "MEETING_ID", length = 64)
   private String meetingId;
 
-  @Column(name = "CREATED_AT")
+  @Column(name = "CREATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime createdAt;
 
-  @Column(name = "UPDATED_AT")
+  @Column(name = "UPDATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenModified
   private OffsetDateTime updatedAt;
 
   @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -104,11 +102,6 @@ public class Room {
 
   public OffsetDateTime getCreatedAt() {
     return createdAt;
-  }
-
-  public Room createdAt(OffsetDateTime createdAt) {
-    this.createdAt = createdAt;
-    return this;
   }
 
   public OffsetDateTime getUpdatedAt() {

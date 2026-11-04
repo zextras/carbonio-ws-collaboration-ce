@@ -9,7 +9,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,13 +27,13 @@ public final class RoomRows implements AutoCloseable {
       long mam,
       int outcome,
       String itemId,
-      LocalDateTime itemTime,
-      LocalDateTime rowTime,
+      Instant itemTime,
+      Instant rowTime,
       boolean deleted,
       String senderId,
       long targetMam) {
 
-    public static Row notImported(long mam, String senderId, LocalDateTime rowTime) {
+    public static Row notImported(long mam, String senderId, Instant rowTime) {
       return new Row(mam, NOT_IMPORTED, null, null, rowTime, false, senderId, 0);
     }
 
@@ -40,18 +41,18 @@ public final class RoomRows implements AutoCloseable {
         long mam,
         String senderId,
         String itemId,
-        LocalDateTime itemTime,
-        LocalDateTime rowTime,
+        Instant itemTime,
+        Instant rowTime,
         boolean deleted) {
       return new Row(mam, MESSAGE, itemId, itemTime, rowTime, deleted, senderId, 0);
     }
 
     public static Row event(
-        long mam, String senderId, String itemId, LocalDateTime itemTime, LocalDateTime rowTime) {
+        long mam, String senderId, String itemId, Instant itemTime, Instant rowTime) {
       return new Row(mam, EVENT, itemId, itemTime, rowTime, false, senderId, 0);
     }
 
-    public static Row edit(long mam, String senderId, long targetMam, LocalDateTime rowTime) {
+    public static Row edit(long mam, String senderId, long targetMam, Instant rowTime) {
       return new Row(mam, EDIT, null, null, rowTime, false, senderId, targetMam);
     }
   }
@@ -83,7 +84,7 @@ public final class RoomRows implements AutoCloseable {
       st.execute(
           "CREATE TEMP TABLE mongoose_room_rows (mam BIGINT PRIMARY KEY, client_id TEXT,"
               + " outcome SMALLINT NOT NULL, target_mam BIGINT, sender_id TEXT, item_id TEXT,"
-              + " item_time TIMESTAMP, row_time TIMESTAMP NOT NULL,"
+              + " item_time TIMESTAMPTZ, row_time TIMESTAMPTZ NOT NULL,"
               + " deleted BOOLEAN NOT NULL DEFAULT FALSE) ON COMMIT DROP");
       st.execute(
           "CREATE INDEX mongoose_room_rows_client_idx ON mongoose_room_rows"
@@ -168,12 +169,12 @@ public final class RoomRows implements AutoCloseable {
     return single(selectByClient);
   }
 
-  public Map<String, LocalDateTime> lastRowTimeBySender() throws SQLException {
+  public Map<String, Instant> lastRowTimeBySender() throws SQLException {
     flush();
-    Map<String, LocalDateTime> times = new HashMap<>();
+    Map<String, Instant> times = new HashMap<>();
     try (ResultSet rs = selectLastBySender.executeQuery()) {
       while (rs.next()) {
-        times.put(rs.getString(1), rs.getObject(2, LocalDateTime.class));
+        times.put(rs.getString(1), instant(rs, 2));
       }
     }
     return times;
@@ -210,6 +211,11 @@ public final class RoomRows implements AutoCloseable {
     return single(selectByMam);
   }
 
+  private static Instant instant(ResultSet rs, int column) throws SQLException {
+    OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
+    return value == null ? null : value.toInstant();
+  }
+
   private static Row single(PreparedStatement ps) throws SQLException {
     try (ResultSet rs = ps.executeQuery()) {
       if (!rs.next()) {
@@ -219,8 +225,8 @@ public final class RoomRows implements AutoCloseable {
           rs.getLong(1),
           rs.getInt(2),
           rs.getString(3),
-          rs.getObject(4, LocalDateTime.class),
-          rs.getObject(5, LocalDateTime.class),
+          instant(rs, 4),
+          instant(rs, 5),
           rs.getBoolean(6),
           rs.getString(7),
           rs.getLong(8));

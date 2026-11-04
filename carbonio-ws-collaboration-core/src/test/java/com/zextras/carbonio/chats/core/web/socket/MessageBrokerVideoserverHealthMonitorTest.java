@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.socket;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -21,7 +22,6 @@ import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
-import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -43,17 +43,14 @@ class MessageBrokerVideoserverHealthMonitorTest {
   }
 
   @Test
-  void notifyBrokerDown_broadcastsDisconnectedEvent_withCurrentSentDate() throws Exception {
-    OffsetDateTime before = OffsetDateTime.now().minusSeconds(1);
-
+  void notifyBrokerDown_broadcastsDisconnectedEvent_withoutSentDate() throws Exception {
     monitor.notifyBrokerDown();
 
     ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
     verify(sessions).broadcast(json.capture());
     JsonNode node = objectMapper.readTree(json.getValue());
     assertTrue(node.get("type").asText().equals(EventType.MESSAGE_BROKER_DISCONNECTED.toString()));
-    OffsetDateTime sentDate = OffsetDateTime.parse(node.get("sentDate").asText());
-    assertTrue(sentDate.isAfter(before));
+    assertFalse(node.has("sentDate"));
   }
 
   @Test

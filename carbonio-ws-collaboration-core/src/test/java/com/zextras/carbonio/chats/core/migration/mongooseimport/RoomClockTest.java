@@ -8,14 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
 class RoomClockTest {
 
-  private static final LocalDateTime T = LocalDateTime.of(2026, 1, 1, 10, 0, 0);
+  private static final Instant T = Instant.parse("2026-01-01T10:00:00Z");
 
   @Test
   @DisplayName("Has no first value before use")
@@ -33,12 +33,12 @@ class RoomClockTest {
   }
 
   @Test
-  @DisplayName("Bumps equal or older candidates by one millisecond over the last value")
+  @DisplayName("Bumps equal or older candidates by one microsecond over the last value")
   void bumps() {
     RoomClock clock = new RoomClock();
     clock.next(T);
-    assertEquals(T.plusNanos(1_000_000), clock.next(T));
-    assertEquals(T.plusNanos(2_000_000), clock.next(T.minusSeconds(5)));
+    assertEquals(T.plusNanos(1_000), clock.next(T));
+    assertEquals(T.plusNanos(2_000), clock.next(T.minusSeconds(5)));
     assertEquals(T, clock.first());
   }
 }

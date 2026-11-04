@@ -13,7 +13,6 @@ import com.zextras.carbonio.async.model.WsPong;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.action.impl.TypingHandler;
 import jakarta.websocket.Session;
-import java.time.OffsetDateTime;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -78,7 +77,6 @@ public class WsActionRouter {
     if (session == null || !session.isOpen()) return;
     try {
       WsPong pong = WsPong.create();
-      pong.setSentDate(OffsetDateTime.now());
       session.getAsyncRemote().sendObject(objectMapper.writeValueAsString(pong));
     } catch (Exception e) {
       ChatsLogger.warn("Error sending pong via WebSocket: " + e.getMessage());
@@ -89,7 +87,6 @@ public class WsActionRouter {
     if (session == null || !session.isOpen()) return;
     try {
       WsError error = WsError.create();
-      error.setSentDate(OffsetDateTime.now());
       error.setMessage(errorMessage);
       if (requestId != null) {
         error.setRequestId(requestId);

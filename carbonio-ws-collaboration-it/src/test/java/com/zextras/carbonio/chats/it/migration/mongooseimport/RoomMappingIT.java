@@ -785,9 +785,11 @@ class RoomMappingIT {
           chats.message(CLEARED_ONE_TO_ONE_ROOM, ONE_TO_ONE_TEXT_AFTER_FLOOR_MAM).isPresent());
       List<String> settings =
           chats.query(
-              "SELECT user_id || '|' || room_id || '|' || coalesce(muted_until::text, '') || '|' ||"
-                  + " coalesce(cleared_at::text, '') || '|' || created_at::text || '|' ||"
-                  + " updated_at::text FROM chats.room_user_settings ORDER BY room_id, user_id",
+              "SELECT user_id || '|' || room_id || '|' || coalesce((muted_until AT TIME ZONE"
+                  + " 'UTC')::text, '') || '|' || coalesce((cleared_at AT TIME ZONE 'UTC')::text,"
+                  + " '') || '|' || (created_at AT TIME ZONE 'UTC')::text || '|' || (updated_at AT"
+                  + " TIME ZONE 'UTC')::text FROM chats.room_user_settings ORDER BY room_id,"
+                  + " user_id",
               rs -> rs.getString(1));
       assertEquals(ROOM_USER_SETTINGS_BEFORE_IMPORT, settings);
     }

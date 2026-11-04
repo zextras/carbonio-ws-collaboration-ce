@@ -22,11 +22,11 @@ import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.jboss.resteasy.mock.MockHttpResponse;
@@ -144,18 +144,21 @@ class PinReactionApiIT {
         .getStatus();
   }
 
-  private String reactionPath(UUID room, String messageId, String reaction) {
-    return String.format(
-        "/rooms/%s/messages/%s/reactions/%s",
-        room, messageId, URLEncoder.encode(reaction, StandardCharsets.UTF_8));
+  private String reactionPath(UUID room, String messageId) {
+    return String.format("/rooms/%s/messages/%s/reaction", room, messageId);
   }
 
   private int react(UUID room, String messageId, String reaction, String token) throws Exception {
-    return dispatcher.post(reactionPath(room, messageId, reaction), token).getStatus();
+    return dispatcher
+        .put(
+            reactionPath(room, messageId),
+            objectMapper.writeValueAsString(Map.of("reaction", reaction)),
+            token)
+        .getStatus();
   }
 
-  private int unreact(UUID room, String messageId, String reaction, String token) throws Exception {
-    return dispatcher.delete(reactionPath(room, messageId, reaction), token).getStatus();
+  private int unreact(UUID room, String messageId, String token) throws Exception {
+    return dispatcher.delete(reactionPath(room, messageId), token).getStatus();
   }
 
   private List<String> pinnedIds() throws Exception {
@@ -314,17 +317,17 @@ class PinReactionApiIT {
           otherRoomId, RoomTypeDto.GROUP, "other-room", List.of(aUserId, bUserId));
       assertEquals(204, react(roomId, first, THUMBS_UP, bToken));
 
-      assertEquals(404, unreact(otherRoomId, first, THUMBS_UP, bToken));
+      assertEquals(404, unreact(otherRoomId, first, bToken));
 
       assertEquals(1, chatMessageService.getReactions(first).size());
     }
 
     @Test
-    @DisplayName("Removing ignores the emoji in the path")
-    void unreactIgnoresEmoji() throws Exception {
+    @DisplayName("Removing clears the caller's reaction whatever its emoji")
+    void unreactAnyEmoji() throws Exception {
       assertEquals(204, react(roomId, first, THUMBS_UP, bToken));
 
-      assertEquals(204, unreact(roomId, first, "❤️", bToken));
+      assertEquals(204, unreact(roomId, first, bToken));
 
       assertTrue(chatMessageService.getReactions(first).isEmpty());
     }
@@ -335,12 +338,11 @@ class PinReactionApiIT {
   class ReactionLength {
 
     @Test
-    @DisplayName("A reaction longer than 32 characters is 400 on add and remove, stores nothing")
+    @DisplayName("A reaction longer than 32 characters is 400, stores nothing")
     void tooLong() throws Exception {
       String reaction = "a".repeat(33);
 
       assertEquals(400, react(roomId, first, reaction, bToken));
-      assertEquals(400, unreact(roomId, first, reaction, bToken));
 
       assertTrue(chatMessageService.getReactions(first).isEmpty());
     }

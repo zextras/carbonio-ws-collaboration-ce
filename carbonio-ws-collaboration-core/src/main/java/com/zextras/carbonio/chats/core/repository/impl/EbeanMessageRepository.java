@@ -193,12 +193,12 @@ public class EbeanMessageRepository implements MessageRepository {
           SELECT count(*) AS n FROM (
             (SELECT 1 FROM chats.message m
              WHERE m.room_id = s.room_id AND m.deleted = false AND m.sender_id <> s.user_id
-               AND m.created_at > COALESCE(GREATEST(s.joined_at, rus.cleared_at, mr.item_created_at), '-infinity'::timestamp)
+               AND m.created_at > COALESCE(GREATEST(s.joined_at, rus.cleared_at, mr.item_created_at), '-infinity'::timestamptz)
              LIMIT :cap)
             UNION ALL
             (SELECT 1 FROM chats.system_event e
              WHERE e.room_id = s.room_id AND e.actor_id <> s.user_id
-               AND e.created_at > COALESCE(GREATEST(s.joined_at, rus.cleared_at, mr.item_created_at), '-infinity'::timestamp)
+               AND e.created_at > COALESCE(GREATEST(s.joined_at, rus.cleared_at, mr.item_created_at), '-infinity'::timestamptz)
              LIMIT :cap)
             LIMIT :cap) x) u
         WHERE s.user_id = :userId
@@ -279,12 +279,6 @@ public class EbeanMessageRepository implements MessageRepository {
     } catch (DuplicateKeyException ignored) {
       // server-minted UUID; treat duplicate as a no-op (ON CONFLICT DO NOTHING semantics)
     }
-    return message;
-  }
-
-  @Override
-  public Message update(Message message) {
-    db.update(message);
     return message;
   }
 

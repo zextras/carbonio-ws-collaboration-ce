@@ -43,18 +43,20 @@ public final class MongooseImporter {
   }
 
   void run() throws SQLException {
-    ZoneId zone = ZoneId.systemDefault();
+    ZoneId pinZone = ZoneId.systemDefault();
+    ChatsLogger.info(
+        MongooseImporter.class, "MongooseIM pin_message.pinned_at read in zone " + pinZone);
     List<TargetRoom> rooms = TargetRooms.load(target);
     FileLinker files = new FileLinker(target);
     RoomImporter.Counts imported;
-    try (MarkerTranscriber markers = new MarkerTranscriber(source, target, zone);
-        PinImporter pins = new PinImporter(source, target);
+    try (MarkerTranscriber markers = new MarkerTranscriber(source, target);
+        PinImporter pins = new PinImporter(source, target, pinZone);
         RoomReader reader = new RoomReader(source, pins, markers);
-        RoomImporter importer = new RoomImporter(target, ids, zone, files, pins, markers)) {
+        RoomImporter importer = new RoomImporter(target, ids, files, pins, markers)) {
       ImportPipeline.run(rooms, reader, importer);
       imported = importer.counts();
     }
-    UserTables.Counts users = UserTables.run(source.connection(), source.hasLast(), target, zone);
+    UserTables.Counts users = UserTables.run(source.connection(), source.hasLast(), target);
     ChatsLogger.info(
         MongooseImporter.class,
         "MongooseIM import completed: rooms="

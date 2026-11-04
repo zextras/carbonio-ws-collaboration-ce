@@ -5,11 +5,15 @@
 package com.zextras.carbonio.chats.it.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetKind;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
@@ -143,17 +147,21 @@ class PinReactionSingleIT {
       UUID roomId = seedRoom();
       String messageId = seedMessage(roomId, "hello");
 
-      Optional<String> firstReplaced =
-          chatMessageService.addReaction(roomId.toString(), messageId, userId.toString(), "👍");
-      assertTrue(firstReplaced.isEmpty());
+      SetResult first =
+          chatMessageService.setReaction(roomId.toString(), messageId, userId.toString(), "👍");
+      assertEquals(SetKind.ADDED, first.kind());
+      assertNull(first.previousReaction());
 
-      Optional<String> secondReplaced =
-          chatMessageService.addReaction(roomId.toString(), messageId, userId.toString(), "❤️");
-      assertEquals(Optional.of("👍"), secondReplaced);
+      SetResult second =
+          chatMessageService.setReaction(roomId.toString(), messageId, userId.toString(), "❤️");
+      assertEquals(SetKind.UPDATED, second.kind());
+      assertEquals("👍", second.previousReaction());
+      assertTrue(second.updatedAt().isAfter(first.updatedAt()));
 
       List<MessageReaction> reactions = chatMessageService.getReactions(messageId);
       assertEquals(1, reactions.size());
       assertEquals("❤️", reactions.get(0).getReaction());
+      assertTrue(reactions.get(0).getUpdatedAt().isEqual(second.updatedAt()));
     }
 
     @Test
@@ -162,12 +170,16 @@ class PinReactionSingleIT {
       UUID roomId = seedRoom();
       String messageId = seedMessage(roomId, "hello");
 
-      chatMessageService.addReaction(roomId.toString(), messageId, userId.toString(), "👍");
-      Optional<String> replaced =
-          chatMessageService.addReaction(roomId.toString(), messageId, userId.toString(), "👍");
+      SetResult first =
+          chatMessageService.setReaction(roomId.toString(), messageId, userId.toString(), "👍");
+      SetResult again =
+          chatMessageService.setReaction(roomId.toString(), messageId, userId.toString(), "👍");
 
-      assertTrue(replaced.isEmpty());
-      assertEquals(1, chatMessageService.getReactions(messageId).size());
+      assertEquals(SetKind.UNCHANGED, again.kind());
+      assertNull(again.updatedAt());
+      List<MessageReaction> reactions = chatMessageService.getReactions(messageId);
+      assertEquals(1, reactions.size());
+      assertTrue(reactions.get(0).getUpdatedAt().isEqual(first.updatedAt()));
     }
 
     @Test
@@ -176,12 +188,46 @@ class PinReactionSingleIT {
       UUID roomId = seedRoom();
       String messageId = seedMessage(roomId, "hello");
 
-      chatMessageService.addReaction(roomId.toString(), messageId, userId.toString(), "👍");
-      Optional<String> removed =
+      SetResult set =
+          chatMessageService.setReaction(roomId.toString(), messageId, userId.toString(), "👍");
+      Optional<Removed> removed =
           chatMessageService.removeReaction(roomId.toString(), messageId, userId.toString());
 
-      assertEquals(Optional.of("👍"), removed);
+      assertEquals("👍", removed.orElseThrow().reaction());
+      assertTrue(removed.get().deletedAt().isAfter(set.updatedAt()));
       assertTrue(chatMessageService.getReactions(messageId).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Concurrent first-time sets of the same user end with one row and one ADDED")
+    void concurrentSets() throws Exception {
+      UUID roomId = seedRoom();
+      String messageId = seedMessage(roomId, "hello");
+      int threads = 8;
+      ExecutorService executor = Executors.newFixedThreadPool(threads);
+      CountDownLatch start = new CountDownLatch(1);
+      try {
+        List<Future<SetResult>> results = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+          String emoji = "e" + i;
+          results.add(
+              executor.submit(
+                  () -> {
+                    start.await();
+                    return chatMessageService.setReaction(
+                        roomId.toString(), messageId, userId.toString(), emoji);
+                  }));
+        }
+        start.countDown();
+        List<SetResult> done = new ArrayList<>();
+        for (Future<SetResult> f : results) {
+          done.add(f.get(30, TimeUnit.SECONDS));
+        }
+        assertEquals(1, done.stream().filter(r -> r.kind() == SetKind.ADDED).count());
+      } finally {
+        executor.shutdownNow();
+      }
+      assertEquals(1, chatMessageService.getReactions(messageId).size());
     }
   }
 }

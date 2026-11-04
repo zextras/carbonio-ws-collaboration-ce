@@ -126,14 +126,8 @@ components:
       properties:
         type:
           $ref: "#/components/schemas/EventType"
-        sentDate:
-          type: string
-          format: date-time
-          description: Timestamp when the event was sent (ISO 8601 format with offset)
-          example: "2025-07-09T10:30:00.000Z"
       required:
         - type
-        - sentDate
 
     # Room Events
     RoomCreated:
@@ -420,9 +414,14 @@ components:
             roomId:
               type: string
               format: uuid
+            createdAt:
+              type: string
+              format: date-time
+              description: "the meeting's createdAt, the same value REST returns"
           required:
             - meetingId
             - roomId
+            - createdAt
 
     MeetingDeleted:
       allOf:
@@ -448,9 +447,14 @@ components:
               type: string
               format: uuid
               description: UUID of the user who joined
+            joinedAt:
+              type: string
+              format: date-time
+              description: "the participant's joinedAt, the same value REST returns; published after the participant is stored"
           required:
             - meetingId
             - userId
+            - joinedAt
 
     MeetingParticipantLeft:
       allOf:
@@ -624,6 +628,11 @@ components:
               format: date-time
               description: "createdAt of the systemEventId system event: the timeline item's createdAt and the itemCreatedAt a read marker on it gets; present exactly when systemEventId is"
               x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            durationSec:
+              type: integer
+              format: int64
+              description: "durationSec of the MEETING_ENDED system event (whole seconds between the meeting's startedAt and the line's createdAt); present exactly when systemEventId is"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - meetingId
             - endedBy
@@ -759,9 +768,14 @@ components:
             userId:
               type: string
               format: uuid
+            startedAt:
+              type: string
+              format: date-time
+              description: "the recording's startedAt, the same value REST returns as the meeting's recStartedAt"
           required:
             - meetingId
             - userId
+            - startedAt
 
     MeetingRecordingStopped:
       allOf:
@@ -941,12 +955,8 @@ components:
       properties:
         type:
           type: string
-        sentDate:
-          type: string
-          format: date-time
       required:
         - type
-        - sentDate
 
     MessageReceived:
       allOf:
@@ -1017,6 +1027,7 @@ components:
             deletedAt:
               type: string
               format: date-time
+              description: "the message's deletedAt, the same value REST returns in deletedInfo"
           required:
             - messageId
             - roomId
@@ -1040,6 +1051,7 @@ components:
             timestamp:
               type: string
               format: date-time
+              description: "the pin time: the room pin's pinnedAt returned by REST, equal to systemEventCreatedAt"
             message:
               $ref: "#/components/schemas/TimelineMessage"
               description: "the pinned message, same shape as a timeline message; a reply carries replyToId/repliedMessage only when the original is visible to the recipient"
@@ -1076,6 +1088,7 @@ components:
             timestamp:
               type: string
               format: date-time
+              description: "the unpin time, equal to systemEventCreatedAt of the MESSAGE_UNPINNED system event"
             systemEventId:
               type: string
               description: "id of the system event (timeline item) created by this action, if any"
@@ -1107,13 +1120,27 @@ components:
               type: string
             reaction:
               type: string
+              description: "the new emoji on added/updated, the removed emoji on removed"
             operation:
               type: string
-              enum: [added, removed]
+              enum: [added, updated, removed]
               description: >
-                added when the user added this reaction, removed when the user removed it. A user has
-                one reaction per message: replacing it sends removed for the old emoji, then added for
-                the new one.
+                added: the user had no reaction; updated: the user replaced a different reaction
+                (previousReaction); removed: the user removed it. One event per write.
+            previousReaction:
+              type: string
+              description: "the replaced emoji, only on updated"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            updatedAt:
+              type: string
+              format: date-time
+              description: "the reaction's updatedAt, the same value REST returns; on added and updated"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            deletedAt:
+              type: string
+              format: date-time
+              description: "database time of the removal, not stored; only on removed"
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
           required:
             - messageId
             - roomId
@@ -1184,14 +1211,10 @@ components:
                 started while the user is typing, stopped when they stop. The server relays any other
                 value sent by a client as started. Best-effort: hide the indicator after about 7 seconds
                 without a new started.
-            timestamp:
-              type: string
-              format: date-time
           required:
             - roomId
             - userId
             - status
-            - timestamp
 
     WsError:
       allOf:

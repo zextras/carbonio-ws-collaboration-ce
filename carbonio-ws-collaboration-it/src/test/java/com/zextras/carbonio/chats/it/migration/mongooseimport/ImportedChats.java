@@ -11,6 +11,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +62,7 @@ public final class ImportedChats {
   }
 
   public record Reaction(
-      String messageId, String userId, String reaction, LocalDateTime createdAt) {}
+      String messageId, String userId, String reaction, LocalDateTime updatedAt) {}
 
   public record Pin(String roomId, String messageId, String pinnedBy, LocalDateTime pinnedAt) {}
 
@@ -111,7 +113,7 @@ public final class ImportedChats {
 
   public List<Reaction> reactions(String messageId) {
     return query(
-        "SELECT message_id, user_id, reaction, created_at FROM chats.message_reaction"
+        "SELECT message_id, user_id, reaction, updated_at FROM chats.message_reaction"
             + " WHERE message_id = ? ORDER BY user_id",
         rs -> new Reaction(rs.getString(1), rs.getString(2), rs.getString(3), time(rs, 4)),
         messageId);
@@ -237,6 +239,11 @@ public final class ImportedChats {
   }
 
   private static LocalDateTime time(ResultSet rs, int column) throws SQLException {
-    return rs.getObject(column, LocalDateTime.class);
+    return utc(rs, column);
+  }
+
+  static LocalDateTime utc(ResultSet rs, int column) throws SQLException {
+    OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
+    return value == null ? null : value.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
   }
 }

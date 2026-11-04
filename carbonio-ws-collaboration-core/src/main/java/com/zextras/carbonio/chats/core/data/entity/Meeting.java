@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.data.entity;
 
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
-import io.ebean.annotation.WhenCreated;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,9 +40,8 @@ public class Meeting {
   @Enumerated(EnumType.STRING)
   private MeetingType meetingType;
 
-  @Column(name = "CREATED_AT")
+  @Column(name = "CREATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenCreated
   private OffsetDateTime createdAt;
 
   @Column(name = "STARTED_AT")

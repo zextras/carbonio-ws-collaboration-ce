@@ -54,13 +54,14 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
 
   @Override
   public Subscription update(Subscription subscription) {
-    db.update(subscription);
+    TimedUpdate.update(db, subscription, TimedUpdate.UPDATED_AT_NOW);
     return subscription;
   }
 
   @Override
+  @Transactional
   public List<Subscription> updateAll(List<Subscription> subscriptions) {
-    db.updateAll(subscriptions);
+    subscriptions.forEach(this::update);
     return subscriptions;
   }
 

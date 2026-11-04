@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.it.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -30,7 +31,6 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -108,11 +108,7 @@ class RoomMemberFanOutIT {
     assertNoEvent(moverQueue);
 
     subscriptionRepository.insert(
-        Subscription.create(room, mover.toString())
-            .joinedAt(OffsetDateTime.now())
-            .owner(false)
-            .temporary(false)
-            .external(false));
+        Subscription.create(room, mover.toString()).owner(false).temporary(false).external(false));
     send("second");
 
     assertEquals("second", nextEvent(moverQueue).get("message").get("text").asText());
@@ -123,7 +119,10 @@ class RoomMemberFanOutIT {
   void typing_memberRemovedElsewhere_rejected() throws Exception {
     String stayerQueue = bindQueue(stayer);
     typingHandler.handle(mover.toString(), typing(), openSession());
-    nextEvent(stayerQueue);
+    JsonNode typingEvent = nextEvent(stayerQueue);
+    assertEquals("Typing", typingEvent.get("type").asText());
+    assertFalse(typingEvent.has("timestamp"));
+    assertFalse(typingEvent.has("sentDate"));
 
     subscriptionRepository.delete(room.getId(), mover.toString());
     Session session = openSession();

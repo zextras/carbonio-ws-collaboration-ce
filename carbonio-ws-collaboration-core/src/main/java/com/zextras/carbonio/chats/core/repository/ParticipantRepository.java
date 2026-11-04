@@ -24,6 +24,15 @@ public interface ParticipantRepository {
 
   Participant update(Participant participant);
 
+  /**
+   * Raises or lowers the hand of the participant, stamping the database clock when raised
+   *
+   * @param participant {@link Participant} to modify
+   * @param raised true to raise the hand, false to lower it
+   * @return {@link Participant} refreshed with the stored times
+   */
+  Participant setHandRaised(Participant participant, boolean raised);
+
   boolean remove(Participant participant);
 
   void clear(String meetingId);

@@ -20,7 +20,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
-import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -36,8 +35,6 @@ import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,7 +54,6 @@ public class MembersServiceImpl implements MembersService {
   private final MeetingService meetingService;
   private final ParticipantService participantService;
   private final ChatMessageService chatMessageService;
-  private final DatabaseClock databaseClock;
   private final SystemEventContentFactory systemEventContentFactory;
 
   @Inject
@@ -71,7 +67,6 @@ public class MembersServiceImpl implements MembersService {
       MeetingService meetingService,
       ParticipantService participantService,
       ChatMessageService chatMessageService,
-      DatabaseClock databaseClock,
       SystemEventContentFactory systemEventContentFactory) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
@@ -82,7 +77,6 @@ public class MembersServiceImpl implements MembersService {
     this.meetingService = meetingService;
     this.participantService = participantService;
     this.chatMessageService = chatMessageService;
-    this.databaseClock = databaseClock;
     this.systemEventContentFactory = systemEventContentFactory;
   }
 
@@ -96,9 +90,7 @@ public class MembersServiceImpl implements MembersService {
     validateMemberPresence(memberIds, room);
     validateUserExistence(memberIds, currentUser);
 
-    OffsetDateTime currentDateTime = databaseClock.now();
-    List<AddedMember> addedMembers =
-        persistAddedMembers(room, uniqueMembers, currentUser, currentDateTime);
+    List<AddedMember> addedMembers = persistAddedMembers(room, uniqueMembers, currentUser);
 
     List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
     for (AddedMember added : addedMembers) {
@@ -111,8 +103,7 @@ public class MembersServiceImpl implements MembersService {
               .addedBy(UUID.fromString(added.systemEvent().getActorId()))
               .systemEventId(added.systemEvent().getId())
               .systemEventCreatedAt(added.systemEvent().getCreatedAt())
-              .type(EventType.ROOM_MEMBER_ADDED)
-              .sentDate(OffsetDateTime.now()));
+              .type(EventType.ROOM_MEMBER_ADDED));
     }
 
     return addedMembers.stream().map(AddedMember::inserted).toList();
@@ -123,15 +114,11 @@ public class MembersServiceImpl implements MembersService {
 
   @Transactional
   private List<AddedMember> persistAddedMembers(
-      Room room,
-      List<MemberToInsertDto> members,
-      UserPrincipal currentUser,
-      OffsetDateTime joinedAt) {
+      Room room, List<MemberToInsertDto> members, UserPrincipal currentUser) {
     List<MemberInsertedDto> inserted = new ArrayList<>();
     for (MemberToInsertDto member : members) {
-      inserted.add(processRoomSubscription(room, member, joinedAt));
+      inserted.add(processRoomSubscription(room, member));
     }
-    OffsetDateTime firstEventAt = databaseClock.now();
     List<AddedMember> addedMembers = new ArrayList<>();
     for (int i = 0; i < members.size(); i++) {
       MemberToInsertDto member = members.get(i);
@@ -143,8 +130,7 @@ public class MembersServiceImpl implements MembersService {
               .actorId(currentUser.getId())
               .content(
                   systemEventContentFactory.memberAdded(
-                      currentUser.getId(), List.of(member.getUserId().toString())))
-              .createdAt(firstEventAt.plus(i, ChronoUnit.MILLIS));
+                      currentUser.getId(), List.of(member.getUserId().toString())));
       chatMessageService.insertSystemEvent(systemEvent);
       addedMembers.add(new AddedMember(member, inserted.get(i), systemEvent));
     }
@@ -180,8 +166,7 @@ public class MembersServiceImpl implements MembersService {
             });
   }
 
-  private MemberInsertedDto processRoomSubscription(
-      Room room, MemberToInsertDto member, OffsetDateTime dateTime) {
+  private MemberInsertedDto processRoomSubscription(Room room, MemberToInsertDto member) {
     Subscription subscription =
         subscriptionRepository.insert(
             Subscription.create()
@@ -189,8 +174,7 @@ public class MembersServiceImpl implements MembersService {
                 .userId(member.getUserId().toString())
                 .owner(member.isOwner())
                 .external(member.isExternal())
-                .temporary(member.isTemporary())
-                .joinedAt(dateTime));
+                .temporary(member.isTemporary()));
     room.getSubscriptions().add(subscription);
 
     MemberInsertedDto memberInsertedDto =
@@ -281,8 +265,7 @@ public class MembersServiceImpl implements MembersService {
             .removedBy(UUID.fromString(systemEvent.getActorId()))
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
-            .type(EventType.ROOM_MEMBER_REMOVED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_MEMBER_REMOVED));
   }
 
   private void validateLastRoomOwner(String userId, Room room) {
@@ -316,8 +299,7 @@ public class MembersServiceImpl implements MembersService {
         RoomOwnerPromoted.create()
             .roomId(roomId)
             .userId(userId)
-            .type(EventType.ROOM_OWNER_PROMOTED)
-            .sentDate(OffsetDateTime.now()));
+            .type(EventType.ROOM_OWNER_PROMOTED));
   }
 
   @Override
@@ -329,11 +311,7 @@ public class MembersServiceImpl implements MembersService {
     subscriptionRepository.update(subscription);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomOwnerDemoted.create()
-            .roomId(roomId)
-            .userId(userId)
-            .type(EventType.ROOM_OWNER_DEMOTED)
-            .sentDate(OffsetDateTime.now()));
+        RoomOwnerDemoted.create().roomId(roomId).userId(userId).type(EventType.ROOM_OWNER_DEMOTED));
   }
 
   private static Subscription getSubscriptionFromRoom(UUID userId, Room room) {
@@ -386,12 +364,10 @@ public class MembersServiceImpl implements MembersService {
                         .roomId(roomId)
                         .userId(UUID.fromString(subscription.getUserId()))
                         .type(EventType.ROOM_OWNER_PROMOTED)
-                        .sentDate(OffsetDateTime.now())
                     : RoomOwnerDemoted.create()
                         .roomId(roomId)
                         .userId(UUID.fromString(subscription.getUserId()))
-                        .type(EventType.ROOM_OWNER_DEMOTED)
-                        .sentDate(OffsetDateTime.now())));
+                        .type(EventType.ROOM_OWNER_DEMOTED)));
   }
 
   private static void validateUserRequest(List<MemberDto> members, UserPrincipal currentUser) {
@@ -406,8 +382,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<Subscription> initRoomSubscriptions(
-      List<MemberDto> members, Room room, OffsetDateTime joinedAt) {
+  public List<Subscription> initRoomSubscriptions(List<MemberDto> members, Room room) {
     return members.stream()
         .map(
             member ->
@@ -416,8 +391,8 @@ public class MembersServiceImpl implements MembersService {
                     .userId(member.getUserId().toString())
                     .room(room)
                     // When we have a one-to-one, both members are owners
-                    .owner(member.isOwner() || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
-                    .joinedAt(joinedAt))
+                    .owner(member.isOwner() || RoomTypeDto.ONE_TO_ONE.equals(room.getType())))
+        .map(subscriptionRepository::insert)
         .toList();
   }
 }

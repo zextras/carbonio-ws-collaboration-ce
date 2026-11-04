@@ -51,11 +51,7 @@ public class PresenceBroadcaster {
   public void broadcastPresence(String userId, boolean online, OffsetDateTime lastActivity) {
     try {
       WsEvent event =
-          PresenceChanged.create()
-              .userId(userId)
-              .online(online)
-              .lastActivity(lastActivity)
-              .sentDate(OffsetDateTime.now());
+          PresenceChanged.create().userId(userId).online(online).lastActivity(lastActivity);
       String json = objectMapper.writeValueAsString(event);
 
       // Notify all users who should receive presence updates for this user

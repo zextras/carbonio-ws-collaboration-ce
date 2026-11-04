@@ -5,11 +5,13 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -23,7 +25,6 @@ import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
-import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
@@ -32,6 +33,9 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessagePinRepository;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetKind;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -129,58 +133,18 @@ class ChatMessageServiceImplTest {
   }
 
   @Nested
-  @DisplayName("addReaction (single per user)")
-  class AddReaction {
+  @DisplayName("setReaction (single per user)")
+  class SetReaction {
 
     @Test
-    @DisplayName("Inserts a fresh reaction when the user has none; reports no replacement")
-    void fresh() {
+    @DisplayName("Delegates to the repository after the message checks and returns its result")
+    void delegates() {
+      SetResult expected =
+          new SetResult(SetKind.ADDED, null, OffsetDateTime.parse("2026-01-01T10:00:00Z"));
       when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
-          .thenReturn(Optional.empty());
+      when(reactionRepository.set(MESSAGE_ID, USER_ID, "👍")).thenReturn(expected);
 
-      Optional<String> replaced =
-          chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍");
-
-      assertTrue(replaced.isEmpty());
-      verify(reactionRepository).insert(any(MessageReaction.class));
-      verify(reactionRepository, never()).update(any(MessageReaction.class));
-      verify(reactionRepository, never()).delete(any(), any());
-    }
-
-    @Test
-    @DisplayName("Re-sending the same emoji is a no-op; reports no replacement")
-    void sameEmojiNoOp() {
-      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
-          .thenReturn(Optional.of(MessageReaction.create(message(), USER_ID, "👍")));
-
-      Optional<String> replaced =
-          chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍");
-
-      assertTrue(replaced.isEmpty());
-      verify(reactionRepository, never()).insert(any(MessageReaction.class));
-      verify(reactionRepository, never()).update(any(MessageReaction.class));
-      verify(reactionRepository, never()).delete(any(), any());
-    }
-
-    @Test
-    @DisplayName("A different emoji replaces the previous one and reports the replaced emoji")
-    void replacesDifferentEmoji() {
-      MessageReaction existing = MessageReaction.create(message(), USER_ID, "👍");
-      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
-          .thenReturn(Optional.of(existing));
-
-      Optional<String> replaced =
-          chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "❤️");
-
-      assertTrue(replaced.isPresent());
-      assertEquals("👍", replaced.get());
-      ArgumentCaptor<MessageReaction> captor = ArgumentCaptor.forClass(MessageReaction.class);
-      verify(reactionRepository).update(captor.capture());
-      assertEquals("❤️", captor.getValue().getReaction());
-      verify(reactionRepository, never()).insert(any(MessageReaction.class));
+      assertEquals(expected, chatMessageService.setReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
     }
 
     @Test
@@ -190,7 +154,8 @@ class ChatMessageServiceImplTest {
 
       assertThrows(
           NotFoundException.class,
-          () -> chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
+          () -> chatMessageService.setReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
+      verify(reactionRepository, never()).set(any(), any(), any());
     }
 
     @Test
@@ -200,9 +165,21 @@ class ChatMessageServiceImplTest {
 
       assertThrows(
           NotFoundException.class,
-          () -> chatMessageService.addReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
-      verify(reactionRepository, never()).insert(any(MessageReaction.class));
-      verify(reactionRepository, never()).update(any(MessageReaction.class));
+          () -> chatMessageService.setReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
+      verify(reactionRepository, never()).set(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Throws NotFound when the message is in another room")
+    void otherRoom() {
+      when(messageRepository.getById(MESSAGE_ID))
+          .thenReturn(
+              Optional.of(Message.create().id(MESSAGE_ID).roomId("other-room").senderId(USER_ID)));
+
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.setReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
+      verify(reactionRepository, never()).set(any(), any(), any());
     }
   }
 
@@ -211,30 +188,23 @@ class ChatMessageServiceImplTest {
   class RemoveReaction {
 
     @Test
-    @DisplayName("Removes the user's reaction and reports the removed emoji")
+    @DisplayName("Returns what the repository removed")
     void removesExisting() {
+      Removed expected = new Removed("👍", OffsetDateTime.parse("2026-01-01T10:00:00Z"));
       when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
-          .thenReturn(Optional.of(MessageReaction.create(message(), USER_ID, "👍")));
+      when(reactionRepository.remove(MESSAGE_ID, USER_ID)).thenReturn(Optional.of(expected));
 
-      Optional<String> removed = chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID);
-
-      assertTrue(removed.isPresent());
-      assertEquals("👍", removed.get());
-      verify(reactionRepository).delete(MESSAGE_ID, USER_ID);
+      assertEquals(
+          Optional.of(expected), chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
     }
 
     @Test
-    @DisplayName("Is a no-op when the user has no reaction")
+    @DisplayName("Is empty when the user has no reaction")
     void noReaction() {
       when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
-          .thenReturn(Optional.empty());
+      when(reactionRepository.remove(MESSAGE_ID, USER_ID)).thenReturn(Optional.empty());
 
-      Optional<String> removed = chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID);
-
-      assertTrue(removed.isEmpty());
-      verify(reactionRepository, never()).delete(any(), any());
+      assertTrue(chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID).isEmpty());
     }
 
     @Test
@@ -247,7 +217,7 @@ class ChatMessageServiceImplTest {
       assertThrows(
           NotFoundException.class,
           () -> chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
-      verify(reactionRepository, never()).delete(any(), any());
+      verify(reactionRepository, never()).remove(any(), any());
     }
 
     @Test
@@ -263,17 +233,17 @@ class ChatMessageServiceImplTest {
     @Test
     @DisplayName("Ignores the visibility floor: a reaction on a hidden message can be removed")
     void ignoresVisibilityFloor() {
+      Removed expected = new Removed("👍", OffsetDateTime.parse("2026-01-01T10:00:00Z"));
       when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
           .thenReturn(
               Optional.of(new VisibilityFloor(OffsetDateTime.parse("2026-01-01T10:00:00Z"))));
       when(messageRepository.getById(MESSAGE_ID))
           .thenReturn(
               Optional.of(message(MESSAGE_ID, OffsetDateTime.parse("2025-01-01T10:00:00Z"))));
-      when(reactionRepository.getByUserAndMessage(MESSAGE_ID, USER_ID))
-          .thenReturn(Optional.of(MessageReaction.create(message(), USER_ID, "👍")));
+      when(reactionRepository.remove(MESSAGE_ID, USER_ID)).thenReturn(Optional.of(expected));
 
       assertEquals(
-          Optional.of("👍"), chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+          Optional.of(expected), chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
     }
   }
 
@@ -284,7 +254,7 @@ class ChatMessageServiceImplTest {
     private final OffsetDateTime pinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00.123456Z");
 
     @Test
-    @DisplayName("Upserts the room pin and emits a MESSAGE_PINNED system event at the pin time")
+    @DisplayName("Upserts the room pin and emits a MESSAGE_PINNED system event")
     void pins() {
       Message message = message();
       when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message));
@@ -292,16 +262,26 @@ class ChatMessageServiceImplTest {
           .thenReturn(
               Optional.of(MessagePin.create(ROOM_ID, MESSAGE_ID, USER_ID).pinnedAt(pinnedAt)));
 
+      SystemEvent stubbed =
+          SystemEvent.create()
+              .id("stored-event")
+              .roomId(ROOM_ID)
+              .type("MESSAGE_PINNED")
+              .actorId(USER_ID)
+              .createdAt(pinnedAt);
+      when(systemEventRepository.insertAt(any(SystemEvent.class), eq(pinnedAt)))
+          .thenReturn(stubbed);
+
       PinResult returned = chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
 
       verify(pinRepository).pin(ROOM_ID, MESSAGE_ID, USER_ID);
       ArgumentCaptor<SystemEvent> captor = ArgumentCaptor.forClass(SystemEvent.class);
-      verify(systemEventRepository).insert(captor.capture());
+      verify(systemEventRepository).insertAt(captor.capture(), eq(pinnedAt));
       assertEquals("MESSAGE_PINNED", captor.getValue().getType());
       assertEquals(USER_ID, captor.getValue().getActorId());
-      assertEquals(pinnedAt, captor.getValue().getCreatedAt());
-      assertEquals(captor.getValue().getId(), returned.systemEvent().getId());
-      assertEquals(USER_ID, returned.systemEvent().getActorId());
+      assertNull(captor.getValue().getCreatedAt());
+      assertSame(stubbed, returned.systemEvent());
+      assertEquals(pinnedAt, returned.systemEvent().getCreatedAt());
       assertSame(message, returned.message());
     }
 
@@ -337,7 +317,7 @@ class ChatMessageServiceImplTest {
       assertThrows(
           NotFoundException.class,
           () -> chatMessageService.pinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
-      verify(systemEventRepository, never()).insert(any(SystemEvent.class));
+      verify(systemEventRepository, never()).insertAt(any(SystemEvent.class), any());
     }
   }
 

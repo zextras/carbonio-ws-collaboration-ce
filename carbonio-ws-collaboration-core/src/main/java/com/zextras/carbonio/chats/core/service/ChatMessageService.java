@@ -13,6 +13,8 @@ import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -30,6 +32,14 @@ public interface ChatMessageService {
    * @return the persisted {@link SystemEvent}
    */
   SystemEvent insertSystemEvent(SystemEvent event);
+
+  /**
+   * Updates an already persisted system event.
+   *
+   * @param event {@link SystemEvent} to update
+   * @return the updated {@link SystemEvent}
+   */
+  SystemEvent updateSystemEvent(SystemEvent event);
 
   /**
    * Retrieves all system events for a room ordered by {@code createdAt} ascending.
@@ -103,17 +113,16 @@ public interface ChatMessageService {
   // ==================== REACTION OPERATIONS ====================
 
   /**
-   * Sets the reaction a user has on a message. A user has a single reaction per message: an
-   * existing reaction with a different emoji is replaced.
+   * Sets the reaction a user has on a message. A user has a single reaction per message: it is
+   * created, replaced when the emoji differs, or left untouched when it is the same.
    *
    * @param roomId room identifier the message must belong to
    * @param messageId message identifier
    * @param userId user identifier
    * @param reaction emoji reaction
-   * @return the emoji that was replaced, or empty if this was a fresh reaction or an unchanged
-   *     re-send of the same emoji
+   * @return the outcome with the previous emoji and the stored updatedAt
    */
-  Optional<String> addReaction(String roomId, String messageId, String userId, String reaction);
+  SetResult setReaction(String roomId, String messageId, String userId, String reaction);
 
   /**
    * Removes the reaction a user has on a message. The message must be in the room (the cleared
@@ -122,9 +131,10 @@ public interface ChatMessageService {
    * @param roomId room identifier the message must belong to
    * @param messageId message identifier
    * @param userId user identifier
-   * @return the emoji that was removed, or empty if the user had no reaction
+   * @return the removed emoji and the database time of the delete, or empty if the user had no
+   *     reaction
    */
-  Optional<String> removeReaction(String roomId, String messageId, String userId);
+  Optional<Removed> removeReaction(String roomId, String messageId, String userId);
 
   /**
    * Gets all reactions for a message

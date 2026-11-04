@@ -40,7 +40,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
-import com.zextras.carbonio.chats.core.repository.DatabaseClock;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -81,7 +80,6 @@ class MembersServiceImplTest {
   private final MeetingService meetingService;
   private final ParticipantService participantService;
   private final ChatMessageService chatMessageService;
-  private final DatabaseClock databaseClock;
 
   public MembersServiceImplTest(SubscriptionMapper subscriptionMapper) {
     this.roomService = mock(RoomService.class);
@@ -92,8 +90,6 @@ class MembersServiceImplTest {
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
     this.chatMessageService = mock(ChatMessageService.class);
-    this.databaseClock = mock(DatabaseClock.class);
-    when(databaseClock.now()).thenReturn(OffsetDateTime.parse("2026-01-01T10:00:00Z"));
     this.membersService =
         new MembersServiceImpl(
             roomService,
@@ -105,11 +101,9 @@ class MembersServiceImplTest {
             meetingService,
             participantService,
             chatMessageService,
-            databaseClock,
             new SystemEventContentFactory(new ObjectMapper()));
   }
 
-  private static final OffsetDateTime JOINED_AT = OffsetDateTime.parse("2026-01-01T10:00:00Z");
   private static final OffsetDateTime PERSISTED_AT =
       OffsetDateTime.parse("2026-10-23T09:00:00.123456Z");
   private static UUID user1Id;
@@ -415,6 +409,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly adds a user as a member of group room clearing history")
     void insertRoomMember_historyCleared() {
+      insertSetsCreatedAt();
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           new ArrayList<>(
@@ -452,7 +447,6 @@ class MembersServiceImplTest {
       assertFalse(capturedSubscription.isOwner());
       assertFalse(capturedSubscription.isExternal());
       assertFalse(capturedSubscription.isTemporary());
-      assertNotNull(capturedSubscription.getJoinedAt());
 
       verify(roomUserSettingsRepository, times(1))
           .setClearedAtNow(roomId.toString(), user2Id.toString());
@@ -467,12 +461,13 @@ class MembersServiceImplTest {
                   .isOwner(false)
                   .addedBy(user1Id)
                   .systemEventId(systemEventId)
-                  .systemEventCreatedAt(JOINED_AT));
+                  .systemEventCreatedAt(PERSISTED_AT));
     }
 
     @Test
     @DisplayName("Correctly adds a temporary member to a group room")
     void insertRoomMember_temporaryMember() {
+      insertSetsCreatedAt();
       Room room = generateRoom(RoomTypeDto.TEMPORARY);
       room.subscriptions(
           new ArrayList<>(
@@ -507,7 +502,6 @@ class MembersServiceImplTest {
       assertFalse(capturedSubscription.isOwner());
       assertFalse(capturedSubscription.isExternal());
       assertTrue(capturedSubscription.isTemporary());
-      assertNotNull(capturedSubscription.getJoinedAt());
 
       verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
       String systemEventId = capturedSystemEvent().getId();
@@ -520,12 +514,13 @@ class MembersServiceImplTest {
                   .isOwner(false)
                   .addedBy(user1Id)
                   .systemEventId(systemEventId)
-                  .systemEventCreatedAt(JOINED_AT));
+                  .systemEventCreatedAt(PERSISTED_AT));
     }
 
     @Test
     @DisplayName("Correctly adds an external member to a group room")
     void insertRoomMember_externalMember() {
+      insertSetsCreatedAt();
       Room room = generateRoom(RoomTypeDto.TEMPORARY);
       room.subscriptions(
           new ArrayList<>(
@@ -560,7 +555,6 @@ class MembersServiceImplTest {
       assertFalse(capturedSubscription.isOwner());
       assertTrue(capturedSubscription.isExternal());
       assertFalse(capturedSubscription.isTemporary());
-      assertNotNull(capturedSubscription.getJoinedAt());
 
       verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
       String systemEventId = capturedSystemEvent().getId();
@@ -573,7 +567,7 @@ class MembersServiceImplTest {
                   .isOwner(false)
                   .addedBy(user1Id)
                   .systemEventId(systemEventId)
-                  .systemEventCreatedAt(JOINED_AT));
+                  .systemEventCreatedAt(PERSISTED_AT));
     }
 
     @Test
@@ -607,8 +601,6 @@ class MembersServiceImplTest {
       assertEquals("MEMBER_ADDED", second.getType());
       assertEquals(List.of(user2Id.toString()), addedUserIds(first));
       assertEquals(List.of(user3Id.toString()), addedUserIds(second));
-      assertEquals(JOINED_AT, first.getCreatedAt());
-      assertEquals(JOINED_AT.plusNanos(1_000_000), second.getCreatedAt());
       ArgumentCaptor<RoomMemberAdded> events = ArgumentCaptor.forClass(RoomMemberAdded.class);
       verify(eventDispatcher, times(2))
           .sendToUserExchange(
@@ -698,8 +690,8 @@ class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("Owner update events carry their type and sent date")
-    void updateOwners_eventsCarryTypeAndSentDate() {
+    @DisplayName("Owner update events carry their type")
+    void updateOwners_eventsCarryType() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
       Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
@@ -724,9 +716,7 @@ class MembersServiceImplTest {
       ArgumentCaptor<DomainEvent> events = ArgumentCaptor.forClass(DomainEvent.class);
       verify(eventDispatcher, times(2)).sendToUserExchange(anyList(), events.capture());
       assertEquals(EventType.ROOM_OWNER_PROMOTED, events.getAllValues().get(0).getType());
-      assertNotNull(events.getAllValues().get(0).getSentDate());
       assertEquals(EventType.ROOM_OWNER_DEMOTED, events.getAllValues().get(1).getType());
-      assertNotNull(events.getAllValues().get(1).getSentDate());
     }
 
     @Test
@@ -1095,14 +1085,15 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly initialize a group room subscriptions")
     void initRoomSubscriptions_groupRoom() {
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenAnswer(i -> i.getArgument(0));
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
               List.of(
                   MemberDto.create().userId(user1Id),
                   MemberDto.create().userId(user2Id).owner(true),
                   MemberDto.create().userId(user3Id)),
-              generateRoom(RoomTypeDto.GROUP),
-              JOINED_AT);
+              generateRoom(RoomTypeDto.GROUP));
       assertNotNull(subscriptions);
       assertEquals(3, subscriptions.size());
 
@@ -1117,17 +1108,18 @@ class MembersServiceImplTest {
       assertEquals(user3Id.toString(), subscriptions.get(2).getUserId());
       assertEquals(roomId.toString(), subscriptions.get(2).getRoom().getId());
       assertFalse(subscriptions.get(2).isOwner());
-      subscriptions.forEach(sub -> assertEquals(JOINED_AT, sub.getJoinedAt()));
+      verify(subscriptionRepository, times(3)).insert(any(Subscription.class));
     }
 
     @Test
     @DisplayName("Correctly initialize a one-to-one room subscriptions")
     void initRoomSubscriptions_oneToOneRoom() {
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenAnswer(i -> i.getArgument(0));
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
               List.of(MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id)),
-              generateRoom(RoomTypeDto.ONE_TO_ONE),
-              JOINED_AT);
+              generateRoom(RoomTypeDto.ONE_TO_ONE));
       assertNotNull(subscriptions);
       assertEquals(2, subscriptions.size());
 
@@ -1138,6 +1130,7 @@ class MembersServiceImplTest {
       assertEquals(user2Id.toString(), subscriptions.get(1).getUserId());
       assertEquals(roomId.toString(), subscriptions.get(1).getRoom().getId());
       assertTrue(subscriptions.get(1).isOwner());
+      verify(subscriptionRepository, times(2)).insert(any(Subscription.class));
     }
   }
 }

@@ -29,7 +29,6 @@ import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
@@ -41,7 +40,6 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -73,7 +71,6 @@ class VisibilityIT {
   private final Channel channel;
   private final StorageMockServer storageMockServer;
   private final FileMetadataRepository fileMetadataRepository;
-  private final AppClock clock;
 
   private static UUID aUserId;
   private static UUID bUserId;
@@ -116,8 +113,7 @@ class VisibilityIT {
       ReadMarkerRepository readRepository,
       Channel channel,
       StorageMockServer storageMockServer,
-      FileMetadataRepository fileMetadataRepository,
-      Clock clock) {
+      FileMetadataRepository fileMetadataRepository) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
@@ -129,7 +125,6 @@ class VisibilityIT {
     this.channel = channel;
     this.storageMockServer = storageMockServer;
     this.fileMetadataRepository = fileMetadataRepository;
-    this.clock = (AppClock) clock;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.dispatcher.getRegistry().addSingletonResource(attachmentsApi);
   }
@@ -168,7 +163,6 @@ class VisibilityIT {
   private String saveMessage(
       UUID room, UUID sender, String text, OffsetDateTime at, String replyToId) {
     String id = UUID.randomUUID().toString();
-    clock.fixTimeAt(at.toInstant());
     messageRepository.insert(
         Message.create()
             .id(id)
@@ -176,7 +170,7 @@ class VisibilityIT {
             .senderId(sender.toString())
             .text(text)
             .replyToId(replyToId));
-    clock.removeFixTime();
+    integrationTestUtils.setMessageTime(id, at);
     return id;
   }
 
@@ -187,16 +181,15 @@ class VisibilityIT {
             .roomId(roomId.toString())
             .type(type)
             .actorId(aUserId.toString())
-            .content("{}")
-            .createdAt(at));
+            .content("{}"));
+    integrationTestUtils.setSystemEventTime(id, at);
   }
 
   private String saveFile(String name, OffsetDateTime at) {
     UUID id = UUID.randomUUID();
-    clock.fixTimeAt(at.toInstant());
     integrationTestUtils.generateAndSaveFileMetadata(
         id, name, "image/png", FileMetadataType.ATTACHMENT, aUserId, roomId);
-    clock.removeFixTime();
+    integrationTestUtils.setFileTime(id.toString(), at);
     return id.toString();
   }
 
@@ -266,9 +259,10 @@ class VisibilityIT {
   }
 
   private MockHttpResponse react(String messageId, String token) throws Exception {
-    String emoji = URLEncoder.encode("\uD83D\uDC4D", StandardCharsets.UTF_8);
-    return dispatcher.post(
-        String.format("/rooms/%s/messages/%s/reactions/%s", roomId, messageId, emoji), token);
+    return putJson(
+        String.format("/rooms/%s/messages/%s/reaction", roomId, messageId),
+        Map.of("reaction", "\uD83D\uDC4D"),
+        token);
   }
 
   private MockHttpResponse pin(String messageId, String token) throws Exception {
@@ -474,7 +468,6 @@ class VisibilityIT {
     private String attachmentOf(String name, OffsetDateTime fileAt, OffsetDateTime messageAt) {
       String fileId = saveFile(name, fileAt);
       String messageId = UUID.randomUUID().toString();
-      clock.fixTimeAt(messageAt.toInstant());
       messageRepository.insert(
           Message.create()
               .id(messageId)
@@ -482,7 +475,7 @@ class VisibilityIT {
               .senderId(aUserId.toString())
               .text(name)
               .attachmentId(fileId));
-      clock.removeFixTime();
+      integrationTestUtils.setMessageTime(messageId, messageAt);
       fileMetadataRepository.save(
           integrationTestUtils
               .getFileMetadataById(UUID.fromString(fileId))
@@ -865,7 +858,6 @@ class VisibilityIT {
     @Test
     @DisplayName("Room creator sees ROOM_CREATED and their first message, and can reply to it")
     void creatorSeesOwnBeginning() throws Exception {
-      clock.removeFixTime();
       MockHttpResponse created =
           dispatcher.post(
               "/rooms",
@@ -930,7 +922,6 @@ class VisibilityIT {
     @Test
     @DisplayName("A member added with history hidden sees its own added line and what follows")
     void addedWithHiddenHistory() throws Exception {
-      clock.removeFixTime();
       UUID lucy = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
       UUID hidden = MockedAccount.getAccount(MockedAccountType.SCHROEDER).getUUID();
       String hiddenToken = MockedAccount.getAccount(MockedAccountType.SCHROEDER).getToken();
@@ -1055,7 +1046,6 @@ class VisibilityIT {
   class CreationTimeline {
 
     private String create(String type, List<UUID> members) throws Exception {
-      clock.removeFixTime();
       MockHttpResponse created =
           dispatcher.post(
               "/rooms",
@@ -1135,15 +1125,14 @@ class VisibilityIT {
                 .getById(newRoomId, member.toString())
                 .orElseThrow()
                 .getJoinedAt();
-        assertEquals(lastCreationLineAt.toInstant(), joinedAt.toInstant());
+        assertTrue(joinedAt.isAfter(lastCreationLineAt));
       }
-      assertEquals(
-          roomCreatedAt.toInstant(),
+      assertTrue(
           integrationTestUtils
               .getRoomById(UUID.fromString(newRoomId))
               .orElseThrow()
               .getCreatedAt()
-              .toInstant());
+              .isBefore(roomCreatedAt));
     }
 
     @Test

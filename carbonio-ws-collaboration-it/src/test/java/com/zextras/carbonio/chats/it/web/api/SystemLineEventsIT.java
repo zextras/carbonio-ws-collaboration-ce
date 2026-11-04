@@ -33,9 +33,11 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.Database;
+import io.ebean.SqlRow;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +61,7 @@ class SystemLineEventsIT {
   private final SystemEventRepository systemEventRepository;
   private final Channel channel;
   private final StorageMockServer storageMockServer;
+  private final Database database;
 
   private static UUID aUserId;
   private static UUID bUserId;
@@ -80,13 +83,15 @@ class SystemLineEventsIT {
       IntegrationTestUtils integrationTestUtils,
       SystemEventRepository systemEventRepository,
       Channel channel,
-      StorageMockServer storageMockServer) {
+      StorageMockServer storageMockServer,
+      Database database) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.systemEventRepository = systemEventRepository;
     this.channel = channel;
     this.storageMockServer = storageMockServer;
+    this.database = database;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
 
@@ -121,6 +126,7 @@ class SystemLineEventsIT {
 
   private JsonNode nextEvent(String queue, String type) throws Exception {
     List<JsonNode> events = eventsUntil(queue, type);
+    events.forEach(e -> assertFalse(e.has("sentDate"), "sentDate must not be sent: " + e));
     return events.get(events.size() - 1);
   }
 
@@ -220,8 +226,7 @@ class SystemLineEventsIT {
     }
     assertEquals(dUserId.toString(), content(firstRow).get("addedUserIds").get(0).asText());
     assertEquals(eUserId.toString(), content(secondRow).get("addedUserIds").get(0).asText());
-    assertEquals(
-        1L, Duration.between(firstRow.getCreatedAt(), secondRow.getCreatedAt()).toMillis());
+    assertTrue(firstRow.getCreatedAt().isBefore(secondRow.getCreatedAt()));
     assertCreatedAt(firstRow, first, "systemEventCreatedAt");
     assertCreatedAt(secondRow, second, "systemEventCreatedAt");
     assertEquals(aUserId.toString(), first.get("addedBy").asText());
@@ -402,8 +407,7 @@ class SystemLineEventsIT {
     assertEquals("renamed", content(nameRow).get("name").asText());
     assertEquals(aUserId.toString(), content(descriptionRow).get("changedBy").asText());
     assertEquals("new description", content(descriptionRow).get("description").asText());
-    assertEquals(
-        1L, Duration.between(nameRow.getCreatedAt(), descriptionRow.getCreatedAt()).toMillis());
+    assertTrue(nameRow.getCreatedAt().isBefore(descriptionRow.getCreatedAt()));
     assertCreatedAt(nameRow, nameEvent, "systemEventCreatedAt");
     assertCreatedAt(descriptionRow, descriptionEvent, "systemEventCreatedAt");
 
@@ -616,5 +620,84 @@ class SystemLineEventsIT {
     assertTrue(
         timelineSystemEvents(roomId, aToken).stream()
             .noneMatch(e -> "ROOM_HISTORY_CLEARED".equals(e.get("type").asText())));
+  }
+
+  @Test
+  @DisplayName("MessageDeleted carries the persisted deletedAt, equal to the row's updatedAt")
+  void deletedAt() throws Exception {
+    assertEquals(
+        204,
+        dispatcher
+            .delete(String.format("/rooms/%s/messages/%s", roomId, messageId), aToken)
+            .getStatus());
+
+    JsonNode event = nextEvent(queueB, "MessageDeleted");
+    SqlRow row =
+        database
+            .sqlQuery("SELECT deleted_at, updated_at FROM chats.message WHERE id = :id")
+            .setParameter("id", messageId)
+            .findOne();
+    OffsetDateTime deletedAt = row.getTimestamp("deleted_at").toInstant().atOffset(ZoneOffset.UTC);
+    assertEquals(
+        deletedAt.toInstant(),
+        row.getTimestamp("updated_at").toInstant(),
+        "deleted_at must equal updated_at");
+    assertTrue(
+        deletedAt.isEqual(OffsetDateTime.parse(event.get("deletedAt").asText())),
+        "event " + event.get("deletedAt").asText() + " != persisted " + deletedAt);
+  }
+
+  @Test
+  @DisplayName("Pin: REST pinnedAt, the MESSAGE_PINNED line and the event share one time")
+  void pinTimesAligned() throws Exception {
+    assertEquals(
+        204,
+        dispatcher
+            .put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken)
+            .getStatus());
+
+    JsonNode event = nextEvent(queueB, "MessagePinned");
+    SystemEvent row = persisted(event.get("systemEventId").asText());
+    OffsetDateTime pinnedAt =
+        database
+            .sqlQuery("SELECT pinned_at FROM chats.message_pin WHERE room_id = :roomId")
+            .setParameter("roomId", roomId.toString())
+            .findOne()
+            .getTimestamp("pinned_at")
+            .toInstant()
+            .atOffset(ZoneOffset.UTC);
+    assertTrue(row.getCreatedAt().isEqual(pinnedAt), row.getCreatedAt() + " != " + pinnedAt);
+    assertCreatedAt(row, event, "systemEventCreatedAt");
+    assertCreatedAt(row, event, "timestamp");
+  }
+
+  @Test
+  @DisplayName("Unpin and unpin-on-delete: timestamp equals the MESSAGE_UNPINNED line time")
+  void unpinTimesAligned() throws Exception {
+    assertEquals(
+        204,
+        dispatcher
+            .put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken)
+            .getStatus());
+    assertEquals(
+        204,
+        dispatcher
+            .delete(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), aToken)
+            .getStatus());
+    JsonNode unpinned = nextEvent(queueB, "MessageUnpinned");
+    assertCreatedAt(persisted(unpinned.get("systemEventId").asText()), unpinned, "timestamp");
+
+    assertEquals(
+        204,
+        dispatcher
+            .put(String.format("/rooms/%s/messages/%s/pin", roomId, messageId), null, aToken)
+            .getStatus());
+    assertEquals(
+        204,
+        dispatcher
+            .delete(String.format("/rooms/%s/messages/%s", roomId, messageId), aToken)
+            .getStatus());
+    JsonNode onDelete = nextEvent(queueB, "MessageUnpinned");
+    assertCreatedAt(persisted(onDelete.get("systemEventId").asText()), onDelete, "timestamp");
   }
 }

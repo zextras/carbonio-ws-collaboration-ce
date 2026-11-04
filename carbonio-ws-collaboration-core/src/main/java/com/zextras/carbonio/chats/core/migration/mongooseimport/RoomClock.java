@@ -5,18 +5,18 @@
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
 import jakarta.annotation.Nullable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 public final class RoomClock {
 
-  private LocalDateTime first;
-  private LocalDateTime last;
+  private Instant first;
+  private Instant last;
 
-  public LocalDateTime next(LocalDateTime candidate) {
-    LocalDateTime value = candidate;
+  public Instant next(Instant candidate) {
+    Instant value = candidate;
     if (last != null && !candidate.isAfter(last)) {
-      value = last.plus(1, ChronoUnit.MILLIS);
+      value = last.plus(1, ChronoUnit.MICROS);
     }
     if (first == null) {
       first = value;
@@ -26,7 +26,7 @@ public final class RoomClock {
   }
 
   @Nullable
-  public LocalDateTime first() {
+  public Instant first() {
     return first;
   }
 }

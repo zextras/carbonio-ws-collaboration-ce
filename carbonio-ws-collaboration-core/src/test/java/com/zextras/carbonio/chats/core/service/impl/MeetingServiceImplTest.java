@@ -22,6 +22,7 @@ import com.zextras.carbonio.async.model.MeetingStarted;
 import com.zextras.carbonio.async.model.MeetingStopped;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.MeetingBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -54,6 +55,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
@@ -201,13 +203,15 @@ class MeetingServiceImplTest {
       UserPrincipal user = UserPrincipal.create(user1Id);
       String meetingName = "test";
       MeetingType meetingType = MeetingType.PERMANENT;
+      OffsetDateTime createdAt = OffsetDateTime.parse("2022-01-01T10:00:00Z");
       UUID meetingId = UUID.randomUUID();
       Meeting meeting =
-          Meeting.create()
-              .id(meetingId.toString())
-              .name(meetingName)
+          MeetingBuilder.create(meetingId)
+              .roomId(room1Id)
               .meetingType(meetingType)
-              .roomId(room1Id.toString())
+              .createdAt(createdAt)
+              .build()
+              .name(meetingName)
               .active(false);
       when(roomService.getRoomAndValidateUser(room1Id, user, false)).thenReturn(room1);
       when(meetingRepository.insert(any(Meeting.class))).thenReturn(meeting);
@@ -216,6 +220,14 @@ class MeetingServiceImplTest {
           meetingService.createMeeting(user, meetingName, MeetingTypeDto.PERMANENT, room1Id, null);
       assertEquals(createdMeeting.getId(), meetingId);
       assertEquals(createdMeeting.getRoomId(), room1Id);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              anyList(),
+              eq(
+                  MeetingCreated.create()
+                      .meetingId(meetingId)
+                      .roomId(room1Id)
+                      .createdAt(createdAt)));
     }
 
     @Test
@@ -260,12 +272,12 @@ class MeetingServiceImplTest {
               .active(true);
       String xmppMessage = "xmpp-message";
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(meetingRepository.markStarted(meeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
       meetingService.startMeeting(currentUser, meetingId);
       verify(meetingRepository, times(1)).getById(meetingId.toString());
-      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(meetingRepository, times(1)).markStarted(meeting);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
@@ -300,7 +312,7 @@ class MeetingServiceImplTest {
               .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(meetingRepository.markStarted(meeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(
               RoomDto.create()
@@ -312,7 +324,7 @@ class MeetingServiceImplTest {
                           MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
       meetingService.startMeeting(currentUser, meetingId);
       verify(meetingRepository, times(1)).getById(meetingId.toString());
-      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(meetingRepository, times(1)).markStarted(meeting);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
       org.mockito.ArgumentCaptor<SystemEvent> inserted =
@@ -939,6 +951,17 @@ class MeetingServiceImplTest {
       return captor.getValue();
     }
 
+    private Map<String, Object> readContent(SystemEvent event) {
+      try {
+        return new com.fasterxml.jackson.databind.ObjectMapper()
+            .readValue(
+                event.getContent(),
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
     private SystemEvent capturedEvent() {
       org.mockito.ArgumentCaptor<SystemEvent> captor =
           org.mockito.ArgumentCaptor.forClass(SystemEvent.class);
@@ -960,7 +983,7 @@ class MeetingServiceImplTest {
               .id(meetingId.toString())
               .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
+      when(meetingRepository.markStarted(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(
               RoomDto.create()
@@ -995,7 +1018,7 @@ class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
-              .startedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z"))
+              .startedAt(OffsetDateTime.parse("2026-10-23T08:57:55Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
@@ -1015,9 +1038,18 @@ class MeetingServiceImplTest {
       SystemEvent event = capturedEvent();
       assertEquals("MEETING_ENDED", event.getType());
       assertEquals(user2Id.toString(), event.getActorId());
+      verify(chatMessageService).updateSystemEvent(event);
+      Map<String, Object> content = readContent(event);
+      assertEquals(125, ((Number) content.get("durationSec")).longValue());
+      assertEquals(
+          OffsetDateTime.parse("2026-10-23T08:57:55Z").toInstant().toEpochMilli(),
+          ((Number) content.get("startedAt")).longValue());
+      assertEquals(user2Id.toString(), content.get("endedBy"));
+      assertEquals(meetingId.toString(), content.get("meetingId"));
       MeetingStopped stopped = dispatched(MeetingStopped.class);
       assertEquals(event.getId(), stopped.getSystemEventId());
       assertEquals(persistedAt, stopped.getSystemEventCreatedAt());
+      assertEquals(((Number) content.get("durationSec")).longValue(), stopped.getDurationSec());
       assertEquals(event.getActorId(), stopped.getEndedBy().toString());
     }
 
@@ -1076,6 +1108,7 @@ class MeetingServiceImplTest {
               .startedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z"))
               .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.markStarted(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(
@@ -1269,6 +1302,11 @@ class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               eq(List.of(user1Id.toString(), user2Id.toString())), any(MeetingDeclined.class));
+      org.mockito.ArgumentCaptor<MeetingStopped> stopped =
+          org.mockito.ArgumentCaptor.forClass(MeetingStopped.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), stopped.capture());
+      assertNull(stopped.getValue().getSystemEventId());
+      assertNull(stopped.getValue().getDurationSec());
     }
   }
 }

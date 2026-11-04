@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -102,8 +103,8 @@ public class MeetingServiceImpl implements MeetingService {
         MeetingCreated.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .roomId(UUID.fromString(room.getId()))
-            .type(EventType.MEETING_CREATED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .createdAt(meeting.getCreatedAt())
+            .type(EventType.MEETING_CREATED));
 
     return meetingMapper.ent2dto(meeting);
   }
@@ -148,23 +149,13 @@ public class MeetingServiceImpl implements MeetingService {
         .getRoom(UUID.fromString(updatedMeeting.getRoomId()))
         .ifPresent(
             room -> {
-              Optional<SystemEvent> systemEvent = Optional.empty();
+              Optional<EndedLine> endedLine = Optional.empty();
               if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && startedAt != null) {
-                OffsetDateTime now = OffsetDateTime.now(clock);
-                long durationSec = Duration.between(startedAt, now).toSeconds();
-                systemEvent =
-                    insertMeetingSystemEvent(
-                        room.getId(),
-                        "MEETING_ENDED",
-                        user.getId(),
-                        Map.of(
-                            "endedBy", user.getId(),
-                            "meetingId", updatedMeeting.getId(),
-                            "startedAt", startedAt.toInstant().toEpochMilli(),
-                            "durationSec", durationSec));
+                endedLine =
+                    insertMeetingEndedEvent(
+                        room.getId(), user.getId(), updatedMeeting.getId(), startedAt);
               }
-              notifyMeetingStopped(
-                  updatedMeeting, room, extraReceivers, user.getUUID(), systemEvent);
+              notifyMeetingStopped(updatedMeeting, room, extraReceivers, user.getUUID(), endedLine);
               cleanUpRoomMembers(room);
             });
 
@@ -203,8 +194,7 @@ public class MeetingServiceImpl implements MeetingService {
             .userId(currentUser.getUUID())
             .systemEventId(systemEvent.map(SystemEvent::getId).orElse(null))
             .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-            .type(EventType.MEETING_DECLINED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_DECLINED));
     afterMeetingDeclined(currentUser, room);
 
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && meeting.getParticipants().size() == 1) {
@@ -236,8 +226,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   private Meeting activateMeeting(Meeting meeting) {
     videoServerService.startMeeting(meeting.getId());
-    meeting.active(true).startedAt(OffsetDateTime.now(clock));
-    return meetingRepository.update(meeting);
+    return meetingRepository.markStarted(meeting);
   }
 
   private Meeting deactivateMeeting(String userId, Meeting meeting) {
@@ -271,8 +260,7 @@ public class MeetingServiceImpl implements MeetingService {
             .startedAt(updatedMeeting.getStartedAt())
             .systemEventId(systemEvent.map(SystemEvent::getId).orElse(null))
             .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-            .type(EventType.MEETING_STARTED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_STARTED));
 
     afterMeetingStarted(user, room, allReceivers);
   }
@@ -282,7 +270,7 @@ public class MeetingServiceImpl implements MeetingService {
       Room room,
       List<String> extraReceivers,
       UUID endedBy,
-      Optional<SystemEvent> systemEvent) {
+      Optional<EndedLine> endedLine) {
     List<String> receivers =
         extraReceivers.isEmpty()
             ? room.getSubscriptions().stream().map(Subscription::getUserId).toList()
@@ -296,10 +284,44 @@ public class MeetingServiceImpl implements MeetingService {
         MeetingStopped.create()
             .meetingId(UUID.fromString(updatedMeeting.getId()))
             .endedBy(endedBy)
-            .systemEventId(systemEvent.map(SystemEvent::getId).orElse(null))
-            .systemEventCreatedAt(systemEvent.map(SystemEvent::getCreatedAt).orElse(null))
-            .type(EventType.MEETING_STOPPED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .systemEventId(endedLine.map(l -> l.event().getId()).orElse(null))
+            .systemEventCreatedAt(endedLine.map(l -> l.event().getCreatedAt()).orElse(null))
+            .durationSec(endedLine.map(EndedLine::durationSec).orElse(null))
+            .type(EventType.MEETING_STOPPED));
+  }
+
+  private record EndedLine(SystemEvent event, Long durationSec) {}
+
+  @Transactional
+  private Optional<EndedLine> insertMeetingEndedEvent(
+      String roomId, String endedBy, String meetingId, OffsetDateTime startedAt) {
+    long startedAtMillis = startedAt.toInstant().toEpochMilli();
+    Optional<SystemEvent> inserted =
+        insertMeetingSystemEvent(
+            roomId,
+            "MEETING_ENDED",
+            endedBy,
+            Map.of("endedBy", endedBy, "meetingId", meetingId, "startedAt", startedAtMillis));
+    return inserted.map(
+        event -> {
+          long durationSec =
+              Math.max(0, Duration.between(startedAt, event.getCreatedAt()).toSeconds());
+          try {
+            event.content(
+                objectMapper.writeValueAsString(
+                    Map.of(
+                        "endedBy", endedBy,
+                        "meetingId", meetingId,
+                        "startedAt", startedAtMillis,
+                        "durationSec", durationSec)));
+          } catch (Exception e) {
+            ChatsLogger.warn(
+                "Failed to serialize MEETING_ENDED system event content: " + e.getMessage());
+            return new EndedLine(event, null);
+          }
+          chatMessageService.updateSystemEvent(event);
+          return new EndedLine(event, durationSec);
+        });
   }
 
   private Optional<SystemEvent> insertMeetingSystemEvent(
@@ -383,8 +405,7 @@ public class MeetingServiceImpl implements MeetingService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingDeleted.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .type(EventType.MEETING_DELETED)
-            .sentDate(OffsetDateTime.now(clock)));
+            .type(EventType.MEETING_DELETED));
   }
 
   @Override

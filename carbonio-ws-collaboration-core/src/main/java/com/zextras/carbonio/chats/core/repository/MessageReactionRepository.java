@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,38 +19,35 @@ public interface MessageReactionRepository {
    */
   List<MessageReaction> getByMessageId(String messageId);
 
+  enum SetKind {
+    ADDED,
+    UPDATED,
+    UNCHANGED
+  }
+
+  record SetResult(SetKind kind, String previousReaction, OffsetDateTime updatedAt) {}
+
+  record Removed(String reaction, OffsetDateTime deletedAt) {}
+
   /**
-   * Retrieves the single reaction a user set on a message
+   * Sets the single reaction a user has on a message: inserts it, replaces a different emoji, or
+   * leaves the same emoji untouched. The write time is taken from the database.
    *
    * @param messageId message identifier
    * @param userId user identifier
-   * @return The {@link MessageReaction} wrapped in an {@link Optional}
+   * @param reaction emoji
+   * @return the outcome; updatedAt is the stored value on ADDED and UPDATED, null on UNCHANGED
    */
-  Optional<MessageReaction> getByUserAndMessage(String messageId, String userId);
+  SetResult set(String messageId, String userId, String reaction);
 
   /**
-   * Inserts a new reaction
-   *
-   * @param reaction {@link MessageReaction} to insert
-   * @return {@link MessageReaction} inserted
-   */
-  MessageReaction insert(MessageReaction reaction);
-
-  /**
-   * Updates an existing reaction (e.g. when a user changes emoji)
-   *
-   * @param reaction {@link MessageReaction} to update
-   * @return {@link MessageReaction} updated
-   */
-  MessageReaction update(MessageReaction reaction);
-
-  /**
-   * Deletes the reaction a user set on a message
+   * Deletes the reaction a user has on a message
    *
    * @param messageId message identifier
    * @param userId user identifier
+   * @return the removed emoji and the database time of the delete, empty if there was none
    */
-  void delete(String messageId, String userId);
+  Optional<Removed> remove(String messageId, String userId);
 
   /**
    * Deletes all reactions for a message

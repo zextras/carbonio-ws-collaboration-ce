@@ -95,8 +95,7 @@ class MessageReceivedBroadcasterTest {
             .roomId(ROOM)
             .pinnedBy("a")
             .timestamp(T)
-            .message(message)
-            .sentDate(T),
+            .message(message),
         message);
 
     ArgumentCaptor<List<String>> users = ArgumentCaptor.forClass(List.class);

@@ -4,8 +4,6 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
-import io.ebean.annotation.WhenCreated;
-import io.ebean.annotation.WhenModified;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -26,14 +24,12 @@ public class User {
   @Column(name = "STATUS_MESSAGE", length = 256, nullable = false)
   private String statusMessage = "";
 
-  @Column(name = "CREATED_AT")
+  @Column(name = "CREATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenCreated
   private OffsetDateTime createdAt;
 
-  @Column(name = "UPDATED_AT")
+  @Column(name = "UPDATED_AT", insertable = false, updatable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @WhenModified
   private OffsetDateTime updatedAt;
 
   public static User create() {

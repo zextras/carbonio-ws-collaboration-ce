@@ -53,7 +53,6 @@ import jakarta.websocket.server.ServerEndpointConfig;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -148,8 +147,7 @@ class VersionedWebsocketIT {
                 MeetingCreated.create()
                     .meetingId(UUID.randomUUID())
                     .roomId(UUID.randomUUID())
-                    .type(EventType.MEETING_CREATED)
-                    .sentDate(OffsetDateTime.now()));
+                    .type(EventType.MEETING_CREATED));
 
             shouldReceiveEventWithType(client, "MEETING_CREATED", 2);
 
@@ -177,7 +175,7 @@ class VersionedWebsocketIT {
 
             awaitFirstMessage(client);
             declareBrokerExchange();
-            client.sendMessage(Ping.create().type(EventType.PING).sentDate(OffsetDateTime.now()));
+            client.sendMessage(Ping.create().type(EventType.PING));
 
             shouldReceiveEventWithType(client, "pong", 2);
 

@@ -46,7 +46,13 @@ new_msg AS (
             WHERE r.id = :replyToId AND r.room_id = :roomId
               AND (cm.cleared_at IS NULL OR r.created_at > cm.cleared_at))
     ON CONFLICT (id) DO NOTHING
-    RETURNING id, created_at
+    RETURNING id, created_at, attachment_id
+),
+att AS (
+    UPDATE chats.file_metadata f
+    SET created_at = new_msg.created_at, updated_at = new_msg.created_at
+    FROM new_msg
+    WHERE f.id = new_msg.attachment_id
 )
 SELECT id, created_at FROM new_msg
 """;
@@ -90,7 +96,7 @@ SELECT id, created_at FROM new_msg
           SELECT d.message_id
           FROM chats.message_send_dedup d CROSS JOIN ts
           WHERE d.room_id = :roomId AND d.sender_id = :userId AND d.temp_id = :tempId
-            AND d.created_at >= CAST(ts.t AS timestamp) - INTERVAL '1 hour'
+            AND d.created_at >= ts.t - INTERVAL '1 hour'
       )
       SELECT EXISTS (SELECT 1 FROM check_member) AS is_member,
              EXISTS (SELECT 1 FROM reply_ok) AS reply_visible,
@@ -118,17 +124,21 @@ SELECT id, created_at FROM new_msg
 
   private static final String DELETE_SQL =
       """
-      WITH check_member AS (
+      WITH ts AS (
+          SELECT clock_timestamp() AS t
+      ),
+      check_member AS (
           SELECT 1 FROM chats.subscription WHERE room_id = :roomId AND user_id = :userId
       ),
       del_msg AS (
           UPDATE chats.message
-          SET deleted = true, deleted_at = clock_timestamp(), text = '', updated_at = clock_timestamp()
+          SET deleted = true, deleted_at = ts.t, text = '', updated_at = ts.t
+          FROM ts
           WHERE id = :messageId AND room_id = :roomId AND sender_id = :userId AND deleted = false
             AND EXISTS (SELECT 1 FROM check_member)
-          RETURNING id, attachment_id
+          RETURNING id, attachment_id, deleted_at
       )
-      SELECT id, attachment_id FROM del_msg
+      SELECT id, attachment_id, deleted_at FROM del_msg
       """;
 
   private static final String UNPIN_DELETED_SQL =
@@ -177,6 +187,12 @@ new_msg AS (
     FROM orig_msg CROSS JOIN ts
     WHERE EXISTS (SELECT 1 FROM check_target)
     RETURNING id, created_at, attachment_id
+),
+att AS (
+    UPDATE chats.file_metadata f
+    SET created_at = new_msg.created_at, updated_at = new_msg.created_at
+    FROM new_msg
+    WHERE f.id = CAST(:newAttachmentId AS text) AND new_msg.attachment_id = f.id
 ),
 file_meta AS (
     SELECT id, name, mime_type, original_size, area
@@ -307,7 +323,10 @@ LEFT JOIN file_meta ON true
             .orElse(null);
     return Optional.of(
         new DeleteResult(
-            deleted.get().getString("id"), deleted.get().getString("attachment_id"), unpinned));
+            deleted.get().getString("id"),
+            deleted.get().getString("attachment_id"),
+            toOffsetDateTime(deleted.get().getTimestamp("deleted_at")),
+            unpinned));
   }
 
   @Override
