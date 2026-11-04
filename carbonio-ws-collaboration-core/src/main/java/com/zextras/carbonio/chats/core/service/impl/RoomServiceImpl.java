@@ -293,29 +293,9 @@ public class RoomServiceImpl implements RoomService {
     boolean isRoomUpdated = updateRoomDetails(room, updateRoomRequestDto);
 
     if (isRoomUpdated) {
-      roomRepository.update(room);
-      Optional<SystemEvent> nameSystemEvent = Optional.empty();
-      Optional<SystemEvent> descriptionSystemEvent = Optional.empty();
-      if (nameChanged) {
-        nameSystemEvent =
-            Optional.of(
-                insertRoomSystemEvent(
-                    room,
-                    "ROOM_NAME_CHANGED",
-                    currentUser.getId(),
-                    systemEventContentFactory.roomNameChanged(
-                        currentUser.getId(), room.getName())));
-      }
-      if (descriptionChanged) {
-        descriptionSystemEvent =
-            Optional.of(
-                insertRoomSystemEvent(
-                    room,
-                    "ROOM_DESCRIPTION_CHANGED",
-                    currentUser.getId(),
-                    systemEventContentFactory.roomDescriptionChanged(
-                        currentUser.getId(), room.getDescription())));
-      }
+      RoomUpdateLines lines = persistRoomUpdate(room, nameChanged, descriptionChanged, currentUser);
+      Optional<SystemEvent> nameSystemEvent = lines.name();
+      Optional<SystemEvent> descriptionSystemEvent = lines.description();
       List<String> receivers =
           room.getSubscriptions().stream().map(Subscription::getUserId).toList();
       nameSystemEvent.ifPresent(
@@ -350,6 +330,35 @@ public class RoomServiceImpl implements RoomService {
             .orElse(null),
         false,
         false);
+  }
+
+  private record RoomUpdateLines(Optional<SystemEvent> name, Optional<SystemEvent> description) {}
+
+  // One transaction: a concurrent update waits on the room row until these lines are written
+  @Transactional
+  private RoomUpdateLines persistRoomUpdate(
+      Room room, boolean nameChanged, boolean descriptionChanged, UserPrincipal currentUser) {
+    roomRepository.update(room);
+    Optional<SystemEvent> name =
+        nameChanged
+            ? Optional.of(
+                insertRoomSystemEvent(
+                    room,
+                    "ROOM_NAME_CHANGED",
+                    currentUser.getId(),
+                    systemEventContentFactory.roomNameChanged(currentUser.getId(), room.getName())))
+            : Optional.empty();
+    Optional<SystemEvent> description =
+        descriptionChanged
+            ? Optional.of(
+                insertRoomSystemEvent(
+                    room,
+                    "ROOM_DESCRIPTION_CHANGED",
+                    currentUser.getId(),
+                    systemEventContentFactory.roomDescriptionChanged(
+                        currentUser.getId(), room.getDescription())))
+            : Optional.empty();
+    return new RoomUpdateLines(name, description);
   }
 
   private SystemEvent insertRoomSystemEvent(
