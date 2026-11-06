@@ -75,7 +75,7 @@ public class SessionPingManager {
     if (tracked != null) tracked.missedPongs().set(0);
   }
 
-  // A throwable escaping a scheduleWithFixedDelay task silently cancels every later tick.
+  // An escaping throwable would cancel every later tick.
   void tick() {
     try {
       sessions.forEach(this::pingOrAbort);

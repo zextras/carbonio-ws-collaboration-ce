@@ -343,7 +343,7 @@ class EventsWebSocketIT {
 
         for (int i = 0; i <= SessionPingManager.MAX_MISSED_PONGS; i++) {
           pingManager.tick();
-          // The 1st round trip proves the client got the ping, the 2nd that the server got its pong
+          // 1st: client got the ping; 2nd: server got the pong
           roundTrip(client);
           roundTrip(client);
         }
