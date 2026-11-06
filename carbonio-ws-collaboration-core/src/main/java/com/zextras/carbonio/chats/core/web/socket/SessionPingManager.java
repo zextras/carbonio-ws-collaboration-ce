@@ -75,28 +75,33 @@ public class SessionPingManager {
     if (tracked != null) tracked.missedPongs().set(0);
   }
 
+  // A throwable escaping a scheduleWithFixedDelay task silently cancels every later tick.
   void tick() {
-    sessions.forEach(
-        (sessionId, tracked) -> {
-          try {
-            if (!tracked.coreSession().isOutputOpen()) {
-              sessions.remove(sessionId);
-            } else if (tracked.missedPongs().getAndIncrement() >= MAX_MISSED_PONGS) {
-              sessions.remove(sessionId);
-              ChatsLogger.warn(
-                  String.format(
-                      "Websocket session '%s' missed %d pongs, aborting it",
-                      sessionId, MAX_MISSED_PONGS));
-              tracked.coreSession().abort();
-            } else {
-              tracked
-                  .coreSession()
-                  .sendFrame(
-                      new Frame(OpCode.PING, PING_PAYLOAD.duplicate()), Callback.NOOP, false);
-            }
-          } catch (Exception e) {
-            ChatsLogger.warn("Error pinging websocket session " + sessionId);
-          }
-        });
+    try {
+      sessions.forEach(this::pingOrAbort);
+    } catch (Throwable t) {
+      ChatsLogger.error("Websocket ping tick failed", t);
+    }
+  }
+
+  private void pingOrAbort(String sessionId, TrackedSession tracked) {
+    try {
+      if (!tracked.coreSession().isOutputOpen()) {
+        sessions.remove(sessionId);
+      } else if (tracked.missedPongs().getAndIncrement() >= MAX_MISSED_PONGS) {
+        sessions.remove(sessionId);
+        ChatsLogger.warn(
+            String.format(
+                "Websocket session '%s' missed %d pongs, aborting it",
+                sessionId, MAX_MISSED_PONGS));
+        tracked.coreSession().abort();
+      } else {
+        tracked
+            .coreSession()
+            .sendFrame(new Frame(OpCode.PING, PING_PAYLOAD.duplicate()), Callback.NOOP, false);
+      }
+    } catch (Throwable t) {
+      ChatsLogger.warn("Error pinging websocket session " + sessionId, t);
+    }
   }
 }

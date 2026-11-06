@@ -4,19 +4,23 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.websocket.MessageHandler;
 import jakarta.websocket.PongMessage;
 import jakarta.websocket.Session;
@@ -28,6 +32,7 @@ import org.eclipse.jetty.websocket.core.OpCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 @UnitTest
 class SessionPingManagerTest {
@@ -165,6 +170,38 @@ class SessionPingManagerTest {
     pingManager.tick();
 
     verifyPinged(healthy);
+  }
+
+  @Test
+  void tick_keepsPingingOthersWhenOneSessionThrowsAnError() {
+    JakartaWebSocketSession failing = newOpenSession("a");
+    JakartaWebSocketSession healthy = newOpenSession("b");
+    CoreSession failingCore = failing.getCoreSession();
+    doThrow(new StackOverflowError()).when(failingCore).isOutputOpen();
+    pingManager.start(failing);
+    pingManager.start(healthy);
+
+    assertDoesNotThrow(pingManager::tick);
+
+    verifyPinged(healthy);
+  }
+
+  @Test
+  void tick_neverThrows_evenWhenLoggingFails() {
+    JakartaWebSocketSession failing = newOpenSession("a");
+    CoreSession failingCore = failing.getCoreSession();
+    doThrow(new IllegalStateException("boom"))
+        .when(failingCore)
+        .sendFrame(any(), any(), anyBoolean());
+    pingManager.start(failing);
+
+    try (MockedStatic<ChatsLogger> logger = mockStatic(ChatsLogger.class)) {
+      logger
+          .when(() -> ChatsLogger.warn(anyString(), any(Throwable.class)))
+          .thenThrow(new IllegalStateException("logger down"));
+
+      assertDoesNotThrow(pingManager::tick);
+    }
   }
 
   @Test
