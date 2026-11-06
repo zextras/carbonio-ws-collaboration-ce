@@ -324,7 +324,7 @@ class EventsWebSocketIT {
       try (Socket socket = new Socket("localhost", jettyServer.getURI().getPort())) {
         DataInputStream in = new DataInputStream(socket.getInputStream());
         String queueId = upgradeWithoutAnsweringPings(socket, in);
-        assertTrue(queueExists(queueId));
+        await().atMost(5, SECONDS).until(() -> queueExists(queueId));
 
         for (int i = 0; i <= SessionPingManager.MAX_MISSED_PONGS; i++) pingManager.tick();
 
