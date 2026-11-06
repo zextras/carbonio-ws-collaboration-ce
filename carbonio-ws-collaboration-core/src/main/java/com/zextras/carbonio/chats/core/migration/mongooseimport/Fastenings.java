@@ -5,11 +5,9 @@
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
-import java.time.ZoneOffset;
 
 public final class Fastenings implements AutoCloseable {
 
@@ -18,96 +16,89 @@ public final class Fastenings implements AutoCloseable {
   private static final int BATCH_SIZE = 500;
   private static final int BATCH_CHARS = 8_000_000;
 
-  private static final String STAGE_EDIT =
-      "INSERT INTO mongoose_edits (mam, target_mam, sender_id, body, edit_time)"
-          + " VALUES (?, ?, ?, ?, ?)";
-
-  private static final String STAGE_REACTION =
-      "INSERT INTO mongoose_reactions (mam, target_mam, sender_id, body, reaction_time)"
-          + " VALUES (?, ?, ?, ?, ?)";
-
   private static final String FOLD_EDITS =
       "UPDATE chats.message m SET text = w.body, edited = TRUE, updated_at = w.edit_time"
-          + " FROM (SELECT DISTINCT ON (e.target_mam) t.item_id, e.body, e.edit_time"
-          + " FROM mongoose_edits e JOIN mongoose_room_rows t ON t.mam = e.target_mam"
-          + " AND t.outcome = 1 AND NOT t.deleted AND t.sender_id = e.sender_id AND e.mam > t.mam"
-          + " ORDER BY e.target_mam, e.mam DESC) w WHERE m.id = w.item_id";
+          + " FROM (SELECT DISTINCT ON (e.target_id) e.target_id, e.body, e.edit_time"
+          + " FROM mongoose_edits e JOIN chats.message t ON t.id = e.target_id"
+          + " AND NOT t.deleted AND t.sender_id = e.sender_id AND e.mam > e.target_mam"
+          + " ORDER BY e.target_id, e.mam DESC) w WHERE m.id = w.target_id";
 
   private static final String FOLD_REACTIONS =
       "INSERT INTO chats.message_reaction (message_id, user_id, reaction, updated_at)"
-          + " SELECT w.item_id, w.sender_id, w.body, w.reaction_time FROM"
-          + " (SELECT DISTINCT ON (x.target_mam, x.sender_id) t.item_id, x.sender_id, x.body,"
-          + " x.reaction_time FROM mongoose_reactions x JOIN mongoose_room_rows t"
-          + " ON t.mam = x.target_mam AND t.outcome = 1 AND NOT t.deleted AND x.mam > t.mam"
-          + " WHERE char_length(x.body) <= 32 ORDER BY x.target_mam, x.sender_id, x.mam DESC) w"
+          + " SELECT w.target_id, w.sender_id, w.body, w.reaction_time FROM"
+          + " (SELECT DISTINCT ON (x.target_id, x.sender_id) x.target_id, x.sender_id, x.body,"
+          + " x.reaction_time FROM mongoose_reactions x JOIN chats.message t"
+          + " ON t.id = x.target_id AND NOT t.deleted AND x.mam > x.target_mam"
+          + " WHERE char_length(x.body) <= 32 ORDER BY x.target_id, x.sender_id, x.mam DESC) w"
           + " WHERE w.body <> ''";
 
   private final Connection target;
-  private final PreparedStatement edits;
-  private final PreparedStatement reactions;
-  private int pendingEdits;
+  private final CopyRows edits =
+      new CopyRows(
+          "mongoose_edits", "room_id, mam, target_mam, target_id, sender_id, body, edit_time");
+  private final CopyRows reactions =
+      new CopyRows(
+          "mongoose_reactions", "mam, target_mam, target_id, sender_id, body, reaction_time");
   private int pendingEditChars;
-  private int pendingReactions;
   private int pendingReactionChars;
   private int staged;
-  private boolean written;
 
   public Fastenings(Connection target) throws SQLException {
     this.target = target;
     try (Statement st = target.createStatement()) {
       st.execute(
-          "CREATE TEMP TABLE mongoose_edits (mam BIGINT, target_mam BIGINT NOT NULL,"
-              + " sender_id TEXT NOT NULL, body TEXT NOT NULL, edit_time TIMESTAMPTZ NOT NULL)"
-              + " ON COMMIT DROP");
+          "CREATE TEMP TABLE mongoose_edits (room_id TEXT NOT NULL, mam BIGINT NOT NULL,"
+              + " target_mam BIGINT NOT NULL, target_id TEXT NOT NULL, sender_id TEXT NOT NULL,"
+              + " body TEXT NOT NULL, edit_time TIMESTAMPTZ NOT NULL) ON COMMIT DROP");
+      st.execute("CREATE INDEX mongoose_edits_mam_idx ON mongoose_edits (mam)");
       st.execute(
-          "CREATE TEMP TABLE mongoose_reactions (mam BIGINT, target_mam BIGINT NOT NULL,"
-              + " sender_id TEXT NOT NULL, body TEXT NOT NULL, reaction_time TIMESTAMPTZ NOT NULL)"
-              + " ON COMMIT DROP");
-    }
-    this.edits = target.prepareStatement(STAGE_EDIT);
-    this.reactions = target.prepareStatement(STAGE_REACTION);
-  }
-
-  public void reset() throws SQLException {
-    pendingEdits = 0;
-    pendingEditChars = 0;
-    pendingReactions = 0;
-    pendingReactionChars = 0;
-    staged = 0;
-    edits.clearBatch();
-    reactions.clearBatch();
-    if (!written) {
-      return;
-    }
-    written = false;
-    try (Statement st = target.createStatement()) {
-      st.execute("TRUNCATE mongoose_edits, mongoose_reactions");
+          "CREATE TEMP TABLE mongoose_reactions (mam BIGINT NOT NULL, target_mam BIGINT NOT NULL,"
+              + " target_id TEXT NOT NULL, sender_id TEXT NOT NULL, body TEXT NOT NULL,"
+              + " reaction_time TIMESTAMPTZ NOT NULL) ON COMMIT DROP");
     }
   }
 
-  public void stageEdit(long mam, long targetMam, String senderId, String body, Instant editTime)
+  public void stageEdit(
+      String roomId,
+      long mam,
+      long targetMam,
+      String targetId,
+      String senderId,
+      String body,
+      Instant editTime)
       throws SQLException {
-    stage(edits, mam, targetMam, senderId, body, editTime);
+    edits
+        .text(roomId)
+        .number(mam)
+        .number(targetMam)
+        .text(targetId)
+        .text(senderId)
+        .text(body)
+        .time(editTime)
+        .endRow();
     pendingEditChars += body.length();
     staged++;
-    if (++pendingEdits >= BATCH_SIZE || pendingEditChars >= BATCH_CHARS) {
+    if (edits.rows() >= BATCH_SIZE || pendingEditChars >= BATCH_CHARS) {
       flushEdits();
     }
   }
 
   public void stageReaction(
-      long mam, long targetMam, String senderId, String body, Instant reactionTime)
+      long mam, long targetMam, String targetId, String senderId, String body, Instant time)
       throws SQLException {
-    stage(reactions, mam, targetMam, senderId, body, reactionTime);
+    reactions
+        .number(mam)
+        .number(targetMam)
+        .text(targetId)
+        .text(senderId)
+        .text(body)
+        .time(time)
+        .endRow();
     pendingReactionChars += body.length();
     staged++;
-    if (++pendingReactions >= BATCH_SIZE || pendingReactionChars >= BATCH_CHARS) {
+    if (reactions.rows() >= BATCH_SIZE || pendingReactionChars >= BATCH_CHARS) {
       flushReactions();
     }
-  }
-
-  public int staged() {
-    return staged;
   }
 
   public Counts fold() throws SQLException {
@@ -117,53 +108,27 @@ public final class Fastenings implements AutoCloseable {
     flushEdits();
     flushReactions();
     try (Statement st = target.createStatement()) {
+      st.execute("ANALYZE mongoose_edits");
+      st.execute("ANALYZE mongoose_reactions");
       int folded = st.executeUpdate(FOLD_EDITS);
       int inserted = st.executeUpdate(FOLD_REACTIONS);
       return new Counts(folded, inserted);
     }
   }
 
-  public void analyze() throws SQLException {
-    flushEdits();
-    flushReactions();
-    try (Statement st = target.createStatement()) {
-      st.execute("ANALYZE mongoose_edits");
-      st.execute("ANALYZE mongoose_reactions");
-    }
-  }
-
-  @Override
-  public void close() throws SQLException {
-    edits.close();
-    reactions.close();
-  }
-
-  private void flushEdits() throws SQLException {
-    if (pendingEdits > 0) {
-      written = true;
-      edits.executeBatch();
-      pendingEdits = 0;
-      pendingEditChars = 0;
-    }
+  void flushEdits() throws SQLException {
+    edits.flush(target);
+    pendingEditChars = 0;
   }
 
   private void flushReactions() throws SQLException {
-    if (pendingReactions > 0) {
-      written = true;
-      reactions.executeBatch();
-      pendingReactions = 0;
-      pendingReactionChars = 0;
-    }
+    reactions.flush(target);
+    pendingReactionChars = 0;
   }
 
-  private static void stage(
-      PreparedStatement ps, long mam, long targetMam, String senderId, String body, Instant t)
-      throws SQLException {
-    ps.setLong(1, mam);
-    ps.setLong(2, targetMam);
-    ps.setString(3, senderId);
-    ps.setString(4, body);
-    ps.setObject(5, t.atOffset(ZoneOffset.UTC));
-    ps.addBatch();
+  @Override
+  public void close() {
+    edits.clear();
+    reactions.clear();
   }
 }

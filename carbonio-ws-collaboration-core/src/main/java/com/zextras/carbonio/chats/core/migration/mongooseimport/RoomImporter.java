@@ -27,8 +27,6 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     }
   }
 
-  private static final int ANALYZE_THRESHOLD = 1000;
-
   private final LegacyIds ids;
   private final FileLinker files;
   private final PinImporter pins;
@@ -37,6 +35,8 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   private final Fastenings fastenings;
   private final TimelineWriter writer;
   private final Map<String, Instant> pinTimes = new HashMap<>();
+  private List<PinImporter.Pin> roomPins = List.of();
+  private Map<String, MarkerTranscriber.Marker> roomMarkers = Map.of();
 
   private int rooms;
   private int edits;
@@ -83,10 +83,24 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   }
 
   @Override
-  public void beginRoom(TargetRoom room, long floor) throws SQLException {
+  public void beginRoom(
+      TargetRoom room,
+      long floor,
+      List<PinImporter.Pin> pinRows,
+      Map<String, MarkerTranscriber.Marker> markerRows)
+      throws SQLException {
     writer.beginRoom(room.id());
-    rows.reset();
-    fastenings.reset();
+    String roomId = room.id();
+    rows.beginRoom(
+        roomId,
+        mam -> ids.of(LegacyIds.MESSAGE, roomId, mam),
+        () -> {
+          writer.flush();
+          fastenings.flushEdits();
+        },
+        markerRows);
+    roomPins = pinRows;
+    roomMarkers = markerRows;
     pinTimes.clear();
     files.beginRoom(room.id());
     context = new Context(room, "TEMPORARY".equals(room.type()), floor, new RoomClock());
@@ -95,27 +109,24 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   }
 
   @Override
-  public void endRoom(
-      List<PinImporter.Pin> pinRows, Map<String, MarkerTranscriber.Marker> markerRows)
-      throws SQLException {
+  public void endRoom() throws SQLException {
     writer.flush();
-    rows.flush();
     currentMam = 0;
     if (!archived) {
       return;
     }
     TargetRoom room = context.room();
-    if (rows.recorded() > ANALYZE_THRESHOLD || fastenings.staged() > ANALYZE_THRESHOLD) {
-      rows.analyze();
-      fastenings.analyze();
-    }
+    writer.roomCreated(room, ids.of(LegacyIds.ROOM_CREATED, room.id(), 0), context.clock());
+    pins.importRoomPin(room, rows, roomPins, pinTimes);
+    markers.endRoom(room, rows, roomMarkers);
+    rooms++;
+  }
+
+  public void finish() throws SQLException {
+    writer.flush();
     Fastenings.Counts folded = fastenings.fold();
     edits += folded.edits();
     reactions += folded.reactions();
-    writer.roomCreated(room, ids.of(LegacyIds.ROOM_CREATED, room.id(), 0), context.clock());
-    pins.importRoomPin(room, rows, pinRows, pinTimes);
-    markers.endRoom(room, rows, markerRows);
-    rooms++;
   }
 
   @Override
@@ -221,13 +232,26 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
           notImported(p, mam, sender, raw);
           return;
         }
-        fastenings.stageEdit(mam, ref.getAsLong(), sender, p.text(), raw);
+        fastenings.stageEdit(
+            roomId,
+            mam,
+            ref.getAsLong(),
+            ids.of(LegacyIds.MESSAGE, roomId, ref.getAsLong()),
+            sender,
+            p.text(),
+            raw);
         rows.record(p.rootId(), Row.edit(mam, sender, ref.getAsLong(), raw));
       }
       case REACTION -> {
         OptionalLong ref = StanzaIds.decode(p.applyToRef());
         if (ref.isPresent()) {
-          fastenings.stageReaction(mam, ref.getAsLong(), sender, p.text(), raw);
+          fastenings.stageReaction(
+              mam,
+              ref.getAsLong(),
+              ids.of(LegacyIds.MESSAGE, roomId, ref.getAsLong()),
+              sender,
+              p.text(),
+              raw);
         }
         notImported(p, mam, sender, raw);
       }

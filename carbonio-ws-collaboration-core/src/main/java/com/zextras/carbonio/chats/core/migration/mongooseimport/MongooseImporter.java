@@ -54,6 +54,7 @@ public final class MongooseImporter {
         RoomReader reader = new RoomReader(source, pins, markers);
         RoomImporter importer = new RoomImporter(target, ids, files, pins, markers)) {
       ImportPipeline.run(rooms, reader, importer);
+      importer.finish();
       imported = importer.counts();
     }
     UserTables.Counts users = UserTables.run(source.connection(), source.hasLast(), target);

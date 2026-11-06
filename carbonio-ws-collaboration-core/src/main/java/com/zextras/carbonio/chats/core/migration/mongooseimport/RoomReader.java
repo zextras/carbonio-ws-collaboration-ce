@@ -77,12 +77,12 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
     currentMam = 0;
     long archive = archiveKey(room.id());
     if (archive < 0) {
-      sink.put(new Start(room, 0));
-      sink.put(new End(List.of(), Map.of()));
+      sink.put(new Start(room, 0, List.of(), Map.of()));
+      sink.put(new End());
       return;
     }
-    sink.put(new Start(room, "TEMPORARY".equals(room.type()) ? clearFloor(archive) : 0));
-    boolean archived = false;
+    long floor = "TEMPORARY".equals(room.type()) ? clearFloor(archive) : 0;
+    sink.put(new Start(room, floor, pins.read(room), markers.read(room)));
     long last = 0;
     int page;
     do {
@@ -95,7 +95,6 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
           page++;
           last = rs.getLong(1);
           currentMam = last;
-          archived = true;
           byte[] stored = rs.getBytes(4);
           if (stored == null && rs.getLong(5) <= MAX_BODY_BYTES) {
             stored = largeRow(archive, last);
@@ -108,8 +107,7 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
       }
     } while (page == PAGE_SIZE);
     currentMam = 0;
-    sink.put(
-        archived ? new End(pins.read(room), markers.read(room)) : new End(List.of(), Map.of()));
+    sink.put(new End());
   }
 
   @Override

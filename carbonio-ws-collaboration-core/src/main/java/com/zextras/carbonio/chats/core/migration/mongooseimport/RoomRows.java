@@ -8,11 +8,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,75 +56,88 @@ public final class RoomRows implements AutoCloseable {
     }
   }
 
-  private record Pending(String clientId, Row row) {}
+  interface Ids {
+    String message(long mam);
+  }
 
-  private static final int BUFFER_ROWS = 500;
-  private static final int BUFFER_CHARS = 8_000_000;
+  interface Flush {
+    void run() throws SQLException;
+  }
 
-  private static final String COLUMNS =
-      "mam, outcome, item_id, item_time, row_time, deleted, sender_id, target_mam";
+  private static final class Tracker {
+    private final long upToMicros;
+    private Row latest;
 
-  private final Connection target;
-  private final CopyRows insert =
-      new CopyRows(
-          "mongoose_room_rows",
-          "mam, client_id, outcome, target_mam, sender_id, item_id, item_time, row_time, deleted");
-  private final PreparedStatement selectByMam;
-  private final PreparedStatement selectByClient;
-  private final PreparedStatement selectLastBySender;
-  private final List<Pending> buffer = new ArrayList<>();
-  private final Map<Long, Row> bufferByMam = new HashMap<>();
-  private int bufferChars;
+    private Tracker(long upToMicros) {
+      this.upToMicros = upToMicros;
+    }
+  }
+
+  private static final int RECENT_ROWS = 8192;
+
+  private static final String STORED =
+      "SELECT m.id, m.deleted FROM chats.message m WHERE m.id = ?"
+          + " UNION ALL SELECT m.id, m.deleted FROM mongoose_edits e"
+          + " JOIN chats.message m ON m.id = e.target_id WHERE e.mam = ? AND e.room_id = ? LIMIT 1";
+
+  private static final String STORED_MESSAGE =
+      "SELECT m.id, m.deleted FROM chats.message m WHERE m.id = ?";
+
+  private final PreparedStatement stored;
+  private final PreparedStatement storedMessage;
+  private final Map<Long, Row> recent =
+      new LinkedHashMap<>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Long, Row> eldest) {
+          return size() > RECENT_ROWS;
+        }
+      };
+  private final Map<String, Instant> lastBySender = new HashMap<>();
+  private final Map<String, List<Tracker>> trackers = new HashMap<>();
+  private String roomId;
+  private Ids ids;
+  private Flush pending;
   private int recorded;
-  private boolean staged;
 
   public RoomRows(Connection target) throws SQLException {
-    this.target = target;
-    try (Statement st = target.createStatement()) {
-      st.execute(
-          "CREATE TEMP TABLE mongoose_room_rows (mam BIGINT PRIMARY KEY, client_id TEXT,"
-              + " outcome SMALLINT NOT NULL, target_mam BIGINT, sender_id TEXT, item_id TEXT,"
-              + " item_time TIMESTAMPTZ, row_time TIMESTAMPTZ NOT NULL,"
-              + " deleted BOOLEAN NOT NULL DEFAULT FALSE) ON COMMIT DROP");
-      st.execute(
-          "CREATE INDEX mongoose_room_rows_client_idx ON mongoose_room_rows"
-              + " (hashtext(client_id), mam)");
-    }
-    this.selectByMam =
-        target.prepareStatement("SELECT " + COLUMNS + " FROM mongoose_room_rows WHERE mam = ?");
-    this.selectByClient =
-        target.prepareStatement(
-            "SELECT "
-                + COLUMNS
-                + " FROM mongoose_room_rows WHERE hashtext(client_id) = hashtext(?)"
-                + " AND client_id = ? AND (mam >> 8) <= ? ORDER BY mam DESC LIMIT 1");
-    this.selectLastBySender =
-        target.prepareStatement(
-            "SELECT sender_id, max(COALESCE(item_time, row_time)) FROM mongoose_room_rows"
-                + " WHERE sender_id IS NOT NULL GROUP BY sender_id");
+    this.stored = target.prepareStatement(STORED);
+    this.storedMessage = target.prepareStatement(STORED_MESSAGE);
   }
 
-  public void reset() throws SQLException {
-    clearBuffer();
+  void beginRoom(
+      String roomId, Ids ids, Flush pending, Map<String, MarkerTranscriber.Marker> markers) {
+    this.roomId = roomId;
+    this.ids = ids;
+    this.pending = pending;
+    recent.clear();
+    lastBySender.clear();
+    trackers.clear();
     recorded = 0;
-    if (!staged) {
-      return;
-    }
-    staged = false;
-    try (Statement st = target.createStatement()) {
-      st.execute("TRUNCATE mongoose_room_rows");
+    for (MarkerTranscriber.Marker marker : markers.values()) {
+      if (!marker.msgId().isEmpty()) {
+        trackers
+            .computeIfAbsent(marker.msgId(), k -> new ArrayList<>())
+            .add(new Tracker(marker.timestamp()));
+      }
     }
   }
 
-  public void record(String clientId, Row row) throws SQLException {
-    buffer.add(new Pending(clientId, row));
-    bufferByMam.put(row.mam(), row);
+  public void record(String clientId, Row row) {
+    recent.put(row.mam(), row);
     recorded++;
-    if (clientId != null) {
-      bufferChars += clientId.length();
+    if (row.senderId() != null) {
+      Instant t = MamTime.roundToMicros(row.itemTime() != null ? row.itemTime() : row.rowTime());
+      lastBySender.merge(row.senderId(), t, (a, b) -> a.isAfter(b) ? a : b);
     }
-    if (buffer.size() >= BUFFER_ROWS || bufferChars >= BUFFER_CHARS) {
-      flush();
+    if (clientId != null && !trackers.isEmpty()) {
+      List<Tracker> list = trackers.get(clientId);
+      if (list != null) {
+        for (Tracker tracker : list) {
+          if ((row.mam() >> 8) <= tracker.upToMicros) {
+            tracker.latest = row;
+          }
+        }
+      }
     }
   }
 
@@ -133,109 +145,63 @@ public final class RoomRows implements AutoCloseable {
     return recorded;
   }
 
-  public void flush() throws SQLException {
-    if (buffer.isEmpty()) {
-      return;
-    }
-    for (Pending p : buffer) {
-      Row r = p.row();
-      insert
-          .number(r.mam())
-          .text(p.clientId())
-          .number(r.outcome())
-          .nullableNumber(r.targetMam())
-          .text(r.senderId())
-          .text(r.itemId())
-          .time(r.itemTime())
-          .time(r.rowTime())
-          .bool(r.deleted())
-          .endRow();
-    }
-    staged = true;
-    insert.flush(target);
-    clearBuffer();
-  }
-
-  public void analyze() throws SQLException {
-    flush();
-    try (Statement st = target.createStatement()) {
-      st.execute("ANALYZE mongoose_room_rows");
-    }
-  }
-
   public Row resolveStanza(long mam) throws SQLException {
-    return followAlias(byMam(mam));
+    Row row = recent.get(mam);
+    if (row == null) {
+      return stored(mam);
+    }
+    if (row.outcome() != EDIT) {
+      return row;
+    }
+    Row original = recent.get(row.targetMam());
+    if (original == null) {
+      original = storedMessage(row.targetMam());
+    }
+    return original == null ? row : original;
   }
 
-  public Row latestByClientIdUpTo(String clientId, long epochMicros) throws SQLException {
-    flush();
-    selectByClient.setString(1, clientId);
-    selectByClient.setString(2, clientId);
-    selectByClient.setLong(3, epochMicros);
-    return single(selectByClient);
-  }
-
-  public Map<String, Instant> lastRowTimeBySender() throws SQLException {
-    flush();
-    Map<String, Instant> times = new HashMap<>();
-    try (ResultSet rs = selectLastBySender.executeQuery()) {
-      while (rs.next()) {
-        times.put(rs.getString(1), instant(rs, 2));
+  public Row latestByClientIdUpTo(String clientId, long epochMicros) {
+    List<Tracker> list = trackers.get(clientId);
+    if (list != null) {
+      for (Tracker tracker : list) {
+        if (tracker.upToMicros == epochMicros) {
+          return tracker.latest;
+        }
       }
     }
-    return times;
+    throw new IllegalStateException("read marker not registered at room start");
+  }
+
+  public Map<String, Instant> lastRowTimeBySender() {
+    return new HashMap<>(lastBySender);
   }
 
   @Override
   public void close() throws SQLException {
-    insert.clear();
-    selectByMam.close();
-    selectByClient.close();
-    selectLastBySender.close();
+    stored.close();
+    storedMessage.close();
   }
 
-  private Row followAlias(Row row) throws SQLException {
-    if (row == null || row.outcome() != EDIT) {
-      return row;
-    }
-    Row original = byMam(row.targetMam());
-    return original == null ? row : original;
+  private Row stored(long mam) throws SQLException {
+    pending.run();
+    stored.setString(1, ids.message(mam));
+    stored.setLong(2, mam);
+    stored.setString(3, roomId);
+    return single(stored, mam);
   }
 
-  private void clearBuffer() {
-    buffer.clear();
-    bufferByMam.clear();
-    bufferChars = 0;
+  private Row storedMessage(long mam) throws SQLException {
+    pending.run();
+    storedMessage.setString(1, ids.message(mam));
+    return single(storedMessage, mam);
   }
 
-  private Row byMam(long mam) throws SQLException {
-    Row buffered = bufferByMam.get(mam);
-    if (buffered != null) {
-      return buffered;
-    }
-    selectByMam.setLong(1, mam);
-    return single(selectByMam);
-  }
-
-  private static Instant instant(ResultSet rs, int column) throws SQLException {
-    OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
-    return value == null ? null : value.toInstant();
-  }
-
-  private static Row single(PreparedStatement ps) throws SQLException {
+  private static Row single(PreparedStatement ps, long mam) throws SQLException {
     try (ResultSet rs = ps.executeQuery()) {
       if (!rs.next()) {
         return null;
       }
-      return new Row(
-          rs.getLong(1),
-          rs.getInt(2),
-          rs.getString(3),
-          instant(rs, 4),
-          instant(rs, 5),
-          rs.getBoolean(6),
-          rs.getString(7),
-          rs.getLong(8));
+      return new Row(mam, MESSAGE, rs.getString(1), null, null, rs.getBoolean(2), null, 0);
     }
   }
 }

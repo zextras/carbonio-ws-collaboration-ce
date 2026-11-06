@@ -22,13 +22,17 @@ final class ImportPipeline {
     }
   }
 
-  record Start(TargetRoom room, long floor) implements Item {}
+  record Start(
+      TargetRoom room,
+      long floor,
+      List<PinImporter.Pin> pins,
+      Map<String, MarkerTranscriber.Marker> markers)
+      implements Item {}
 
   record Entry(long mam, String server, String user, ParsedRow parsed, int weight)
       implements Item {}
 
-  record End(List<PinImporter.Pin> pins, Map<String, MarkerTranscriber.Marker> markers)
-      implements Item {}
+  record End() implements Item {}
 
   record Done() implements Item {}
 
@@ -41,12 +45,16 @@ final class ImportPipeline {
   }
 
   interface Target {
-    void beginRoom(TargetRoom room, long floor) throws SQLException;
+    void beginRoom(
+        TargetRoom room,
+        long floor,
+        List<PinImporter.Pin> pins,
+        Map<String, MarkerTranscriber.Marker> markers)
+        throws SQLException;
 
     void handle(long mam, String server, String user, ParsedRow parsed) throws SQLException;
 
-    void endRoom(List<PinImporter.Pin> pins, Map<String, MarkerTranscriber.Marker> markers)
-        throws SQLException;
+    void endRoom() throws SQLException;
 
     String currentRoomId();
 
@@ -126,10 +134,11 @@ final class ImportPipeline {
       budget.release(cost(item));
       try {
         switch (item) {
-          case Start start -> importer.beginRoom(start.room(), start.floor());
+          case Start start ->
+              importer.beginRoom(start.room(), start.floor(), start.pins(), start.markers());
           case Entry entry ->
               importer.handle(entry.mam(), entry.server(), entry.user(), entry.parsed());
-          case End end -> importer.endRoom(end.pins(), end.markers());
+          case End end -> importer.endRoom();
           case Done done -> {
             return;
           }

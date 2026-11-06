@@ -59,7 +59,11 @@ class ImportPipelineTest {
     long mam;
 
     @Override
-    public void beginRoom(TargetRoom r, long floor) {
+    public void beginRoom(
+        TargetRoom r,
+        long floor,
+        List<PinImporter.Pin> pins,
+        Map<String, MarkerTranscriber.Marker> markers) {
       room = r.id();
       events.add("begin:" + r.id() + ":" + floor);
     }
@@ -71,7 +75,7 @@ class ImportPipelineTest {
     }
 
     @Override
-    public void endRoom(List<PinImporter.Pin> pins, Map<String, MarkerTranscriber.Marker> markers) {
+    public void endRoom() {
       events.add("end");
       mam = 0;
     }
@@ -92,13 +96,13 @@ class ImportPipelineTest {
 
     @Override
     public void read(TargetRoom r, RoomReader.Sink sink) throws SQLException, InterruptedException {
-      sink.put(new Start(r, 0));
+      sink.put(new Start(r, 0, List.of(), Map.of()));
       for (long i = 1; i <= 3; i++) {
         mam = i;
         sink.put(entry(i, 1));
       }
       mam = 0;
-      sink.put(new End(List.of(), Map.of()));
+      sink.put(new End());
     }
 
     @Override
@@ -145,7 +149,7 @@ class ImportPipelineTest {
           @Override
           public void read(TargetRoom r, RoomReader.Sink sink)
               throws SQLException, InterruptedException {
-            sink.put(new Start(r, 0));
+            sink.put(new Start(r, 0, List.of(), Map.of()));
             mam = 42;
             throw new SQLException("secret message text", "08006");
           }
@@ -227,7 +231,7 @@ class ImportPipelineTest {
           @Override
           public void read(TargetRoom r, RoomReader.Sink sink)
               throws SQLException, InterruptedException {
-            sink.put(new Start(r, 0));
+            sink.put(new Start(r, 0, List.of(), Map.of()));
             for (long i = 1; ; i++) {
               sink.put(entry(i, 1));
             }
@@ -259,7 +263,7 @@ class ImportPipelineTest {
           @Override
           public void read(TargetRoom r, RoomReader.Sink sink)
               throws SQLException, InterruptedException {
-            sink.put(new Start(r, 0));
+            sink.put(new Start(r, 0, List.of(), Map.of()));
             sink.put(entry(1, 4));
             sink.put(entry(2, 4));
             sink.put(entry(3, 4));
@@ -318,12 +322,12 @@ class ImportPipelineTest {
           @Override
           public void read(TargetRoom r, RoomReader.Sink sink)
               throws SQLException, InterruptedException {
-            sink.put(new Start(r, 0));
+            sink.put(new Start(r, 0, List.of(), Map.of()));
             for (long i = 1; i <= total; i++) {
               sink.put(entry(i, 4));
               accepted.incrementAndGet();
             }
-            sink.put(new End(List.of(), Map.of()));
+            sink.put(new End());
           }
         };
     RecordingTarget target =
@@ -360,10 +364,10 @@ class ImportPipelineTest {
           @Override
           public void read(TargetRoom r, RoomReader.Sink sink)
               throws SQLException, InterruptedException {
-            sink.put(new Start(r, 0));
+            sink.put(new Start(r, 0, List.of(), Map.of()));
             sink.put(entry(1, 1_000_000));
             sink.put(entry(2, 1_000_000));
-            sink.put(new End(List.of(), Map.of()));
+            sink.put(new End());
           }
         };
     RecordingTarget target = new RecordingTarget();
