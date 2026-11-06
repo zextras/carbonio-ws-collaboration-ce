@@ -158,6 +158,48 @@ class ServiceZoneMigrationIT {
         Instant.parse("2026-01-15T11:00:00Z"));
   }
 
+  @Test
+  @DisplayName("CET, MET, EET and WET keep daylight saving time like the JVM zone")
+  void convertsWithZoneIdsThatArePostgresAbbreviations() throws SQLException {
+    convertsWith(ZoneId.of("CET"), SUMMER_INSTANT, WINTER_INSTANT);
+    convertsWith(ZoneId.of("MET"), SUMMER_INSTANT, WINTER_INSTANT);
+    convertsWith(
+        ZoneId.of("EET"),
+        Instant.parse("2026-07-01T09:00:00Z"),
+        Instant.parse("2026-01-15T10:00:00Z"));
+    convertsWith(
+        ZoneId.of("WET"),
+        Instant.parse("2026-07-01T11:00:00Z"),
+        Instant.parse("2026-01-15T12:00:00Z"));
+  }
+
+  @Test
+  @DisplayName("No zone name given to PostgreSQL is one of its time zone abbreviations")
+  void noZoneNameIsAPostgresAbbreviation() throws SQLException {
+    java.util.Set<String> abbreviations = new java.util.HashSet<>();
+    try (Connection connection = dataSource.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery("SELECT upper(abbrev) FROM pg_timezone_abbrevs")) {
+      while (resultSet.next()) {
+        abbreviations.add(resultSet.getString(1));
+      }
+    }
+    List<String> clashes = new java.util.ArrayList<>();
+    for (String id : new java.util.TreeSet<>(ZoneId.getAvailableZoneIds())) {
+      String expression = DatabaseModule.migrationZone(ZoneId.of(id));
+      if (expression.startsWith("'")
+          && !expression.equals("'UTC'")
+          && abbreviations.contains(
+              expression
+                  .substring(1, expression.length() - 1)
+                  .toUpperCase(java.util.Locale.ROOT))) {
+        clashes.add(id + " -> " + expression);
+      }
+    }
+    assertEquals(List.of(), clashes);
+  }
+
   private void convertsWith(ZoneId zone, Instant summerInstant, Instant winterInstant)
       throws SQLException {
     try (Connection connection = dataSource.getConnection();

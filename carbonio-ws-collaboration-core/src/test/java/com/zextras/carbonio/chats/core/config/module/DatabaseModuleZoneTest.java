@@ -40,6 +40,15 @@ class DatabaseModuleZoneTest {
   }
 
   @Test
+  @DisplayName("Zone ids that PostgreSQL reads as abbreviations map to their tzdata region")
+  void postgresAbbreviationIds() {
+    assertEquals("'Europe/Brussels'", DatabaseModule.migrationZone(ZoneId.of("CET")));
+    assertEquals("'Europe/Brussels'", DatabaseModule.migrationZone(ZoneId.of("MET")));
+    assertEquals("'Europe/Athens'", DatabaseModule.migrationZone(ZoneId.of("EET")));
+    assertEquals("'Europe/Lisbon'", DatabaseModule.migrationZone(ZoneId.of("WET")));
+  }
+
+  @Test
   @DisplayName("Zones that are fixed offsets in disguise are normalized")
   void normalized() {
     assertEquals("'UTC'", DatabaseModule.migrationZone(ZoneId.of("Etc/UTC")));

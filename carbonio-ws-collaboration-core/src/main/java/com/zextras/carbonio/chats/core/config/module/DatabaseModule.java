@@ -84,6 +84,15 @@ public class DatabaseModule extends AbstractModule {
         .build();
   }
 
+  // PostgreSQL resolves these ids as fixed-offset abbreviations in AT TIME ZONE; their tzdata links
+  // follow daylight saving time like the Java zones do.
+  private static final Map<String, String> POSTGRES_ABBREVIATION_IDS =
+      Map.of(
+          "CET", "Europe/Brussels",
+          "MET", "Europe/Brussels",
+          "EET", "Europe/Athens",
+          "WET", "Europe/Lisbon");
+
   public static String migrationZone(ZoneId zone) {
     ZoneId normalized = zone.normalized();
     if (normalized instanceof ZoneOffset offset) {
@@ -92,14 +101,16 @@ public class DatabaseModule extends AbstractModule {
       }
       return "INTERVAL '" + offset.getId() + "'";
     }
-    return "'" + zone.getId() + "'";
+    return "'" + POSTGRES_ABBREVIATION_IDS.getOrDefault(zone.getId(), zone.getId()) + "'";
   }
 
   @Singleton
   @Provides
   private Flyway getFlyway(HikariDataSource dataSource, MessageDispatcherCredentials credentials) {
-    String jvmZone = migrationZone(ZoneId.systemDefault());
-    ChatsLogger.info("Flyway 1.x time conversion zone: " + jvmZone);
+    ZoneId systemZone = ZoneId.systemDefault();
+    String jvmZone = migrationZone(systemZone);
+    ChatsLogger.info(
+        "Flyway 1.x time conversion zone: " + jvmZone + " (JVM zone " + systemZone.getId() + ")");
     Flyway flyway =
         Flyway.configure()
             .locations(migrationsLocation())
