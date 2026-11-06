@@ -67,6 +67,9 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
 
   @Override
   public String currentRoomId() {
+    if (writer.failedRoom() != null) {
+      return writer.failedRoom();
+    }
     return context == null ? null : context.room().id();
   }
 
@@ -110,13 +113,15 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
 
   @Override
   public void endRoom() throws SQLException {
-    writer.flush();
     currentMam = 0;
     if (!archived) {
       return;
     }
     TargetRoom room = context.room();
     writer.roomCreated(room, ids.of(LegacyIds.ROOM_CREATED, room.id(), 0), context.clock());
+    if (!roomPins.isEmpty()) {
+      writer.flush();
+    }
     pins.importRoomPin(room, rows, roomPins, pinTimes);
     markers.endRoom(room, rows, roomMarkers);
     rooms++;
@@ -124,6 +129,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
 
   public void finish() throws SQLException {
     writer.flush();
+    markers.flush();
     Fastenings.Counts folded = fastenings.fold();
     edits += folded.edits();
     reactions += folded.reactions();

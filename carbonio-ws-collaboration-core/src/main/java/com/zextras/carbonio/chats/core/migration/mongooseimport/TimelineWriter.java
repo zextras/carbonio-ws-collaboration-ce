@@ -89,7 +89,10 @@ public final class TimelineWriter implements AutoCloseable {
   private int pendingEvents;
   private long firstMessageMam;
   private long firstEventMam;
+  private String firstMessageRoom;
+  private String firstEventRoom;
   private long failedMam;
+  private String failedRoom;
   private int messages;
   private int events;
 
@@ -101,6 +104,7 @@ public final class TimelineWriter implements AutoCloseable {
   public void beginRoom(String roomId) {
     this.roomId = roomId;
     this.failedMam = 0;
+    this.failedRoom = null;
   }
 
   public int messages() {
@@ -113,6 +117,10 @@ public final class TimelineWriter implements AutoCloseable {
 
   public long failedMam() {
     return failedMam;
+  }
+
+  public String failedRoom() {
+    return failedRoom;
   }
 
   public void addMessage(long mam, Message m) throws SQLException {
@@ -133,6 +141,7 @@ public final class TimelineWriter implements AutoCloseable {
         .endRow();
     if (pendingMessages == 0) {
       firstMessageMam = mam;
+      firstMessageRoom = roomId;
     }
     pendingMessageChars += m.text().length();
     messages++;
@@ -147,6 +156,7 @@ public final class TimelineWriter implements AutoCloseable {
     bindEvent(id, type, actorId, content, time);
     if (pendingEvents == 0) {
       firstEventMam = mam;
+      firstEventRoom = roomId;
     }
     events++;
     if (++pendingEvents >= BATCH_SIZE) {
@@ -170,11 +180,15 @@ public final class TimelineWriter implements AutoCloseable {
     }
     String content =
         JsonNodeFactory.instance.objectNode().put("creatorId", room.creatorId()).toString();
+    if (pendingEvents == 0) {
+      firstEventMam = 0;
+      firstEventRoom = roomId;
+    }
     bindEvent(id, "ROOM_CREATED", room.creatorId(), content, createdAt);
     events++;
-    pendingEvents++;
-    firstEventMam = 0;
-    flushEvents();
+    if (++pendingEvents >= BATCH_SIZE) {
+      flushEvents();
+    }
   }
 
   @Override
@@ -188,6 +202,7 @@ public final class TimelineWriter implements AutoCloseable {
       insertMessage.flush(target);
     } catch (SQLException e) {
       failedMam = firstMessageMam;
+      failedRoom = firstMessageRoom;
       throw e;
     }
     pendingMessages = 0;
@@ -200,6 +215,7 @@ public final class TimelineWriter implements AutoCloseable {
       insertEvent.flush(target);
     } catch (SQLException e) {
       failedMam = firstEventMam;
+      failedRoom = firstEventRoom;
       throw e;
     }
     pendingEvents = 0;

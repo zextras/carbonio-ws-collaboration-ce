@@ -43,7 +43,6 @@ public final class FileLinker {
     fileIds.clear();
     byStanza.clear();
     claimed.clear();
-    pending.clear();
     try (PreparedStatement select = target.prepareStatement(SELECT_FILES)) {
       select.setString(1, roomId);
       try (ResultSet rs = select.executeQuery()) {

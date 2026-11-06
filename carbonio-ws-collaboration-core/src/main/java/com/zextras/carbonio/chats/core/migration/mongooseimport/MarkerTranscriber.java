@@ -26,8 +26,11 @@ public final class MarkerTranscriber implements AutoCloseable {
   private static final String INSERT =
       "INSERT INTO chats.read_marker (user_id, room_id, item_created_at) VALUES (?, ?, ?)";
 
+  private static final int BATCH_SIZE = 500;
+
   private final PreparedStatement select;
   private final PreparedStatement insert;
+  private int pending;
 
   public MarkerTranscriber(MongooseSource.Ready source, Connection target) throws SQLException {
     this.select = source.hasMarkers() ? source.connection().prepareStatement(SELECT) : null;
@@ -54,8 +57,18 @@ public final class MarkerTranscriber implements AutoCloseable {
       insert.setString(2, room.id());
       insert.setObject(3, entry.getValue().atOffset(ZoneOffset.UTC));
       insert.addBatch();
+      pending++;
     }
-    insert.executeBatch();
+    if (pending >= BATCH_SIZE) {
+      flush();
+    }
+  }
+
+  public void flush() throws SQLException {
+    if (pending > 0) {
+      insert.executeBatch();
+      pending = 0;
+    }
   }
 
   private Instant markedItemTime(Marker marker, RoomRows rows) throws SQLException {
