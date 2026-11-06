@@ -112,4 +112,23 @@ class CopyRowsTest {
     rows.text("ok").endRow();
     assertEquals("ok\n", rows.contents());
   }
+
+  @Test
+  @DisplayName("Formats the first and last supported years, leap days and instants before 1970")
+  void timestampRange() {
+    rows.time(Instant.parse("0001-01-01T00:00:00Z"))
+        .time(Instant.parse("9999-12-31T23:59:59.999999Z"))
+        .time(Instant.parse("2024-02-29T12:00:00.000050Z"))
+        .endRow();
+    rows.time(Instant.parse("1969-12-31T23:59:59.500000Z"))
+        .time(Instant.parse("1900-02-28T00:00:01.000009Z"))
+        .time(Instant.parse("0999-07-08T09:10:11.012345Z"))
+        .endRow();
+    assertEquals(
+        "0001-01-01 00:00:00.000000+00\t9999-12-31 23:59:59.999999+00\t"
+            + "2024-02-29 12:00:00.000050+00\n"
+            + "1969-12-31 23:59:59.500000+00\t1900-02-28 00:00:01.000009+00\t"
+            + "0999-07-08 09:10:11.012345+00\n",
+        rows.contents());
+  }
 }
