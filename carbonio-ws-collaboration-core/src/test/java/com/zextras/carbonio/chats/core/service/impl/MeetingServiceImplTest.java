@@ -343,6 +343,99 @@ class MeetingServiceImplTest {
     }
 
     @Test
+    @DisplayName("Starts a meeting that is already active")
+    void startMeeting_testOkAlreadyActive() {
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).name("alice");
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      OffsetDateTime startedAt = OffsetDateTime.parse("2022-01-01T12:00:00Z");
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(startedAt)
+              .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(
+              RoomDto.create()
+                  .id(roomId)
+                  .type(RoomTypeDto.ONE_TO_ONE)
+                  .meetingId(meetingId)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+
+      MeetingDto meetingDto = meetingService.startMeeting(currentUser, meetingId);
+
+      assertEquals(meetingId, meetingDto.getId());
+      assertEquals(startedAt, meetingDto.getStartedAt());
+      verify(meetingRepository, times(1)).getById(meetingId.toString());
+      verify(roomService, times(1)).getRoomById(roomId, currentUser);
+      verifyNoMoreInteractions(meetingRepository, roomService);
+      verifyNoInteractions(
+          videoServerService, participantService, eventDispatcher, chatMessageService);
+    }
+
+    @Test
+    @DisplayName("Starts a meeting that is already active without running the after-start hook")
+    void startMeeting_testAlreadyActiveSkipsAfterMeetingStartedHook() {
+      MeetingServiceImpl spiedMeetingService = spy((MeetingServiceImpl) meetingService);
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).name("alice");
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
+              .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(
+              RoomDto.create()
+                  .id(roomId)
+                  .type(RoomTypeDto.ONE_TO_ONE)
+                  .meetingId(meetingId)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+
+      spiedMeetingService.startMeeting(currentUser, meetingId);
+
+      verify(spiedMeetingService, never()).afterMeetingStarted(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Starts a meeting of a room the user is not a member of")
+    void startMeeting_testErrorUserNotRoomMember() {
+      UserPrincipal currentUser = UserPrincipal.create(user3Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(false);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomById(roomId, currentUser)).thenThrow(new ForbiddenException());
+
+      assertThrows(
+          ForbiddenException.class, () -> meetingService.startMeeting(currentUser, meetingId));
+
+      verify(meetingRepository, times(1)).getById(meetingId.toString());
+      verifyNoMoreInteractions(meetingRepository);
+      verifyNoInteractions(
+          videoServerService, participantService, eventDispatcher, chatMessageService);
+    }
+
+    @Test
     @DisplayName("Starts a meeting that does not exist")
     void startMeeting_testErrorMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
@@ -463,6 +556,100 @@ class MeetingServiceImplTest {
       verify(membersService, times(1)).deleteRoomMember(user3Id.toString(), room);
       verifyNoMoreInteractions(
           participantService, videoServerService, membersService, meetingRepository);
+    }
+
+    @Test
+    @DisplayName("Stops a one-to-one meeting")
+    void stopOneToOneMeeting_testOk() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      OffsetDateTime startedAt = OffsetDateTime.parse("2022-01-01T10:30:00Z");
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(startedAt)
+              .active(true);
+      Meeting updatedMeeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(false);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .meetingId(meetingId.toString())
+              .type(RoomTypeDto.ONE_TO_ONE)
+              .subscriptions(
+                  List.of(
+                      Subscription.create().userId(user1Id.toString()),
+                      Subscription.create().userId(user2Id.toString())));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      OffsetDateTime endedAt = startedAt.plusSeconds(1800);
+      when(chatMessageService.insertSystemEvent(any(SystemEvent.class)))
+          .thenAnswer(i -> i.<SystemEvent>getArgument(0).createdAt(endedAt));
+
+      meetingService.stopMeeting(currentUser, meetingId);
+
+      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
+      org.mockito.ArgumentCaptor<SystemEvent> inserted =
+          org.mockito.ArgumentCaptor.forClass(SystemEvent.class);
+      verify(chatMessageService).insertSystemEvent(inserted.capture());
+      assertEquals("MEETING_ENDED", inserted.getValue().getType());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString()),
+              MeetingStopped.create()
+                  .meetingId(meetingId)
+                  .endedBy(user1Id)
+                  .systemEventId(inserted.getValue().getId())
+                  .systemEventCreatedAt(endedAt)
+                  .durationSec(1800L));
+    }
+
+    @Test
+    @DisplayName("Stops a one-to-one meeting that is already stopped")
+    void stopOneToOneMeeting_testOkAlreadyStopped() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(false);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(meeting)).thenReturn(meeting);
+      Room room =
+          Room.create()
+              .id(roomId.toString())
+              .meetingId(meetingId.toString())
+              .type(RoomTypeDto.ONE_TO_ONE)
+              .subscriptions(
+                  List.of(
+                      Subscription.create().userId(user1Id.toString()),
+                      Subscription.create().userId(user2Id.toString())));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+
+      MeetingDto meetingDto = meetingService.stopMeeting(currentUser, meetingId);
+
+      assertEquals(meetingId, meetingDto.getId());
+      verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString()),
+              MeetingStopped.create().meetingId(meetingId).endedBy(user1Id));
+      verify(chatMessageService, never()).insertSystemEvent(any(SystemEvent.class));
     }
 
     @Test
