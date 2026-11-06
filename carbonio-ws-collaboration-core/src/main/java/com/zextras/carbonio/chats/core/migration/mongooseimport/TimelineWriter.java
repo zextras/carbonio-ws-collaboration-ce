@@ -71,7 +71,7 @@ public final class TimelineWriter implements AutoCloseable {
     }
   }
 
-  private static final int BATCH_SIZE = 500;
+  private static final int BATCH_SIZE = 10_000;
   private static final int BATCH_CHARS = 8_000_000;
 
   private final Connection target;
