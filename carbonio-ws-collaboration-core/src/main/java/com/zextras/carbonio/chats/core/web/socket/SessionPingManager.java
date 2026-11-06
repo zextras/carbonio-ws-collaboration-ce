@@ -28,7 +28,24 @@ public class SessionPingManager {
   static final int MAX_MISSED_PONGS = 3;
   private static final ByteBuffer PING_PAYLOAD = ByteBuffer.wrap(new byte[] {0x01});
 
-  private record TrackedSession(CoreSession coreSession, AtomicInteger missedPongs) {}
+  private record TrackedSession(CoreSession coreSession, AtomicInteger unansweredPings) {
+    boolean isClosed() {
+      return !coreSession.isOutputOpen();
+    }
+
+    boolean isUnresponsive() {
+      return unansweredPings.get() >= MAX_MISSED_PONGS;
+    }
+
+    void ping() {
+      unansweredPings.incrementAndGet();
+      coreSession.sendFrame(new Frame(OpCode.PING, PING_PAYLOAD.duplicate()), Callback.NOOP, false);
+    }
+
+    void pongReceived() {
+      unansweredPings.set(0);
+    }
+  }
 
   private final ConcurrentHashMap<String, TrackedSession> sessions = new ConcurrentHashMap<>();
   private final ScheduledExecutorService scheduler;
@@ -36,11 +53,7 @@ public class SessionPingManager {
   public SessionPingManager() {
     this(
         Executors.newSingleThreadScheduledExecutor(
-            r -> {
-              Thread t = new Thread(r, "SessionPingManager");
-              t.setDaemon(true);
-              return t;
-            }));
+            Thread.ofPlatform().name("SessionPingManager").daemon().factory()));
     Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll, "SessionPingManager shutdown"));
   }
 
@@ -71,37 +84,40 @@ public class SessionPingManager {
   }
 
   private void onPong(String sessionId) {
-    TrackedSession tracked = sessions.get(sessionId);
-    if (tracked != null) tracked.missedPongs().set(0);
+    TrackedSession session = sessions.get(sessionId);
+    if (session != null) session.pongReceived();
   }
 
   // An escaping throwable would cancel every later tick.
   void tick() {
     try {
-      sessions.forEach(this::pingOrAbort);
+      sessions.forEach(this::check);
     } catch (Throwable t) {
       ChatsLogger.error("Websocket ping tick failed", t);
     }
   }
 
-  private void pingOrAbort(String sessionId, TrackedSession tracked) {
+  private void check(String sessionId, TrackedSession session) {
     try {
-      if (!tracked.coreSession().isOutputOpen()) {
+      if (session.isClosed()) {
         sessions.remove(sessionId);
-      } else if (tracked.missedPongs().getAndIncrement() >= MAX_MISSED_PONGS) {
-        sessions.remove(sessionId);
-        ChatsLogger.warn(
-            String.format(
-                "Websocket session '%s' missed %d pongs, aborting it",
-                sessionId, MAX_MISSED_PONGS));
-        tracked.coreSession().abort();
-      } else {
-        tracked
-            .coreSession()
-            .sendFrame(new Frame(OpCode.PING, PING_PAYLOAD.duplicate()), Callback.NOOP, false);
+        return;
       }
+      if (session.isUnresponsive()) {
+        abort(sessionId, session);
+        return;
+      }
+      session.ping();
     } catch (Throwable t) {
       ChatsLogger.warn("Error pinging websocket session " + sessionId, t);
     }
+  }
+
+  private void abort(String sessionId, TrackedSession session) {
+    sessions.remove(sessionId);
+    ChatsLogger.warn(
+        String.format(
+            "Websocket session '%s' missed %d pongs, aborting it", sessionId, MAX_MISSED_PONGS));
+    session.coreSession().abort();
   }
 }
