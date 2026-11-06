@@ -50,6 +50,7 @@ public final class Fastenings implements AutoCloseable {
   private int pendingReactions;
   private int pendingReactionChars;
   private int staged;
+  private boolean written;
 
   public Fastenings(Connection target) throws SQLException {
     this.target = target;
@@ -75,6 +76,10 @@ public final class Fastenings implements AutoCloseable {
     staged = 0;
     edits.clearBatch();
     reactions.clearBatch();
+    if (!written) {
+      return;
+    }
+    written = false;
     try (Statement st = target.createStatement()) {
       st.execute("TRUNCATE mongoose_edits, mongoose_reactions");
     }
@@ -135,6 +140,7 @@ public final class Fastenings implements AutoCloseable {
 
   private void flushEdits() throws SQLException {
     if (pendingEdits > 0) {
+      written = true;
       edits.executeBatch();
       pendingEdits = 0;
       pendingEditChars = 0;
@@ -143,6 +149,7 @@ public final class Fastenings implements AutoCloseable {
 
   private void flushReactions() throws SQLException {
     if (pendingReactions > 0) {
+      written = true;
       reactions.executeBatch();
       pendingReactions = 0;
       pendingReactionChars = 0;

@@ -77,6 +77,7 @@ public final class RoomRows implements AutoCloseable {
   private final Map<Long, Row> bufferByMam = new HashMap<>();
   private int bufferChars;
   private int recorded;
+  private boolean staged;
 
   public RoomRows(Connection target) throws SQLException {
     this.target = target;
@@ -107,6 +108,10 @@ public final class RoomRows implements AutoCloseable {
   public void reset() throws SQLException {
     clearBuffer();
     recorded = 0;
+    if (!staged) {
+      return;
+    }
+    staged = false;
     try (Statement st = target.createStatement()) {
       st.execute("TRUNCATE mongoose_room_rows");
     }
@@ -146,6 +151,7 @@ public final class RoomRows implements AutoCloseable {
           .bool(r.deleted())
           .endRow();
     }
+    staged = true;
     insert.flush(target);
     clearBuffer();
   }
