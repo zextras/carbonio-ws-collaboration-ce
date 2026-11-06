@@ -1,3 +1,9 @@
+## [1.15.3](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.2...v1.15.3) (2026-11-06)
+
+### Bug Fixes
+
+* detect dead websocket sessions from missing pongs ([#315](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/315)) ([ae42aea](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/ae42aea72374523f9c44246f007c12e0daa92eaa))
+
 ## [1.15.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.1...v1.15.2) (2026-11-03)
 
 ### Bug Fixes
