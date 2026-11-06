@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -39,16 +40,22 @@ final class CopyRows {
       row.append("\\N");
       return this;
     }
+    int from = 0;
     for (int i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
-      switch (c) {
-        case '\\' -> row.append("\\\\");
-        case '\n' -> row.append("\\n");
-        case '\r' -> row.append("\\r");
-        case '\t' -> row.append("\\t");
-        default -> row.append(c);
+      String escaped =
+          switch (value.charAt(i)) {
+            case '\\' -> "\\\\";
+            case '\n' -> "\\n";
+            case '\r' -> "\\r";
+            case '\t' -> "\\t";
+            default -> null;
+          };
+      if (escaped != null) {
+        row.append(value, from, i).append(escaped);
+        from = i + 1;
       }
     }
+    row.append(value, from, value.length());
     return this;
   }
 
@@ -80,8 +87,37 @@ final class CopyRows {
       row.append("\\N");
       return this;
     }
-    row.append(TIMESTAMP.format(MamTime.roundToMicros(value).atOffset(ZoneOffset.UTC)));
+    Instant t = MamTime.roundToMicros(value);
+    long seconds = t.getEpochSecond();
+    LocalDate date = LocalDate.ofEpochDay(Math.floorDiv(seconds, 86_400L));
+    if (date.getYear() < 1 || date.getYear() > 9999) {
+      row.append(TIMESTAMP.format(t.atOffset(ZoneOffset.UTC)));
+      return this;
+    }
+    int secondOfDay = (int) Math.floorMod(seconds, 86_400L);
+    pad(date.getYear(), 4).append('-');
+    pad(date.getMonthValue(), 2).append('-');
+    pad(date.getDayOfMonth(), 2).append(' ');
+    pad(secondOfDay / 3600, 2).append(':');
+    pad(secondOfDay / 60 % 60, 2).append(':');
+    pad(secondOfDay % 60, 2).append('.');
+    pad(t.getNano() / 1000, 6).append("+00");
     return this;
+  }
+
+  private StringBuilder pad(int value, int width) {
+    for (int digits = digits(value); digits < width; digits++) {
+      row.append('0');
+    }
+    return row.append(value);
+  }
+
+  private static int digits(int value) {
+    int digits = 1;
+    for (int v = value; v >= 10; v /= 10) {
+      digits++;
+    }
+    return digits;
   }
 
   void endRow() {
