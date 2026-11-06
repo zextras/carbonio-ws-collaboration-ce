@@ -49,6 +49,7 @@ public final class MongooseImporter {
     List<TargetRoom> rooms = TargetRooms.load(target);
     FileLinker files = new FileLinker(target);
     RoomImporter.Counts imported;
+    int unarchivedPins;
     try (MarkerTranscriber markers = new MarkerTranscriber(source, target);
         PinImporter pins = new PinImporter(source, target, pinZone);
         RoomReader reader = new RoomReader(source, pins, markers);
@@ -56,6 +57,15 @@ public final class MongooseImporter {
       ImportPipeline.run(rooms, reader, importer);
       importer.finish();
       imported = importer.counts();
+      unarchivedPins = pins.unarchived();
+    }
+    if (unarchivedPins > 0) {
+      ChatsLogger.warn(
+          MongooseImporter.class,
+          "MongooseIM pins without an archived pin line: "
+              + unarchivedPins
+              + ", pin_message.pinned_at read in zone "
+              + pinZone);
     }
     UserTables.Counts users = UserTables.run(source.connection(), source.hasLast(), target);
     ChatsLogger.info(

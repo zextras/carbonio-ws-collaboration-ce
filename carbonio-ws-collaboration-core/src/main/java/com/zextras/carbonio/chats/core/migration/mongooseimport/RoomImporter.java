@@ -35,6 +35,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   private final Fastenings fastenings;
   private final TimelineWriter writer;
   private final Map<String, Instant> pinTimes = new HashMap<>();
+  private PinImporter.PinLine lastPinLine;
   private List<PinImporter.Pin> roomPins = List.of();
   private Map<String, MarkerTranscriber.Marker> roomMarkers = Map.of();
 
@@ -105,6 +106,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     roomPins = pinRows;
     roomMarkers = markerRows;
     pinTimes.clear();
+    lastPinLine = null;
     files.beginRoom(room.id());
     context = new Context(room, "TEMPORARY".equals(room.type()), floor, new RoomClock());
     archived = false;
@@ -122,7 +124,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     if (!roomPins.isEmpty()) {
       writer.flush();
     }
-    pins.importRoomPin(room, rows, roomPins, pinTimes);
+    pins.importRoomPin(room, rows, roomPins, pinTimes, lastPinLine);
     markers.endRoom(room, rows, roomMarkers);
     rooms++;
   }
@@ -222,7 +224,15 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
           pinTimes.put(PinImporter.pinKey(ref.getAsLong(), sender), raw);
         }
         Row target = ref.isPresent() ? rows.resolveStanza(ref.getAsLong()) : null;
-        if (target == null || target.outcome() != RoomRows.MESSAGE) {
+        boolean message = target != null && target.outcome() == RoomRows.MESSAGE;
+        lastPinLine =
+            new PinImporter.PinLine(
+                p.kind() == Kind.PINNED,
+                ref.orElse(0),
+                message ? target.itemId() : null,
+                sender,
+                raw);
+        if (!message) {
           notImported(p, mam, sender, raw);
           return;
         }

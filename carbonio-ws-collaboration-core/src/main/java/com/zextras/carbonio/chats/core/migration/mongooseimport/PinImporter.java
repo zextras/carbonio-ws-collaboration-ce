@@ -24,6 +24,9 @@ public final class PinImporter implements AutoCloseable {
 
   public record Pin(String pinnedBy, String stanzaId, Instant pinnedAt) {}
 
+  public record PinLine(
+      boolean pinned, long stanzaMam, String messageId, String pinner, Instant time) {}
+
   private static final String SELECT =
       "SELECT pinned_by, stanza_id, pinned_at FROM pin_message WHERE room_id = ?";
 
@@ -34,6 +37,7 @@ public final class PinImporter implements AutoCloseable {
   private final PreparedStatement select;
   private final PreparedStatement insert;
   private final ZoneId zone;
+  private int unarchived;
 
   public PinImporter(MongooseSource.Ready source, Connection target, ZoneId zone)
       throws SQLException {
@@ -62,7 +66,11 @@ public final class PinImporter implements AutoCloseable {
   }
 
   public void importRoomPin(
-      TargetRoom room, RoomRows rows, List<Pin> pins, Map<String, Instant> pinTimes)
+      TargetRoom room,
+      RoomRows rows,
+      List<Pin> pins,
+      Map<String, Instant> pinTimes,
+      PinLine lastLine)
       throws SQLException {
     for (Pin pin : pins) {
       String pinner = pinner(pin.pinnedBy());
@@ -78,7 +86,17 @@ public final class PinImporter implements AutoCloseable {
       if (row == null || row.outcome() != RoomRows.MESSAGE || row.deleted()) {
         continue;
       }
-      Instant pinnedAt = sameAction(pinTimes.get(pinKey(mam.getAsLong(), pinner)), pin.pinnedAt());
+      Instant pinnedAt;
+      if (movedByEdit(lastLine, mam.getAsLong(), row)) {
+        pinner = lastLine.pinner();
+        pinnedAt = lastLine.time();
+      } else {
+        Instant archived = pinTimes.get(pinKey(mam.getAsLong(), pinner));
+        pinnedAt = sameAction(archived, pin.pinnedAt());
+        if (pinnedAt != null && !pinnedAt.equals(archived)) {
+          unarchived++;
+        }
+      }
       if (pinnedAt == null) {
         continue;
       }
@@ -88,6 +106,19 @@ public final class PinImporter implements AutoCloseable {
       insert.setObject(4, pinnedAt.atOffset(ZoneOffset.UTC));
       insert.executeUpdate();
     }
+  }
+
+  public int unarchived() {
+    return unarchived;
+  }
+
+  // Editing a pinned message makes MongooseIM point the pin at the edit, with now() and the
+  // recipient as pinner, and archive nothing: the room's last pin line keeps the real action.
+  private static boolean movedByEdit(PinLine lastLine, long pinStanzaMam, RoomRows.Row row) {
+    return lastLine != null
+        && lastLine.pinned()
+        && lastLine.stanzaMam() != pinStanzaMam
+        && row.itemId().equals(lastLine.messageId());
   }
 
   @Override
