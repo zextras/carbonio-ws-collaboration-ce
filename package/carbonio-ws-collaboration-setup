@@ -46,32 +46,30 @@ consul config write /etc/carbonio/ws-collaboration/service-discover/service-prot
 # Allow other services to contact this service
 consul config write /etc/carbonio/ws-collaboration/service-discover/intentions.json
 
-if [[ ! -f "/etc/carbonio/ws-collaboration/service-discover/token" ]]; then
-    # Create the token
-    consul acl token create -format json -policy-name "${POLICY_NAME}" -description "Token for
-    carbonio-ws-collaboration/$(hostname -A)" |
-      jq -r '.SecretID' > /etc/carbonio/ws-collaboration/service-discover/token;
-    chown carbonio-ws-collaboration:carbonio-ws-collaboration /etc/carbonio/ws-collaboration/service-discover/token
-    chmod 0600 /etc/carbonio/ws-collaboration/service-discover/token
+# Create or reuse the deterministic token of this node (idempotent)
+service-discover service-token ensure --service carbonio-ws-collaboration --policy "${POLICY_NAME}" \
+  --token-file /etc/carbonio/ws-collaboration/service-discover/token --owner carbonio-ws-collaboration
 
-    # To pass the token to consul we need to inject it to a env. variable
-    # since it doesn't accept a file as an argument
-    mkdir -p /etc/systemd/system/carbonio-ws-collaboration.service.d/
-    cat >/etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf <<EOF
+# To pass the token to consul we need to inject it to a env. variable
+# since it doesn't accept a file as an argument
+mkdir -p /etc/systemd/system/carbonio-ws-collaboration.service.d/
+cat >/etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf <<EOF
 [Service]
 Environment="CONSUL_HTTP_TOKEN=$(cat /etc/carbonio/ws-collaboration/service-discover/token)"
 EOF
-    chmod 0600 /etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf
-    systemctl daemon-reload
-fi
+chmod 0600 /etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf
+systemctl daemon-reload
 
 consul reload
 
 carbonio-ws-collaboration-configs
 
-# Limit token visibility as much as possible
-export -n CONSUL_HTTP_TOKEN
-
 systemctl restart carbonio-ws-collaboration.service
 systemctl restart carbonio-ws-collaboration-sidecar.service
+
+# Remove the tokens leaked by previous setups (needs the bootstrap token)
+service-discover service-token prune-legacy --service carbonio-ws-collaboration --policy "${POLICY_NAME}"
+
+# Limit token visibility as much as possible
+export -n CONSUL_HTTP_TOKEN
 trap - EXIT

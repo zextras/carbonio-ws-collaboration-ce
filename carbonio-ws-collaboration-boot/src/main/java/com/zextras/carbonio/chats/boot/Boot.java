@@ -89,7 +89,7 @@ public class Boot {
     JakartaWebSocketServletContainerInitializer.configure(
         context,
         (servletContext, wsContainer) -> {
-          wsContainer.setDefaultMaxSessionIdleTimeout(30_000L);
+          wsContainer.setDefaultMaxSessionIdleTimeout(90_000L);
           wsContainer.setDefaultMaxTextMessageBufferSize(65536);
           wsContainer.setDefaultMaxBinaryMessageBufferSize(65536);
 

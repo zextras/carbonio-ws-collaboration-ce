@@ -1,3 +1,21 @@
+## [1.15.3](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.2...v1.15.3) (2026-11-06)
+
+### Bug Fixes
+
+* detect dead websocket sessions from missing pongs ([#315](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/315)) ([ae42aea](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/ae42aea72374523f9c44246f007c12e0daa92eaa))
+
+## [1.15.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.1...v1.15.2) (2026-11-03)
+
+### Bug Fixes
+
+* **setup:** reuse a deterministic Consul token per node - CO-3612 ([#318](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/318)) ([50e1fa7](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/50e1fa72822139cdf68a19cb844d7e7f86029e21))
+
+## [1.15.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.0...v1.15.1) (2026-11-02)
+
+### Bug Fixes
+
+* **meeting:** make starting an already active meeting a no-op ([#300](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/300)) ([ec0e4e4](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/ec0e4e45751abd186d343ed061bd690607425e80))
+
 ## [1.15.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.14.3...v1.15.0) (2026-10-30)
 
 ### Features
