@@ -31,9 +31,9 @@ public class EventWebSocketSessions {
   }
 
   public static String userIdOf(Session session) {
-    return (String)
-        ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
-            .getAttribute("userId");
+    return session.getUserProperties().get(HttpSession.class.getName()) instanceof HttpSession http
+        ? (String) http.getAttribute("userId")
+        : null;
   }
 
   public static String versionOf(Session session) {
@@ -44,13 +44,14 @@ public class EventWebSocketSessions {
   public void add(Session session) {
     String userId = userIdOf(session);
     sessionInfoMap.put(session.getId(), new SessionInfo(userId, new WeakReference<>(session)));
-    sessionIdsByUser.compute(
-        userId,
-        (key, ids) -> {
-          Set<String> result = ids != null ? ids : ConcurrentHashMap.newKeySet();
-          result.add(session.getId());
-          return result;
-        });
+    if (userId != null)
+      sessionIdsByUser.compute(
+          userId,
+          (key, ids) -> {
+            Set<String> result = ids != null ? ids : ConcurrentHashMap.newKeySet();
+            result.add(session.getId());
+            return result;
+          });
     pingManager.start(session);
   }
 
@@ -90,6 +91,7 @@ public class EventWebSocketSessions {
   private boolean forget(String sessionId) {
     SessionInfo info = sessionInfoMap.remove(sessionId);
     if (info == null) return false;
+    if (info.userId() == null) return true;
     sessionIdsByUser.computeIfPresent(
         info.userId(),
         (key, ids) -> {

@@ -66,6 +66,19 @@ class EventWebSocketSessionsTest {
   }
 
   @Test
+  void aSessionWithoutUser_isStoredAndRemovedWithoutAUserIndex() {
+    Session s = mock(Session.class);
+    when(s.getUserProperties()).thenReturn(new HashMap<>());
+    when(s.getId()).thenReturn("anonymous");
+    when(s.isOpen()).thenReturn(true);
+
+    sessions.add(s);
+
+    assertTrue(sessions.get("anonymous").isPresent());
+    assertTrue(sessions.remove("anonymous"));
+  }
+
+  @Test
   void remove_removesSession_andStopsPing() {
     Session s = newOpenSession("sid-2");
     sessions.add(s);
