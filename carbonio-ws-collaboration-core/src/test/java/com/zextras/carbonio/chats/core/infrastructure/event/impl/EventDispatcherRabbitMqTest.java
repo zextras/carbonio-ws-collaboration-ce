@@ -24,10 +24,12 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.BlockedCallback;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.UnblockedCallback;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -35,7 +37,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,12 +94,43 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
-  void sendToUserExchange_withManyUsers_publishesOncePerUserInOrder() throws Exception {
+  void sendToUserExchange_withManyUsers_publishesOneMessageListingThem() throws Exception {
     dispatcher.sendToUserExchange(List.of(USER_A, USER_B), EVENT);
 
-    InOrder order = inOrder(channel);
-    order.verify(channel, timeout(1000)).basicPublish(eq("wsc.events"), eq(USER_A), any(), any());
-    order.verify(channel, timeout(1000)).basicPublish(eq("wsc.events"), eq(USER_B), any(), any());
+    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
+    ArgumentCaptor<byte[]> body = ArgumentCaptor.forClass(byte[].class);
+    verify(channel, timeout(1000).times(1))
+        .basicPublish(eq("wsc.events"), eq("users"), props.capture(), body.capture());
+    assertEquals(List.of(USER_A, USER_B), props.getValue().getHeaders().get("users"));
+    assertEquals(new String(json(), StandardCharsets.UTF_8), new String(body.getValue()));
+  }
+
+  @Test
+  void sendToUserExchange_withOneUserInTheList_routesByThatUser() throws Exception {
+    dispatcher.sendToUserExchange(List.of(USER_A), EVENT);
+
+    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
+    verify(channel, timeout(1000))
+        .basicPublish(eq("wsc.events"), eq(USER_A), props.capture(), any());
+    assertNull(props.getValue().getHeaders());
+  }
+
+  @Test
+  void sendToUserExchange_withMoreUsersThanOneMessageHolds_splitsThemAcrossMessages()
+      throws Exception {
+    List<String> users =
+        IntStream.range(0, 2_500).mapToObj(i -> UUID.randomUUID().toString()).toList();
+
+    dispatcher.sendToUserExchange(users, EVENT);
+
+    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
+    verify(channel, timeout(1000).times(3))
+        .basicPublish(eq("wsc.events"), eq("users"), props.capture(), any());
+    assertEquals(
+        users,
+        props.getAllValues().stream()
+            .flatMap(p -> ((List<?>) p.getHeaders().get("users")).stream())
+            .toList());
   }
 
   @Test
@@ -131,6 +168,29 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
+  void aFullQueue_makesCallersWaitBrieflyForRoom_insteadOfDropping() throws Exception {
+    CountDownLatch slowBroker = new CountDownLatch(1);
+    CountDownLatch published = new CountDownLatch(10_002);
+    doAnswer(
+            invocation -> {
+              slowBroker.await();
+              published.countDown();
+              return null;
+            })
+        .when(channel)
+        .basicPublish(anyString(), anyString(), any(), any());
+    for (int i = 0; i < 10_001; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
+
+    CompletableFuture<Void> late =
+        CompletableFuture.runAsync(() -> dispatcher.sendToUserExchange(USER_A, EVENT));
+    Thread.sleep(50);
+    slowBroker.countDown();
+
+    late.get(1, TimeUnit.SECONDS);
+    assertTrue(published.await(5, TimeUnit.SECONDS));
+  }
+
+  @Test
   void callersNeverBlock_whileTheBrokerBlocksPublishing() throws Exception {
     CountDownLatch brokerBlocked = new CountDownLatch(1);
     doAnswer(
@@ -140,6 +200,9 @@ class EventDispatcherRabbitMqTest {
             })
         .when(channel)
         .basicPublish(anyString(), anyString(), any(), any());
+    ArgumentCaptor<BlockedCallback> blocked = ArgumentCaptor.forClass(BlockedCallback.class);
+    verify(connection).addBlockedListener(blocked.capture(), any(UnblockedCallback.class));
+    blocked.getValue().handle("low on memory");
 
     try {
       assertTimeoutPreemptively(

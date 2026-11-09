@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 
 import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq.EXCHANGE;
 import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq.QUEUE_ID_HEADER;
+import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq.USERS_HEADER;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -79,8 +80,14 @@ public class UserEventListener {
   }
 
   private void deliver(Delivery delivery) {
-    String userId = delivery.getEnvelope().getRoutingKey();
     String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+    if (headerOf(delivery, USERS_HEADER) instanceof List<?> users) {
+      users.stream()
+          .map(Object::toString)
+          .forEach(user -> sessions.sessionsOf(user).forEach(s -> send(s, user, message)));
+      return;
+    }
+    String userId = delivery.getEnvelope().getRoutingKey();
     targetSessions(userId, queueIdOf(delivery)).forEach(session -> send(session, userId, message));
   }
 
@@ -91,9 +98,12 @@ public class UserEventListener {
   }
 
   private static Optional<String> queueIdOf(Delivery delivery) {
+    return Optional.ofNullable(headerOf(delivery, QUEUE_ID_HEADER)).map(Object::toString);
+  }
+
+  private static Object headerOf(Delivery delivery, String name) {
     Map<String, Object> headers = delivery.getProperties().getHeaders();
-    if (headers == null || headers.get(QUEUE_ID_HEADER) == null) return Optional.empty();
-    return Optional.of(headers.get(QUEUE_ID_HEADER).toString());
+    return headers == null ? null : headers.get(name);
   }
 
   private void send(Session session, String userId, String message) {

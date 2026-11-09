@@ -35,6 +35,7 @@ import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,7 @@ class UserEventListenerTest {
 
   private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   private static final String USER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  private static final String USER_C = "cccccccc-cccc-cccc-cccc-cccccccccccc";
   private static final String EVENT = "{\"type\":\"roomCreated\"}";
 
   private ConnectionFactory factory;
@@ -121,6 +123,28 @@ class UserEventListenerTest {
     verify(a1.getAsyncRemote()).sendText(EVENT);
     verify(a2.getAsyncRemote()).sendText(EVENT);
     verify(b1.getAsyncRemote(), never()).sendText(anyString());
+  }
+
+  @Test
+  void delivery_listingSeveralUsers_reachesEveryLocalSessionOfEachOfThem() throws Exception {
+    Session a1 = openSession("a1", USER_A, "1.6.2");
+    Session b1 = openSession("b1", USER_B, "1.6.2");
+    Session c1 = openSession("c1", USER_C, "1.6.2");
+
+    consumerCallback()
+        .handle(
+            "tag",
+            delivery(
+                "",
+                Map.of(
+                    "users",
+                    List.of(
+                        LongStringHelper.asLongString(USER_A),
+                        LongStringHelper.asLongString(USER_B)))));
+
+    verify(a1.getAsyncRemote()).sendText(EVENT);
+    verify(b1.getAsyncRemote()).sendText(EVENT);
+    verify(c1.getAsyncRemote(), never()).sendText(anyString());
   }
 
   @Test

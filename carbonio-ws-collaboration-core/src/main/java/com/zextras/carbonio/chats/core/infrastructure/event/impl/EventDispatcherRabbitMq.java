@@ -23,23 +23,30 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
 
   public static final String EXCHANGE = "wsc.events";
   public static final String QUEUE_ID_HEADER = "queueId";
+  public static final String USERS_HEADER = "users";
 
   private static final int MAX_PENDING_EVENTS = 10_000;
+  private static final int MAX_USERS_PER_MESSAGE = 1_000;
+  private static final long ENQUEUE_WAIT_MILLIS = 100;
   private static final BasicProperties NO_PROPERTIES = new BasicProperties.Builder().build();
 
   private final ObjectMapper objectMapper;
   private final Connection connection;
   private volatile Channel channel;
+  private volatile boolean brokerBlocked;
+  private final AtomicLong dropped = new AtomicLong();
   private final ThreadPoolExecutor publisher =
       new ThreadPoolExecutor(
           1,
@@ -48,14 +55,14 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
           TimeUnit.MILLISECONDS,
           new ArrayBlockingQueue<>(MAX_PENDING_EVENTS),
           Thread.ofPlatform().name("wsc-event-publisher").daemon().factory(),
-          (event, executor) ->
-              ChatsLogger.warn("Event dropped: too many events waiting for the broker"));
+          this::waitOrDrop);
 
   @Inject
   public EventDispatcherRabbitMq(ConnectionFactory connectionFactory, ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
     try {
       this.connection = connectionFactory.newConnection(connectionName("publisher"));
+      connection.addBlockedListener(reason -> brokerBlocked = true, () -> brokerBlocked = false);
       this.channel = openChannel();
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
@@ -88,38 +95,75 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   @Override
   public void sendToUserExchange(String userId, DomainEvent event) {
-    publish(userId, NO_PROPERTIES, event);
+    serialize(event).ifPresent(body -> publish(userId, NO_PROPERTIES, body));
   }
 
   @Override
   public void sendToUserExchange(List<String> usersIds, DomainEvent event) {
-    usersIds.forEach(userId -> publish(userId, NO_PROPERTIES, event));
+    if (usersIds.size() == 1) {
+      sendToUserExchange(usersIds.getFirst(), event);
+      return;
+    }
+    serialize(event)
+        .ifPresent(
+            body -> {
+              for (int from = 0; from < usersIds.size(); from += MAX_USERS_PER_MESSAGE) {
+                List<String> users =
+                    List.copyOf(
+                        usersIds.subList(
+                            from, Math.min(usersIds.size(), from + MAX_USERS_PER_MESSAGE)));
+                publish(
+                    USERS_HEADER,
+                    new BasicProperties.Builder().headers(Map.of(USERS_HEADER, users)).build(),
+                    body);
+              }
+            });
   }
 
   @Override
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
-    publish(
-        userId,
-        new BasicProperties.Builder().headers(Map.of(QUEUE_ID_HEADER, queueId)).build(),
-        event);
+    serialize(event)
+        .ifPresent(
+            body ->
+                publish(
+                    userId,
+                    new BasicProperties.Builder().headers(Map.of(QUEUE_ID_HEADER, queueId)).build(),
+                    body));
   }
 
-  private void publish(String userId, BasicProperties properties, DomainEvent event) {
-    byte[] body;
+  private Optional<byte[]> serialize(DomainEvent event) {
     try {
-      body = objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8);
+      return Optional.of(objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
     } catch (JsonProcessingException e) {
-      ChatsLogger.warn(String.format("Unable to serialize event for user '%s'", userId), e);
-      return;
+      ChatsLogger.warn(String.format("Unable to serialize event '%s'", event.getType()), e);
+      return Optional.empty();
     }
+  }
+
+  private void publish(String routingKey, BasicProperties properties, byte[] body) {
     publisher.execute(
         () -> {
           try {
-            channel().basicPublish(EXCHANGE, userId, properties, body);
+            channel().basicPublish(EXCHANGE, routingKey, properties, body);
           } catch (Exception e) {
-            ChatsLogger.warn(String.format("Unable to send event to user '%s'", userId), e);
+            ChatsLogger.warn("Unable to send event to the message broker", e);
           }
         });
+  }
+
+  private void waitOrDrop(Runnable event, ThreadPoolExecutor executor) {
+    try {
+      if (!brokerBlocked
+          && !executor.isShutdown()
+          && executor.getQueue().offer(event, ENQUEUE_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    long count = dropped.incrementAndGet();
+    if (count % 1_000 == 1)
+      ChatsLogger.warn(
+          String.format(
+              "Event dropped: too many events waiting for the broker (%d dropped so far)", count));
   }
 
   @Override

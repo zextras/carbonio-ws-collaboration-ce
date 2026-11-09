@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +27,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ class UserEventRoutingIT {
 
   private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   private static final String USER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  private static final String USER_C = "cccccccc-cccc-cccc-cccc-cccccccccccc";
   private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -99,6 +102,20 @@ class UserEventRoutingIT {
     verify(userAOnFirst, timeout(2000)).sendText(json);
     verify(userAOnSecond, timeout(2000)).sendText(json);
     verify(userBOnFirst, after(300).never()).sendText(anyString());
+  }
+
+  @Test
+  void anEventForSeveralUsers_reachesEachOfThemOnEveryInstanceOnce() {
+    RemoteEndpoint.Async userAOnFirst = connect(first, "a1", USER_A);
+    RemoteEndpoint.Async userBOnSecond = connect(second, "b2", USER_B);
+    RemoteEndpoint.Async userCOnFirst = connect(first, "c1", USER_C);
+
+    dispatcher.sendToUserExchange(List.of(USER_A, USER_B), EVENT);
+
+    verify(userAOnFirst, timeout(2000)).sendText(json);
+    verify(userBOnSecond, timeout(2000)).sendText(json);
+    verify(userCOnFirst, after(300).never()).sendText(anyString());
+    verify(userAOnFirst, times(1)).sendText(json);
   }
 
   @Test
