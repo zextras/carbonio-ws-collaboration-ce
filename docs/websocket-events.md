@@ -110,7 +110,8 @@ Where:
 
 ## Room events (via message broker)
 
-These events are delivered through the message broker to each room member's personal queue.
+These events go through the message broker to every WSC instance, which sends them to the open
+sessions of each room member.
 
 ### RoomCreated
 
