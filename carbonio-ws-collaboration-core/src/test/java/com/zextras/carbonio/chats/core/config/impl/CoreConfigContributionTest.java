@@ -46,4 +46,13 @@ class CoreConfigContributionTest {
                     "VIDEO_SIMULCAST_MEDIUM_HEIGHT",
                     "VIDEO_SIMULCAST_LOW_HEIGHT")));
   }
+
+  @Test
+  @DisplayName("The server listens on the service-mesh loopback address by default")
+  void serverDefaultsToMeshAddress() {
+    Map<String, String> defaults = contribution.infrastructureDefaults();
+
+    assertEquals("127.78.0.4", defaults.get("SERVER_HOST"));
+    assertEquals("10000", defaults.get("SERVER_PORT"));
+  }
 }

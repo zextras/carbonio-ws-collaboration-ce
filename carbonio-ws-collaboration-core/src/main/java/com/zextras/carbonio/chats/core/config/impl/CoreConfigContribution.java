@@ -159,6 +159,8 @@ public class CoreConfigContribution implements ConfigContribution {
         "jdbc:postgresql://127.78.0.4:20003/carbonio-ws-collaboration-db");
     defaults.put(ConfigName.CONSUL_HOST, "localhost");
     defaults.put(ConfigName.CONSUL_PORT, "8500");
+    defaults.put(ConfigName.SERVER_HOST, LOCAL_SERVICE_ADDRESS);
+    defaults.put(ConfigName.SERVER_PORT, "10000");
     defaults.put(ConfigName.STORAGES_HOST, LOCAL_SERVICE_ADDRESS);
     defaults.put(ConfigName.STORAGES_PORT, "20000");
     defaults.put(ConfigName.USER_MANAGEMENT_HOST, LOCAL_SERVICE_ADDRESS);
