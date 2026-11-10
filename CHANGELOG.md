@@ -1,3 +1,9 @@
+## [1.15.4](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.3...v1.15.4) (2026-11-10)
+
+### Bug Fixes
+
+* **docker:** create WSC sidecar system user ([#322](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/322)) ([9b08f47](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/9b08f47a624edf0850c6d04d595f291ccd3e2ff0))
+
 ## [1.15.3](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.2...v1.15.3) (2026-11-06)
 
 ### Bug Fixes
