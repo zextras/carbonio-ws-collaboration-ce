@@ -471,9 +471,10 @@ Upgrade procedure (administrators):
 
 1. Plan the server upgrade together with the clients: 1.x apps stop working as soon as the server runs 2.0.0,
    and 2.0.0 apps do not work with a legacy server. Mobile users need an app version that speaks API 2.0.0.
-2. **Stop `carbonio-message-dispatcher` (MongooseIM) on every node before upgrading** and keep it stopped and
-   disabled afterwards. Keep its database (`carbonio-message-dispatcher-db`) running and reachable: the import
-   reads it.
+2. **Stop `carbonio-message-dispatcher` (MongooseIM) and `carbonio-push-connector` on every node before
+   upgrading** and keep both stopped and disabled afterwards. The push connector is no longer used in 2.0.0
+   (nothing calls it) and it keeps connections to the WSC database.
+   Keep the dispatcher database (`carbonio-message-dispatcher-db`) running and reachable: the import reads it.
 3. Upgrade `carbonio-ws-collaboration`. At the first start, Flyway runs `V2_0_1__migrate_mongoose_data` once:
    it imports messages, system lines, edits, reactions, pins, read markers and last-seen times from
    the MongooseIM database. It never runs again. If the dispatcher database cannot be read, the start fails
