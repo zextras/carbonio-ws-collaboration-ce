@@ -13,12 +13,9 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.zextras.carbonio.chats.core.infrastructure.consul.DiscoveryService;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -42,43 +39,27 @@ class WsPresenceJanitorServiceTest {
   }
 
   private WsPresenceRepository repo;
-  private DiscoveryService discoveryService;
-  private ServiceIdProvider serviceIdProvider;
+  private WsInstanceRegistry instanceRegistry;
   private PresenceBroadcaster presenceBroadcaster;
   private WsPresenceManager wsPresenceManager;
   private EventWebSocketSessions sessions;
   private WsPresenceJanitorService janitorService;
 
-  private static final String SERVICE_NAME = "carbonio-ws-collaboration";
-  private static final String SERVICE_METADATA_ID = "service_id";
-
   @BeforeEach
   void setUp() {
     repo = mock(WsPresenceRepository.class);
-    discoveryService = mock(DiscoveryService.class);
-    serviceIdProvider = mock(ServiceIdProvider.class);
+    instanceRegistry = mock(WsInstanceRegistry.class);
     presenceBroadcaster = mock(PresenceBroadcaster.class);
     wsPresenceManager = mock(WsPresenceManager.class);
     sessions = mock(EventWebSocketSessions.class);
     janitorService =
         new WsPresenceJanitorService(
-            repo,
-            discoveryService,
-            serviceIdProvider,
-            presenceBroadcaster,
-            wsPresenceManager,
-            sessions);
+            repo, instanceRegistry, presenceBroadcaster, wsPresenceManager, sessions);
   }
 
   @AfterEach
   void cleanup() {
-    reset(
-        repo,
-        discoveryService,
-        serviceIdProvider,
-        presenceBroadcaster,
-        wsPresenceManager,
-        sessions);
+    reset(repo, instanceRegistry, presenceBroadcaster, wsPresenceManager, sessions);
   }
 
   @Nested
@@ -94,9 +75,8 @@ class WsPresenceJanitorServiceTest {
       String staleServiceId = uuidB.toString();
       String myServiceId = uuidA.toString();
 
-      when(serviceIdProvider.get()).thenReturn(myServiceId);
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenReturn(List.of(uuidA));
+      when(instanceRegistry.selfId()).thenReturn(myServiceId);
+      when(instanceRegistry.liveInstanceIds()).thenReturn(Set.of(uuidA.toString()));
       when(repo.findDistinctOnlineServiceIds()).thenReturn(Set.of(myServiceId, staleServiceId));
       // The set-based query already deleted rows + upserted last_seen, and returns the offlined
       // user
@@ -118,9 +98,8 @@ class WsPresenceJanitorServiceTest {
       String myServiceId = myUuid.toString();
       String staleServiceId = staleUuid.toString();
 
-      when(serviceIdProvider.get()).thenReturn(myServiceId);
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenReturn(Collections.emptyList());
+      when(instanceRegistry.selfId()).thenReturn(myServiceId);
+      when(instanceRegistry.liveInstanceIds()).thenReturn(Set.of());
       when(repo.findDistinctOnlineServiceIds()).thenReturn(Set.of(myServiceId, staleServiceId));
       when(repo.recoverStaleService(staleServiceId)).thenReturn(lastSeenOf("u2"));
 
@@ -137,9 +116,8 @@ class WsPresenceJanitorServiceTest {
       UUID uuidA = UUID.randomUUID();
       String serviceId = uuidA.toString();
 
-      when(serviceIdProvider.get()).thenReturn(serviceId);
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenReturn(List.of(uuidA));
+      when(instanceRegistry.selfId()).thenReturn(serviceId);
+      when(instanceRegistry.liveInstanceIds()).thenReturn(Set.of(uuidA.toString()));
       when(repo.findDistinctOnlineServiceIds()).thenReturn(Set.of(serviceId));
 
       janitorService.sweep();
@@ -159,9 +137,8 @@ class WsPresenceJanitorServiceTest {
       String myServiceId = uuidA.toString();
       String staleServiceId = UUID.randomUUID().toString();
 
-      when(serviceIdProvider.get()).thenReturn(myServiceId);
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenReturn(List.of(uuidA));
+      when(instanceRegistry.selfId()).thenReturn(myServiceId);
+      when(instanceRegistry.liveInstanceIds()).thenReturn(Set.of(uuidA.toString()));
       when(repo.findDistinctOnlineServiceIds()).thenReturn(Set.of(myServiceId, staleServiceId));
       when(repo.recoverStaleService(staleServiceId)).thenReturn(lastSeenOf("u1", "u2"));
       when(repo.countOnlineByUserId("u2")).thenReturn(1);
@@ -180,9 +157,8 @@ class WsPresenceJanitorServiceTest {
       String healthyServiceId = uuidA.toString();
       String staleServiceId = uuidB.toString();
 
-      when(serviceIdProvider.get()).thenReturn(healthyServiceId);
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenReturn(List.of(uuidA));
+      when(instanceRegistry.selfId()).thenReturn(healthyServiceId);
+      when(instanceRegistry.liveInstanceIds()).thenReturn(Set.of(uuidA.toString()));
       when(repo.findDistinctOnlineServiceIds())
           .thenReturn(Set.of(healthyServiceId, staleServiceId));
       // All affected users still have sessions elsewhere -> the anti-join returns no offlined users
@@ -207,9 +183,8 @@ class WsPresenceJanitorServiceTest {
 
     @BeforeEach
     void stubHealthyCluster() {
-      when(serviceIdProvider.get()).thenReturn(MY_SERVICE_ID);
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenReturn(List.of());
+      when(instanceRegistry.selfId()).thenReturn(MY_SERVICE_ID);
+      when(instanceRegistry.liveInstanceIds()).thenReturn(Set.of());
       when(repo.findDistinctOnlineServiceIds()).thenReturn(Set.of(MY_SERVICE_ID));
     }
 
@@ -262,8 +237,7 @@ class WsPresenceJanitorServiceTest {
     @Test
     @DisplayName("Consul failure skips the stale cleanup but still repairs own sessions")
     void sweep_consulFailure_stillRepairs() {
-      when(discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID))
-          .thenThrow(new RuntimeException("consul down"));
+      when(instanceRegistry.liveInstanceIds()).thenThrow(new RuntimeException("consul down"));
       when(repo.findSessionsByServiceId(MY_SERVICE_ID)).thenReturn(Map.of());
       when(sessions.openSessionUserIds()).thenReturn(Map.of("s1", "u1"));
 

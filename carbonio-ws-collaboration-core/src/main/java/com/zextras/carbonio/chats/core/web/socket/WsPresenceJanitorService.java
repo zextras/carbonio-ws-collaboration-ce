@@ -6,18 +6,15 @@ package com.zextras.carbonio.chats.core.web.socket;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.infrastructure.consul.DiscoveryService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Scheduled backstop that recovers presence for WSC instances that went <em>down and did not come
@@ -47,12 +44,9 @@ import java.util.stream.Collectors;
 public class WsPresenceJanitorService {
 
   private static final long INTERVAL_MINUTES = 5;
-  private static final String SERVICE_NAME = "carbonio-ws-collaboration";
-  private static final String SERVICE_METADATA_ID = "service_id";
 
   private final WsPresenceRepository repo;
-  private final DiscoveryService discoveryService;
-  private final ServiceIdProvider serviceIdProvider;
+  private final WsInstanceRegistry instanceRegistry;
   private final PresenceBroadcaster presenceBroadcaster;
   private final WsPresenceManager wsPresenceManager;
   private final EventWebSocketSessions sessions;
@@ -61,14 +55,12 @@ public class WsPresenceJanitorService {
   @Inject
   public WsPresenceJanitorService(
       WsPresenceRepository repo,
-      DiscoveryService discoveryService,
-      ServiceIdProvider serviceIdProvider,
+      WsInstanceRegistry instanceRegistry,
       PresenceBroadcaster presenceBroadcaster,
       WsPresenceManager wsPresenceManager,
       EventWebSocketSessions sessions) {
     this.repo = repo;
-    this.discoveryService = discoveryService;
-    this.serviceIdProvider = serviceIdProvider;
+    this.instanceRegistry = instanceRegistry;
     this.presenceBroadcaster = presenceBroadcaster;
     this.wsPresenceManager = wsPresenceManager;
     this.sessions = sessions;
@@ -107,12 +99,9 @@ public class WsPresenceJanitorService {
    */
   private void recoverStaleServices() {
     try {
-      Set<String> healthy =
-          discoveryService.getHealthyServices(SERVICE_NAME, SERVICE_METADATA_ID).stream()
-              .map(UUID::toString)
-              .collect(Collectors.toSet());
+      Set<String> healthy = new HashSet<>(instanceRegistry.liveInstanceIds());
       // Defensive: never drop our own service_id, even if Consul transiently reports unhealthy
-      healthy.add(serviceIdProvider.get());
+      healthy.add(instanceRegistry.selfId());
 
       Set<String> onlineServiceIds = repo.findDistinctOnlineServiceIds();
       Set<String> stale = new HashSet<>(onlineServiceIds);
@@ -146,7 +135,7 @@ public class WsPresenceJanitorService {
 
   private void repairOwnSessions() {
     try {
-      Map<String, String> dbSessions = repo.findSessionsByServiceId(serviceIdProvider.get());
+      Map<String, String> dbSessions = repo.findSessionsByServiceId(instanceRegistry.selfId());
       Map<String, String> openSessions = sessions.openSessionUserIds();
       int missing = 0;
       for (Map.Entry<String, String> open : openSessions.entrySet()) {

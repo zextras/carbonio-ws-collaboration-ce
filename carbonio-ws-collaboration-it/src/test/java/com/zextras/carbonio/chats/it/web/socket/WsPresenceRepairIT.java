@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
-import com.zextras.carbonio.chats.core.web.socket.ServiceIdProvider;
+import com.zextras.carbonio.chats.core.web.socket.WsInstanceRegistry;
 import com.zextras.carbonio.chats.core.web.socket.WsPresenceManager;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ConsulMockServer;
@@ -30,7 +30,7 @@ class WsPresenceRepairIT {
   private final WsPresenceManager wsPresenceManager;
   private final WsPresenceRepository wsPresenceRepository;
   private final EventWebSocketSessions sessions;
-  private final ServiceIdProvider serviceIdProvider;
+  private final WsInstanceRegistry instanceRegistry;
 
   private final String sessionId = UUID.randomUUID().toString();
   private final String userId = UUID.randomUUID().toString();
@@ -39,11 +39,11 @@ class WsPresenceRepairIT {
       WsPresenceManager wsPresenceManager,
       WsPresenceRepository wsPresenceRepository,
       EventWebSocketSessions sessions,
-      ServiceIdProvider serviceIdProvider) {
+      WsInstanceRegistry instanceRegistry) {
     this.wsPresenceManager = wsPresenceManager;
     this.wsPresenceRepository = wsPresenceRepository;
     this.sessions = sessions;
-    this.serviceIdProvider = serviceIdProvider;
+    this.instanceRegistry = instanceRegistry;
   }
 
   @BeforeAll
@@ -73,7 +73,7 @@ class WsPresenceRepairIT {
 
     assertEquals(
         Map.of(sessionId, userId),
-        wsPresenceRepository.findSessionsByServiceId(serviceIdProvider.get()));
+        wsPresenceRepository.findSessionsByServiceId(instanceRegistry.selfId()));
   }
 
   @Test
@@ -87,7 +87,7 @@ class WsPresenceRepairIT {
   @Test
   @DisplayName("An orphan row is removed and the user's last seen is recorded")
   void removeOrphanSession_closedSession_deletesRowAndRecordsLastSeen() {
-    wsPresenceRepository.insertAndCountOnline(sessionId, userId, serviceIdProvider.get());
+    wsPresenceRepository.insertAndCountOnline(sessionId, userId, instanceRegistry.selfId());
 
     wsPresenceManager.removeOrphanSession(userId, sessionId);
 
@@ -99,7 +99,7 @@ class WsPresenceRepairIT {
   @DisplayName("The row of an open session is not an orphan")
   void removeOrphanSession_openSession_keepsRow() {
     registerOpenSession();
-    wsPresenceRepository.insertAndCountOnline(sessionId, userId, serviceIdProvider.get());
+    wsPresenceRepository.insertAndCountOnline(sessionId, userId, instanceRegistry.selfId());
 
     wsPresenceManager.removeOrphanSession(userId, sessionId);
 

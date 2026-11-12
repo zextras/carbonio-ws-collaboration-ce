@@ -13,10 +13,17 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
+import com.zextras.carbonio.chats.core.web.socket.ConsulWsInstanceRegistry;
+import com.zextras.carbonio.chats.core.web.socket.WsInstanceRegistry;
 import java.util.Optional;
 import java.util.Set;
 
 public class ProductionConfig extends AbstractModule {
+
+  @Override
+  protected void configure() {
+    bind(WsInstanceRegistry.class).to(ConsulWsInstanceRegistry.class);
+  }
 
   @Singleton
   @Provides

@@ -27,7 +27,7 @@ public class ConsulMockServer extends ClientAndServer implements CloseableResour
 
   /**
    * Stubs the local agent service catalog ({@code GET /v1/agent/services}) so that {@code
-   * ServiceIdProvider} can resolve this instance's {@code service_id} from {@code
+   * ConsulWsInstanceRegistry} can resolve this instance's {@code service_id} from {@code
    * Service.Meta["service_id"]}. The response shape matches {@link
    * com.orbitz.consul.model.health.Service} (required fields: ID, Service, Tags, Address, Meta,
    * Port).

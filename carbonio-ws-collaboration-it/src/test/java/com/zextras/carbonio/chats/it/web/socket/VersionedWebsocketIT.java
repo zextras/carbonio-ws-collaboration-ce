@@ -115,7 +115,7 @@ class VersionedWebsocketIT {
   @BeforeAll
   static void setUpConsul(ConsulMockServer consulMockServer) {
     // WsPresenceManager (a constructor dependency of this test) transitively requires
-    // ServiceIdProvider, whose constructor resolves this instance's service_id from the Consul
+    // WsInstanceRegistry, whose constructor resolves this instance's service_id from the Consul
     // agent service catalog. This runs before the first test instance is provisioned, and the
     // resolved value is cached for the singleton's lifetime.
     consulMockServer.mockServiceIdResponse(UUID.randomUUID());

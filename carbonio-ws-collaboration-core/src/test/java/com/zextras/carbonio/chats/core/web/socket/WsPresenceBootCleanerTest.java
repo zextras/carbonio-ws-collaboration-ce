@@ -33,7 +33,7 @@ class WsPresenceBootCleanerTest {
   }
 
   private WsPresenceRepository repo;
-  private ServiceIdProvider serviceIdProvider;
+  private WsInstanceRegistry instanceRegistry;
   private PresenceBroadcaster presenceBroadcaster;
   private WsPresenceBootCleaner bootCleaner;
 
@@ -42,15 +42,15 @@ class WsPresenceBootCleanerTest {
   @BeforeEach
   void setUp() {
     repo = mock(WsPresenceRepository.class);
-    serviceIdProvider = mock(ServiceIdProvider.class);
+    instanceRegistry = mock(WsInstanceRegistry.class);
     presenceBroadcaster = mock(PresenceBroadcaster.class);
-    when(serviceIdProvider.get()).thenReturn(SERVICE_ID);
-    bootCleaner = new WsPresenceBootCleaner(repo, serviceIdProvider, presenceBroadcaster);
+    when(instanceRegistry.selfId()).thenReturn(SERVICE_ID);
+    bootCleaner = new WsPresenceBootCleaner(repo, instanceRegistry, presenceBroadcaster);
   }
 
   @AfterEach
   void cleanup() {
-    reset(repo, serviceIdProvider, presenceBroadcaster);
+    reset(repo, instanceRegistry, presenceBroadcaster);
   }
 
   @Nested

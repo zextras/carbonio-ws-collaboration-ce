@@ -23,16 +23,16 @@ import java.util.Map;
 public class WsPresenceBootCleaner {
 
   private final WsPresenceRepository repo;
-  private final ServiceIdProvider serviceIdProvider;
+  private final WsInstanceRegistry instanceRegistry;
   private final PresenceBroadcaster presenceBroadcaster;
 
   @Inject
   public WsPresenceBootCleaner(
       WsPresenceRepository repo,
-      ServiceIdProvider serviceIdProvider,
+      WsInstanceRegistry instanceRegistry,
       PresenceBroadcaster presenceBroadcaster) {
     this.repo = repo;
-    this.serviceIdProvider = serviceIdProvider;
+    this.instanceRegistry = instanceRegistry;
     this.presenceBroadcaster = presenceBroadcaster;
   }
 
@@ -45,7 +45,7 @@ public class WsPresenceBootCleaner {
    * then make one broadcast pass over the returned users. No per-user count loop.
    */
   public void runOnce() {
-    String serviceId = serviceIdProvider.get();
+    String serviceId = instanceRegistry.selfId();
     Map<String, OffsetDateTime> nowOfflineUsers = repo.recoverStaleService(serviceId);
     ChatsLogger.info(
         "Boot cleanup: cleaned stale WS_SESSION rows for service_id=%s, %d users now offline"

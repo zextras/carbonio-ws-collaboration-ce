@@ -11,9 +11,16 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.config.impl.EnvironmentAppConfig;
+import com.zextras.carbonio.chats.core.web.socket.DockerWsInstanceRegistry;
+import com.zextras.carbonio.chats.core.web.socket.WsInstanceRegistry;
 import java.util.Set;
 
 public class DockerConfig extends AbstractModule {
+
+  @Override
+  protected void configure() {
+    bind(WsInstanceRegistry.class).to(DockerWsInstanceRegistry.class);
+  }
 
   @Singleton
   @Provides

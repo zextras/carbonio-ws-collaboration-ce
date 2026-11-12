@@ -38,7 +38,7 @@ class WsPresenceManagerTest {
   private static final OffsetDateTime LAST_SEEN = OffsetDateTime.parse("2026-10-13T10:00:00Z");
 
   private WsPresenceRepository wsPresenceRepository;
-  private ServiceIdProvider serviceIdProvider;
+  private WsInstanceRegistry instanceRegistry;
   private PresenceBroadcaster presenceBroadcaster;
   private Database db;
   private SqlQuery sqlQuery;
@@ -48,13 +48,13 @@ class WsPresenceManagerTest {
   @BeforeEach
   void setUp() {
     wsPresenceRepository = mock(WsPresenceRepository.class);
-    serviceIdProvider = mock(ServiceIdProvider.class);
+    instanceRegistry = mock(WsInstanceRegistry.class);
     presenceBroadcaster = mock(PresenceBroadcaster.class);
     db = mock(Database.class);
     sqlQuery = mock(SqlQuery.class);
     sessions = mock(EventWebSocketSessions.class);
 
-    when(serviceIdProvider.get()).thenReturn("service-uuid-1");
+    when(instanceRegistry.selfId()).thenReturn("service-uuid-1");
 
     // Stub the advisory lock chain: db.sqlQuery(...).setParameter(...).findOneOrEmpty()
     when(db.sqlQuery(anyString())).thenReturn(sqlQuery);
@@ -62,12 +62,12 @@ class WsPresenceManagerTest {
 
     wsPresenceManager =
         new WsPresenceManager(
-            wsPresenceRepository, serviceIdProvider, presenceBroadcaster, db, sessions);
+            wsPresenceRepository, instanceRegistry, presenceBroadcaster, db, sessions);
   }
 
   @AfterEach
   void cleanup() {
-    reset(wsPresenceRepository, serviceIdProvider, presenceBroadcaster, db, sqlQuery, sessions);
+    reset(wsPresenceRepository, instanceRegistry, presenceBroadcaster, db, sqlQuery, sessions);
   }
 
   private Session mockSession(String sessionId) {

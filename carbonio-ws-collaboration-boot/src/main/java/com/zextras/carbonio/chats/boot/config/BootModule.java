@@ -4,10 +4,8 @@
 
 package com.zextras.carbonio.chats.boot.config;
 
-import com.zextras.carbonio.chats.core.config.module.ConsulDiscoveryModule;
 import com.zextras.carbonio.chats.core.config.module.CoreModule;
 import com.zextras.carbonio.chats.core.config.module.DockerConfig;
-import com.zextras.carbonio.chats.core.config.module.DockerDiscoveryModule;
 import com.zextras.carbonio.chats.core.config.module.ExtensionModule;
 import com.zextras.carbonio.chats.core.config.module.ProductionConfig;
 import dev.resteasy.guice.ext.RequestScopeModule;
@@ -23,10 +21,8 @@ public class BootModule extends RequestScopeModule {
     super.configure();
     if (isDockerEnvironment()) {
       install(new DockerConfig());
-      install(new DockerDiscoveryModule());
     } else {
       install(new ProductionConfig());
-      install(new ConsulDiscoveryModule());
     }
     install(new CoreModule());
     install(new ExtensionModule());

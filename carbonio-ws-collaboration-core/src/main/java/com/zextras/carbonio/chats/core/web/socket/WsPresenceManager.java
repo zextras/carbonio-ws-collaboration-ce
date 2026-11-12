@@ -30,7 +30,7 @@ public class WsPresenceManager {
   private record OnlineTransition(OffsetDateTime lastSeen) {}
 
   private final WsPresenceRepository wsPresenceRepository;
-  private final ServiceIdProvider serviceIdProvider;
+  private final WsInstanceRegistry instanceRegistry;
   private final PresenceBroadcaster presenceBroadcaster;
   private final Database db;
   private final EventWebSocketSessions sessions;
@@ -38,12 +38,12 @@ public class WsPresenceManager {
   @Inject
   public WsPresenceManager(
       WsPresenceRepository wsPresenceRepository,
-      ServiceIdProvider serviceIdProvider,
+      WsInstanceRegistry instanceRegistry,
       PresenceBroadcaster presenceBroadcaster,
       Database db,
       EventWebSocketSessions sessions) {
     this.wsPresenceRepository = wsPresenceRepository;
-    this.serviceIdProvider = serviceIdProvider;
+    this.instanceRegistry = instanceRegistry;
     this.presenceBroadcaster = presenceBroadcaster;
     this.db = db;
     this.sessions = sessions;
@@ -141,7 +141,7 @@ public class WsPresenceManager {
   }
 
   private Optional<OnlineTransition> insertSession(String userId, String sessionId) {
-    if (wsPresenceRepository.insertAndCountOnline(sessionId, userId, serviceIdProvider.get())
+    if (wsPresenceRepository.insertAndCountOnline(sessionId, userId, instanceRegistry.selfId())
         != 0) {
       return Optional.empty();
     }

@@ -8,7 +8,6 @@ import com.google.inject.AbstractModule;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.PresenceBroadcaster;
-import com.zextras.carbonio.chats.core.web.socket.ServiceIdProvider;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.WsPresenceBootCleaner;
 import com.zextras.carbonio.chats.core.web.socket.WsPresenceJanitorService;
@@ -29,7 +28,6 @@ public class WebSocketModule extends AbstractModule {
 
     bind(WsActionRouter.class);
     bind(TypingHandler.class);
-    bind(ServiceIdProvider.class);
     bind(PresenceBroadcaster.class);
     bind(WsPresenceManager.class);
     bind(WsPresenceBootCleaner.class);
