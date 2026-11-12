@@ -58,13 +58,13 @@ public interface ChatMessageService {
   Optional<Message> getMessage(String messageId);
 
   /**
-   * Gets specific messages by their stanza IDs
+   * Gets specific messages by their identifiers
    *
    * @param roomId room identifier
-   * @param stanzaIds list of stanza IDs
+   * @param messageIds list of message identifiers
    * @return list of {@link Message}
    */
-  List<Message> getMessagesByIds(String roomId, List<String> stanzaIds);
+  List<Message> getMessagesByIds(String roomId, List<String> messageIds);
 
   /**
    * Full-text search in messages
@@ -217,24 +217,6 @@ public interface ChatMessageService {
    * @return list of {@link PresenceSummary}
    */
   List<PresenceSummary> getBatchPresence(Collection<String> userIds);
-
-  // ==================== CONTACT/ROSTER OPERATIONS ====================
-
-  /**
-   * Gets roster (contact list) for a user
-   *
-   * @param userId user identifier
-   * @return list of contact user IDs
-   */
-  List<String> getRoster(String userId);
-
-  /**
-   * Adds mutual contact (both directions)
-   *
-   * @param user1Id first user
-   * @param user2Id second user
-   */
-  void addMutualContact(String user1Id, String user2Id);
 
   /**
    * Gets users who should receive presence updates for a user

@@ -24,7 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("V2_0_1 import of the real MongooseIM dump: read state, last seen and contacts")
+@DisplayName("V2_0_1 import of the real MongooseIM dump: read state and last seen")
 class ReadStateIT {
 
   private static final String TEXT_MARKER_ROOM = "026d176c-f9e9-44e6-a488-7565d7ae4eef";
@@ -1227,61 +1227,15 @@ class ReadStateIT {
   }
 
   @Nested
-  @DisplayName("READ-6 / APP-V1: user_contact derived from ONE_TO_ONE subscriptions")
+  @DisplayName("READ-6 / APP-V1: the roster is not imported")
   class Contacts {
 
-    private static final String CONTACT_A = "1f9f9cc6-eac5-552d-b31b-f382633a1ad7";
-    private static final String CONTACT_B = "d58d2bd7-5dd3-546b-b49f-60fde8a84e4e";
-
     @Test
-    @DisplayName("READ-6: exactly the 20 directed pairs of the 10 ONE_TO_ONE rooms are contacts")
-    void onlyOneToOnePairsAreContacts() {
-      assertEquals(20, chats.count("SELECT count(*) FROM chats.user_contact"));
-    }
-
-    @Test
-    @DisplayName("READ-6: a 1:1 room yields both directions with created_at = room created_at")
-    void oneToOneRoomYieldsBothDirections() {
-      LocalDateTime roomCreatedAt = LocalDateTime.parse("2026-06-12T11:21:14.310");
-
-      assertAll(
-          () ->
-              assertEquals(
-                  List.of(CONTACT_B, "ffebb6fc-6c9b-58cf-86bb-6df35a3a30f8"),
-                  chats.contacts(CONTACT_A)),
-          () -> assertEquals(List.of(CONTACT_A), chats.contacts(CONTACT_B)),
-          () ->
-              assertEquals(
-                  List.of(roomCreatedAt, roomCreatedAt),
-                  chats.query(
-                      "SELECT created_at FROM chats.user_contact WHERE (user_id = ? AND"
-                          + " contact_id = ?) OR (user_id = ? AND contact_id = ?) ORDER BY"
-                          + " user_id",
-                      rs -> ImportedChats.utc(rs, 1),
-                      CONTACT_A,
-                      CONTACT_B,
-                      CONTACT_B,
-                      CONTACT_A)));
-    }
-
-    @Test
-    @DisplayName("READ-6: roster B pairs without a 1:1 room are not contacts")
-    void rosterPairsWithoutOneToOneRoomAreNotContacts() {
+    @DisplayName("READ-6: the source holds roster rows, the import succeeds and no contacts table")
+    void rosterRowsAreNotCopied() {
       assertEquals(
-          List.of("a8ea4b6d-982e-5666-95bb-f1e6ae637742"),
-          chats.contacts("04920d70-5db0-55bf-b094-75cb05023d64"));
-      assertEquals(List.of(), chats.contacts(USER_FASTENING_MARKER));
-    }
-
-    @Test
-    @DisplayName("READ-6: non-B roster rows (T, F, N) are not contacts")
-    void nonBothRosterRowsAreNotContacts() {
-      assertEquals(
-          List.of("be7b38ab-c669-5de9-b8d5-baf31ed4ad06", "bea9390a-0b2f-5ca0-a0a1-c7c26532d2f8"),
-          chats.contacts(USER_TEXT_MARKER));
-      assertEquals(
-          List.of(USER_TEXT_MARKER), chats.contacts("bea9390a-0b2f-5ca0-a0a1-c7c26532d2f8"));
-      assertEquals(List.of(USER_ONE_TO_ONE_MARKER), chats.contacts(USER_DEAD_BEEF_MARKER));
+          List.of(true),
+          chats.query("SELECT to_regclass('chats.user_contact') IS NULL", rs -> rs.getBoolean(1)));
     }
   }
 }

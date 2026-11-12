@@ -475,7 +475,7 @@ Upgrade procedure (administrators):
    disabled afterwards. Keep its database (`carbonio-message-dispatcher-db`) running and reachable: the import
    reads it.
 3. Upgrade `carbonio-ws-collaboration`. At the first start, Flyway runs `V2_0_1__migrate_mongoose_data` once:
-   it imports messages, system lines, edits, reactions, pins, read markers, last-seen times and contacts from
+   it imports messages, system lines, edits, reactions, pins, read markers and last-seen times from
    the MongooseIM database. It never runs again. If the dispatcher database cannot be read, the start fails
    and the import is retried at the next start; if the dispatcher database credentials are missing from
    Consul, the database does not exist or it has no MongooseIM tables, it logs

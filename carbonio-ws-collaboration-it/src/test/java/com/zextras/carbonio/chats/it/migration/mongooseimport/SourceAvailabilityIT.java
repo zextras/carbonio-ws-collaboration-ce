@@ -60,7 +60,6 @@ class SourceAvailabilityIT {
           "chats.message_reaction",
           "chats.message_pin",
           "chats.read_marker",
-          "chats.user_contact",
           "chats.user_last_seen");
 
   // epoch of the value read as UTC: equal for a naive 1.x time and its converted instant
@@ -632,7 +631,6 @@ class SourceAvailabilityIT {
           () -> assertEquals(0, imported.count("SELECT count(*) FROM chats.message_reaction")),
           () -> assertEquals(0, imported.count("SELECT count(*) FROM chats.message_pin")),
           () -> assertEquals(0, imported.count("SELECT count(*) FROM chats.read_marker")),
-          () -> assertEquals(0, imported.count("SELECT count(*) FROM chats.user_contact")),
           () -> assertEquals(lastSeen, imported.count("SELECT count(*) FROM chats.user_last_seen")),
           () -> assertNoDumpTextInOutput(run));
     }

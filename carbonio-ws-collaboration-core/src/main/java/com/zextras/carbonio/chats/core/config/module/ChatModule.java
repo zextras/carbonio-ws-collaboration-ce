@@ -20,7 +20,6 @@ import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.repository.TimelineRepository;
-import com.zextras.carbonio.chats.core.repository.UserContactRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanMessagePinRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanMessageReactionRepository;
@@ -29,7 +28,6 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanMessageSendDedupRepo
 import com.zextras.carbonio.chats.core.repository.impl.EbeanMessageWriteRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSystemEventRepository;
-import com.zextras.carbonio.chats.core.repository.impl.EbeanUserContactRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanWsPresenceRepository;
 import com.zextras.carbonio.chats.core.repository.impl.TimelineRepositoryImpl;
 import com.zextras.carbonio.chats.core.service.ChatExportService;
@@ -64,7 +62,6 @@ public class ChatModule extends AbstractModule {
     bind(SystemEventRepository.class).to(EbeanSystemEventRepository.class);
     bind(TimelineRepository.class).to(TimelineRepositoryImpl.class);
     bind(WsPresenceRepository.class).to(EbeanWsPresenceRepository.class);
-    bind(UserContactRepository.class).to(EbeanUserContactRepository.class);
     bind(MessageSendDedupRepository.class).to(EbeanMessageSendDedupRepository.class);
 
     bind(ChatMessageService.class).to(ChatMessageServiceImpl.class);

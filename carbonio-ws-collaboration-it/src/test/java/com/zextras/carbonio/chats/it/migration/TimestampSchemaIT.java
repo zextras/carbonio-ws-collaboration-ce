@@ -110,7 +110,6 @@ class TimestampSchemaIT {
             "message_reaction.updated_at",
             "message_pin.pinned_at",
             "system_event.created_at",
-            "user_contact.created_at",
             "message_send_dedup.created_at");
     List<String> withDefault =
         query(
@@ -120,5 +119,12 @@ class TimestampSchemaIT {
     for (String column : expected) {
       assertTrue(withDefault.contains(column), column + " has no clock_timestamp() default");
     }
+  }
+
+  @Test
+  @DisplayName("The roster table of the 1.x line does not exist: nothing reads it")
+  void userContactTableIsGone() throws SQLException {
+    assertEquals(
+        List.of("true"), query("SELECT (to_regclass('chats.user_contact') IS NULL)::text"));
   }
 }

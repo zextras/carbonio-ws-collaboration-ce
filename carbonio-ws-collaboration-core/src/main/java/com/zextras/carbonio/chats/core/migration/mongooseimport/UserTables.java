@@ -14,18 +14,11 @@ import java.time.ZoneOffset;
 
 public final class UserTables {
 
-  public record Counts(int lastSeen, int contacts) {}
+  public record Counts(int lastSeen) {}
 
   private static final String INSERT_LAST_SEEN =
       "INSERT INTO chats.user_last_seen (user_id, last_seen_at) VALUES (?, ?)"
           + " ON CONFLICT (user_id) DO NOTHING";
-
-  private static final String INSERT_CONTACTS =
-      "INSERT INTO chats.user_contact (user_id, contact_id, created_at)"
-          + " SELECT a.user_id, b.user_id, r.created_at FROM chats.room r"
-          + " JOIN chats.subscription a ON a.room_id = r.id"
-          + " JOIN chats.subscription b ON b.room_id = r.id AND b.user_id <> a.user_id"
-          + " WHERE r.type = 'ONE_TO_ONE' ON CONFLICT DO NOTHING";
 
   private static final int PAGE_SIZE = 1000;
 
@@ -34,11 +27,7 @@ public final class UserTables {
   public static Counts run(Connection source, boolean hasLast, Connection target)
       throws SQLException {
     int lastSeen = hasLast ? importLastSeen(source, target) : 0;
-    int contacts;
-    try (Statement st = target.createStatement()) {
-      contacts = st.executeUpdate(INSERT_CONTACTS);
-    }
-    return new Counts(lastSeen, contacts);
+    return new Counts(lastSeen);
   }
 
   private static int sum(int[] counts) {

@@ -51,7 +51,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
@@ -104,7 +103,6 @@ class RoomServiceImplTest {
   private final RoomRepository roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
-  private final MessageDispatcher messageDispatcher;
   private final UserService userService;
   private final MembersService membersService;
   private final MeetingService meetingService;
@@ -127,7 +125,6 @@ class RoomServiceImplTest {
     this.storagesService = mock(StoragesService.class);
     this.attachmentService = mock(AttachmentService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
-    this.messageDispatcher = mock(MessageDispatcher.class);
     this.clock = mock(Clock.class);
     this.chatMessageService = mock(ChatMessageService.class);
     this.roomService =
@@ -143,7 +140,6 @@ class RoomServiceImplTest {
             this.storagesService,
             this.attachmentService,
             this.eventDispatcher,
-            this.messageDispatcher,
             roomMapper,
             this.chatMessageService,
             new ObjectMapper(),
@@ -284,7 +280,6 @@ class RoomServiceImplTest {
         userService,
         membersService,
         eventDispatcher,
-        messageDispatcher,
         fileMetadataRepository,
         storagesService,
         meetingService,
@@ -596,8 +591,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomGroup1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
-        verifyNoMoreInteractions(messageDispatcher);
       }
 
       @Test
@@ -673,8 +666,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomGroup1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
-        verifyNoMoreInteractions(messageDispatcher);
       }
 
       @Test
@@ -789,8 +780,6 @@ class RoomServiceImplTest {
             .sendToUserExchange(
                 List.of(user1Id.toString()), RoomCreated.create().roomId(roomTemporary1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
-        verifyNoMoreInteractions(messageDispatcher);
       }
 
       @Test
@@ -860,8 +849,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomTemporary2Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
-        verifyNoMoreInteractions(messageDispatcher);
       }
     }
 
@@ -923,9 +910,6 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString()),
                 RoomCreated.create().roomId(roomOneToOne1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1))
-            .addUsersToContacts(user1Id.toString(), user2Id.toString());
-        verifyNoMoreInteractions(messageDispatcher);
       }
 
       @Test
@@ -1007,7 +991,6 @@ class RoomServiceImplTest {
                   .systemEventId(events.get(1).getId())
                   .systemEventCreatedAt(events.get(1).getCreatedAt()));
       verifyNoMoreInteractions(eventDispatcher);
-      verifyNoMoreInteractions(messageDispatcher);
     }
 
     @Test
@@ -1064,7 +1047,6 @@ class RoomServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(meetingService, times(1)).updateMeeting(meeting1.name("room1-changed"));
       verifyNoMoreInteractions(eventDispatcher);
-      verifyNoMoreInteractions(messageDispatcher);
       verifyNoMoreInteractions(meetingService);
     }
 
@@ -1250,11 +1232,7 @@ class RoomServiceImplTest {
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomDeleted.create().roomId(roomGroup1Id));
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
 
     @Test
@@ -1284,11 +1262,7 @@ class RoomServiceImplTest {
               List.of(user2Id.toString(), user3Id.toString()),
               RoomDeleted.create().roomId(roomGroup2Id));
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
 
     @Test
@@ -1322,11 +1296,7 @@ class RoomServiceImplTest {
               RoomDeleted.create().roomId(roomGroup1Id));
 
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
 
     @Test
@@ -1356,11 +1326,7 @@ class RoomServiceImplTest {
           .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
 
     @Test
@@ -1376,11 +1342,7 @@ class RoomServiceImplTest {
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
 
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
 
     @Test
@@ -1402,11 +1364,7 @@ class RoomServiceImplTest {
           exception.getMessage());
 
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
 
     @Test
@@ -1427,11 +1385,7 @@ class RoomServiceImplTest {
           exception.getMessage());
 
       verifyNoMoreInteractions(
-          fileMetadataRepository,
-          storagesService,
-          meetingService,
-          messageDispatcher,
-          eventDispatcher);
+          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
     }
   }
 
@@ -1667,7 +1621,7 @@ class RoomServiceImplTest {
               user1Id.toString(),
               RoomHistoryCleared.create().roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
-      verifyNoInteractions(messageDispatcher, attachmentService, chatMessageService);
+      verifyNoInteractions(attachmentService, chatMessageService);
     }
 
     @Test
@@ -1693,7 +1647,7 @@ class RoomServiceImplTest {
               user1Id.toString(),
               RoomHistoryCleared.create().roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
-      verifyNoInteractions(messageDispatcher, attachmentService, chatMessageService);
+      verifyNoInteractions(attachmentService, chatMessageService);
     }
 
     @Test
@@ -1759,7 +1713,6 @@ class RoomServiceImplTest {
           roomRepository,
           roomUserSettingsRepository,
           eventDispatcher,
-          messageDispatcher,
           attachmentService,
           messageRepository,
           systemEventRepository);
@@ -1789,8 +1742,7 @@ class RoomServiceImplTest {
 
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
       verifyNoMoreInteractions(roomRepository);
-      verifyNoInteractions(
-          eventDispatcher, roomUserSettingsRepository, messageDispatcher, attachmentService);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository, attachmentService);
     }
 
     @Test
@@ -1815,8 +1767,7 @@ class RoomServiceImplTest {
 
       verify(roomRepository, times(1)).getById(roomTemporary2Id.toString());
       verifyNoMoreInteractions(roomRepository);
-      verifyNoInteractions(
-          eventDispatcher, roomUserSettingsRepository, messageDispatcher, attachmentService);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository, attachmentService);
     }
 
     @Test
@@ -1833,8 +1784,7 @@ class RoomServiceImplTest {
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verifyNoMoreInteractions(roomRepository);
-      verifyNoInteractions(
-          eventDispatcher, roomUserSettingsRepository, messageDispatcher, attachmentService);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository, attachmentService);
     }
   }
 
@@ -2035,11 +1985,7 @@ class RoomServiceImplTest {
                   .updatedBy(user1Id)
                   .systemEventId(pictureEvent.getId()));
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2100,11 +2046,7 @@ class RoomServiceImplTest {
                   .updatedBy(user1Id)
                   .systemEventId(pictureEvent.getId()));
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2135,11 +2077,7 @@ class RoomServiceImplTest {
       verify(storagesService, times(1))
           .saveFile(eq(fileStream), anyString(), eq(user1Id.toString()), eq(123L));
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2173,11 +2111,7 @@ class RoomServiceImplTest {
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2205,11 +2139,7 @@ class RoomServiceImplTest {
           exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2237,11 +2167,7 @@ class RoomServiceImplTest {
           exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2267,11 +2193,7 @@ class RoomServiceImplTest {
           "Bad Request - The room picture can only be set for groups", exception.getMessage());
       verify(roomRepository, times(1)).getById(roomOneToOne2Id.toString());
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2295,11 +2217,7 @@ class RoomServiceImplTest {
       assertEquals("Bad Request - The room picture must be an image", exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
   }
 
@@ -2344,11 +2262,7 @@ class RoomServiceImplTest {
                   .deletedBy(user1Id)
                   .systemEventId(deletedEvent.getId()));
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          messageDispatcher,
-          eventDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2379,11 +2293,7 @@ class RoomServiceImplTest {
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).deleteFile(metadata.getId(), user2Id.toString());
       verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          messageDispatcher,
-          eventDispatcher);
+          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2403,8 +2313,7 @@ class RoomServiceImplTest {
           exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verifyNoMoreInteractions(roomRepository);
-      verifyNoInteractions(
-          fileMetadataRepository, storagesService, messageDispatcher, eventDispatcher);
+      verifyNoInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 
     @Test
@@ -2428,7 +2337,7 @@ class RoomServiceImplTest {
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verifyNoMoreInteractions(roomRepository, fileMetadataRepository);
-      verifyNoInteractions(storagesService, messageDispatcher, eventDispatcher);
+      verifyNoInteractions(storagesService, eventDispatcher);
     }
   }
 }

@@ -22,11 +22,14 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageRepository;
+import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -36,13 +39,16 @@ import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.MessageDto;
+import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.QueryBuilder;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -60,7 +66,10 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final RoomService roomService;
   private final ChatMessageService chatMessageService;
   private final AttachmentAccessValidator attachmentAccessValidator;
-  private final MessageDispatcher messageDispatcher;
+  private final MessageWriteRepository messageWriteRepository;
+  private final MessageRepository messageRepository;
+  private final MessageReceivedBroadcaster messageReceivedBroadcaster;
+  private final TimelineItemMapper timelineItemMapper;
   private final ObjectMapper objectMapper;
   private final PreviewClient previewClient;
 
@@ -71,7 +80,10 @@ public class AttachmentServiceImpl implements AttachmentService {
       StoragesService storagesService,
       RoomService roomService,
       ChatMessageService chatMessageService,
-      MessageDispatcher messageDispatcher,
+      MessageWriteRepository messageWriteRepository,
+      MessageRepository messageRepository,
+      MessageReceivedBroadcaster messageReceivedBroadcaster,
+      TimelineItemMapper timelineItemMapper,
       ObjectMapper objectMapper,
       PreviewClient previewClient,
       AttachmentAccessValidator attachmentAccessValidator) {
@@ -80,7 +92,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     this.storagesService = storagesService;
     this.roomService = roomService;
     this.chatMessageService = chatMessageService;
-    this.messageDispatcher = messageDispatcher;
+    this.messageWriteRepository = messageWriteRepository;
+    this.messageRepository = messageRepository;
+    this.messageReceivedBroadcaster = messageReceivedBroadcaster;
+    this.timelineItemMapper = timelineItemMapper;
     this.objectMapper = objectMapper;
     this.previewClient = previewClient;
     this.attachmentAccessValidator = attachmentAccessValidator;
@@ -201,7 +216,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     Message message;
     try {
       message =
-          messageDispatcher.sendAttachment(
+          sendAttachment(
               roomId.toString(),
               currentUser.getId(),
               fileId.toString(),
@@ -364,6 +379,85 @@ public class AttachmentServiceImpl implements AttachmentService {
                     + e.getMessage());
           }
         });
+  }
+
+  private Message sendAttachment(
+      String roomId,
+      String senderId,
+      String fileId,
+      String fileName,
+      String mimeType,
+      long originalSize,
+      String description,
+      @Nullable String replyId,
+      @Nullable String area,
+      @Nullable String tempId,
+      String messageId) {
+    String text = description != null ? description : "";
+
+    FileMetadata metadata =
+        FileMetadata.create()
+            .id(fileId)
+            .name(fileName)
+            .originalSize(originalSize)
+            .mimeType(mimeType)
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(senderId)
+            .roomId(roomId)
+            .messageId(messageId)
+            .area(area);
+    fileMetadataRepository.save(metadata);
+    MessageWriteRepository.SendResult sent;
+    try {
+      sent =
+          messageWriteRepository
+              .sendMessage(roomId, senderId, text, messageId, replyId, fileId)
+              .orElseThrow(
+                  () ->
+                      replyId != null
+                          ? new NotFoundException(
+                              String.format("Reply target '%s' not found", replyId))
+                          : new ForbiddenException(
+                              String.format(
+                                  "User '%s' is not a member of room '%s'", senderId, roomId)));
+    } catch (RuntimeException e) {
+      fileMetadataRepository.delete(metadata);
+      throw e;
+    }
+    Message message =
+        Message.create()
+            .id(messageId)
+            .roomId(roomId)
+            .senderId(senderId)
+            .text(text)
+            .replyToId(replyId)
+            .attachmentId(fileId)
+            .createdAt(sent.createdAt());
+
+    try {
+      Map<String, FileMetadata> attachmentsById = new HashMap<>();
+      attachmentsById.put(fileId, metadata);
+      TimelineMessageDto messageDto =
+          timelineItemMapper.baseMessageFields(message, attachmentsById);
+      if (replyId != null) {
+        messageRepository
+            .getById(replyId)
+            .ifPresent(
+                replied -> {
+                  if (replied.getAttachmentId() != null) {
+                    fileMetadataRepository
+                        .getById(replied.getAttachmentId())
+                        .ifPresent(meta -> attachmentsById.put(meta.getId(), meta));
+                  }
+                  messageDto.repliedMessage(
+                      timelineItemMapper.baseMessageFields(replied, attachmentsById));
+                });
+      }
+      messageReceivedBroadcaster.broadcast(roomId, messageDto, tempId);
+    } catch (Exception e) {
+      ChatsLogger.warn("Error broadcasting attachment message: " + e.getMessage());
+    }
+    return message;
   }
 
   /**

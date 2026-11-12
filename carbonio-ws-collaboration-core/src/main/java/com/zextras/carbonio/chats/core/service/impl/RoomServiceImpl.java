@@ -21,7 +21,6 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
@@ -72,7 +71,6 @@ public class RoomServiceImpl implements RoomService {
   private final StoragesService storagesService;
   private final AttachmentService attachmentService;
   private final EventDispatcher eventDispatcher;
-  private final MessageDispatcher messageDispatcher;
   private final RoomMapper roomMapper;
   private final ChatMessageService chatMessageService;
   private final ObjectMapper objectMapper;
@@ -91,7 +89,6 @@ public class RoomServiceImpl implements RoomService {
       StoragesService storagesService,
       AttachmentService attachmentService,
       EventDispatcher eventDispatcher,
-      MessageDispatcher messageDispatcher,
       RoomMapper roomMapper,
       ChatMessageService chatMessageService,
       ObjectMapper objectMapper,
@@ -107,7 +104,6 @@ public class RoomServiceImpl implements RoomService {
     this.storagesService = storagesService;
     this.attachmentService = attachmentService;
     this.eventDispatcher = eventDispatcher;
-    this.messageDispatcher = messageDispatcher;
     this.roomMapper = roomMapper;
     this.chatMessageService = chatMessageService;
     this.objectMapper = objectMapper;
@@ -147,8 +143,6 @@ public class RoomServiceImpl implements RoomService {
 
     List<MemberDto> members = prepareRoomMembers(roomCreationFields, currentUser.getUUID());
     Room room = initializeRoom(roomCreationFields);
-
-    createRoom(room, currentUser, members, true);
 
     room = persistCreatedRoom(room, currentUser, members);
 
@@ -211,17 +205,6 @@ public class RoomServiceImpl implements RoomService {
     Optional.ofNullable(roomCreationFields.getDescription()).ifPresent(room::description);
 
     return room;
-  }
-
-  private void createRoom(
-      Room room,
-      UserPrincipal currentUser,
-      List<MemberDto> members,
-      boolean sendAffiliationMessages) {
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      messageDispatcher.addUsersToContacts(
-          members.get(0).getUserId().toString(), members.get(1).getUserId().toString());
-    }
   }
 
   private RoomDto mapRoomToDto(Room room, UserPrincipal currentUser) {

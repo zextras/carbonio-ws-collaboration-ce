@@ -81,8 +81,6 @@ public final class MongooseImporter {
             + " reactions="
             + imported.reactions()
             + " lastSeen="
-            + users.lastSeen()
-            + " contacts="
-            + users.contacts());
+            + users.lastSeen());
   }
 }

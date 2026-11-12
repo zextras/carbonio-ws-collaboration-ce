@@ -149,13 +149,6 @@ public final class ImportedChats {
         .findFirst();
   }
 
-  public List<String> contacts(String userId) {
-    return query(
-        "SELECT contact_id FROM chats.user_contact WHERE user_id = ? ORDER BY contact_id",
-        rs -> rs.getString(1),
-        userId);
-  }
-
   public Optional<File> file(String fileId) {
     return query(
             "SELECT id, room_id, user_id, chat_message_id, message_id, name, area"

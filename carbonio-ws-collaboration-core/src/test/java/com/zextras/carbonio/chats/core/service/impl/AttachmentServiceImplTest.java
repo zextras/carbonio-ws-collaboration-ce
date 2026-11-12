@@ -10,13 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Message;
@@ -43,11 +45,13 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
+import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -58,6 +62,7 @@ import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.Query;
 import java.io.InputStream;
@@ -71,6 +76,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -78,13 +84,16 @@ import org.mockito.Mockito;
 public class AttachmentServiceImplTest {
 
   private static final String MESSAGE_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  private static final String REPLY_ID = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
   private final AttachmentService attachmentService;
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService storagesService;
   private final RoomService roomService;
   private final ChatMessageService chatMessageService;
-  private final MessageDispatcher messageDispatcher;
+  private final MessageWriteRepository messageWriteRepository;
+  private final MessageRepository messageRepository;
+  private final MessageReceivedBroadcaster broadcaster;
   private final ObjectMapper objectMapper;
   private final PreviewClient previewClient;
 
@@ -95,7 +104,9 @@ public class AttachmentServiceImplTest {
     this.chatMessageService = mock(ChatMessageService.class);
     when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
         .thenReturn(new VisibilityFloor(null));
-    this.messageDispatcher = mock(MessageDispatcher.class);
+    this.messageWriteRepository = mock(MessageWriteRepository.class);
+    this.messageRepository = mock(MessageRepository.class);
+    this.broadcaster = mock(MessageReceivedBroadcaster.class);
     this.previewClient = mock(PreviewClient.class);
     this.objectMapper =
         JsonMapper.builder()
@@ -109,7 +120,10 @@ public class AttachmentServiceImplTest {
             this.storagesService,
             this.roomService,
             this.chatMessageService,
-            this.messageDispatcher,
+            this.messageWriteRepository,
+            this.messageRepository,
+            this.broadcaster,
+            new TimelineItemMapper(new JacksonConfig().get()),
             this.objectMapper,
             this.previewClient,
             new AttachmentAccessValidator(chatMessageService, mock(MessageRepository.class)));
@@ -700,70 +714,45 @@ public class AttachmentServiceImplTest {
     @DisplayName("Creates the attachment and returns it")
     void addAttachment_testOk() {
       UUID attachmentUuid = UUID.randomUUID();
-      String serverMintedMessageId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-      UUID serverMintedUuid = UUID.fromString(serverMintedMessageId);
       OffsetDateTime attachmentDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
       InputStream fileStream = mock(InputStream.class);
-      FileMetadata savedMetadata =
-          FileMetadataBuilder.create()
-              .id(attachmentUuid.toString())
-              .name("temp.pdf")
-              .originalSize(1024L)
-              .mimeType("application/pdf")
-              .type(FileMetadataType.ATTACHMENT)
-              .userId(user1Id.toString())
-              .roomId(roomId.toString())
-              .messageId(serverMintedMessageId)
-              .createdAt(attachmentDate)
-              .build();
-      when(fileMetadataRepository.save(any())).thenReturn(savedMetadata);
-      Message stubMessage =
-          Message.create()
-              .id(serverMintedMessageId)
-              .roomId(roomId.toString())
-              .senderId(user1Id.toString())
-              .text("")
-              .createdAt(attachmentDate)
-              .attachmentId(attachmentUuid.toString());
-      when(messageDispatcher.sendAttachment(
-              anyString(),
-              anyString(),
-              anyString(),
-              anyString(),
-              anyString(),
-              anyLong(),
-              anyString(),
-              any(),
-              any(),
-              any(),
-              any()))
-          .thenReturn(stubMessage);
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(
+              Optional.of(
+                  new MessageWriteRepository.SendResult(
+                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class, Mockito.CALLS_REAL_METHODS)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        uuid.when(() -> UUID.fromString(attachmentUuid.toString())).thenReturn(attachmentUuid);
-        uuid.when(() -> UUID.fromString(serverMintedMessageId)).thenReturn(serverMintedUuid);
-        attachmentService.addAttachment(
-            roomId,
-            fileStream,
-            "application/pdf",
-            1024L,
-            "temp.pdf",
-            "description",
-            null,
-            null,
-            null,
-            MESSAGE_ID,
-            currentUser);
+
+        MessageDto created =
+            attachmentService.addAttachment(
+                roomId,
+                fileStream,
+                "application/pdf",
+                1024L,
+                "temp.pdf",
+                "description",
+                null,
+                null,
+                null,
+                MESSAGE_ID,
+                currentUser);
+
+        assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
+        assertEquals(roomId, created.getRoomId());
+        assertEquals(user1Id, created.getSenderId());
+        assertEquals("description", created.getText());
+        assertEquals(attachmentUuid, created.getAttachmentId());
+        assertEquals(attachmentDate, created.getCreatedAt());
       }
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verify(storagesService, times(1))
-          .saveFile(fileStream, attachmentUuid.toString(), currentUser.toString(), 1024L);
-      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+          .saveFile(fileStream, attachmentUuid.toString(), currentUser.getId(), 1024L);
+      verifyNoMoreInteractions(roomService, storagesService);
     }
 
     @Test
@@ -868,28 +857,15 @@ public class AttachmentServiceImplTest {
 
     @Test
     @DisplayName("Creates the message with the id given by the caller")
-    void addAttachment_usesTheGivenMessageId() {
+    void addAttachment_usesTheGivenMessageId() throws Exception {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
-      when(messageDispatcher.sendAttachment(
-              anyString(),
-              anyString(),
-              anyString(),
-              anyString(),
-              anyString(),
-              anyLong(),
-              any(),
-              any(),
-              any(),
-              any(),
-              any()))
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
           .thenReturn(
-              Message.create()
-                  .id(MESSAGE_ID)
-                  .roomId(roomId.toString())
-                  .senderId(user1Id.toString())
-                  .text("")
-                  .createdAt(OffsetDateTime.parse("2026-01-01T00:00:00Z")));
+              Optional.of(
+                  new MessageWriteRepository.SendResult(
+                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
 
       MessageDto created =
           attachmentService.addAttachment(
@@ -905,19 +881,15 @@ public class AttachmentServiceImplTest {
               MESSAGE_ID,
               currentUser);
 
-      verify(messageDispatcher)
-          .sendAttachment(
+      verify(messageWriteRepository)
+          .sendMessage(
               eq(roomId.toString()),
               eq(user1Id.toString()),
-              anyString(),
-              eq("temp.pdf"),
-              eq("application/pdf"),
-              eq(1024L),
+              eq(""),
+              eq(MESSAGE_ID),
               isNull(),
-              isNull(),
-              isNull(),
-              eq("t-1"),
-              eq(MESSAGE_ID));
+              anyString());
+      verify(broadcaster).broadcast(eq(roomId.toString()), any(), eq("t-1"));
       assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
     }
   }
@@ -929,28 +901,16 @@ public class AttachmentServiceImplTest {
     @Test
     @DisplayName(
         "When the message cannot be sent the stored blob is deleted and the error rethrown")
-    void addAttachment_sendFailureDeletesTheBlob() {
+    void addAttachment_sendFailureDeletesTheBlob() throws Exception {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID attachmentUuid = UUID.randomUUID();
       when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
-      when(messageDispatcher.sendAttachment(
-              anyString(),
-              anyString(),
-              anyString(),
-              anyString(),
-              anyString(),
-              anyLong(),
-              any(),
-              any(),
-              any(),
-              any(),
-              any()))
-          .thenThrow(new NotFoundException("Reply target not found"));
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(Optional.empty());
 
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class, Mockito.CALLS_REAL_METHODS)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         assertThrows(
             NotFoundException.class,
             () ->
@@ -961,7 +921,7 @@ public class AttachmentServiceImplTest {
                     1024L,
                     "temp.pdf",
                     "",
-                    "reply",
+                    REPLY_ID,
                     null,
                     null,
                     MESSAGE_ID,
@@ -975,7 +935,219 @@ public class AttachmentServiceImplTest {
               eq(user1Id.toString()),
               eq(1024L));
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user1Id.toString());
-      verifyNoInteractions(fileMetadataRepository);
+      verify(fileMetadataRepository).save(any(FileMetadata.class));
+      verify(fileMetadataRepository).delete(any(FileMetadata.class));
+      verify(broadcaster, never()).broadcast(anyString(), any(), any());
+    }
+
+    @Test
+    @DisplayName("A broadcast failure after the insert keeps the blob and the message")
+    void addAttachment_broadcastFailureKeepsTheUpload() throws Exception {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(
+              Optional.of(
+                  new MessageWriteRepository.SendResult(
+                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      doThrow(new IllegalStateException("broker down"))
+          .when(broadcaster)
+          .broadcast(anyString(), any(), any());
+
+      MessageDto created =
+          assertDoesNotThrow(
+              () ->
+                  attachmentService.addAttachment(
+                      roomId,
+                      mock(InputStream.class),
+                      "application/pdf",
+                      1024L,
+                      "temp.pdf",
+                      "",
+                      null,
+                      null,
+                      null,
+                      MESSAGE_ID,
+                      currentUser));
+
+      assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
+      verify(storagesService, never()).deleteFile(anyString(), anyString());
+      verify(fileMetadataRepository, never()).delete(any(FileMetadata.class));
+    }
+
+    @Test
+    @DisplayName("A failure while building the broadcast payload keeps the blob and the message")
+    void addAttachment_payloadFailureKeepsTheUpload() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(
+              Optional.of(
+                  new MessageWriteRepository.SendResult(
+                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      when(messageRepository.getById(REPLY_ID)).thenThrow(new IllegalStateException("db down"));
+
+      assertDoesNotThrow(
+          () ->
+              attachmentService.addAttachment(
+                  roomId,
+                  mock(InputStream.class),
+                  "application/pdf",
+                  1024L,
+                  "temp.pdf",
+                  "",
+                  REPLY_ID,
+                  null,
+                  null,
+                  MESSAGE_ID,
+                  currentUser));
+
+      verify(storagesService, never()).deleteFile(anyString(), anyString());
+      verify(fileMetadataRepository, never()).delete(any(FileMetadata.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Attachment message tests")
+  class AttachmentMessageTests {
+
+    private MessageDto send(String replyId) {
+      UserPrincipal sender = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, sender, false)).thenReturn(room1);
+      return attachmentService.addAttachment(
+          roomId,
+          mock(InputStream.class),
+          "image/png",
+          10L,
+          "f.png",
+          "",
+          replyId,
+          null,
+          null,
+          MESSAGE_ID,
+          sender);
+    }
+
+    private void stubInsertOk() {
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(
+              Optional.of(
+                  new MessageWriteRepository.SendResult(
+                      MESSAGE_ID, OffsetDateTime.parse("2026-01-01T10:00:00Z"))));
+    }
+
+    @Test
+    void savesTheMetadataBeforeTheMessageIsInsertedAndBroadcast() throws Exception {
+      stubInsertOk();
+
+      MessageDto sent = send(null);
+
+      InOrder order = inOrder(fileMetadataRepository, messageWriteRepository, broadcaster);
+      ArgumentCaptor<FileMetadata> metadata = ArgumentCaptor.forClass(FileMetadata.class);
+      order.verify(fileMetadataRepository).save(metadata.capture());
+      order
+          .verify(messageWriteRepository)
+          .sendMessage(anyString(), anyString(), anyString(), anyString(), any(), anyString());
+      order.verify(broadcaster).broadcast(anyString(), any(), any());
+      assertEquals(roomId.toString(), metadata.getValue().getRoomId());
+      assertEquals(sent.getId().toString(), metadata.getValue().getMessageId());
+      assertEquals(sent.getAttachmentId().toString(), metadata.getValue().getId());
+    }
+
+    @Test
+    void deletesTheMetadataWhenTheSendFailsOnReplyTarget() throws Exception {
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(Optional.empty());
+
+      assertThrows(NotFoundException.class, () -> send(REPLY_ID));
+
+      verify(fileMetadataRepository).delete(any(FileMetadata.class));
+      verify(broadcaster, never()).broadcast(anyString(), any(), any());
+    }
+
+    @Test
+    void deletesTheMetadataWhenTheSenderIsNotAMember() {
+      when(messageWriteRepository.sendMessage(
+              anyString(), anyString(), anyString(), anyString(), any(), anyString()))
+          .thenReturn(Optional.empty());
+
+      assertThrows(ForbiddenException.class, () -> send(null));
+
+      verify(fileMetadataRepository).delete(any(FileMetadata.class));
+    }
+
+    private TimelineMessageDto broadcastReplyingTo(Message replied) throws Exception {
+      stubInsertOk();
+      when(messageRepository.getById(replied.getId())).thenReturn(Optional.of(replied));
+
+      send(replied.getId());
+
+      ArgumentCaptor<TimelineMessageDto> sent = ArgumentCaptor.forClass(TimelineMessageDto.class);
+      verify(broadcaster).broadcast(eq(roomId.toString()), sent.capture(), isNull());
+      assertEquals(replied.getId(), sent.getValue().getReplyToId());
+      assertNotNull(sent.getValue().getRepliedMessage());
+      return sent.getValue().getRepliedMessage();
+    }
+
+    @Test
+    void embedsTheEditedInfoOfTheRepliedMessage() throws Exception {
+      OffsetDateTime editedAt = OffsetDateTime.parse("2026-01-01T09:30:00Z");
+      Message replied = mock(Message.class);
+      when(replied.getId()).thenReturn(REPLY_ID);
+      when(replied.getRoomId()).thenReturn(roomId.toString());
+      when(replied.getSenderId()).thenReturn("other");
+      when(replied.getText()).thenReturn("new text");
+      when(replied.getCreatedAt()).thenReturn(OffsetDateTime.parse("2026-01-01T09:00:00Z"));
+      when(replied.isEdited()).thenReturn(true);
+      when(replied.getUpdatedAt()).thenReturn(editedAt);
+
+      TimelineMessageDto repliedDto = broadcastReplyingTo(replied);
+
+      assertEquals(editedAt, repliedDto.getEditedInfo().getEditedAt());
+      assertEquals("new text", repliedDto.getText());
+    }
+
+    @Test
+    void embedsTheDeletedInfoOfTheRepliedMessage() throws Exception {
+      OffsetDateTime deletedAt = OffsetDateTime.parse("2026-01-01T09:30:00Z");
+      Message replied =
+          Message.create()
+              .id(REPLY_ID)
+              .roomId(roomId.toString())
+              .senderId("other")
+              .text("")
+              .deleted(true)
+              .deletedAt(deletedAt)
+              .createdAt(OffsetDateTime.parse("2026-01-01T09:00:00Z"));
+
+      TimelineMessageDto repliedDto = broadcastReplyingTo(replied);
+
+      assertEquals("other", repliedDto.getDeletedInfo().getDeletedBy());
+      assertEquals(deletedAt, repliedDto.getDeletedInfo().getDeletedAt());
+    }
+
+    @Test
+    void embedsTheForwardedInfoOfTheRepliedMessage() throws Exception {
+      OffsetDateTime originalSentAt = OffsetDateTime.parse("2025-12-31T08:00:00Z");
+      Message replied =
+          Message.create()
+              .id(REPLY_ID)
+              .roomId(roomId.toString())
+              .senderId("forwarder")
+              .text("hello")
+              .forwarded(true)
+              .forwardedSenderId("author")
+              .forwardedAt(originalSentAt)
+              .createdAt(OffsetDateTime.parse("2026-01-01T09:00:00Z"));
+
+      TimelineMessageDto repliedDto = broadcastReplyingTo(replied);
+
+      assertEquals("author", repliedDto.getForwardedInfo().getOriginalSenderId());
+      assertEquals(originalSentAt, repliedDto.getForwardedInfo().getOriginalSentAt());
     }
   }
 

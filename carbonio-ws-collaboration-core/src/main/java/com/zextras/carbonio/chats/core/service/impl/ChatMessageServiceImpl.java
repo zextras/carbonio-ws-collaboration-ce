@@ -13,7 +13,6 @@ import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
 import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
-import com.zextras.carbonio.chats.core.data.entity.UserContact;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItemRefs;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
@@ -31,7 +30,6 @@ import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
-import com.zextras.carbonio.chats.core.repository.UserContactRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.utils.SearchTextUtils;
@@ -55,7 +53,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   private final MessagePinRepository pinRepository;
   private final SystemEventRepository systemEventRepository;
   private final WsPresenceRepository wsPresenceRepository;
-  private final UserContactRepository contactRepository;
   private final RoomRepository roomRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final ObjectMapper objectMapper;
@@ -68,7 +65,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       MessagePinRepository pinRepository,
       SystemEventRepository systemEventRepository,
       WsPresenceRepository wsPresenceRepository,
-      UserContactRepository contactRepository,
       RoomRepository roomRepository,
       SubscriptionRepository subscriptionRepository,
       ObjectMapper objectMapper) {
@@ -78,7 +74,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     this.pinRepository = pinRepository;
     this.systemEventRepository = systemEventRepository;
     this.wsPresenceRepository = wsPresenceRepository;
-    this.contactRepository = contactRepository;
     this.roomRepository = roomRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.objectMapper = objectMapper;
@@ -107,8 +102,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
-  public List<Message> getMessagesByIds(String roomId, List<String> stanzaIds) {
-    return messageRepository.getByRoomIdAndIds(roomId, stanzaIds);
+  public List<Message> getMessagesByIds(String roomId, List<String> messageIds) {
+    return messageRepository.getByRoomIdAndIds(roomId, messageIds);
   }
 
   @Override
@@ -344,18 +339,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   @Override
   public List<PresenceSummary> getBatchPresence(Collection<String> userIds) {
     return wsPresenceRepository.getBatchPresence(userIds);
-  }
-
-  // ==================== CONTACT/ROSTER OPERATIONS ====================
-
-  @Override
-  public List<String> getRoster(String userId) {
-    return contactRepository.getByUserId(userId).stream().map(UserContact::getContactId).toList();
-  }
-
-  @Override
-  public void addMutualContact(String user1Id, String user2Id) {
-    contactRepository.addMutualContact(user1Id, user2Id);
   }
 
   @Override

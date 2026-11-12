@@ -5,10 +5,6 @@
 package com.zextras.carbonio.chats.core.web.socket.action;
 
 public enum WsAction {
-  SEND_MESSAGE("send-message"),
-  EDIT_MESSAGE("edit-message"),
-  DELETE_MESSAGE("delete-message"),
-  FORWARD_MESSAGE("forward-message"),
   PING("ping"),
   TYPING("Typing");
 

@@ -17,8 +17,6 @@ import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
@@ -28,7 +26,6 @@ public class MessagingModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
-    bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
   }
 

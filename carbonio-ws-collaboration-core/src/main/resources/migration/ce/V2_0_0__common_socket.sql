@@ -91,16 +91,6 @@ CREATE TABLE IF NOT EXISTS CHATS.USER_LAST_SEEN
     LAST_SEEN_AT TIMESTAMPTZ NOT NULL
 );
 
--- USER_CONTACT (roster)
-CREATE TABLE IF NOT EXISTS CHATS.USER_CONTACT
-(
-    USER_ID    VARCHAR(64) NOT NULL,
-    CONTACT_ID VARCHAR(64) NOT NULL,
-    CREATED_AT TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-
-    PRIMARY KEY (USER_ID, CONTACT_ID)
-);
-
 -- BUG-2: room_id lookups on subscription and room_user_settings
 -- (subscription PK starts with user_id, so room_id queries do a seq scan otherwise)
 CREATE INDEX IF NOT EXISTS SUBSCRIPTION_ROOM_ID_IDX       ON CHATS.SUBSCRIPTION       (ROOM_ID);
