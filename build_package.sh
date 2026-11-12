@@ -116,7 +116,7 @@ build_with_docker() {
   local tty=()
   [[ -t 1 ]] && tty=(-t)
   log "Building '${distro}' in ${image} (platform=${PLATFORM}) ..."
-  docker run --rm -i "${tty[@]}" \
+  docker run --rm -i ${tty[@]+"${tty[@]}"} \
     --platform "${PLATFORM}" \
     --pull always \
     --entrypoint yap \
