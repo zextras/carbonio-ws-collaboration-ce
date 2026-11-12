@@ -2891,8 +2891,8 @@ class RoomsApiServiceImplTest {
   }
 
   @Test
-  @DisplayName("setReaction UNCHANGED does not notify the message-sent listeners")
-  void setReaction_unchanged_doesNotNotifyMessageSentListeners() throws Exception {
+  @DisplayName("setReaction UNCHANGED notifies the message-sent listeners with the emoji")
+  void setReaction_unchanged_notifiesMessageSentListeners() throws Exception {
     UUID messageId = UUID.randomUUID();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(chatMessageService.setReaction(any(), any(), any(), any()))
@@ -2906,7 +2906,7 @@ class RoomsApiServiceImplTest {
         com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
         securityContext);
 
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId.toString(), "👍");
   }
 
   @Test

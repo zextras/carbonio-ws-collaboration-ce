@@ -400,8 +400,8 @@ Attachment upload changed:
 - After a successful text send or attachment upload (not a `tempId` duplicate) the server calls the registered
   `MessageSentListener` extensions with the message text or the caption (`""` when there is none); which
   messages they act on is up to each listener. They are also called after a message edit (text = the new
-  text) and after a reaction is added or changed (text = the emoji); an unchanged reaction, a reaction removal,
-  a forward and a delete do not call them. An edit or reaction may target a message older than some members'
+  text) and after every reaction set (added, changed or set again with the same value; text = the emoji); a
+  reaction removal, a forward and a delete do not call them. An edit or reaction may target a message older than some members'
   visibility floor (§8): a listener that notifies room members must not reach members who cannot see that
   message. None is registered by default.
 

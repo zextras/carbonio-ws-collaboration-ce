@@ -837,9 +837,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
-    if (result.kind() != SetKind.UNCHANGED) {
-      notifyMessageSent(currentUser, roomId, messageId.toString(), reaction);
-    }
+    notifyMessageSent(currentUser, roomId, messageId.toString(), reaction);
     return Response.status(Status.NO_CONTENT).build();
   }
 
