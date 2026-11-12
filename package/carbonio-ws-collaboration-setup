@@ -60,17 +60,23 @@ EOF
 chmod 0600 /etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf
 systemctl daemon-reload
 
-# Generate a stable service_id: reuse the one already in the HCL if present,
-# otherwise generate a new UUID. The service_id ends up in Consul Service.Meta
-# (same pattern as VideoServer) and is read at runtime via the agent API.
-CURRENT_ID=$(grep -oP 'service_id\s*=\s*"\K[0-9a-f-]+' \
-  /etc/zextras/service-discover/carbonio-ws-collaboration.hcl 2>/dev/null || true)
+# The service_id lives in Consul KV (like VideoServer) and is rendered into the
+# service registration; it ends up in Consul Service.Meta, read at runtime via the agent API.
+LOCAL_IP=$(hostname -I | tr -s ' ' '\n' | head -n 1)
+export LOCAL_IP
 
-if [[ -z "${CURRENT_ID}" || "${CURRENT_ID}" == "__SERVICE_ID__" ]]; then
+SERVICE_ID_KEY="carbonio-ws-collaboration/meta/${LOCAL_IP}/service_id"
+SERVICE_ID=$(consul kv get "${SERVICE_ID_KEY}" 2>/dev/null || true)
+
+if [[ -z "${SERVICE_ID}" ]]; then
   SERVICE_ID=$(uuidgen)
-  sed -i "s|__SERVICE_ID__|${SERVICE_ID}|" \
-    /etc/zextras/service-discover/carbonio-ws-collaboration.hcl
+  consul kv put "${SERVICE_ID_KEY}" "${SERVICE_ID}" >/dev/null
 fi
+
+consul-template \
+  -template "/etc/zextras/service-discover/templates/carbonio-ws-collaboration-template.hcl:/etc/zextras/service-discover/carbonio-ws-collaboration.hcl" \
+  -once
+export -n LOCAL_IP
 
 consul reload
 

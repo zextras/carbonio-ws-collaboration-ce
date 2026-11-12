@@ -17,14 +17,13 @@ depends=(
 )
 backup=(
   "etc/carbonio/ws-collaboration/logback.xml"
-  "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
 )
 source=(
   "611-carbonio-ws-collaboration.sh"
   "carbonio-ws-collaboration-ce.jar"
   "carbonio-ws-collaboration-configs"
   "carbonio-ws-collaboration-setup"
-  "carbonio-ws-collaboration.hcl"
+  "carbonio-ws-collaboration-template.hcl"
   "carbonio-ws-collaboration.service"
   "carbonio-ws-collaboration-sidecar.service"
   "carbonio-ws-collaboration-sidecar-legacy.service"
@@ -37,8 +36,8 @@ sha256sums=(
   'e9f6604fd073a5cf3cf9b448d6f9f372a64e23f84fc26d7a0fac6d55b11f0c6a'
   'SKIP'
   '285bb99f62719c4f00bcd0df5199aecb8fce8a1675849063f861f87cda33d51a'
-  'ff27f95888a815e39cfa736dea63a3a0ba3a1ec63a8390985f75eebbc2d1bb44'
-  'b9aa7ab3d15a78501f58e5c024d7d4a54ad6472112ac649eef651f75f0b83a2a'
+  '8342a1048aa3f1ff3eca5766326366a0e73ca49eed0c8d479fb4284c3488a990'
+  '647b3696dbe3d10456252eff3e265a8c27d140c11794057136a212fa5d225570'
   '05063e4a91ebf451e3273ef9be8fce2a47a87b7df4a09a1970515dd2e786d212'
   '6c6b7ee8a6d5768fe528cea3e72e76c11e725e4b9156670294b21097d673b4f9'
   '1c1f84fee824eab9c52c3cba743c2d111ee8a01069a63ca8bee9691535ba5554'
@@ -57,8 +56,8 @@ _package_common() {
     "${pkgdir}/usr/bin/carbonio-ws-collaboration-setup"
   install -Dm644 "${srcdir}/611-carbonio-ws-collaboration.sh" \
     "${pkgdir}/etc/zextras/pending-setups.d/611-carbonio-ws-collaboration.sh"
-  install -Dm644 "${srcdir}/carbonio-ws-collaboration.hcl" \
-    "${pkgdir}/etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
+  install -Dm644 "${srcdir}/carbonio-ws-collaboration-template.hcl" \
+    "${pkgdir}/etc/zextras/service-discover/templates/carbonio-ws-collaboration-template.hcl"
   install -Dm644 "${srcdir}/carbonio-ws-collaboration.service" \
     "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
   install -Dm644 "${srcdir}/logback.xml" \
@@ -119,6 +118,7 @@ prerm() {
 
 postrm() {
   rm -f /etc/carbonio/ws-collaboration/service-discover/token
+  rm -f /etc/zextras/service-discover/carbonio-ws-collaboration.hcl
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
   fi

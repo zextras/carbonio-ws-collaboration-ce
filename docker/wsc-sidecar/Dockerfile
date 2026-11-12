@@ -2,7 +2,10 @@ ARG SIDECAR_IMAGE=registry.dev.zextras.com/dev/carbonio-sidecar:main
 FROM ${SIDECAR_IMAGE}
 
 # Service registration
-COPY package/carbonio-ws-collaboration.hcl /consul/config/
+COPY package/carbonio-ws-collaboration-template.hcl /tmp/carbonio-ws-collaboration-template.hcl
+RUN mkdir -p /consul/config && sed -e '/{{-/d' -e 's|{{ [$]service_id }}|00000000-0000-0000-0000-000000000000|' \
+      /tmp/carbonio-ws-collaboration-template.hcl > /consul/config/carbonio-ws-collaboration.hcl \
+    && rm /tmp/carbonio-ws-collaboration-template.hcl
 
 # Setup files
 COPY package/service-protocol.json /etc/carbonio/ws-collaboration/service-discover/

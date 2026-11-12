@@ -53,8 +53,11 @@ services {
     }
   }
 
-  meta {
-    service_id = "__SERVICE_ID__"
+  {{- $localIp := env "LOCAL_IP" }}
+  {{- $service_id_path := printf "carbonio-ws-collaboration/meta/%s/service_id" $localIp }}
+  {{- $service_id := (key $service_id_path) }}
+  meta = {
+    service_id = "{{ $service_id }}"
   }
 
   name = "carbonio-ws-collaboration"
