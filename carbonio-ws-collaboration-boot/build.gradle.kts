@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.resteasy.servletInitializer)
     implementation(libs.slf4j.api)
     implementation(libs.logback.classic)
+    testImplementation(libs.junit.jupiter.api)
 }
 
 tasks.compileJava {

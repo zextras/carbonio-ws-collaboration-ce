@@ -16,17 +16,33 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 
 public class Chats {
 
-  public static void main(String[] args) throws Exception {
+  @FunctionalInterface
+  interface ThrowingRunnable {
+    void run() throws Exception;
+  }
+
+  public static void main(String[] args) {
     if (Files.exists(Path.of(ChatsConstant.LOGGER_CONFIG_PATH))) {
       loadLoggingConfigurations();
     }
     printBanner();
-    Guice.createInjector(new BootModule()).getInstance(Boot.class).boot();
+    runOrExit(
+        () -> Guice.createInjector(new BootModule()).getInstance(Boot.class).boot(), System::exit);
+  }
+
+  static void runOrExit(ThrowingRunnable boot, IntConsumer exit) {
+    try {
+      boot.run();
+    } catch (Throwable t) {
+      ChatsLogger.error(Chats.class, "Fatal error during startup, exiting", t);
+      exit.accept(1);
+    }
   }
 
   private static void printBanner() {
