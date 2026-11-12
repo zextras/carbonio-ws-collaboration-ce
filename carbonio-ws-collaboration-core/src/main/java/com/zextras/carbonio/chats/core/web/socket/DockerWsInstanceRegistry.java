@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 
 import com.google.inject.Singleton;
 import java.util.Set;
+import java.util.UUID;
 
 @Singleton
 public class DockerWsInstanceRegistry implements WsInstanceRegistry {
@@ -21,7 +22,9 @@ public class DockerWsInstanceRegistry implements WsInstanceRegistry {
 
   DockerWsInstanceRegistry(String configuredId) {
     this.selfId =
-        configuredId == null || configuredId.isBlank() ? DEFAULT_INSTANCE_ID : configuredId.trim();
+        configuredId == null || configuredId.isBlank()
+            ? DEFAULT_INSTANCE_ID
+            : UUID.fromString(configuredId.trim()).toString();
   }
 
   @Override

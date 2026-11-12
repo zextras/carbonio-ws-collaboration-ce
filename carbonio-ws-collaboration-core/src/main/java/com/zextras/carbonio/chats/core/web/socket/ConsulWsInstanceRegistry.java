@@ -94,7 +94,6 @@ public class ConsulWsInstanceRegistry implements WsInstanceRegistry {
                             + SERVICE_NAME
                             + "'. Ensure the service is registered with meta { service_id = \"...\""
                             + " }"));
-    UUID.fromString(value);
-    return value;
+    return UUID.fromString(value).toString();
   }
 }

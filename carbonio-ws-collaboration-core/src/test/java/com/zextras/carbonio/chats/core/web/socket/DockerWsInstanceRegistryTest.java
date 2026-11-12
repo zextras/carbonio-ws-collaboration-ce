@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.socket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -36,5 +37,11 @@ class DockerWsInstanceRegistryTest {
 
     assertEquals("4d1f5b8e-2f6a-4a3c-9a3e-7d6f5c0b1a11", registry.selfId());
     assertEquals(Set.of("4d1f5b8e-2f6a-4a3c-9a3e-7d6f5c0b1a11"), registry.liveInstanceIds());
+  }
+
+  @Test
+  @DisplayName("A configured id that is not a UUID is rejected")
+  void constructor_invalidUuid_throws() {
+    assertThrows(IllegalArgumentException.class, () -> new DockerWsInstanceRegistry("not-a-uuid"));
   }
 }

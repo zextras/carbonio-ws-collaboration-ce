@@ -83,6 +83,19 @@ class ConsulWsInstanceRegistryTest {
   }
 
   @Test
+  @DisplayName("The own id is normalised like the live ids")
+  void selfId_uppercaseMeta_isLowercaseCanonical() {
+    String id = UUID.randomUUID().toString();
+    agentServices(service(SERVICE_NAME, Map.of("service_id", id.toUpperCase())));
+    healthyInstances(service(SERVICE_NAME, Map.of("service_id", id.toUpperCase())));
+
+    ConsulWsInstanceRegistry registry = new ConsulWsInstanceRegistry(consul);
+
+    assertEquals(id, registry.selfId());
+    assertEquals(Set.of(id), registry.liveInstanceIds());
+  }
+
+  @Test
   @DisplayName("A missing service_id meta fails the construction")
   void constructor_noServiceId_throws() {
     agentServices(service(SERVICE_NAME, Map.of()));

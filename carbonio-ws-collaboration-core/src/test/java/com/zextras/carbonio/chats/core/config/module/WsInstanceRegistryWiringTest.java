@@ -41,14 +41,26 @@ class WsInstanceRegistryWiringTest {
     }
   }
 
-  @Test
-  @DisplayName("Docker mode builds a complete binding graph without any Consul binding")
-  void dockerConfig_toolStageGraphHasNoConsulBinding() {
+  private static void assertGraphWithoutConsul(AbstractModule config) {
     Injector injector =
-        Guice.createInjector(
-            Stage.TOOL, new DockerConfig(), new PresenceDependenciesModule(), new WsModule());
+        Guice.createInjector(Stage.TOOL, config, new CoreModule(), new ExtensionModule());
 
     assertNull(injector.getExistingBinding(Key.get(Consul.class)));
+    assertNotNull(injector.getBinding(WsPresenceJanitorService.class));
+    assertNotNull(injector.getBinding(WsPresenceBootCleaner.class));
+    assertNotNull(injector.getBinding(WsInstanceRegistry.class));
+  }
+
+  @Test
+  @DisplayName("Docker mode builds the full CE graph without any Consul binding")
+  void dockerConfig_fullGraphHasNoConsulBinding() {
+    assertGraphWithoutConsul(new DockerConfig());
+  }
+
+  @Test
+  @DisplayName("Production mode builds the full CE graph without any Consul binding")
+  void productionConfig_fullGraphHasNoConsulBinding() {
+    assertGraphWithoutConsul(new ProductionConfig());
   }
 
   @Test

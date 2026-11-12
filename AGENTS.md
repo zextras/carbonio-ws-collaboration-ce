@@ -30,7 +30,7 @@
   installs the modules a downstream build may replace or extend (`DatabaseModule`, `AttachmentModule`,
   `MeetingModule`, `WebSocketModule`). `BootModule` installs both, plus `ProductionConfig` (or
   `DockerConfig` when `APP_ENVIRONMENT=docker`); those two config modules also bind `WsInstanceRegistry`
-  (Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice.
+  (Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice (a downstream build binds its own).
   `@Provides` methods live in the module that owns the feature.
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
   `RoomsApiServiceImpl.sendMessage` and `RoomsApiServiceImpl.insertAttachmentMultipart` (text = caption or
