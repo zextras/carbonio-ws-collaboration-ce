@@ -3,7 +3,7 @@ FROM ${SIDECAR_IMAGE}
 
 # Service registration
 COPY package/carbonio-ws-collaboration-template.hcl /tmp/carbonio-ws-collaboration-template.hcl
-RUN mkdir -p /consul/config && sed -e '/{{-/d' -e 's|{{ [$]service_id }}|00000000-0000-0000-0000-000000000000|' \
+RUN mkdir -p /consul/config && sed -e '/{{-/d' -e 's|{{ [$]service_id }}|00000000-0000-4000-8000-000000000001|' \
       /tmp/carbonio-ws-collaboration-template.hcl > /consul/config/carbonio-ws-collaboration.hcl \
     && rm /tmp/carbonio-ws-collaboration-template.hcl
 

@@ -8,15 +8,15 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.ConsulException;
-import com.orbitz.consul.model.health.Service;
 import com.orbitz.consul.model.health.ServiceHealth;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.net.URL;
-import java.util.Objects;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Identifies this instance and its live peers through the Consul catalog, using {@code
@@ -49,14 +49,25 @@ public class ConsulWsInstanceRegistry implements WsInstanceRegistry {
 
   @Override
   public Set<String> liveInstanceIds() {
-    return consul.healthClient().getHealthyServiceInstances(SERVICE_NAME).getResponse().stream()
-        .map(ServiceHealth::getService)
-        .map(Service::getMeta)
-        .filter(Objects::nonNull)
-        .map(meta -> meta.get(SERVICE_ID_METADATA))
-        .filter(id -> id != null && !id.isBlank())
-        .map(id -> UUID.fromString(id).toString())
-        .collect(Collectors.toSet());
+    Set<String> ids = new HashSet<>();
+    boolean invalidFound = false;
+    for (ServiceHealth health :
+        consul.healthClient().getHealthyServiceInstances(SERVICE_NAME).getResponse()) {
+      Map<String, String> meta = health.getService().getMeta();
+      String id = meta == null ? null : meta.get(SERVICE_ID_METADATA);
+      if (id == null || id.isBlank()) {
+        continue;
+      }
+      try {
+        ids.add(UUID.fromString(id).toString());
+      } catch (IllegalArgumentException e) {
+        invalidFound = true;
+      }
+    }
+    if (invalidFound) {
+      ChatsLogger.warn("Ignoring peer instances with an invalid service_id in Consul metadata");
+    }
+    return ids;
   }
 
   private static Consul buildClient(AppConfig appConfig) {

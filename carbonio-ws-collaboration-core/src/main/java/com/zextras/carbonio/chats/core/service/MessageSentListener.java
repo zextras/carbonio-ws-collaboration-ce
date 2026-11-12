@@ -14,9 +14,11 @@ import java.util.UUID;
  * per uploaded attachment with its caption, by the message edit with the new text, and by the
  * reaction set with the emoji (unchanged reactions and removals do not call it). {@code text} is
  * the text a notification shows (caption, new text, emoji) and may be blank. Forwards and deletes
- * do not call it. Implementations are registered with a Guice {@code Multibinder}; none is
- * registered by default. Listeners run on the request thread and must not block; their failures are
- * logged and do not affect the response.
+ * do not call it. An edit or a reaction may target a message older than the visibility floor of
+ * some room members; an implementation that notifies room members must not reach members who cannot
+ * see that message (look up the message creation time by id and apply the floor). Implementations
+ * are registered with a Guice {@code Multibinder}; none is registered by default. Listeners run on
+ * the request thread and must not block; their failures are logged and do not affect the response.
  */
 public interface MessageSentListener {
 

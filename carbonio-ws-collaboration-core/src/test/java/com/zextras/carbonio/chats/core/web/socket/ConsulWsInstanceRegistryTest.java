@@ -129,4 +129,16 @@ class ConsulWsInstanceRegistryTest {
 
     assertEquals(Set.of(own, peer), new ConsulWsInstanceRegistry(consul).liveInstanceIds());
   }
+
+  @Test
+  @DisplayName("A peer with a malformed service_id is skipped")
+  void liveInstanceIds_malformedPeer_returnsOnlyValidIds() {
+    String own = UUID.randomUUID().toString();
+    agentServices(service(SERVICE_NAME, Map.of("service_id", own)));
+    healthyInstances(
+        service(SERVICE_NAME, Map.of("service_id", own)),
+        service(SERVICE_NAME, Map.of("service_id", "not-a-uuid")));
+
+    assertEquals(Set.of(own), new ConsulWsInstanceRegistry(consul).liveInstanceIds());
+  }
 }

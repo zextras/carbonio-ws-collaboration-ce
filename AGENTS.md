@@ -30,7 +30,8 @@
   installs the modules a downstream build may replace or extend (`DatabaseModule`, `AttachmentModule`,
   `MeetingModule`, `WebSocketModule`). `BootModule` installs both, plus `ProductionConfig` (or
   `DockerConfig` when `APP_ENVIRONMENT=docker`); those two config modules also bind `WsInstanceRegistry`
-  (Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice (a downstream build binds its own).
+  (Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice (a
+  downstream build binds its own).
   `@Provides` methods live in the module that owns the feature.
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
   `RoomsApiServiceImpl.sendMessage`, `insertAttachmentMultipart` (text = caption or `""`), `editMessage` (text =
@@ -46,6 +47,9 @@
 ## Package / Deploy
 
 - `package/PKGBUILD` — package spec
+- `package/carbonio-ws-collaboration-template.hcl` — the setup renders it with consul-template into
+  `/etc/zextras/service-discover/carbonio-ws-collaboration.hcl`; the node's `service_id` is read from Consul KV
+  `carbonio-ws-collaboration/meta/<LOCAL_IP>/service_id`
 - `./check_integrity.sh package/PKGBUILD` — verify hashes before committing
 - Consul files: `package/policies.json`, `package/intentions.json`
 - `consul.sh` — local dev helper for consul setup
