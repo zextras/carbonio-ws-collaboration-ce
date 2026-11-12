@@ -33,8 +33,9 @@
   (Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice (a downstream build binds its own).
   `@Provides` methods live in the module that owns the feature.
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
-  `RoomsApiServiceImpl.sendMessage` and `RoomsApiServiceImpl.insertAttachmentMultipart` (text = caption or
-  `""`) after a message is stored and broadcast; downstream builds add listeners with
+  `RoomsApiServiceImpl.sendMessage`, `insertAttachmentMultipart` (text = caption or `""`), `editMessage` (text =
+  new text) and `setReaction` when ADDED or UPDATED (text = emoji; `removeReaction` never calls it) after the
+  change is stored and broadcast; downstream builds add listeners with
   `Multibinder.newSetBinder(binder(), MessageSentListener.class).addBinding()`.
 - **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
   dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit

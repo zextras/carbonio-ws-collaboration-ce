@@ -837,6 +837,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
+    if (result.kind() != SetKind.UNCHANGED) {
+      notifyMessageSent(currentUser, roomId, messageId.toString(), reaction);
+    }
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -1193,6 +1196,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-edited event: " + e.getMessage());
     }
+    notifyMessageSent(currentUser, roomId, edited.messageId(), edited.text());
     return Response.status(Status.OK)
         .entity(
             MessageDto.create()

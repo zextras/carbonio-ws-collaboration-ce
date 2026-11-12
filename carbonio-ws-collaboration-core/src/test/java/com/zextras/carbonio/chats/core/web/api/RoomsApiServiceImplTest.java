@@ -53,6 +53,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedB
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
@@ -2798,6 +2799,128 @@ class RoomsApiServiceImplTest {
     Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
 
     assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("editMessage notifies the message-sent listeners with the new text")
+  void editMessage_notifiesMessageSentListeners() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    OffsetDateTime now = OffsetDateTime.now();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(messageWriteRepository.editMessage(
+            messageId.toString(), roomId.toString(), user1Id.toString(), "new text"))
+        .thenReturn(
+            Optional.of(
+                new MessageWriteRepository.EditResult(
+                    messageId.toString(), "new text", now, now.minusMinutes(1))));
+
+    Response response =
+        roomsApiService.editMessage(
+            roomId,
+            messageId,
+            com.zextras.carbonio.chats.model.EditMessageRequestDto.create().text("new text"),
+            securityContext);
+
+    assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    verify(messageSentListener, times(1))
+        .onMessageSent(user1, roomId, messageId.toString(), "new text");
+  }
+
+  @Test
+  @DisplayName("editMessage does not notify the listeners when the edit is refused")
+  void editMessage_refused_doesNotNotifyMessageSentListeners() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(messageWriteRepository.editMessage(any(), any(), any(), any()))
+        .thenReturn(Optional.empty());
+
+    Response response =
+        roomsApiService.editMessage(
+            roomId,
+            messageId,
+            com.zextras.carbonio.chats.model.EditMessageRequestDto.create().text("new text"),
+            securityContext);
+
+    assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("setReaction ADDED notifies the message-sent listeners with the emoji")
+  void setReaction_added_notifiesMessageSentListeners() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(chatMessageService.setReaction(
+            roomId.toString(), messageId.toString(), user1Id.toString(), "👍"))
+        .thenReturn(
+            new MessageReactionRepository.SetResult(
+                MessageReactionRepository.SetKind.ADDED, null, OffsetDateTime.now()));
+
+    Response response =
+        roomsApiService.setReaction(
+            roomId,
+            messageId,
+            com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
+            securityContext);
+
+    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId.toString(), "👍");
+  }
+
+  @Test
+  @DisplayName("setReaction UPDATED notifies the message-sent listeners with the new emoji")
+  void setReaction_updated_notifiesMessageSentListeners() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(chatMessageService.setReaction(
+            roomId.toString(), messageId.toString(), user1Id.toString(), "❤️"))
+        .thenReturn(
+            new MessageReactionRepository.SetResult(
+                MessageReactionRepository.SetKind.UPDATED, "👍", OffsetDateTime.now()));
+
+    Response response =
+        roomsApiService.setReaction(
+            roomId,
+            messageId,
+            com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("❤️"),
+            securityContext);
+
+    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId.toString(), "❤️");
+  }
+
+  @Test
+  @DisplayName("setReaction UNCHANGED does not notify the message-sent listeners")
+  void setReaction_unchanged_doesNotNotifyMessageSentListeners() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(chatMessageService.setReaction(any(), any(), any(), any()))
+        .thenReturn(
+            new MessageReactionRepository.SetResult(
+                MessageReactionRepository.SetKind.UNCHANGED, "👍", OffsetDateTime.now()));
+
+    roomsApiService.setReaction(
+        roomId,
+        messageId,
+        com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
+        securityContext);
+
+    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("removeReaction never notifies the message-sent listeners")
+  void removeReaction_doesNotNotifyMessageSentListeners() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(chatMessageService.removeReaction(
+            roomId.toString(), messageId.toString(), user1Id.toString()))
+        .thenReturn(Optional.of(new MessageReactionRepository.Removed("👍", OffsetDateTime.now())));
+
+    Response response = roomsApiService.removeReaction(roomId, messageId, securityContext);
+
+    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
   }
 
