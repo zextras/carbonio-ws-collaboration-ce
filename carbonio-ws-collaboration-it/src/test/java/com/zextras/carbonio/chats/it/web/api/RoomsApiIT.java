@@ -2851,6 +2851,20 @@ public class RoomsApiIT {
               .findAny()
               .isEmpty());
     }
+
+    @Test
+    @DisplayName("When the last member leaves the room, the room is deleted and no zombie is left")
+    void deleteRoomMember_lastMemberLeaves_deletesRoom() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id), List.of(user1Id), null, null);
+
+      MockHttpResponse response = dispatcher.delete(url(roomId, user1Id), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+    }
   }
 
   @Nested

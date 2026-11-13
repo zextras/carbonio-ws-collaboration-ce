@@ -392,7 +392,12 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, true);
+    deleteRoom(getRoomAndValidateUser(roomId, currentUser, true), currentUser);
+  }
+
+  @Override
+  public void deleteRoom(Room room, UserPrincipal currentUser) {
+    UUID roomId = UUID.fromString(room.getId());
     if (room.getMeetingId() != null) {
       meetingService
           .getMeetingEntity(UUID.fromString(room.getMeetingId()))

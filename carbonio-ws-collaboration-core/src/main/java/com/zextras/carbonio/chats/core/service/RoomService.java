@@ -72,6 +72,14 @@ public interface RoomService {
   void deleteRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
+   * Deletes the room without checking that the user is a member or an owner
+   *
+   * @param room room to delete {@link Room }
+   * @param currentUser user on whose behalf the room is deleted {@link UserPrincipal}
+   */
+  void deleteRoom(Room room, UserPrincipal currentUser);
+
+  /**
    * Retrieves the requested room
    *
    * @param roomId room identifier {@link UUID }

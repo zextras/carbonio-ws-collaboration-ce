@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -884,6 +885,20 @@ class MembersServiceImplTest {
                   .userId(user2Id)
                   .removedBy(user1Id)
                   .systemEventId(systemEventId));
+    }
+
+    @Test
+    @DisplayName("When the last member leaves, the room is deleted and no member removal is done")
+    void deleteRoomMember_lastMemberLeaves_deletesRoom() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(List.of(Subscription.create(room, user1Id.toString()).owner(true)));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
+
+      membersService.deleteRoomMember(roomId, user1Id, principal);
+
+      verify(roomService, times(1)).deleteRoom(room, principal);
+      verifyNoInteractions(subscriptionRepository, chatMessageService, eventDispatcher);
     }
 
     @Test

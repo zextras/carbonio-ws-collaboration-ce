@@ -188,11 +188,16 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
+  @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     Room room =
         roomService.getRoomAndValidateUser(
             roomId, currentUser, !currentUser.getUUID().equals(userId));
     validateUserMemberShip(userId, currentUser, room);
+    if (room.getSubscriptions().size() == 1) {
+      roomService.deleteRoom(room, currentUser);
+      return;
+    }
     if (room.getMeetingId() != null) {
       meetingService
           .getMeetingEntity(UUID.fromString(room.getMeetingId()))
@@ -202,11 +207,6 @@ public class MembersServiceImpl implements MembersService {
     List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
     removeMemberData(userId.toString(), room);
     persistAndDispatchMemberRemoved(receivers, room, userId.toString(), currentUser.getId());
-
-    // delete room if it's the last member
-    if (room.getSubscriptions().size() == 1) {
-      roomService.deleteRoom(roomId, currentUser);
-    }
   }
 
   private static void validateUserMemberShip(UUID userId, UserPrincipal currentUser, Room room) {
