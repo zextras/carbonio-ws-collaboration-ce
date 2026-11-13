@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -832,7 +833,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                         : ReactionChanged.OperationEnum.UPDATED)
                 .previousReaction(result.previousReaction())
                 .updatedAt(result.updatedAt());
-        broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+        broadcastReactionChanged(roomId, messageId, event);
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
@@ -854,12 +855,22 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             reactionEvent(roomId, messageId, currentUser.getId(), removed.get().reaction())
                 .operation(ReactionChanged.OperationEnum.REMOVED)
                 .deletedAt(removed.get().deletedAt());
-        broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+        broadcastReactionChanged(roomId, messageId, event);
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
     return Response.status(Status.NO_CONTENT).build();
+  }
+
+  private void broadcastReactionChanged(UUID roomId, UUID messageId, ReactionChanged event)
+      throws JsonProcessingException {
+    Optional<Message> target = messageRepository.getById(messageId.toString());
+    if (target.isEmpty()) {
+      return;
+    }
+    messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
+        roomId.toString(), target.get().getCreatedAt(), objectMapper.writeValueAsString(event));
   }
 
   private ReactionChanged reactionEvent(

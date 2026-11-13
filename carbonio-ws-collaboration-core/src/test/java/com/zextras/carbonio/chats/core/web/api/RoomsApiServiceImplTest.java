@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zextras.carbonio.async.model.MessagePinned;
+import com.zextras.carbonio.async.model.ReactionChanged;
 import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.api.RoomsApiService;
@@ -2922,6 +2923,78 @@ class RoomsApiServiceImplTest {
 
     assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+  }
+
+  private ReactionChanged captureReactionBroadcast(OffsetDateTime messageCreatedAt)
+      throws Exception {
+    ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+    verify(messageReceivedBroadcaster)
+        .broadcastToMembersWhoCanAccess(
+            eq(roomId.toString()), eq(messageCreatedAt), json.capture());
+    verifyNoInteractions(eventDispatcher);
+    return objectMapper.readValue(json.getValue(), ReactionChanged.class);
+  }
+
+  @Test
+  @DisplayName("setReaction ADDED and UPDATED broadcast ReactionChanged with the message floor")
+  void setReaction_broadcastsToMembersWhoCanAccess() throws Exception {
+    for (MessageReactionRepository.SetKind kind :
+        List.of(
+            MessageReactionRepository.SetKind.ADDED, MessageReactionRepository.SetKind.UPDATED)) {
+      org.mockito.Mockito.clearInvocations(messageReceivedBroadcaster, eventDispatcher);
+      UUID messageId = UUID.randomUUID();
+      OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.setReaction(any(), any(), any(), any()))
+          .thenReturn(new MessageReactionRepository.SetResult(kind, "👍", OffsetDateTime.now()));
+      when(messageRepository.getById(messageId.toString()))
+          .thenReturn(Optional.of(Message.create().id(messageId.toString()).createdAt(createdAt)));
+
+      roomsApiService.setReaction(
+          roomId,
+          messageId,
+          com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("❤️"),
+          securityContext);
+
+      ReactionChanged sent = captureReactionBroadcast(createdAt);
+      assertEquals(messageId.toString(), sent.getMessageId());
+    }
+  }
+
+  @Test
+  @DisplayName("setReaction UNCHANGED broadcasts nothing")
+  void setReaction_unchanged_broadcastsNothing() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(chatMessageService.setReaction(any(), any(), any(), any()))
+        .thenReturn(
+            new MessageReactionRepository.SetResult(
+                MessageReactionRepository.SetKind.UNCHANGED, "👍", OffsetDateTime.now()));
+
+    roomsApiService.setReaction(
+        roomId,
+        messageId,
+        com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
+        securityContext);
+
+    verifyNoInteractions(messageReceivedBroadcaster, eventDispatcher);
+  }
+
+  @Test
+  @DisplayName("removeReaction broadcasts ReactionChanged removed with the message floor")
+  void removeReaction_broadcastsToMembersWhoCanAccess() throws Exception {
+    UUID messageId = UUID.randomUUID();
+    OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(chatMessageService.removeReaction(any(), any(), any()))
+        .thenReturn(Optional.of(new MessageReactionRepository.Removed("👍", OffsetDateTime.now())));
+    when(messageRepository.getById(messageId.toString()))
+        .thenReturn(Optional.of(Message.create().id(messageId.toString()).createdAt(createdAt)));
+
+    roomsApiService.removeReaction(roomId, messageId, securityContext);
+
+    ReactionChanged sent = captureReactionBroadcast(createdAt);
+    assertEquals(ReactionChanged.OperationEnum.REMOVED, sent.getOperation());
   }
 
   @Test

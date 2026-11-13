@@ -771,6 +771,35 @@ class VisibilityIT {
       }
       assertEquals(m2, nextEvent(queueB).get("messageId").asText());
     }
+
+    @Test
+    @DisplayName("ReactionChanged reaches only members who can see the reacted message")
+    void reactionSplit() throws Exception {
+      String queueA = bindQueue(aUserId);
+      String queueB = bindQueue(bUserId);
+      String queueC = bindQueue(cUserId);
+
+      assertEquals(204, react(m1, aToken).getStatus());
+      assertEquals(204, react(m2, aToken).getStatus());
+      assertEquals(
+          204,
+          dispatcher
+              .delete(String.format("/rooms/%s/messages/%s/reaction", roomId, m1), aToken)
+              .getStatus());
+
+      for (String queue : List.of(queueA, queueC)) {
+        JsonNode added1 = nextEvent(queue);
+        assertEquals("ReactionChanged", added1.get("type").asText());
+        assertEquals(m1, added1.get("messageId").asText());
+        assertEquals(m2, nextEvent(queue).get("messageId").asText());
+        JsonNode removed1 = nextEvent(queue);
+        assertEquals(m1, removed1.get("messageId").asText());
+        assertEquals("removed", removed1.get("operation").asText());
+      }
+      JsonNode forB = nextEvent(queueB);
+      assertEquals("ReactionChanged", forB.get("type").asText());
+      assertEquals(m2, forB.get("messageId").asText());
+    }
   }
 
   @Nested

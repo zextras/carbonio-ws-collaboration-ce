@@ -225,11 +225,11 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 |---|---|---|
 | `MessageReceived` | `POST /rooms/{roomId}/messages` or attachment upload completes | All room members, each with the same `tempId` echo (see below) |
 | `MessageForwarded` | `POST /rooms/{roomId}/forward` | All members of the target room |
-| `MessageEdited` | `PUT .../messages/{messageId}/edit` | All room members |
+| `MessageEdited` | `PUT .../messages/{messageId}/edit` | Room members who can see the message (§8) |
 | `MessageDeleted` | `DELETE .../messages/{messageId}` | All room members |
 | `MessagePinned` | `PUT .../messages/{messageId}/pin`, also when it replaces the current pin | All room members |
 | `MessageUnpinned` | `DELETE .../messages/{messageId}/pin` of the room pin (unpinning any other message is a 204 no-op: no system line, no event), or `DELETE .../messages/{messageId}` of the pinned message (sent right after `MessageDeleted`, `unpinnedBy` = the deleter) | All room members |
-| `ReactionChanged` | `PUT` (`added` or `updated`) or `DELETE` (`removed`) `.../reaction`; a same-emoji `PUT` and a `DELETE` without a reaction send nothing | All room members |
+| `ReactionChanged` | `PUT` (`added` or `updated`) or `DELETE` (`removed`) `.../reaction`; a same-emoji `PUT` and a `DELETE` without a reaction send nothing | Room members who can see the message (§8) |
 | `ReadUpdated` | `PUT /rooms/{roomId}/read` that moves the marker forward (a same or older item writes nothing and sends nothing) | All room members |
 | `PresenceChanged` | A user opens their first or closes their last WebSocket, across all instances | Online users sharing at least one room with the affected user |
 | `Typing` | Client sends a `Typing` WebSocket action | All room members except the sender |
@@ -427,6 +427,8 @@ Each member has a visibility floor, `clearedAt`: the instant of their last per-u
   floor).
 - Requests that target an item below the floor answer `404`: reply (`replyToId`), forward source, pin, add
   reaction, mark as read.
+- WebSocket events that concern one existing message (`MessageEdited`, `ReactionChanged`) are sent only to the
+  members who can see that message.
 - **Quotes of older messages are not returned.** For a reader whose floor is after the quoted message,
   `repliedMessage` and `replyToId` are absent in REST responses and in
   `MessageReceived`, `MessageForwarded` and `MessagePinned`. Legacy clients showed such quotes: that was a bug
