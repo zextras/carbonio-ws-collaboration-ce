@@ -13,15 +13,15 @@
 #   ./build_package.sh [distro ...]
 #
 #   distro   One or more target distributions (default: ubuntu-jammy).
-#            Supported: ubuntu-jammy ubuntu-focal rocky-8 rocky-9
+#            Supported: ubuntu-jammy ubuntu-noble rocky-8 rocky-9
 #            Pass "all" to build every supported distribution.
 #
 # Environment knobs:
 #   DOCKER=true      Build inside the prebuilt docker.io/m0rf30/yap-<distro>
 #                    images instead of the locally installed `yap` binary
 #                    (local yap is the default).
-#   YAP_TAG=latest   Image tag for docker mode (default: latest). Local yap
-#                    always uses :latest (yap resolves it internally).
+#   YAP_TAG=2.9.1    Pinned yap image tag, used for the docker mode image and
+#                    for the pre-pull in local mode (default: 2.9.1).
 #   PLATFORM=linux/amd64
 #                    Container platform. Defaults to linux/amd64 because the
 #                    PKGBUILD targets arch=('x86_64'). On Apple Silicon / arm64
@@ -33,9 +33,9 @@
 
 set -euo pipefail
 
-SUPPORTED=(ubuntu-jammy ubuntu-focal rocky-8 rocky-9)
+SUPPORTED=(ubuntu-jammy ubuntu-noble rocky-8 rocky-9)
 DOCKER="${DOCKER:-false}"
-YAP_TAG="${YAP_TAG:-latest}"
+YAP_TAG="${YAP_TAG:-2.9.1}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 IMAGE_ORG="docker.io/m0rf30/yap-"
 
@@ -94,7 +94,7 @@ fi
 cp "${jars[0]}" package/carbonio-ws-collaboration-ce.jar
 
 # --- Build helpers ----------------------------------------------------------
-# Always refresh the image so we build against the latest published one.
+# Always refresh the pinned image so the local copy is the published one.
 prepull() {
   local image="$1"
   log "Pulling ${image} (${PLATFORM}) ..."
@@ -103,7 +103,7 @@ prepull() {
 
 build_with_local_yap() {
   local distro="$1"
-  prepull "${IMAGE_ORG}${distro}:latest"
+  prepull "${IMAGE_ORG}${distro}:${YAP_TAG}"
   log "Building '${distro}' with local yap (platform=${PLATFORM}) ..."
   # yap shells out to docker; DOCKER_DEFAULT_PLATFORM forces the dispatched
   # build container (and its pull) onto the target platform.
@@ -126,7 +126,7 @@ build_with_docker() {
 }
 
 # yap writes to <root>/artifacts (yap.json "output"); move into a per-distro
-# subdir so distros that share a package format (jammy/focal .deb) don't clash.
+# subdir so distros that share a package format (jammy/noble .deb) don't clash.
 collect_artifacts() {
   local distro="$1"
   local dest="artifacts/${distro}"
