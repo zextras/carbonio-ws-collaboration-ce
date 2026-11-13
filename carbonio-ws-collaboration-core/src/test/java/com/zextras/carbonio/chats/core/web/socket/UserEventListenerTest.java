@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -178,6 +179,17 @@ class UserEventListenerTest {
 
     verify(latest.getAsyncRemote()).sendText("latest-json");
     verify(legacy.getAsyncRemote()).sendText("legacy-json");
+  }
+
+  @Test
+  void delivery_isDowngradedOncePerVersion() throws Exception {
+    openSession("a1", USER_A, "");
+    openSession("a2", USER_A, "");
+    openSession("b1", USER_B, "");
+
+    consumerCallback().handle("tag", forUsers(USER_A, USER_B));
+
+    verify(migrator, times(1)).downgradeIfNeeded(EVENT, "1.6.0");
   }
 
   @Test
