@@ -1005,14 +1005,16 @@ class MessageOperationsIT {
     }
 
     @Test
-    @DisplayName("SEM-8.l / C4: forwards with an empty inner body are imported with empty text")
+    @DisplayName(
+        "SEM-8b: forwards with an empty inner body and no resolvable origin are imported as plain"
+            + " messages with empty text")
     void forwardsWithEmptyInnerBodyAreImported() {
       ImportedChats.Message badFrom = message(ROOM_FORWARDS_TWO, FORWARD_EMPTY_BAD_FROM_MAM);
       ImportedChats.Message noFrom = message(ROOM_FORWARDS_CRAFTED, FORWARD_EMPTY_NO_FROM_MAM);
       assertAll(
-          () -> assertTrue(badFrom.forwarded()),
+          () -> assertFalse(badFrom.forwarded()),
           () -> assertEquals("", badFrom.text()),
-          () -> assertTrue(noFrom.forwarded()),
+          () -> assertFalse(noFrom.forwarded()),
           () -> assertEquals("", noFrom.text()));
     }
 
