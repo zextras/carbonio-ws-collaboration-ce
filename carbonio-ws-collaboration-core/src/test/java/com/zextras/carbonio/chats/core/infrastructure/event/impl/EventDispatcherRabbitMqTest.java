@@ -27,7 +27,6 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -60,14 +59,12 @@ class EventDispatcherRabbitMqTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    ConnectionFactory factory = mock(ConnectionFactory.class);
     connection = mock(Connection.class);
     channel = mock(Channel.class);
-    when(factory.newConnection(anyString())).thenReturn(connection);
     when(connection.createChannel()).thenReturn(channel);
     when(channel.isOpen()).thenReturn(true);
     when(connection.isOpen()).thenReturn(true);
-    dispatcher = new EventDispatcherRabbitMq(factory, objectMapper);
+    dispatcher = new EventDispatcherRabbitMq(connection, objectMapper);
   }
 
   @AfterEach

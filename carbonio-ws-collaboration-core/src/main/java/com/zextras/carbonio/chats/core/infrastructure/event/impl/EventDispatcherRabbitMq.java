@@ -11,10 +11,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Singleton
@@ -54,12 +53,13 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
           this::waitOrDrop);
 
   @Inject
-  public EventDispatcherRabbitMq(ConnectionFactory connectionFactory, ObjectMapper objectMapper) {
+  public EventDispatcherRabbitMq(
+      @Named("publisher") Connection connection, ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+    this.connection = connection;
     try {
-      this.connection = connectionFactory.newConnection(EventBroker.connectionName("publisher"));
       this.channel = openChannel();
-    } catch (IOException | TimeoutException e) {
+    } catch (IOException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
     }
     Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "Event dispatcher shutdown"));

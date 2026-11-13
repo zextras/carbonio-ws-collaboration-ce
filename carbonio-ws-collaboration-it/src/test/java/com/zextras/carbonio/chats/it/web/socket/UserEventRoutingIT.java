@@ -53,7 +53,7 @@ class UserEventRoutingIT {
   void setUp() throws Exception {
     first = startInstance();
     second = startInstance();
-    dispatcher = new EventDispatcherRabbitMq(broker, objectMapper);
+    dispatcher = new EventDispatcherRabbitMq(broker.newConnection(), objectMapper);
     json = objectMapper.writeValueAsString(EVENT);
   }
 
@@ -68,7 +68,7 @@ class UserEventRoutingIT {
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
     UserEventListener listener =
         new UserEventListener(
-            broker,
+            broker.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),
             mock(MessageBrokerVideoserverHealthMonitor.class));
