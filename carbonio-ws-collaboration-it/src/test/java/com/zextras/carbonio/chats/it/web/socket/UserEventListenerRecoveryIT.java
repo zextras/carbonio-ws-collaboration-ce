@@ -5,12 +5,16 @@
 package com.zextras.carbonio.chats.it.web.socket;
 
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
@@ -24,8 +28,12 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -45,6 +53,14 @@ class UserEventListenerRecoveryIT {
           .withEnv("RABBITMQ_DEFAULT_PASS", "test")
           .withExposedPorts(5672)
           .waitingFor(Wait.forLogMessage(".*Server startup complete.*", 1));
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor =
+      mock(MessageBrokerVideoserverHealthMonitor.class);
+  private String json;
+  private RemoteEndpoint.Async remote;
+  private UserEventListener listener;
+  private EventDispatcherRabbitMq dispatcher;
 
   private static ConnectionFactory brokerConnectionFactory() {
     ConnectionFactory factory = new ConnectionFactory();
@@ -67,39 +83,96 @@ class UserEventListenerRecoveryIT {
     when(session.getId()).thenReturn("a1");
     when(session.isOpen()).thenReturn(true);
     when(session.getNegotiatedSubprotocol()).thenReturn("1.6.2");
-    RemoteEndpoint.Async remote = mock(RemoteEndpoint.Async.class);
-    when(session.getAsyncRemote()).thenReturn(remote);
+    RemoteEndpoint.Async async = mock(RemoteEndpoint.Async.class);
+    when(session.getAsyncRemote()).thenReturn(async);
     sessions.add(session);
-    return remote;
+    return async;
+  }
+
+  private static List<String> userEventQueues() throws Exception {
+    return RABBITMQ
+        .execInContainer("rabbitmqctl", "list_queues", "--quiet", "--no-table-headers", "name")
+        .getStdout()
+        .lines()
+        .map(String::strip)
+        .filter(name -> name.startsWith("amq.gen-"))
+        .toList();
+  }
+
+  @BeforeEach
+  void setUp() throws Exception {
+    json = objectMapper.writeValueAsString(EVENT);
+    EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
+    remote = connect(sessions, USER_A);
+    listener =
+        new UserEventListener(
+            brokerConnectionFactory(),
+            sessions,
+            new WebsocketVersionMigrator(objectMapper),
+            healthMonitor);
+    dispatcher = new EventDispatcherRabbitMq(brokerConnectionFactory(), objectMapper);
+  }
+
+  @AfterEach
+  void tearDown() {
+    dispatcher.stop();
+    listener.stop();
+  }
+
+  private void reconnectEverything() throws Exception {
+    RABBITMQ.execInContainer("rabbitmqctl", "close_all_connections", "test");
+    verify(healthMonitor, timeout(5000)).notifyBrokerDown();
+    verify(healthMonitor, timeout(10000)).notifyBrokerRecovered();
+    await().atMost(Duration.ofSeconds(10)).until(dispatcher::isAlive);
   }
 
   @Test
   void afterTheBrokerDropsEveryConnection_eventsFlowAgain() throws Exception {
-    ObjectMapper objectMapper = new ObjectMapper();
-    String json = objectMapper.writeValueAsString(EVENT);
-    EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
-    RemoteEndpoint.Async remote = connect(sessions, USER_A);
-    WebsocketVersionMigrator migrator = new WebsocketVersionMigrator(objectMapper);
-    MessageBrokerVideoserverHealthMonitor healthMonitor =
-        mock(MessageBrokerVideoserverHealthMonitor.class);
-    UserEventListener listener =
-        new UserEventListener(brokerConnectionFactory(), sessions, migrator, healthMonitor);
-    EventDispatcherRabbitMq dispatcher =
-        new EventDispatcherRabbitMq(brokerConnectionFactory(), objectMapper);
-    try {
-      dispatcher.sendToUserExchange(USER_A, EVENT);
-      verify(remote, timeout(5000)).sendText(json);
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+    verify(remote, timeout(5000)).sendText(json);
 
-      RABBITMQ.execInContainer("rabbitmqctl", "close_all_connections", "test");
+    reconnectEverything();
 
-      verify(healthMonitor, timeout(5000)).notifyBrokerDown();
-      verify(healthMonitor, timeout(10000)).notifyBrokerRecovered();
-      await().atMost(Duration.ofSeconds(10)).until(dispatcher::isAlive);
-      dispatcher.sendToUserExchange(USER_A, EVENT);
-      verify(remote, timeout(5000).times(2)).sendText(json);
-    } finally {
-      dispatcher.stop();
-      listener.stop();
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+    verify(remote, timeout(5000).times(2)).sendText(json);
+  }
+
+  @Test
+  void anEventWithUnreadableRecipients_doesNotStopLaterEvents() throws Exception {
+    try (Connection connection = brokerConnectionFactory().newConnection();
+        Channel channel = connection.createChannel()) {
+      channel.basicPublish(
+          "wsc.events",
+          "",
+          new BasicProperties.Builder()
+              .headers(Map.of("users", Arrays.asList((Object) null)))
+              .build(),
+          new byte[0]);
     }
+
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+
+    verify(remote, timeout(5000)).sendText(json);
+  }
+
+  @Test
+  void afterTheBrokerDeletesTheQueue_eachEventFlowsOnceAgain_evenAfterAReconnect()
+      throws Exception {
+    String deleted = userEventQueues().getFirst();
+
+    RABBITMQ.execInContainer("rabbitmqctl", "delete_queue", deleted);
+
+    await()
+        .atMost(Duration.ofSeconds(10))
+        .until(
+            UserEventListenerRecoveryIT::userEventQueues,
+            queues -> queues.size() == 1 && !queues.contains(deleted));
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+    verify(remote, timeout(5000)).sendText(json);
+
+    reconnectEverything();
+
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+    verify(remote, after(2000).times(2)).sendText(json);
   }
 }

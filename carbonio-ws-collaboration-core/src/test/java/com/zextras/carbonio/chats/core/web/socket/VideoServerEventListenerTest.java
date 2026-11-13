@@ -114,6 +114,32 @@ class VideoServerEventListenerTest {
   }
 
   @Test
+  void anUnreadableEvent_isSkippedInsteadOfClosingTheChannel() throws Exception {
+    listener.start();
+    verify(channel)
+        .basicConsume(
+            anyString(), anyBoolean(), deliverCallbackCaptor.capture(), any(CancelCallback.class));
+
+    assertDoesNotThrow(
+        () -> deliverCallbackCaptor.getValue().handle(CONSUMER_TAG, createDelivery("not json")));
+  }
+
+  @Test
+  void queueDeletedByTheBroker_declaresAndConsumesItAgain() throws Exception {
+    ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
+    listener.start();
+    verify(channel)
+        .basicConsume(anyString(), anyBoolean(), any(DeliverCallback.class), cancel.capture());
+
+    cancel.getValue().handle(CONSUMER_TAG);
+
+    verify(channel, times(2)).queueDeclare(JANUS_QUEUE, false, false, false, null);
+    verify(channel, times(2))
+        .basicConsume(
+            eq(JANUS_QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
   void testStopSuccessfully() throws Exception {
     listener.start();
     listener.stop();

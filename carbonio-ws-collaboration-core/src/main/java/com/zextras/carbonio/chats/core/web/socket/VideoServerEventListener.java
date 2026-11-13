@@ -113,7 +113,7 @@ public class VideoServerEventListener {
       channel.queueDeclare(JANUS_QUEUE, false, false, false, null);
       channel.queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, tag -> {});
+      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, this::resubscribe);
     } catch (Exception e) {
       ChatsLogger.error("Error starting video server events processing", e);
     }
@@ -134,20 +134,31 @@ public class VideoServerEventListener {
     }
   }
 
+  private void resubscribe(String cancelledTag) {
+    ChatsLogger.warn("Video server event listener lost its queue, subscribing again");
+    start();
+  }
+
   private @NotNull DeliverCallback createDeliveryCallBack() {
     return (tag, delivery) -> {
       String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-      VideoServerEvent event = objectMapper.readValue(message, VideoServerEvent.class);
-
-      switch (event.getType()) {
-        case JSEP_TYPE -> handleJsepTypeEvent(event);
-        case PLUGIN_TYPE -> handlePluginTypeEvent(event);
-        case HEARTBEAT_TYPE -> messageBrokerVideoserverHealthMonitor.notifyVideoServerReady();
-        default -> {
-          /* just ignore other events */
-        }
+      try {
+        handle(objectMapper.readValue(message, VideoServerEvent.class));
+      } catch (Exception e) {
+        ChatsLogger.warn("Video server event listener skipped an event it could not handle", e);
       }
     };
+  }
+
+  private void handle(VideoServerEvent event) {
+    switch (event.getType()) {
+      case JSEP_TYPE -> handleJsepTypeEvent(event);
+      case PLUGIN_TYPE -> handlePluginTypeEvent(event);
+      case HEARTBEAT_TYPE -> messageBrokerVideoserverHealthMonitor.notifyVideoServerReady();
+      default -> {
+        /* just ignore other events */
+      }
+    }
   }
 
   private void handlePluginTypeEvent(VideoServerEvent event) {
