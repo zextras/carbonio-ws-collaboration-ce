@@ -56,9 +56,17 @@ public class EventWebSocketSessions {
   }
 
   public boolean remove(String sessionId) {
-    boolean existed = forget(sessionId);
     pingManager.stop(sessionId);
-    return existed;
+    SessionInfo info = sessionInfoMap.remove(sessionId);
+    if (info == null) return false;
+    if (info.userId() != null)
+      sessionIdsByUser.computeIfPresent(
+          info.userId(),
+          (key, ids) -> {
+            ids.remove(sessionId);
+            return ids.isEmpty() ? null : ids;
+          });
+    return true;
   }
 
   public List<Session> sessionsOf(String userId) {
@@ -83,21 +91,8 @@ public class EventWebSocketSessions {
             } catch (Exception ignored) {
             }
           } else {
-            forget(id);
+            remove(id);
           }
         });
-  }
-
-  private boolean forget(String sessionId) {
-    SessionInfo info = sessionInfoMap.remove(sessionId);
-    if (info == null) return false;
-    if (info.userId() == null) return true;
-    sessionIdsByUser.computeIfPresent(
-        info.userId(),
-        (key, ids) -> {
-          ids.remove(sessionId);
-          return ids.isEmpty() ? null : ids;
-        });
-    return true;
   }
 }

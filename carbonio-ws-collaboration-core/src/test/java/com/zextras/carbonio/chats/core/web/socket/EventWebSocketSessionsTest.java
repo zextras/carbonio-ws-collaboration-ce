@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.socket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -113,6 +114,18 @@ class EventWebSocketSessionsTest {
 
     verify(a.getAsyncRemote()).sendText("hello");
     verify(b.getAsyncRemote(), never()).sendText(any(String.class));
+  }
+
+  @Test
+  void broadcast_removesClosedSessions_andStopsPingingThem() {
+    Session closed = newOpenSession("b");
+    sessions.add(closed);
+    when(closed.isOpen()).thenReturn(false);
+
+    sessions.broadcast("hello");
+
+    verify(pingManager).stop("b");
+    assertFalse(sessions.remove("b"));
   }
 
   @Test
