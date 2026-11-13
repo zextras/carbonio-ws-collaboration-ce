@@ -396,7 +396,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void deleteRoom(Room room, UserPrincipal currentUser) {
     UUID roomId = UUID.fromString(room.getId());
     if (room.getMeetingId() != null) {
