@@ -66,6 +66,7 @@ class ImportRobustnessIT {
     }
     database.execute(
         source,
+        "INSERT INTO mam_server_user (server, user_name) VALUES ('carbonio', 'ghost')",
         text(mam(1), "kept"),
         raw(mam(2), AUTHOR, utf8("<message><body>truncated")),
         raw(mam(3), AUTHOR, "decode('836802', 'hex')"),
