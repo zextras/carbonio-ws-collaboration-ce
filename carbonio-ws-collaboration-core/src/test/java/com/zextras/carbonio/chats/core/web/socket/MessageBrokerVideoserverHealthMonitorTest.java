@@ -8,9 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
+import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.Session;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -218,5 +222,32 @@ class MessageBrokerVideoserverHealthMonitorTest {
         .forEach(
             event ->
                 assertTrue(OffsetDateTime.parse(event.get("sentDate").asText()).isAfter(before)));
+  }
+
+  private RemoteEndpoint.Async openedSession() {
+    Session session = mock(Session.class);
+    RemoteEndpoint.Async remote = mock(RemoteEndpoint.Async.class);
+    when(session.getAsyncRemote()).thenReturn(remote);
+    monitor.notifyIfUnavailable(session);
+    return remote;
+  }
+
+  @Test
+  void sessionOpenedWhileMeetingMediaIsRefused_isToldDisconnected() {
+    RemoteEndpoint.Async remote = openedSession();
+
+    ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+    verify(remote).sendText(json.capture());
+    assertEquals(DISCONNECTED, parse(json.getValue()).get("type").asText());
+    assertEquals(List.of(), broadcastTypes());
+  }
+
+  @Test
+  void sessionOpenedWhileMeetingMediaIsAllowed_isToldNothing() {
+    monitor.notifyVideoServerReady();
+
+    RemoteEndpoint.Async remote = openedSession();
+
+    verify(remote, never()).sendText(anyString());
   }
 }

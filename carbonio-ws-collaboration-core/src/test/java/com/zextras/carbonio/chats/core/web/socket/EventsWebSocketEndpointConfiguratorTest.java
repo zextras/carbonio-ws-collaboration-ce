@@ -27,7 +27,8 @@ class EventsWebSocketEndpointConfiguratorTest {
             mock(WebsocketVersionMigrator.class),
             mock(CacheVideoServerSession.class),
             mock(ParticipantService.class),
-            mock(EventWebSocketSessions.class));
+            mock(EventWebSocketSessions.class),
+            mock(MessageBrokerVideoserverHealthMonitor.class));
 
     assertDoesNotThrow(() -> new EventsWebSocketEndpointConfigurator(manager));
   }

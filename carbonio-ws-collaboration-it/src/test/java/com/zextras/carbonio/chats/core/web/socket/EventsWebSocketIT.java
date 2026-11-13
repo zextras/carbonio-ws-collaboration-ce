@@ -49,6 +49,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
@@ -90,6 +91,7 @@ class EventsWebSocketIT {
   private final CacheVideoServerSession cacheVideoServerSession;
   private final SessionPingManager pingManager =
       new SessionPingManager(mock(ScheduledExecutorService.class));
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
 
   public EventsWebSocketIT(
       AuthenticationService authenticationService,
@@ -106,11 +108,64 @@ class EventsWebSocketIT {
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
+    this.healthMonitor =
+        new MessageBrokerVideoserverHealthMonitor(
+            sessions, objectMapper, Clock.systemUTC(), mock(ScheduledExecutorService.class));
+  }
+
+  @BeforeEach
+  void allowMeetingMedia() {
+    healthMonitor.notifyVideoServerReady();
   }
 
   @AfterEach
   void init() {
     VersionMigrationsRegistry.REGISTRY.clear();
+  }
+
+  @Nested
+  class MeetingMediaStatus {
+
+    @BeforeEach
+    void startServer() throws Exception {
+      startWebSocketServer(List.of(), sessions);
+    }
+
+    @AfterEach
+    void stopServer() throws Exception {
+      stopWebSocketServer();
+    }
+
+    @Test
+    void sessionOpenedWhileMeetingMediaIsRefused_isToldTheBrokerIsDisconnected() {
+      healthMonitor.notifyBrokerDown();
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session ignored = createSession(clientContext)) {
+        awaitDomainEventReceived(client, 2);
+
+        assertTrue(client.getMessages().get(0).contains("WebsocketConnected"));
+        assertTrue(client.getMessages().get(1).contains("MessageBrokerDisconnected"));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } finally {
+        tryDisconnect(client);
+      }
+    }
+
+    @Test
+    void sessionOpenedWhileMeetingMediaIsAllowed_isToldNothingMore() throws Exception {
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session ignored = createSession(clientContext)) {
+        awaitFirstMessage(client);
+        roundTrip(client);
+
+        assertTrue(client.getMessages().stream().noneMatch(m -> m.contains("MessageBroker")));
+      } finally {
+        tryDisconnect(client);
+      }
+    }
   }
 
   @Nested
@@ -530,7 +585,8 @@ class EventsWebSocketIT {
             websocketVersionMigrator,
             cacheVideoServerSession,
             participantService,
-            serverSessions);
+            serverSessions,
+            healthMonitor);
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");

@@ -14,6 +14,7 @@ import com.zextras.carbonio.async.model.MessageBrokerDisconnected;
 import com.zextras.carbonio.async.model.MessageBrokerRestored;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.websocket.Session;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @Singleton
 public class MessageBrokerVideoserverHealthMonitor {
@@ -92,6 +94,12 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
+  public void notifyIfUnavailable(Session session) {
+    synchronized (lock) {
+      if (!available) send(disconnected(), session.getAsyncRemote()::sendText);
+    }
+  }
+
   private void expireStaleHeartbeat() {
     synchronized (lock) {
       update();
@@ -103,7 +111,7 @@ public class MessageBrokerVideoserverHealthMonitor {
         brokerConnected && !clock.instant().isAfter(lastHeartbeat.plus(HEARTBEAT_TIMEOUT));
     if (available == nowAvailable) return;
     available = nowAvailable;
-    broadcast(available ? restored() : disconnected());
+    send(available ? restored() : disconnected(), sessions::broadcast);
   }
 
   private DomainEvent disconnected() {
@@ -118,9 +126,9 @@ public class MessageBrokerVideoserverHealthMonitor {
         .sentDate(OffsetDateTime.now());
   }
 
-  private void broadcast(DomainEvent event) {
+  private void send(DomainEvent event, Consumer<String> recipients) {
     try {
-      sessions.broadcast(objectMapper.writeValueAsString(event));
+      recipients.accept(objectMapper.writeValueAsString(event));
     } catch (JsonProcessingException e) {
       ChatsLogger.error("Failed to serialize broker health event", e);
     }
