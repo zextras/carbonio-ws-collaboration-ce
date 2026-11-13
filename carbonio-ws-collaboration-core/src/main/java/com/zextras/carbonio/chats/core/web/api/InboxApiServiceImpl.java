@@ -78,7 +78,9 @@ public class InboxApiServiceImpl implements InboxApiService {
     UserPrincipal currentUser = getCurrentUser(securityContext);
 
     // 1. All rooms with subscriptions (1 query)
-    List<RoomDto> rooms = roomService.getRooms(List.of(RoomExtraFieldDto.MEMBERS), currentUser);
+    List<RoomDto> rooms =
+        roomService.getRooms(
+            List.of(RoomExtraFieldDto.MEMBERS, RoomExtraFieldDto.SETTINGS), currentUser);
     List<String> roomIds = rooms.stream().map(r -> r.getId().toString()).toList();
 
     // 2. Last item + last message per room (independent of room size)
