@@ -66,9 +66,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   }
 
   private Channel openChannel() throws IOException {
-    Channel opened = connection.createChannel();
-    EventBroker.declareExchange(opened);
-    return opened;
+    return connection.createChannel();
   }
 
   private Channel channel() throws IOException {
