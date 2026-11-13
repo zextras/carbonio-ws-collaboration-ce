@@ -116,7 +116,17 @@ prerm() {
   fi
 }
 
-postrm() {
+postrm__apt() {
+  rm -f /etc/carbonio/ws-collaboration/service-discover/token
+  if [ "$1" = "purge" ]; then
+    rm -f /etc/zextras/service-discover/carbonio-ws-collaboration.hcl
+  fi
+  if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+  fi
+}
+
+postrm__yum() {
   rm -f /etc/carbonio/ws-collaboration/service-discover/token
   rm -f /etc/zextras/service-discover/carbonio-ws-collaboration.hcl
   if [ -d /run/systemd/system ]; then
