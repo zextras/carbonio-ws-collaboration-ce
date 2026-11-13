@@ -35,11 +35,13 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   private static final int MAX_PENDING_EVENTS = 10_000;
   private static final int MAX_USERS_PER_MESSAGE = 1_000;
   private static final long ENQUEUE_WAIT_MILLIS = 100;
+  private static final long STALLED_PUBLISH_NANOS = TimeUnit.SECONDS.toNanos(1);
+  private static final long IDLE = 0;
 
   private final ObjectMapper objectMapper;
   private final Connection connection;
   private volatile Channel channel;
-  private volatile boolean brokerBlocked;
+  private volatile long publishingSince = IDLE;
   private final AtomicLong dropped = new AtomicLong();
   private final ThreadPoolExecutor publisher =
       new ThreadPoolExecutor(
@@ -56,7 +58,6 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     this.objectMapper = objectMapper;
     try {
       this.connection = connectionFactory.newConnection(EventBroker.connectionName("publisher"));
-      connection.addBlockedListener(reason -> brokerBlocked = true, () -> brokerBlocked = false);
       this.channel = openChannel();
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
@@ -114,27 +115,37 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     BasicProperties properties = new BasicProperties.Builder().headers(headers).build();
     publisher.execute(
         () -> {
+          publishingSince = System.nanoTime();
           try {
             channel().basicPublish(EventBroker.EXCHANGE, "", properties, body);
           } catch (Exception e) {
-            ChatsLogger.warn("Unable to send event to the message broker", e);
+            drop("the broker refused it: " + e.getMessage());
+          } finally {
+            publishingSince = IDLE;
           }
         });
   }
 
   private void waitOrDrop(Runnable event, ThreadPoolExecutor executor) {
     try {
-      if (!brokerBlocked
-          && !executor.isShutdown()
+      if (!executor.isShutdown()
+          && !brokerStalled()
           && executor.getQueue().offer(event, ENQUEUE_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+    drop("too many events waiting for the broker");
+  }
+
+  private boolean brokerStalled() {
+    long since = publishingSince;
+    return since != IDLE && System.nanoTime() - since > STALLED_PUBLISH_NANOS;
+  }
+
+  private void drop(String reason) {
     long count = dropped.incrementAndGet();
     if (count % 1_000 == 1)
-      ChatsLogger.warn(
-          String.format(
-              "Event dropped: too many events waiting for the broker (%d dropped so far)", count));
+      ChatsLogger.warn(String.format("Event dropped, %s (%d dropped so far)", reason, count));
   }
 
   @Override
