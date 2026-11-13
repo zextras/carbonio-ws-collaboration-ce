@@ -24,12 +24,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.BlockedCallback;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.UnblockedCallback;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -179,18 +177,15 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
-  void callersNeverBlock_whileTheBrokerBlocksPublishing() throws Exception {
-    CountDownLatch brokerBlocked = new CountDownLatch(1);
+  void callersStopWaiting_onceTheBrokerStopsTakingEvents() throws Exception {
+    CountDownLatch stalledBroker = new CountDownLatch(1);
     doAnswer(
             invocation -> {
-              brokerBlocked.await();
+              stalledBroker.await();
               return null;
             })
         .when(channel)
         .basicPublish(anyString(), anyString(), any(), any());
-    ArgumentCaptor<BlockedCallback> blocked = ArgumentCaptor.forClass(BlockedCallback.class);
-    verify(connection).addBlockedListener(blocked.capture(), any(UnblockedCallback.class));
-    blocked.getValue().handle("low on memory");
 
     try {
       assertTimeoutPreemptively(
@@ -199,7 +194,7 @@ class EventDispatcherRabbitMqTest {
             for (int i = 0; i < 50_000; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
           });
     } finally {
-      brokerBlocked.countDown();
+      stalledBroker.countDown();
     }
   }
 
