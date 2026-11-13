@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
@@ -39,6 +40,7 @@ class EventsWebSocketManagerImplTest {
   private ObjectMapper objectMapper;
   private EventWebSocketSessions sessions;
   private CacheVideoServerSession cacheVideoServerSession;
+  private MessageBrokerVideoserverHealthMonitor healthMonitor;
   private RemoteEndpoint.Async remote;
   private UUID sessionId;
 
@@ -54,10 +56,16 @@ class EventsWebSocketManagerImplTest {
     cacheVideoServerSession = mock(CacheVideoServerSession.class);
     participantService = mock(ParticipantService.class);
     sessions = mock(EventWebSocketSessions.class);
+    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
 
     manager =
         new EventsWebSocketManagerImpl(
-            objectMapper, migrator, cacheVideoServerSession, participantService, sessions);
+            objectMapper,
+            migrator,
+            cacheVideoServerSession,
+            participantService,
+            sessions,
+            healthMonitor);
 
     session = mock(Session.class);
     HttpSession httpSession = mock(HttpSession.class);
@@ -80,6 +88,15 @@ class EventsWebSocketManagerImplTest {
     InOrder order = inOrder(sessions, remote);
     order.verify(sessions).add(session);
     order.verify(remote).sendObject(any());
+  }
+
+  @Test
+  void onOpen_afterAnnouncingTheSession_tellsItIfMeetingMediaIsUnavailable() throws Exception {
+    manager.onOpen(session);
+
+    InOrder order = inOrder(remote, healthMonitor);
+    order.verify(remote).sendObject(any());
+    order.verify(healthMonitor).notifyIfUnavailable(session);
   }
 
   @Test
