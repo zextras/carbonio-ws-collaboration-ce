@@ -45,6 +45,7 @@ import java.util.UUID;
 @Singleton
 public class VideoServerEventListener {
 
+  private static final String EXCHANGE = "videoserver.events";
   private static final String JANUS_EXCHANGE = "janus-exchange";
   private static final String JANUS_ROUTING_KEY = "janus-events";
   private static final String LEGACY_QUEUE = "janus-queue";
@@ -111,8 +112,10 @@ public class VideoServerEventListener {
       throw new EventDispatcherException("Video server event listener channel is not up!");
     }
     try {
+      channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, false);
       channel.exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
       channel.queueDeclare(QUEUE, true, false, false, Map.of("x-queue-type", "quorum"));
+      channel.queueBind(QUEUE, EXCHANGE, "");
       channel.queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
