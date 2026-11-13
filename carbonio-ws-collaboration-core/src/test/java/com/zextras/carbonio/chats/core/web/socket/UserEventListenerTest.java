@@ -75,6 +75,7 @@ class UserEventListenerTest {
         .thenAnswer(invocation -> invocation.getArgument(0));
     healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
     listener = new UserEventListener(factory, sessions, migrator, healthMonitor);
+    listener.start();
   }
 
   private Session openSession(String id, String userId, String subprotocol) {
@@ -123,7 +124,24 @@ class UserEventListenerTest {
   }
 
   @Test
-  void construction_bindsAServerNamedExclusiveQueueToEveryUserEvent() throws Exception {
+  void construction_opensNoConnection_untilStarted() throws Exception {
+    ConnectionFactory idle = mock(ConnectionFactory.class);
+
+    new UserEventListener(idle, sessions, migrator, healthMonitor);
+
+    verify(idle, never()).newConnection(anyString());
+  }
+
+  @Test
+  void stop_beforeStart_doesNothing() {
+    UserEventListener notStarted =
+        new UserEventListener(mock(ConnectionFactory.class), sessions, migrator, healthMonitor);
+
+    assertDoesNotThrow(notStarted::stop);
+  }
+
+  @Test
+  void start_bindsAServerNamedExclusiveQueueToEveryUserEvent() throws Exception {
     verify(factory).setTopologyRecoveryEnabled(true);
     verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
     verify(channel).queueDeclare("", false, true, true, Map.of("x-max-length", 10_000));

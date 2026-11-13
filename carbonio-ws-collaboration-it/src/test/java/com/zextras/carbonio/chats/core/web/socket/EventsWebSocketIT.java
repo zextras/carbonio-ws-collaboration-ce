@@ -92,6 +92,7 @@ class EventsWebSocketIT {
   private final SessionPingManager pingManager =
       new SessionPingManager(mock(ScheduledExecutorService.class));
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final UserEventListener userEventListener;
 
   public EventsWebSocketIT(
       AuthenticationService authenticationService,
@@ -100,7 +101,8 @@ class EventsWebSocketIT {
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
-      CacheVideoServerSession cacheVideoServerSession) {
+      CacheVideoServerSession cacheVideoServerSession,
+      UserEventListener userEventListener) {
     this.authenticationService = authenticationService;
     this.eventDispatcher = eventDispatcher;
     this.sessions = sessions;
@@ -108,18 +110,21 @@ class EventsWebSocketIT {
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
+    this.userEventListener = userEventListener;
     this.healthMonitor =
         new MessageBrokerVideoserverHealthMonitor(
             sessions, objectMapper, Clock.systemUTC(), mock(ScheduledExecutorService.class));
   }
 
   @BeforeEach
-  void allowMeetingMedia() {
+  void setUp() {
     healthMonitor.notifyVideoServerReady();
+    userEventListener.start();
   }
 
   @AfterEach
   void init() {
+    userEventListener.stop();
     VersionMigrationsRegistry.REGISTRY.clear();
   }
 

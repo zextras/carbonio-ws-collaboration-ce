@@ -37,10 +37,11 @@ public class UserEventListener {
 
   private static final int MAX_QUEUE_LENGTH = 10_000;
 
+  private final ConnectionFactory connectionFactory;
   private final EventWebSocketSessions sessions;
   private final WebsocketVersionMigrator migrator;
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
-  private final Connection connection;
+  private volatile Connection connection;
 
   @Inject
   public UserEventListener(
@@ -48,11 +49,14 @@ public class UserEventListener {
       EventWebSocketSessions sessions,
       WebsocketVersionMigrator migrator,
       MessageBrokerVideoserverHealthMonitor healthMonitor) {
+    this.connectionFactory = connectionFactory;
     this.sessions = sessions;
     this.migrator = migrator;
     this.healthMonitor = healthMonitor;
-    this.connection = connect(connectionFactory);
-    Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "User event listener shutdown"));
+  }
+
+  public void start() {
+    connection = connect(connectionFactory);
   }
 
   private Connection connect(ConnectionFactory connectionFactory) {
@@ -94,7 +98,7 @@ public class UserEventListener {
 
   public void stop() {
     try {
-      if (connection.isOpen()) connection.close();
+      if (connection != null && connection.isOpen()) connection.close();
     } catch (Exception e) {
       ChatsLogger.error("Error closing the user event listener connection", e);
     }

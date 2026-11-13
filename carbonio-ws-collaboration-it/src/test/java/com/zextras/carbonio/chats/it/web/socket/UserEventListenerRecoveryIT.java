@@ -110,6 +110,7 @@ class UserEventListenerRecoveryIT {
             sessions,
             new WebsocketVersionMigrator(objectMapper),
             healthMonitor);
+    listener.start();
     dispatcher = new EventDispatcherRabbitMq(brokerConnectionFactory(), objectMapper);
   }
 

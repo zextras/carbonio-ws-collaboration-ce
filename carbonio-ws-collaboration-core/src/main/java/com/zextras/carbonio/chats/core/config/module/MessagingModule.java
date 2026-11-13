@@ -36,7 +36,7 @@ public class MessagingModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
-    bind(UserEventListener.class).asEagerSingleton();
+    bind(UserEventListener.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
   }
