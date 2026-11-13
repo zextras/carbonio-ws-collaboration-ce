@@ -4,9 +4,6 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.event.impl;
 
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.QUEUE_ID_HEADER;
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.USERS_HEADER;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
@@ -31,6 +28,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
 
+  private static final String EXCHANGE = "wsc.events";
+  private static final String USERS_HEADER = "users";
+  private static final String QUEUE_ID_HEADER = "queueId";
   private static final int MAX_PENDING_EVENTS = 10_000;
   private static final int MAX_USERS_PER_MESSAGE = 1_000;
   private static final long ENQUEUE_WAIT_MILLIS = 100;
@@ -116,7 +116,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
         () -> {
           publishingSince = System.nanoTime();
           try {
-            channel().basicPublish(EventBroker.EXCHANGE, "", properties, body);
+            channel().basicPublish(EXCHANGE, "", properties, body);
           } catch (Exception e) {
             drop("the broker refused it: " + e.getMessage());
           } finally {
