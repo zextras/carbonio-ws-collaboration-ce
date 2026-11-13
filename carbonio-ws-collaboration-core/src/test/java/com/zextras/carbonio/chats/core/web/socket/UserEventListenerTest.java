@@ -21,7 +21,6 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
@@ -51,7 +50,6 @@ class UserEventListenerTest {
   private static final String USER_C = "cccccccc-cccc-cccc-cccc-cccccccccccc";
   private static final String EVENT = "{\"type\":\"roomCreated\"}";
 
-  private ConnectionFactory factory;
   private Connection connection;
   private Channel channel;
   private EventWebSocketSessions sessions;
@@ -61,11 +59,8 @@ class UserEventListenerTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    factory = mock(ConnectionFactory.class);
     connection = mock(Connection.class, withSettings().extraInterfaces(Recoverable.class));
     channel = mock(Channel.class);
-    when(factory.clone()).thenReturn(factory);
-    when(factory.newConnection(anyString())).thenReturn(connection);
     when(connection.createChannel()).thenReturn(channel);
     when(channel.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
         .thenReturn(new AMQP.Queue.DeclareOk.Builder().queue("amq.gen-1").build());
@@ -74,7 +69,7 @@ class UserEventListenerTest {
     when(migrator.downgradeIfNeeded(anyString(), anyString()))
         .thenAnswer(invocation -> invocation.getArgument(0));
     healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
-    listener = new UserEventListener(factory, sessions, migrator, healthMonitor);
+    listener = new UserEventListener(connection, sessions, migrator, healthMonitor);
     listener.start();
   }
 
@@ -124,25 +119,16 @@ class UserEventListenerTest {
   }
 
   @Test
-  void construction_opensNoConnection_untilStarted() throws Exception {
-    ConnectionFactory idle = mock(ConnectionFactory.class);
+  void construction_subscribesNothing_untilStarted() throws Exception {
+    Connection idle = mock(Connection.class);
 
     new UserEventListener(idle, sessions, migrator, healthMonitor);
 
-    verify(idle, never()).newConnection(anyString());
-  }
-
-  @Test
-  void stop_beforeStart_doesNothing() {
-    UserEventListener notStarted =
-        new UserEventListener(mock(ConnectionFactory.class), sessions, migrator, healthMonitor);
-
-    assertDoesNotThrow(notStarted::stop);
+    verify(idle, never()).createChannel();
   }
 
   @Test
   void start_bindsAServerNamedExclusiveQueueToEveryUserEvent() throws Exception {
-    verify(factory).setTopologyRecoveryEnabled(true);
     verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
     verify(channel).queueDeclare("", false, true, true, Map.of("x-max-length", 10_000));
     verify(channel).queueBind("amq.gen-1", "wsc.events", "");

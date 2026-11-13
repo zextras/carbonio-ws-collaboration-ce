@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.ConnectionFactory;
 import com.vdurmont.semver4j.Semver;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
@@ -92,7 +93,8 @@ class EventsWebSocketIT {
   private final SessionPingManager pingManager =
       new SessionPingManager(mock(ScheduledExecutorService.class));
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
-  private final UserEventListener userEventListener;
+  private final ConnectionFactory connectionFactory;
+  private UserEventListener userEventListener;
 
   public EventsWebSocketIT(
       AuthenticationService authenticationService,
@@ -102,7 +104,7 @@ class EventsWebSocketIT {
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
       CacheVideoServerSession cacheVideoServerSession,
-      UserEventListener userEventListener) {
+      ConnectionFactory connectionFactory) {
     this.authenticationService = authenticationService;
     this.eventDispatcher = eventDispatcher;
     this.sessions = sessions;
@@ -110,15 +112,18 @@ class EventsWebSocketIT {
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
-    this.userEventListener = userEventListener;
+    this.connectionFactory = connectionFactory;
     this.healthMonitor =
         new MessageBrokerVideoserverHealthMonitor(
             sessions, objectMapper, Clock.systemUTC(), mock(ScheduledExecutorService.class));
   }
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     healthMonitor.notifyVideoServerReady();
+    userEventListener =
+        new UserEventListener(
+            connectionFactory.newConnection(), sessions, websocketVersionMigrator, healthMonitor);
     userEventListener.start();
   }
 

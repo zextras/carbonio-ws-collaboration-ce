@@ -106,12 +106,13 @@ class UserEventListenerRecoveryIT {
     remote = connect(sessions, USER_A);
     listener =
         new UserEventListener(
-            brokerConnectionFactory(),
+            brokerConnectionFactory().newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),
             healthMonitor);
     listener.start();
-    dispatcher = new EventDispatcherRabbitMq(brokerConnectionFactory(), objectMapper);
+    dispatcher =
+        new EventDispatcherRabbitMq(brokerConnectionFactory().newConnection(), objectMapper);
   }
 
   @AfterEach

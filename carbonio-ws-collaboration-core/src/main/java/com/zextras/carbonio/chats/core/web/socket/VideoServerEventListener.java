@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
@@ -72,7 +73,7 @@ public class VideoServerEventListener {
 
   @Inject
   public VideoServerEventListener(
-      Channel channel,
+      @Named("videoserver") Channel channel,
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
       VideoServerService videoServerService,

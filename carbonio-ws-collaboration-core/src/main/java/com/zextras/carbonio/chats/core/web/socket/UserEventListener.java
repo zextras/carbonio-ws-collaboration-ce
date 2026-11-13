@@ -13,9 +13,9 @@ import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
@@ -37,42 +37,33 @@ public class UserEventListener {
 
   private static final int MAX_QUEUE_LENGTH = 10_000;
 
-  private final ConnectionFactory connectionFactory;
+  private final Connection connection;
   private final EventWebSocketSessions sessions;
   private final WebsocketVersionMigrator migrator;
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
-  private volatile Connection connection;
 
   @Inject
   public UserEventListener(
-      ConnectionFactory connectionFactory,
+      @Named("consumer") Connection connection,
       EventWebSocketSessions sessions,
       WebsocketVersionMigrator migrator,
       MessageBrokerVideoserverHealthMonitor healthMonitor) {
-    this.connectionFactory = connectionFactory;
+    this.connection = connection;
     this.sessions = sessions;
     this.migrator = migrator;
     this.healthMonitor = healthMonitor;
   }
 
   public void start() {
-    connection = connect(connectionFactory);
-  }
-
-  private Connection connect(ConnectionFactory connectionFactory) {
-    ConnectionFactory factory = connectionFactory.clone();
-    factory.setTopologyRecoveryEnabled(true);
+    watchBrokerHealth();
     try {
-      Connection opened = factory.newConnection(EventBroker.connectionName("consumer"));
-      watchBrokerHealth(opened);
-      subscribe(opened);
-      return opened;
-    } catch (IOException | TimeoutException e) {
+      subscribe();
+    } catch (IOException e) {
       throw new EventDispatcherException("Could not start the user event listener", e);
     }
   }
 
-  private void subscribe(Connection connection) throws IOException {
+  private void subscribe() throws IOException {
     Channel channel = connection.createChannel();
     EventBroker.declareExchange(channel);
     String queue =
@@ -81,16 +72,16 @@ public class UserEventListener {
             .getQueue();
     channel.queueBind(queue, EXCHANGE, "");
     channel.basicConsume(
-        queue, true, (tag, delivery) -> deliver(delivery), tag -> resubscribe(connection, channel));
+        queue, true, (tag, delivery) -> deliver(delivery), tag -> resubscribe(channel));
   }
 
   // closing the cancelled channel drops its queue and consumer from the recovery records
-  private void resubscribe(Connection connection, Channel cancelled) {
+  private void resubscribe(Channel cancelled) {
     if (!connection.isOpen()) return;
     ChatsLogger.warn("User event listener lost its queue, subscribing again");
     try {
       cancelled.close();
-      subscribe(connection);
+      subscribe();
     } catch (IOException | TimeoutException e) {
       ChatsLogger.error("User event listener could not subscribe again", e);
     }
@@ -98,7 +89,7 @@ public class UserEventListener {
 
   public void stop() {
     try {
-      if (connection != null && connection.isOpen()) connection.close();
+      if (connection.isOpen()) connection.close();
     } catch (Exception e) {
       ChatsLogger.error("Error closing the user event listener connection", e);
     }
@@ -148,7 +139,7 @@ public class UserEventListener {
     }
   }
 
-  private void watchBrokerHealth(Connection connection) {
+  private void watchBrokerHealth() {
     connection.addShutdownListener(
         cause -> {
           if (!cause.isInitiatedByApplication()) {

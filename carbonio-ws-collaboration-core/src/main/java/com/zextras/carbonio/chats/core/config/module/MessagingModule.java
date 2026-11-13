@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -18,7 +19,6 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
@@ -28,6 +28,8 @@ import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealth
 import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Base64;
 import java.util.concurrent.TimeoutException;
 
@@ -96,17 +98,49 @@ public class MessagingModule extends AbstractModule {
     return factory;
   }
 
+  @Singleton
   @Provides
-  private Connection getRabbitMqConnection(ConnectionFactory factory) {
+  @Named("publisher")
+  Connection getPublisherConnection(ConnectionFactory factory) {
+    return connect(factory, "publisher");
+  }
+
+  @Singleton
+  @Provides
+  @Named("consumer")
+  Connection getConsumerConnection(ConnectionFactory factory) {
+    ConnectionFactory recovering = factory.clone();
+    recovering.setTopologyRecoveryEnabled(true);
+    return connect(recovering, "consumer");
+  }
+
+  @Singleton
+  @Provides
+  @Named("videoserver")
+  Connection getVideoServerConnection(ConnectionFactory factory) {
+    return connect(factory, "videoserver");
+  }
+
+  private static Connection connect(ConnectionFactory factory, String role) {
     try {
-      return factory.newConnection(EventBroker.connectionName("videoserver"));
+      return factory.newConnection(connectionName(role));
     } catch (IOException | TimeoutException e) {
-      throw new EventDispatcherException("Could not create connection with message broker", e);
+      throw new EventDispatcherException("Could not connect to the message broker as " + role, e);
     }
   }
 
+  private static String connectionName(String role) {
+    try {
+      return "carbonio-ws-collaboration-" + role + "@" + InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException e) {
+      return "carbonio-ws-collaboration-" + role;
+    }
+  }
+
+  @Singleton
   @Provides
-  private Channel getRabbitMqChannel(Connection connection) {
+  @Named("videoserver")
+  private Channel getVideoServerChannel(@Named("videoserver") Connection connection) {
     if (connection == null || !connection.isOpen()) {
       throw new EventDispatcherException("Message broker connection is not up!");
     }
