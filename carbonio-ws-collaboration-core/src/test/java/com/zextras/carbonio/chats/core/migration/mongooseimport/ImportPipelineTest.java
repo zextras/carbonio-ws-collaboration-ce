@@ -311,8 +311,8 @@ class ImportPipelineTest {
     RecordingTarget target =
         new RecordingTarget() {
           @Override
-          public void handle(long m, String s, String u, ParsedRow p) {
-            throw new IllegalStateException("consumer failed");
+          public void handle(long m, String s, String u, ParsedRow p) throws SQLException {
+            throw new SQLException("consumer failed", "08006");
           }
         };
     assertThrows(

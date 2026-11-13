@@ -897,6 +897,7 @@ class MembersServiceImplTest {
 
       membersService.deleteRoomMember(roomId, user1Id, principal);
 
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
       verify(roomService, times(1)).deleteRoom(room, principal);
       verifyNoInteractions(subscriptionRepository, chatMessageService, eventDispatcher);
     }
