@@ -141,6 +141,10 @@ public final class RoomRows implements AutoCloseable {
     }
   }
 
+  boolean knows(long mam) {
+    return recent.containsKey(mam);
+  }
+
   public int recorded() {
     return recorded;
   }

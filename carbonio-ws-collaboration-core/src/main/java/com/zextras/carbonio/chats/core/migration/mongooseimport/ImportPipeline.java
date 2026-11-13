@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
 import java.sql.SQLException;
 import java.util.List;
@@ -59,28 +60,42 @@ final class ImportPipeline {
     String currentRoomId();
 
     long failedMam();
+
+    default void discardRow(long mam) {}
+
+    default long written() {
+      return 0;
+    }
   }
 
   private static final int BUDGET_KIB = 16 * 1024;
   private static final long POLL_SECONDS = 1;
   private static final long JOIN_SECONDS = 60;
+  private static final long PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(60);
 
   private final BlockingQueue<Item> queue = new LinkedBlockingQueue<>();
   private final Semaphore budget;
   private final int budgetKib;
+  private final ImportContext context;
   private volatile boolean stopped;
 
-  private ImportPipeline(int budgetKib) {
+  private ImportPipeline(int budgetKib, ImportContext context) {
     this.budget = new Semaphore(budgetKib);
     this.budgetKib = budgetKib;
+    this.context = context;
   }
 
-  static void run(List<TargetRoom> rooms, Source reader, Target importer) {
-    run(rooms, reader, importer, BUDGET_KIB);
+  static void run(List<TargetRoom> rooms, Source reader, Target importer, ImportContext context) {
+    run(rooms, reader, importer, context, BUDGET_KIB);
   }
 
-  static void run(List<TargetRoom> rooms, Source reader, Target importer, int budgetKib) {
-    new ImportPipeline(budgetKib).execute(rooms, reader, importer);
+  static void run(
+      List<TargetRoom> rooms,
+      Source reader,
+      Target importer,
+      ImportContext context,
+      int budgetKib) {
+    new ImportPipeline(budgetKib, context).execute(rooms, reader, importer);
   }
 
   private void execute(List<TargetRoom> rooms, Source reader, Target importer) {
@@ -88,7 +103,7 @@ final class ImportPipeline {
     thread.setDaemon(true);
     thread.start();
     try {
-      consume(importer, thread);
+      consume(importer, thread, rooms.size());
     } catch (Error error) {
       throw new IllegalStateException(
           "MongooseIM import failed (" + error.getClass().getSimpleName() + ")", error);
@@ -128,7 +143,10 @@ final class ImportPipeline {
     queue.add(item);
   }
 
-  private void consume(Target importer, Thread reader) {
+  private void consume(Target importer, Thread reader, int totalRooms) {
+    long started = System.nanoTime();
+    long lastLog = started;
+    int roomsDone = 0;
     while (true) {
       Item item = next(reader);
       budget.release(cost(item));
@@ -136,9 +154,14 @@ final class ImportPipeline {
         switch (item) {
           case Start start ->
               importer.beginRoom(start.room(), start.floor(), start.pins(), start.markers());
-          case Entry entry ->
-              importer.handle(entry.mam(), entry.server(), entry.user(), entry.parsed());
-          case End end -> importer.endRoom();
+          case Entry entry -> {
+            context.rowRead();
+            handleEntry(importer, entry);
+          }
+          case End end -> {
+            importer.endRoom();
+            roomsDone++;
+          }
           case Done done -> {
             return;
           }
@@ -147,6 +170,31 @@ final class ImportPipeline {
       } catch (SQLException e) {
         throw failure(importer.currentRoomId(), importer.failedMam(), e);
       }
+      long now = System.nanoTime();
+      if (now - lastLog >= PROGRESS_NANOS) {
+        lastLog = now;
+        ChatsLogger.info(
+            ImportPipeline.class,
+            "MongooseIM import progress: rooms="
+                + roomsDone
+                + "/"
+                + totalRooms
+                + " rowsRead="
+                + context.rowsRead()
+                + " written="
+                + importer.written()
+                + " elapsedSec="
+                + TimeUnit.NANOSECONDS.toSeconds(now - started));
+      }
+    }
+  }
+
+  private void handleEntry(Target importer, Entry entry) throws SQLException {
+    try {
+      importer.handle(entry.mam(), entry.server(), entry.user(), entry.parsed());
+    } catch (RuntimeException e) {
+      context.count(SkipReason.ROW_IMPORT_ERROR, importer.currentRoomId(), entry.mam());
+      importer.discardRow(entry.mam());
     }
   }
 

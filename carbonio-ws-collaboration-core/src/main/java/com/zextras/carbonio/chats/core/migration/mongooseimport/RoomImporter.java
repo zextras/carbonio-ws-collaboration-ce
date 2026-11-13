@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.ParsedRow.Kind;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.RoomRows.Row;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
@@ -14,8 +15,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.Set;
 
 public final class RoomImporter implements AutoCloseable, ImportPipeline.Target {
 
@@ -34,6 +37,10 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
   private final RoomRows rows;
   private final Fastenings fastenings;
   private final TimelineWriter writer;
+  private static final long MAX_MEETING_SECONDS = 31L * 24 * 3600;
+
+  private final ImportContext stats;
+  private final Set<String> roomIds;
   private final Map<String, Instant> pinTimes = new HashMap<>();
   private PinImporter.PinLine lastPinLine;
   private List<PinImporter.Pin> roomPins = List.of();
@@ -51,19 +58,39 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
       LegacyIds ids,
       FileLinker files,
       PinImporter pins,
-      MarkerTranscriber markers)
+      MarkerTranscriber markers,
+      ImportContext stats,
+      Set<String> roomIds)
       throws SQLException {
+    this.stats = stats;
+    this.roomIds = roomIds;
     this.ids = ids;
     this.files = files;
     this.pins = pins;
     this.markers = markers;
     this.rows = new RoomRows(target);
     this.fastenings = new Fastenings(target);
-    this.writer = new TimelineWriter(target, files);
+    this.writer = new TimelineWriter(target, files, stats);
   }
 
   public Counts counts() {
     return new Counts(rooms, writer.messages(), writer.events(), edits, reactions);
+  }
+
+  @Override
+  public long written() {
+    return writer.messages() + writer.events();
+  }
+
+  @Override
+  public void discardRow(long mam) {
+    if (context == null) {
+      return;
+    }
+    files.discard(ids.of(LegacyIds.MESSAGE, context.room().id(), mam));
+    if (!rows.knows(mam)) {
+      rows.record(null, Row.notImported(mam, null, Instant.EPOCH));
+    }
   }
 
   @Override
@@ -131,10 +158,26 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
 
   public void finish() throws SQLException {
     writer.flush();
+    long start = System.nanoTime();
+    ChatsLogger.info(RoomImporter.class, "MongooseIM import: flushing read markers");
     markers.flush();
+    ChatsLogger.info(
+        RoomImporter.class,
+        "MongooseIM import: read markers flushed in " + millisSince(start) + " ms");
+    start = System.nanoTime();
+    ChatsLogger.info(RoomImporter.class, "MongooseIM import: folding edits and reactions");
     Fastenings.Counts folded = fastenings.fold();
+    ChatsLogger.info(
+        RoomImporter.class,
+        "MongooseIM import: edits and reactions folded in " + millisSince(start) + " ms");
     edits += folded.edits();
     reactions += folded.reactions();
+    stats.count(SkipReason.EDIT_DROPPED, folded.droppedEdits());
+    stats.count(SkipReason.REACTION_DROPPED, folded.droppedReactions());
+  }
+
+  private static long millisSince(long startNanos) {
+    return (System.nanoTime() - startNanos) / 1_000_000;
   }
 
   @Override
@@ -142,52 +185,72 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     Context c = context;
     currentMam = mam;
     archived = true;
-    Instant raw = rawTime(mam);
+    String roomId = c.room().id();
+    for (SkipReason note : p.notes()) {
+      stats.count(note, roomId, mam);
+    }
+    if (p.skipReason() != null) {
+      stats.count(p.skipReason(), roomId, mam);
+    }
+    Instant raw = rawTime(mam, roomId);
     if (raw == null) {
+      if (p.skipReason() == null) {
+        stats.count(SkipReason.INVALID_MAM_TIME, roomId, mam);
+      }
       rows.record(p.rootId(), Row.notImported(mam, null, Instant.EPOCH));
       return;
     }
     String sender = "carbonio".equals(server) && validUser(user) ? user : null;
+    if (sender == null && p.skipReason() == null && mam >= c.floor()) {
+      stats.count(SkipReason.INVALID_SENDER, roomId, mam);
+    }
     if (mam < c.floor() || sender == null) {
       rows.record(p.rootId(), Row.notImported(mam, sender, raw));
       return;
     }
-    String roomId = c.room().id();
     switch (p.kind()) {
       case TEXT -> {
         String id = ids.of(LegacyIds.MESSAGE, roomId, mam);
         Instant t = c.clock().next(raw);
-        writer.addMessage(mam, TimelineWriter.Message.text(id, sender, p.text(), replyTo(p), t));
+        writer.addMessage(
+            mam, TimelineWriter.Message.text(id, sender, p.text(), replyTo(c, p, mam), t));
         rows.record(p.rootId(), Row.message(mam, sender, id, t, raw, false));
       }
       case TOMBSTONE -> {
         String id = ids.of(LegacyIds.MESSAGE, roomId, mam);
         Instant t = c.clock().next(raw);
         String attachment = files.onTombstone(mam, id);
-        Instant deletedAt = stamp(p.retractedStamp(), t);
+        Instant deletedAt = deletionTime(p.retractedStamp(), t, roomId, mam);
         writer.addMessage(
             mam, TimelineWriter.Message.tombstone(id, sender, attachment, deletedAt, t));
         rows.record(p.rootId(), Row.message(mam, sender, id, t, raw, true));
       }
       case FORWARD, ATTACHMENT -> attachmentOrForward(c, p, mam, sender, raw);
       case MEMBER_ADDED -> {
-        if (c.oneToOne() || !validUser(p.configUserId())) {
-          notImported(p, mam, sender, raw);
+        String member = lower(p.configUserId());
+        if (c.oneToOne() || !validUser(member)) {
+          notImported(
+              p,
+              mam,
+              sender,
+              raw,
+              c.oneToOne() ? SkipReason.MEMBER_EVENT_ONE_TO_ONE : SkipReason.INVALID_MEMBER_ID);
           return;
         }
         ObjectNode content = JsonNodeFactory.instance.objectNode();
         content.put("addedByUserId", sender);
-        content.putArray("addedUserIds").add(p.configUserId());
+        content.putArray("addedUserIds").add(member);
         event(c, p, mam, sender, raw, "MEMBER_ADDED", content);
       }
       case MEMBER_REMOVED -> {
-        if (!validUser(p.configUserId())) {
-          notImported(p, mam, sender, raw);
+        String member = lower(p.configUserId());
+        if (!validUser(member)) {
+          notImported(p, mam, sender, raw, SkipReason.INVALID_MEMBER_ID);
           return;
         }
         ObjectNode content = JsonNodeFactory.instance.objectNode();
         content.put("removedByUserId", sender);
-        content.put("removedUserId", p.configUserId());
+        content.put("removedUserId", member);
         event(c, p, mam, sender, raw, "MEMBER_REMOVED", content);
       }
       case ROOM_NAME_CHANGED -> {
@@ -233,7 +296,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
                 sender,
                 raw);
         if (!message) {
-          notImported(p, mam, sender, raw);
+          notImported(p, mam, sender, raw, SkipReason.UNRESOLVED_PIN);
           return;
         }
         boolean pinned = p.kind() == Kind.PINNED;
@@ -245,7 +308,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
       case EDIT -> {
         OptionalLong ref = StanzaIds.decode(p.applyToRef());
         if (ref.isEmpty()) {
-          notImported(p, mam, sender, raw);
+          notImported(p, mam, sender, raw, SkipReason.UNRESOLVED_EDIT);
           return;
         }
         fastenings.stageEdit(
@@ -268,8 +331,10 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
               sender,
               p.text(),
               raw);
+          notImported(p, mam, sender, raw);
+        } else {
+          notImported(p, mam, sender, raw, SkipReason.UNRESOLVED_REACTION);
         }
-        notImported(p, mam, sender, raw);
       }
       default -> notImported(p, mam, sender, raw);
     }
@@ -279,7 +344,7 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
       throws SQLException {
     String meetingId = c.room().meetingId();
     if (!c.oneToOne() || meetingId == null) {
-      notImported(p, mam, sender, raw);
+      notImported(p, mam, sender, raw, SkipReason.MEETING_LINE_SKIPPED);
       return;
     }
     ObjectNode content = JsonNodeFactory.instance.objectNode();
@@ -296,19 +361,26 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
         content.put("meetingId", meetingId);
       }
       default -> {
-        if (p.durationSec() == null) {
-          notImported(p, mam, sender, raw);
+        Long duration = p.durationSec();
+        if (duration != null && (duration < 0 || duration > MAX_MEETING_SECONDS)) {
+          stats.count(SkipReason.MEETING_DURATION_DROPPED, c.room().id(), mam);
+          duration = null;
+        }
+        Long started = p.startedAtMillis();
+        if (started != null && (started < 0 || started > stats.t0().toEpochMilli())) {
+          stats.count(SkipReason.MEETING_STARTED_AT_DROPPED, c.room().id(), mam);
+          started = null;
+        }
+        if (duration == null) {
+          notImported(p, mam, sender, raw, SkipReason.MEETING_LINE_SKIPPED);
           return;
         }
         type = "MEETING_ENDED";
-        long startedAt =
-            p.startedAtMillis() != null
-                ? p.startedAtMillis()
-                : raw.toEpochMilli() - p.durationSec() * 1000;
+        long startedAt = started != null ? started : raw.toEpochMilli() - duration * 1000;
         content.put("endedBy", sender);
         content.put("meetingId", meetingId);
         content.put("startedAt", startedAt);
-        content.put("durationSec", p.durationSec());
+        content.put("durationSec", duration);
       }
     }
     event(c, p, mam, sender, raw, type, content);
@@ -318,9 +390,13 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
       throws SQLException {
     String id = ids.of(LegacyIds.MESSAGE, c.room().id(), mam);
     Instant t = c.clock().next(raw);
-    boolean forward = p.kind() == Kind.FORWARD;
+    boolean forward =
+        p.kind() == Kind.FORWARD && p.forwardFrom() != null && !roomIds.contains(p.forwardFrom());
+    if (p.kind() == Kind.FORWARD && !forward) {
+      stats.count(SkipReason.FORWARD_AS_PLAIN, c.room().id(), mam);
+    }
     FileLinker.AttachmentDecision decision =
-        !forward || p.attachmentId() != null
+        p.kind() == Kind.ATTACHMENT || p.attachmentId() != null
             ? files.onAttachment(id, p.attachmentId(), p.area())
             : new FileLinker.AttachmentDecision(null, false);
     if (decision.placeholder()) {
@@ -335,11 +411,16 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
                 sender,
                 p.text(),
                 p.forwardFrom(),
-                stamp(p.forwardStamp(), Instant.EPOCH),
+                forwardTime(p.forwardStamp(), c.room().id(), mam),
                 decision.attachmentId(),
                 t)
             : TimelineWriter.Message.attachment(
-                id, sender, p.text(), replyTo(p), decision.attachmentId(), t);
+                id,
+                sender,
+                p.text(),
+                p.kind() == Kind.FORWARD ? null : replyTo(c, p, mam),
+                decision.attachmentId(),
+                t);
     writer.addMessage(mam, message);
     rows.record(p.rootId(), Row.message(mam, sender, id, t, raw, false));
   }
@@ -357,25 +438,69 @@ public final class RoomImporter implements AutoCloseable, ImportPipeline.Target 
     rows.record(p.rootId(), Row.notImported(mam, sender, raw));
   }
 
-  private String replyTo(ParsedRow p) throws SQLException {
+  private void notImported(ParsedRow p, long mam, String sender, Instant raw, SkipReason reason)
+      throws SQLException {
+    stats.count(reason, context.room().id(), mam);
+    notImported(p, mam, sender, raw);
+  }
+
+  private String replyTo(Context c, ParsedRow p, long mam) throws SQLException {
     String ref = p.replyRef();
     if (ref == null || ref.isEmpty()) {
       return null;
     }
     OptionalLong stanza = StanzaIds.decode(ref);
-    if (stanza.isEmpty()) {
+    Row row = stanza.isEmpty() ? null : rows.resolveStanza(stanza.getAsLong());
+    if (row == null || row.outcome() != RoomRows.MESSAGE) {
+      stats.count(SkipReason.UNRESOLVED_REPLY, c.room().id(), mam);
       return null;
     }
-    Row row = rows.resolveStanza(stanza.getAsLong());
-    return row != null && row.outcome() == RoomRows.MESSAGE ? row.itemId() : null;
+    return row.itemId();
   }
 
-  private Instant rawTime(long mam) {
+  private Instant rawTime(long mam, String roomId) {
     if (mam <= 0) {
       return null;
     }
     Instant time = MamTime.instant(mam);
-    return MamTime.inRange(time) ? time : null;
+    if (!MamTime.inRange(time)) {
+      return null;
+    }
+    if (time.isAfter(stats.t0())) {
+      stats.count(SkipReason.TIME_CLAMPED, roomId, mam);
+      return stats.t0();
+    }
+    return time;
+  }
+
+  private Instant deletionTime(Instant retracted, Instant createdAt, String roomId, long mam) {
+    Instant deletedAt = stamp(retracted, createdAt);
+    if (deletedAt.isAfter(stats.t0())) {
+      stats.count(SkipReason.STAMP_CLAMPED, roomId, mam);
+      deletedAt = stats.t0();
+    }
+    if (deletedAt.isBefore(createdAt)) {
+      stats.count(SkipReason.RETRACT_STAMP_RAISED, roomId, mam);
+      deletedAt = createdAt;
+    }
+    return deletedAt;
+  }
+
+  private Instant forwardTime(Instant forwarded, String roomId, long mam) {
+    Instant time = stamp(forwarded, null);
+    if (time == null) {
+      stats.count(SkipReason.FORWARD_STAMP_MISSING, roomId, mam);
+      return null;
+    }
+    if (time.isAfter(stats.t0())) {
+      stats.count(SkipReason.STAMP_CLAMPED, roomId, mam);
+      return stats.t0();
+    }
+    return time;
+  }
+
+  private static String lower(String value) {
+    return value == null ? null : value.toLowerCase(Locale.ROOT);
   }
 
   static Instant stamp(Instant instant, Instant fallback) {

@@ -36,12 +36,17 @@ public final class PinImporter implements AutoCloseable {
 
   private final PreparedStatement select;
   private final PreparedStatement insert;
+  private static final LocalDateTime EARLIEST = LocalDateTime.of(2000, 1, 1, 0, 0);
+
   private final ZoneId zone;
+  private final ImportContext context;
   private int unarchived;
 
-  public PinImporter(MongooseSource.Ready source, Connection target, ZoneId zone)
+  public PinImporter(
+      MongooseSource.Ready source, Connection target, ZoneId zone, ImportContext context)
       throws SQLException {
     this.zone = zone;
+    this.context = context;
     this.select = source.hasPins() ? source.connection().prepareStatement(SELECT) : null;
     this.insert = target.prepareStatement(INSERT);
   }
@@ -54,15 +59,34 @@ public final class PinImporter implements AutoCloseable {
     select.setString(1, room.id() + "@muclight.carbonio");
     try (ResultSet rs = select.executeQuery()) {
       while (rs.next()) {
-        LocalDateTime pinnedAt = rs.getObject(3, LocalDateTime.class);
-        pins.add(
-            new Pin(
-                rs.getString(1),
-                rs.getString(2),
-                pinnedAt == null ? null : pinnedAt.atZone(zone).toInstant()));
+        pins.add(new Pin(rs.getString(1), rs.getString(2), pinTime(readLocal(rs), room.id())));
       }
     }
     return pins;
+  }
+
+  private static LocalDateTime readLocal(ResultSet rs) {
+    try {
+      return rs.getObject(3, LocalDateTime.class);
+    } catch (SQLException | RuntimeException e) {
+      return LocalDateTime.MAX;
+    }
+  }
+
+  private Instant pinTime(LocalDateTime local, String roomId) {
+    if (local == null) {
+      return null;
+    }
+    if (local.isBefore(EARLIEST) || local.getYear() > 9999) {
+      context.count(SkipReason.PIN_TIME_OUT_OF_RANGE, roomId, 0);
+      return null;
+    }
+    Instant instant = local.atZone(zone).toInstant();
+    if (instant.isAfter(context.t0())) {
+      context.count(SkipReason.PIN_TIME_OUT_OF_RANGE, roomId, 0);
+      return null;
+    }
+    return instant;
   }
 
   public void importRoomPin(
@@ -75,15 +99,22 @@ public final class PinImporter implements AutoCloseable {
     for (Pin pin : pins) {
       String pinner = pinner(pin.pinnedBy());
       String stanza = pin.stanzaId();
-      if (pinner == null || stanza == null || stanza.isBlank()) {
+      if (pinner == null) {
+        context.count(SkipReason.PIN_BAD_USER, room.id(), 0);
+        continue;
+      }
+      if (stanza == null || stanza.isBlank()) {
+        context.count(SkipReason.PIN_UNRESOLVED, room.id(), 0);
         continue;
       }
       OptionalLong mam = StanzaIds.decode(stanza.strip());
       if (mam.isEmpty()) {
+        context.count(SkipReason.PIN_UNRESOLVED, room.id(), 0);
         continue;
       }
       RoomRows.Row row = rows.resolveStanza(mam.getAsLong());
       if (row == null || row.outcome() != RoomRows.MESSAGE || row.deleted()) {
+        context.count(SkipReason.PIN_UNRESOLVED, room.id(), mam.getAsLong());
         continue;
       }
       Instant pinnedAt;

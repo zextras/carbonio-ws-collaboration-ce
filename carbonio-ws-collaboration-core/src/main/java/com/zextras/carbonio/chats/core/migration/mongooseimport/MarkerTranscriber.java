@@ -30,9 +30,12 @@ public final class MarkerTranscriber implements AutoCloseable {
 
   private final PreparedStatement select;
   private final PreparedStatement insert;
+  private final ImportContext context;
   private int pending;
 
-  public MarkerTranscriber(MongooseSource.Ready source, Connection target) throws SQLException {
+  public MarkerTranscriber(MongooseSource.Ready source, Connection target, ImportContext context)
+      throws SQLException {
+    this.context = context;
     this.select = source.hasMarkers() ? source.connection().prepareStatement(SELECT) : null;
     this.insert = target.prepareStatement(INSERT);
   }
@@ -93,6 +96,7 @@ public final class MarkerTranscriber implements AutoCloseable {
       while (rs.next()) {
         String user = rs.getString(1);
         if (!CanonicalUuid.matches(user)) {
+          context.count(SkipReason.MARKER_BAD_USER, room.id(), 0);
           continue;
         }
         String msgId = rs.getString(2);

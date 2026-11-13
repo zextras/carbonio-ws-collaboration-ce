@@ -50,16 +50,22 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
 
   private final PinImporter pins;
   private final MarkerTranscriber markers;
+  private final ImportContext context;
   private final PreparedStatement archiveQuery;
   private final PreparedStatement pageQuery;
   private final PreparedStatement largeRowQuery;
   private final PreparedStatement clearQuery;
   private volatile long currentMam;
 
-  RoomReader(MongooseSource.Ready source, PinImporter pins, MarkerTranscriber markers)
+  RoomReader(
+      MongooseSource.Ready source,
+      PinImporter pins,
+      MarkerTranscriber markers,
+      ImportContext context)
       throws SQLException {
     this.pins = pins;
     this.markers = markers;
+    this.context = context;
     this.archiveQuery = source.connection().prepareStatement(ROOM_ARCHIVE);
     this.pageQuery = source.connection().prepareStatement(PAGE);
     this.largeRowQuery = source.connection().prepareStatement(LARGE_ROW);
@@ -96,13 +102,16 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
           last = rs.getLong(1);
           currentMam = last;
           byte[] stored = rs.getBytes(4);
-          if (stored == null && rs.getLong(5) <= MAX_BODY_BYTES) {
+          long size = rs.getLong(5);
+          if (stored == null && size <= MAX_BODY_BYTES) {
             stored = largeRow(archive, last);
           }
           int weight = 1 + (stored == null ? 0 : stored.length / 1024);
-          sink.put(
-              new Entry(
-                  last, rs.getString(2), rs.getString(3), StanzaParser.parse(stored), weight));
+          ParsedRow parsed =
+              stored == null && size > MAX_BODY_BYTES
+                  ? ParsedRow.skip(SkipReason.ROW_OVERSIZE)
+                  : parse(stored, room.id(), last);
+          sink.put(new Entry(last, rs.getString(2), rs.getString(3), parsed, weight));
         }
       }
     } while (page == PAGE_SIZE);
@@ -116,6 +125,15 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
     pageQuery.close();
     largeRowQuery.close();
     clearQuery.close();
+  }
+
+  private ParsedRow parse(byte[] stored, String roomId, long mam) {
+    try {
+      return StanzaParser.parse(stored);
+    } catch (RuntimeException e) {
+      context.count(SkipReason.ROW_PARSE_ERROR, roomId, mam);
+      return ParsedRow.skip();
+    }
   }
 
   private long archiveKey(String roomId) throws SQLException {
@@ -133,11 +151,19 @@ final class RoomReader implements AutoCloseable, ImportPipeline.Source {
     }
   }
 
+  private static ParsedRow parseQuietly(byte[] stored) {
+    try {
+      return StanzaParser.parse(stored);
+    } catch (RuntimeException e) {
+      return ParsedRow.skip();
+    }
+  }
+
   private long clearFloor(long archive) throws SQLException {
     clearQuery.setLong(1, archive);
     try (ResultSet rs = clearQuery.executeQuery()) {
       while (rs.next()) {
-        if (StanzaParser.parse(rs.getBytes(2)).kind() == ParsedRow.Kind.ROOM_HISTORY_CLEARED) {
+        if (parseQuietly(rs.getBytes(2)).kind() == ParsedRow.Kind.ROOM_HISTORY_CLEARED) {
           return rs.getLong(1);
         }
       }

@@ -132,6 +132,11 @@ final class CopyRows {
     rows++;
   }
 
+  void discardRow() {
+    row.setLength(0);
+    firstField = true;
+  }
+
   int rows() {
     return rows;
   }

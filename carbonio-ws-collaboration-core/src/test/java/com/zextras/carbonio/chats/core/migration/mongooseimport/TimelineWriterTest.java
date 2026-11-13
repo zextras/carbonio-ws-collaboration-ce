@@ -22,13 +22,16 @@ class TimelineWriterTest {
   private static final int BATCH = 10_000;
   private static final Instant TIME = Instant.parse("2026-10-07T17:29:22.192297Z");
 
+  private static final ImportContext CONTEXT =
+      new ImportContext(Instant.parse("2026-11-01T00:00:00Z"));
+
   private CopyCapture capture;
   private TimelineWriter writer;
 
   @BeforeEach
   void setUp() throws SQLException {
     capture = new CopyCapture();
-    writer = new TimelineWriter(capture.connection(), mock(FileLinker.class));
+    writer = new TimelineWriter(capture.connection(), mock(FileLinker.class), CONTEXT);
     writer.beginRoom("room-1");
   }
 
@@ -36,6 +39,52 @@ class TimelineWriterTest {
     for (int i = from; i < from + count; i++) {
       writer.addMessage(i, TimelineWriter.Message.text("m" + i, "user", "text", null, TIME));
     }
+  }
+
+  @Test
+  @DisplayName("A row that fails half way is dropped and the next COPY holds only whole rows")
+  void failedRowIsDiscarded() throws SQLException {
+    writer.addMessage(1, TimelineWriter.Message.text("m1", "user", "text", null, TIME));
+    assertThrows(
+        java.time.DateTimeException.class,
+        () ->
+            writer.addMessage(
+                2, TimelineWriter.Message.text("m2", "user", "text", null, Instant.MAX)));
+    writer.addMessage(3, TimelineWriter.Message.text("m3", "user", "text", null, TIME));
+
+    writer.flush();
+
+    assertEquals(1, capture.copies().size());
+    assertEquals(2, capture.copies().get(0).rows());
+    assertEquals(2, writer.messages());
+    assertTrue(capture.copies().get(0).payload().startsWith("m1\t"));
+    assertTrue(capture.copies().get(0).payload().contains("\nm3\t"));
+  }
+
+  @Test
+  @DisplayName(
+      "A room created_at that is missing or later than T0 is replaced before it is written")
+  void roomCreatedAtIsClamped() throws SQLException {
+    Instant first = Instant.parse("2026-10-07T17:29:22.192297Z");
+    RoomClock clock = new RoomClock();
+    clock.next(first);
+    TargetRooms.TargetRoom missing =
+        new TargetRooms.TargetRoom("room-1", "GROUP", null, "creator", null);
+    TargetRooms.TargetRoom future =
+        new TargetRooms.TargetRoom(
+            "room-1", "GROUP", Instant.parse("2099-01-01T00:00:00Z"), "creator", null);
+
+    writer.roomCreated(missing, "e1", clock);
+    writer.roomCreated(future, "e2", clock);
+    writer.flush();
+
+    String payload = capture.copies().get(0).payload();
+    String expected = "2026-10-07 17:29:22.192296+00";
+    assertEquals(2, payload.split("\n").length);
+    for (String line : payload.split("\n")) {
+      assertTrue(line.endsWith(expected), line);
+    }
+    assertEquals(2, CONTEXT.of(SkipReason.ROOM_CREATED_AT_OUT_OF_RANGE));
   }
 
   @Test

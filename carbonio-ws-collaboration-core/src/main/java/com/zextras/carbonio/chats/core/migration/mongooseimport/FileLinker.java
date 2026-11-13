@@ -76,6 +76,17 @@ public final class FileLinker {
     return fileId;
   }
 
+  public void discard(String messageId) {
+    pending.removeIf(
+        link -> {
+          boolean match = link.messageId().equals(messageId);
+          if (match) {
+            claimed.remove(link.fileId());
+          }
+          return match;
+        });
+  }
+
   public void flush() throws SQLException {
     if (pending.isEmpty()) {
       return;

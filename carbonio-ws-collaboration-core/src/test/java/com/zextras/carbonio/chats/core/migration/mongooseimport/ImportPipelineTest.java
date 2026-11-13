@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.migration.mongooseimport.ImportPipeline.S
 import com.zextras.carbonio.chats.core.migration.mongooseimport.ImportPipeline.Target;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,10 @@ import org.junit.jupiter.api.Test;
 class ImportPipelineTest {
 
   private static final String READER = "mongoose-import-reader";
+
+  private static ImportContext context() {
+    return new ImportContext(Instant.now());
+  }
 
   private static TargetRoom room(String id) {
     return new TargetRoom(id, "GROUP", null, "creator", null);
@@ -115,7 +120,7 @@ class ImportPipelineTest {
   @DisplayName("Consumes the items in the order they were read")
   void inOrder() throws Exception {
     RecordingTarget target = new RecordingTarget();
-    ImportPipeline.run(List.of(room("a"), room("b")), new ScriptedSource(), target);
+    ImportPipeline.run(List.of(room("a"), room("b")), new ScriptedSource(), target, context());
     assertEquals(
         List.of(
             "begin:a:0",
@@ -136,7 +141,7 @@ class ImportPipelineTest {
   @DisplayName("Completes with no rooms")
   void noRooms() throws Exception {
     RecordingTarget target = new RecordingTarget();
-    ImportPipeline.run(List.of(), new ScriptedSource(), target);
+    ImportPipeline.run(List.of(), new ScriptedSource(), target, context());
     assertTrue(target.events.isEmpty());
     awaitReaderGone();
   }
@@ -157,7 +162,8 @@ class ImportPipelineTest {
     IllegalStateException e =
         assertThrows(
             IllegalStateException.class,
-            () -> ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget()));
+            () ->
+                ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget(), context()));
     assertEquals("MongooseIM import failed (room r1, mam 42, SQLState 08006)", e.getMessage());
     assertFalse(e.getMessage().contains("secret"));
     assertEquals(null, e.getCause());
@@ -178,7 +184,8 @@ class ImportPipelineTest {
     IllegalStateException thrown =
         assertThrows(
             IllegalStateException.class,
-            () -> ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget()));
+            () ->
+                ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget(), context()));
     assertSame(oom, thrown.getCause());
     assertFalse(thrown.getMessage().contains("secret"));
     awaitReaderGone();
@@ -198,10 +205,41 @@ class ImportPipelineTest {
     IllegalStateException thrown =
         assertThrows(
             IllegalStateException.class,
-            () -> ImportPipeline.run(List.of(room("r1")), new ScriptedSource(), target));
+            () -> ImportPipeline.run(List.of(room("r1")), new ScriptedSource(), target, context()));
     assertSame(oom, thrown.getCause());
     assertFalse(thrown.getMessage().contains("secret"));
     awaitReaderGone();
+  }
+
+  @Test
+  @DisplayName(
+      "A RuntimeException on one entry is counted, the row is discarded and the rest is read")
+  void rowRuntimeExceptionIsSkipped() throws Exception {
+    List<Long> discarded = new ArrayList<>();
+    RecordingTarget target =
+        new RecordingTarget() {
+          @Override
+          public void handle(long m, String s, String u, ParsedRow p) throws SQLException {
+            if (m == 2) {
+              throw new IllegalStateException("broken row");
+            }
+            super.handle(m, s, u, p);
+          }
+
+          @Override
+          public void discardRow(long m) {
+            discarded.add(m);
+          }
+        };
+    ImportContext context = context();
+
+    ImportPipeline.run(List.of(room("r1")), new ScriptedSource(), target, context);
+
+    assertEquals(List.of("begin:r1:0", "handle:1", "handle:3", "end"), target.events);
+    assertEquals(List.of(2L), discarded);
+    assertEquals(1, context.of(SkipReason.ROW_IMPORT_ERROR));
+    assertEquals(3, context.rowsRead());
+    assertTrue(context.summary().contains("row_import_error=1 (e.g. r1/2)"));
   }
 
   @Test
@@ -219,7 +257,8 @@ class ImportPipelineTest {
         failure,
         assertThrows(
             IllegalArgumentException.class,
-            () -> ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget())));
+            () ->
+                ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget(), context())));
     awaitReaderGone();
   }
 
@@ -250,7 +289,7 @@ class ImportPipelineTest {
     IllegalStateException e =
         assertThrows(
             IllegalStateException.class,
-            () -> ImportPipeline.run(List.of(room("r9")), endless, target, 4));
+            () -> ImportPipeline.run(List.of(room("r9")), endless, target, context(), 4));
     assertEquals("MongooseIM import failed (room r9, mam 5, SQLState 23505)", e.getMessage());
     awaitReaderGone();
   }
@@ -278,7 +317,7 @@ class ImportPipelineTest {
         };
     assertThrows(
         IllegalStateException.class,
-        () -> ImportPipeline.run(List.of(room("r1")), source, target, 4));
+        () -> ImportPipeline.run(List.of(room("r1")), source, target, context(), 4));
     awaitReaderGone();
   }
 
@@ -307,7 +346,9 @@ class ImportPipelineTest {
         () ->
             assertThrows(
                 IllegalStateException.class,
-                () -> ImportPipeline.run(List.of(room("r1")), source, new RecordingTarget())));
+                () ->
+                    ImportPipeline.run(
+                        List.of(room("r1")), source, new RecordingTarget(), context())));
   }
 
   @Test
@@ -343,7 +384,8 @@ class ImportPipelineTest {
             super.handle(m, s, u, p);
           }
         };
-    Thread runner = new Thread(() -> ImportPipeline.run(List.of(room("r1")), source, target, 8));
+    Thread runner =
+        new Thread(() -> ImportPipeline.run(List.of(room("r1")), source, target, context(), 8));
     runner.start();
     assertTrue(consumerEntered.await(10, TimeUnit.SECONDS));
     Thread.sleep(1500);
@@ -371,7 +413,7 @@ class ImportPipelineTest {
           }
         };
     RecordingTarget target = new RecordingTarget();
-    ImportPipeline.run(List.of(room("r1")), source, target, 8);
+    ImportPipeline.run(List.of(room("r1")), source, target, context(), 8);
     assertEquals(List.of("begin:r1:0", "handle:1", "handle:2", "end"), target.events);
     awaitReaderGone();
   }

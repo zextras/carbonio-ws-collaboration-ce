@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,9 +25,17 @@ public final class UserTables {
 
   private UserTables() {}
 
-  public static Counts run(Connection source, boolean hasLast, Connection target)
+  public static Counts run(
+      Connection source, boolean hasLast, Connection target, ImportContext context)
       throws SQLException {
-    int lastSeen = hasLast ? importLastSeen(source, target) : 0;
+    ChatsLogger.info(UserTables.class, "MongooseIM import: transcribing last seen");
+    long start = System.nanoTime();
+    int lastSeen = hasLast ? importLastSeen(source, target, context) : 0;
+    ChatsLogger.info(
+        UserTables.class,
+        "MongooseIM import: last seen transcribed in "
+            + (System.nanoTime() - start) / 1_000_000
+            + " ms");
     return new Counts(lastSeen);
   }
 
@@ -38,7 +47,8 @@ public final class UserTables {
     return total;
   }
 
-  private static int importLastSeen(Connection source, Connection target) throws SQLException {
+  private static int importLastSeen(Connection source, Connection target, ImportContext context)
+      throws SQLException {
     int inserted = 0;
     int pending = 0;
     try (Statement read = source.createStatement();
@@ -48,10 +58,20 @@ public final class UserTables {
         while (rows.next()) {
           String user = rows.getString(1);
           if (!CanonicalUuid.matches(user)) {
+            context.count(SkipReason.LAST_SEEN_BAD_USER, String.valueOf(user), 0);
             continue;
           }
+          long seconds = rows.getLong(2);
+          if (seconds <= 0) {
+            context.count(SkipReason.LAST_SEEN_NONPOSITIVE, user, 0);
+            continue;
+          }
+          if (seconds > context.t0().getEpochSecond()) {
+            context.count(SkipReason.LAST_SEEN_FUTURE, user, 0);
+            seconds = context.t0().getEpochSecond();
+          }
           insert.setString(1, user);
-          insert.setObject(2, Instant.ofEpochSecond(rows.getLong(2)).atOffset(ZoneOffset.UTC));
+          insert.setObject(2, Instant.ofEpochSecond(seconds).atOffset(ZoneOffset.UTC));
           insert.addBatch();
           if (++pending == PAGE_SIZE) {
             inserted += sum(insert.executeBatch());

@@ -56,15 +56,58 @@ public final class StanzaParser {
 
   public static ParsedRow parse(byte[] stored) {
     if (stored == null) {
-      return ParsedRow.skip();
+      return ParsedRow.skip(SkipReason.ROW_NULL);
     }
+    if (stored.length == 0) {
+      return ParsedRow.skip(SkipReason.ROW_EMPTY);
+    }
+    if (!looksLikeXml(stored)) {
+      return ParsedRow.skip(SkipReason.ROW_BINARY);
+    }
+    String decoded = new String(stored, StandardCharsets.UTF_8);
+    List<SkipReason> notes =
+        decoded.indexOf('\uFFFD') >= 0 && !hasReplacementBytes(stored)
+            ? List.of(SkipReason.INVALID_UTF8)
+            : List.of();
     Node root;
     try {
-      root = read(XmlText.stripIllegal(new String(stored, StandardCharsets.UTF_8)));
+      root = read(XmlText.stripIllegal(decoded));
     } catch (XMLStreamException e) {
-      return ParsedRow.skip();
+      return ParsedRow.skip(SkipReason.ROW_INVALID_XML).withNotes(notes);
     }
-    return root == null || !root.is("message") ? ParsedRow.skip() : classify(root);
+    if (root == null) {
+      return ParsedRow.skip(SkipReason.ROW_INVALID_XML).withNotes(notes);
+    }
+    if (!root.is("message")) {
+      return ParsedRow.skip(SkipReason.ROW_NOT_MESSAGE).withNotes(notes);
+    }
+    return classify(root).withNotes(notes);
+  }
+
+  private static boolean looksLikeXml(byte[] stored) {
+    int i = 0;
+    if (stored.length >= 3
+        && (stored[0] & 0xFF) == 0xEF
+        && (stored[1] & 0xFF) == 0xBB
+        && (stored[2] & 0xFF) == 0xBF) {
+      i = 3;
+    }
+    while (i < stored.length
+        && (stored[i] == ' ' || stored[i] == '\t' || stored[i] == '\r' || stored[i] == '\n')) {
+      i++;
+    }
+    return i < stored.length && stored[i] == '<';
+  }
+
+  private static boolean hasReplacementBytes(byte[] stored) {
+    for (int i = 0; i + 2 < stored.length; i++) {
+      if ((stored[i] & 0xFF) == 0xEF
+          && (stored[i + 1] & 0xFF) == 0xBF
+          && (stored[i + 2] & 0xFF) == 0xBD) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static ParsedRow classify(Node root) {
@@ -118,7 +161,10 @@ public final class StanzaParser {
         case "roomHistoryCleared":
           return row(Kind.ROOM_HISTORY_CLEARED, rootId).build();
         default:
-          return row(Kind.SKIP, rootId).configUserId(user).build();
+          return row(Kind.SKIP, rootId)
+              .configUserId(user)
+              .skip(SkipReason.UNKNOWN_CONFIG_OP)
+              .build();
       }
     }
 
@@ -130,18 +176,21 @@ public final class StanzaParser {
     if (forwarded != null) {
       Node inner = forwarded.child("message");
       if (inner == null || inner.child("body") == null) {
-        return row(Kind.SKIP, rootId).build();
+        return row(Kind.SKIP, rootId).skip(SkipReason.FORWARD_WITHOUT_BODY).build();
       }
-      return forwardFields(row(Kind.FORWARD, rootId), forwarded).build();
+      return forwardFields(row(Kind.FORWARD, rootId), forwarded, Kind.TEXT).build();
     }
 
     if (root.child("replace", NS_CORRECT) != null) {
-      return row(Kind.SKIP, rootId).build();
+      return row(Kind.SKIP, rootId).skip(SkipReason.MESSAGE_CORRECT).build();
     }
 
     Node body = root.child("body");
-    if (body == null || root.child("x", NS_AFFILIATIONS) != null) {
-      return row(Kind.SKIP, rootId).build();
+    if (root.child("x", NS_AFFILIATIONS) != null) {
+      return row(Kind.SKIP, rootId).skip(SkipReason.AFFILIATIONS).build();
+    }
+    if (body == null) {
+      return row(Kind.SKIP, rootId).skip(SkipReason.NO_BODY).build();
     }
     return row(Kind.TEXT, rootId).text(body.text()).replyRef(replyRef(root)).build();
   }
@@ -149,7 +198,7 @@ public final class StanzaParser {
   private static ParsedRow attachmentRow(Node root, String rootId, Node config, Node forwarded) {
     Builder builder = attachmentFields(row(Kind.ATTACHMENT, rootId), config);
     if (forwarded != null) {
-      return forwardFields(builder.kind(Kind.FORWARD), forwarded).build();
+      return forwardFields(builder.kind(Kind.FORWARD), forwarded, Kind.ATTACHMENT).build();
     }
     Node body = root.child("body");
     return builder
@@ -172,14 +221,14 @@ public final class StanzaParser {
     String text = body == null ? "" : body.text();
     if (first.child("edit", NS_EDIT) != null) {
       if (body == null) {
-        return row(Kind.SKIP, rootId).applyToRef(ref).build();
+        return row(Kind.SKIP, rootId).applyToRef(ref).skip(SkipReason.NO_BODY).build();
       }
       return row(Kind.EDIT, rootId).applyToRef(ref).text(text).build();
     }
     if (first.child("reaction", NS_REACTION) != null) {
       return row(Kind.REACTION, rootId).applyToRef(ref).text(text).build();
     }
-    return row(Kind.SKIP, rootId).applyToRef(ref).build();
+    return row(Kind.SKIP, rootId).applyToRef(ref).skip(SkipReason.UNKNOWN_APPLY_TO).build();
   }
 
   private static Builder attachmentFields(Builder builder, Node config) {
@@ -191,7 +240,7 @@ public final class StanzaParser {
         .area(areaText == null || areaText.isEmpty() ? null : areaText);
   }
 
-  private static Builder forwardFields(Builder builder, Node forwarded) {
+  private static Builder forwardFields(Builder builder, Node forwarded, Kind plainKind) {
     Node inner = forwarded.child("message");
     Node delay = forwarded.child("delay");
     if (delay == null && inner != null) {
@@ -199,11 +248,15 @@ public final class StanzaParser {
     }
     builder.forwardStamp(delay == null ? null : parseInstant(delay.attr("stamp")));
     if (inner == null) {
-      return builder.text("");
+      return builder.kind(plainKind).note(SkipReason.FORWARD_AS_PLAIN).text("");
     }
     Node body = inner.child("body");
+    String origin = forwardFrom(inner.attr("from"));
+    if (origin == null) {
+      builder.kind(plainKind).note(SkipReason.FORWARD_AS_PLAIN);
+    }
     return builder
-        .forwardFrom(forwardFrom(inner.attr("from")))
+        .forwardFrom(origin)
         .text(body == null ? "" : XmlText.decodeUnicodeEscapes(body.text()));
   }
 
@@ -212,6 +265,9 @@ public final class StanzaParser {
       return null;
     }
     int room = from.indexOf("@muclight.carbonio/");
+    if (room < 0 && from.contains("@muclight.carbonio")) {
+      return null;
+    }
     String rest = room >= 0 ? from.substring(room + "@muclight.carbonio/".length()) : from;
     int at = rest.indexOf('@');
     if (at < 0) {
@@ -402,10 +458,22 @@ public final class StanzaParser {
     private String pinRef;
     private Long durationSec;
     private Long startedAtMillis;
+    private SkipReason skip;
+    private final List<SkipReason> notes = new ArrayList<>();
 
     Builder(Kind kind, String rootId) {
       this.kind = kind;
       this.rootId = rootId;
+    }
+
+    Builder skip(SkipReason value) {
+      skip = value;
+      return this;
+    }
+
+    Builder note(SkipReason value) {
+      notes.add(value);
+      return this;
     }
 
     Builder kind(Kind value) {
@@ -488,7 +556,9 @@ public final class StanzaParser {
           configUserId,
           pinRef,
           durationSec,
-          startedAtMillis);
+          startedAtMillis,
+          skip,
+          List.copyOf(notes));
     }
   }
 }

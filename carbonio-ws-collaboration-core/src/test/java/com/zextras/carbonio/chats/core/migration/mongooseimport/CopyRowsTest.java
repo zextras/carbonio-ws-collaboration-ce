@@ -45,6 +45,18 @@ class CopyRowsTest {
   }
 
   @Test
+  @DisplayName("discardRow drops a partially written row and keeps the finished ones")
+  void discardPartialRow() {
+    rows.text("kept").text("x").text("y").endRow();
+    rows.text("partial").number(1);
+    rows.discardRow();
+    rows.text("next").text("a").text("b").endRow();
+
+    assertEquals("kept\tx\ty\nnext\ta\tb\n", rows.contents());
+    assertEquals(2, rows.rows());
+  }
+
+  @Test
   @DisplayName("Writes booleans as t and f")
   void booleans() {
     rows.bool(true).bool(false).endRow();

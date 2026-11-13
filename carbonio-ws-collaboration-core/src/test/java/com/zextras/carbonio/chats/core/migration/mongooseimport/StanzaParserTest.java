@@ -506,7 +506,7 @@ class StanzaParserTest {
             .kind());
     ParsedRow empty =
         inStanza("<forwarded xmlns='urn:xmpp:forward:0'><message><body/></message></forwarded>");
-    assertEquals(Kind.FORWARD, empty.kind());
+    assertEquals(Kind.TEXT, empty.kind());
     assertEquals("", empty.text());
     assertEquals(
         Kind.SKIP, inStanza("<body>outer</body><forwarded xmlns='urn:xmpp:forward:0'/>").kind());
@@ -852,6 +852,144 @@ class StanzaParserTest {
     assertEquals(
         Kind.SKIP,
         inStanza("<retracted stamp='2026-10-07T16:41:01Z' xmlns='urn:example:other'/>").kind());
+  }
+
+  @Test
+  @DisplayName("Unreadable rows carry the reason they were skipped for")
+  void unreadableReasons() {
+    assertEquals(SkipReason.ROW_NULL, StanzaParser.parse(null).skipReason());
+    assertEquals(SkipReason.ROW_EMPTY, StanzaParser.parse(new byte[0]).skipReason());
+    assertEquals(
+        SkipReason.ROW_BINARY, StanzaParser.parse(new byte[] {(byte) 131, 104, 2}).skipReason());
+    assertEquals(SkipReason.ROW_INVALID_XML, parse("<message><body>x").skipReason());
+    assertEquals(SkipReason.ROW_NOT_MESSAGE, parse("<iq><body>x</body></iq>").skipReason());
+  }
+
+  @Test
+  @DisplayName("Ignored kinds carry their skip reason")
+  void ignoredKindReasons() {
+    assertEquals(
+        SkipReason.MESSAGE_CORRECT,
+        inStanza("<body>x</body><replace id='a' xmlns='urn:xmpp:message-correct:0'/>")
+            .skipReason());
+    assertEquals(
+        SkipReason.AFFILIATIONS,
+        inStanza("<body>x</body><x xmlns='urn:xmpp:muclight:0#affiliations'/>").skipReason());
+    assertEquals(
+        SkipReason.NO_BODY, inStanza("<markable xmlns='urn:xmpp:chat-markers:0'/>").skipReason());
+    assertEquals(SkipReason.UNKNOWN_CONFIG_OP, config("somethingNew", "").skipReason());
+    assertEquals(
+        SkipReason.FORWARD_WITHOUT_BODY,
+        inStanza("<forwarded xmlns='urn:xmpp:forward:0'/>").skipReason());
+    assertEquals(
+        SkipReason.UNKNOWN_APPLY_TO,
+        inStanza("<apply-to id='A' xmlns='urn:xmpp:fasten:0'><other/></apply-to>").skipReason());
+    assertNull(inStanza("<body>x</body>").skipReason());
+  }
+
+  @Test
+  @DisplayName("Invalid UTF-8 is replaced and noted, a literal U+FFFD is not")
+  void invalidUtf8IsNoted() {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    out.writeBytes(("<message " + FROM + " id='a'><body>ab").getBytes(StandardCharsets.UTF_8));
+    out.write(0xC3);
+    out.writeBytes(("cd</body>" + MUC_USER + "</message>").getBytes(StandardCharsets.UTF_8));
+    ParsedRow broken = StanzaParser.parse(out.toByteArray());
+    assertEquals(Kind.TEXT, broken.kind());
+    assertEquals(java.util.List.of(SkipReason.INVALID_UTF8), broken.notes());
+
+    assertTrue(inStanza("<body>ab\uFFFDcd</body>").notes().isEmpty());
+  }
+
+  @Test
+  @DisplayName("Forward from a bare room jid is a plain message and is noted")
+  void forwardFromBareRoomIsPlain() {
+    ParsedRow row =
+        inStanza(
+            "<body/><forwarded xmlns='urn:xmpp:forward:0'><delay stamp='2026-10-07T16:38:56Z'"
+                + " xmlns='urn:xmpp:delay'/><message"
+                + " from='a992e390-3e44-4536-aed5-a5e13572d046@muclight.carbonio'><body>hello</body>"
+                + "</message></forwarded>");
+    assertEquals(Kind.TEXT, row.kind());
+    assertEquals("hello", row.text());
+    assertNull(row.forwardFrom());
+    assertEquals(java.util.List.of(SkipReason.FORWARD_AS_PLAIN), row.notes());
+  }
+
+  @Test
+  @DisplayName("Forwarded attachment from a bare jid keeps the attachment as a plain attachment")
+  void forwardedAttachmentFromBareJidIsPlain() {
+    ParsedRow row =
+        attachment(
+            "<area>2x2</area>",
+            "<body/><forwarded xmlns='urn:xmpp:forward:0'><message"
+                + " from='a992e390-3e44-4536-aed5-a5e13572d046@muclight.carbonio'><body>cap</body>"
+                + "</message></forwarded>");
+    assertEquals(Kind.ATTACHMENT, row.kind());
+    assertEquals("7bdb68d2-00a0-4f9d-b966-f846a1d5bec8", row.attachmentId());
+    assertEquals("2x2", row.area());
+    assertEquals("cap", row.text());
+    assertEquals(java.util.List.of(SkipReason.FORWARD_AS_PLAIN), row.notes());
+  }
+
+  @Test
+  @DisplayName("Forward with a missing or non-UUID origin is a plain message and is noted")
+  void forwardWithoutResolvableOriginIsPlain() {
+    ParsedRow missing =
+        inStanza(
+            "<forwarded xmlns='urn:xmpp:forward:0'><message><body>x</body></message></forwarded>");
+    ParsedRow notUuid =
+        inStanza(
+            "<forwarded xmlns='urn:xmpp:forward:0'><message from='someone@carbonio/x'>"
+                + "<body>y</body></message></forwarded>");
+    assertEquals(Kind.TEXT, missing.kind());
+    assertEquals("x", missing.text());
+    assertEquals(java.util.List.of(SkipReason.FORWARD_AS_PLAIN), missing.notes());
+    assertEquals(Kind.TEXT, notUuid.kind());
+    assertEquals(java.util.List.of(SkipReason.FORWARD_AS_PLAIN), notUuid.notes());
+  }
+
+  @Test
+  @DisplayName("Forward from a user jid, with or without resource, stays a forward")
+  void forwardFromUserJidStaysForward() {
+    for (String from : new String[] {"@carbonio", "@carbonio/res"}) {
+      ParsedRow row =
+          inStanza(
+              "<forwarded xmlns='urn:xmpp:forward:0'><message from='"
+                  + "97c353af-4374-5ff3-a3eb-3056c0b4dba9"
+                  + from
+                  + "'><body>x</body></message></forwarded>");
+      assertEquals(Kind.FORWARD, row.kind(), from);
+      assertEquals("97c353af-4374-5ff3-a3eb-3056c0b4dba9", row.forwardFrom());
+      assertTrue(row.notes().isEmpty());
+    }
+  }
+
+  @Test
+  @DisplayName("Forward from a room member resource stays a forward")
+  void forwardWithResourceStaysForward() {
+    ParsedRow row =
+        inStanza(
+            "<body/><forwarded xmlns='urn:xmpp:forward:0'><message"
+                + " from='a992e390-3e44-4536-aed5-a5e13572d046@muclight.carbonio/"
+                + "ba2c72b5-0128-5656-806c-8a163b58450e@carbonio'><body>x</body></message>"
+                + "</forwarded>");
+    assertEquals(Kind.FORWARD, row.kind());
+    assertEquals("ba2c72b5-0128-5656-806c-8a163b58450e", row.forwardFrom());
+    assertTrue(row.notes().isEmpty());
+  }
+
+  @Test
+  @DisplayName("An unparseable forward stamp is null")
+  void unparseableForwardStamp() {
+    ParsedRow row =
+        inStanza(
+            "<forwarded xmlns='urn:xmpp:forward:0'><delay stamp='yesterday'"
+                + " xmlns='urn:xmpp:delay'/><message"
+                + " from='97c353af-4374-5ff3-a3eb-3056c0b4dba9@carbonio'><body>x</body>"
+                + "</message></forwarded>");
+    assertEquals(Kind.FORWARD, row.kind());
+    assertNull(row.forwardStamp());
   }
 
   @Test

@@ -76,6 +76,7 @@ public final class TimelineWriter implements AutoCloseable {
 
   private final Connection target;
   private final FileLinker files;
+  private final ImportContext context;
   private final CopyRows insertMessage =
       new CopyRows(
           "chats.message",
@@ -96,9 +97,10 @@ public final class TimelineWriter implements AutoCloseable {
   private int messages;
   private int events;
 
-  public TimelineWriter(Connection target, FileLinker files) {
+  public TimelineWriter(Connection target, FileLinker files, ImportContext context) {
     this.target = target;
     this.files = files;
+    this.context = context;
   }
 
   public void beginRoom(String roomId) {
@@ -124,26 +126,32 @@ public final class TimelineWriter implements AutoCloseable {
   }
 
   public void addMessage(long mam, Message m) throws SQLException {
-    insertMessage
-        .text(m.id())
-        .text(roomId)
-        .text(m.sender())
-        .text(m.text())
-        .text(m.replyTo())
-        .bool(m.forwarded())
-        .text(m.forwardedSender())
-        .time(m.forwardedAt())
-        .text(m.attachmentId())
-        .bool(m.deleted())
-        .time(m.deletedAt())
-        .time(m.createdAt())
-        .time(m.updatedAt())
-        .endRow();
+    int chars = m.text().length();
+    try {
+      insertMessage
+          .text(m.id())
+          .text(roomId)
+          .text(m.sender())
+          .text(m.text())
+          .text(m.replyTo())
+          .bool(m.forwarded())
+          .text(m.forwardedSender())
+          .time(m.forwardedAt())
+          .text(m.attachmentId())
+          .bool(m.deleted())
+          .time(m.deletedAt())
+          .time(m.createdAt())
+          .time(m.updatedAt())
+          .endRow();
+    } catch (RuntimeException e) {
+      insertMessage.discardRow();
+      throw e;
+    }
     if (pendingMessages == 0) {
       firstMessageMam = mam;
       firstMessageRoom = roomId;
     }
-    pendingMessageChars += m.text().length();
+    pendingMessageChars += chars;
     messages++;
     if (++pendingMessages >= BATCH_SIZE || pendingMessageChars >= BATCH_CHARS) {
       flushMessages();
@@ -172,6 +180,10 @@ public final class TimelineWriter implements AutoCloseable {
   public void roomCreated(TargetRoom room, String id, RoomClock clock) throws SQLException {
     Instant createdAt = room.createdAt();
     Instant first = clock.first();
+    if (createdAt == null || !MamTime.inRange(createdAt) || createdAt.isAfter(context.t0())) {
+      context.count(SkipReason.ROOM_CREATED_AT_OUT_OF_RANGE, room.id(), 0);
+      createdAt = first == null ? context.t0() : first.minus(1, ChronoUnit.MICROS);
+    }
     if (first != null) {
       Instant before = first.minus(1, ChronoUnit.MICROS);
       if (before.isBefore(createdAt)) {
@@ -223,6 +235,11 @@ public final class TimelineWriter implements AutoCloseable {
 
   private void bindEvent(String id, String type, String actorId, String content, Instant time)
       throws SQLException {
-    insertEvent.text(id).text(roomId).text(type).text(actorId).text(content).time(time).endRow();
+    try {
+      insertEvent.text(id).text(roomId).text(type).text(actorId).text(content).time(time).endRow();
+    } catch (RuntimeException e) {
+      insertEvent.discardRow();
+      throw e;
+    }
   }
 }
