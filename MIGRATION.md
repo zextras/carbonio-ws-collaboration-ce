@@ -332,9 +332,9 @@ the PostgreSQL clock in the statement that writes the row: a UTC instant with mi
 (`TIMESTAMPTZ`). The serialised offset may vary, so compare times as instants, never as strings.
 
 - **Keep full precision in cursors.** A client that truncates a time to milliseconds can skip or repeat
-  items. `GET /rooms/{roomId}/timeline` with `beforeId` anchors the page on the stored time of that item,
-  so the `before` value is not trusted to the microsecond. `GET /rooms/{roomId}/messages/search` has
-  only `before`: send the exact value of the oldest result.
+  items. `GET /rooms/{roomId}/timeline` with `beforeId`, `afterId` or `aroundId` anchors the page on the
+  stored time of that item, so the `before`, `after` or `around` value is not trusted to the microsecond.
+  `GET /rooms/{roomId}/messages/search` takes `beforeId` the same way: send it with `before`.
 - **Lines of one action are ordered by write.** There are no synthetic offsets: room creation writes
   `ROOM_CREATED` then one `MEMBER_ADDED` per member, a bulk add writes its lines in request order, a name and
   description change writes name first. Each line has its own, strictly increasing time.

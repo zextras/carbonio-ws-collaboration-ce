@@ -77,6 +77,67 @@ public class TimelineRepositoryImpl implements TimelineRepository {
   }
 
   @Override
+  public TimelinePage findAfter(
+      String roomId, OffsetDateTime after, String afterId, OffsetDateTime floor, int limit) {
+    Optional<OffsetDateTime> stored = storedCreatedAt(roomId, afterId);
+    if (stored.isEmpty()) {
+      return findAfter(roomId, floor != null && floor.isAfter(after) ? floor : after, limit);
+    }
+    int fetch = limit + 1;
+    OffsetDateTime anchor = stored.get();
+    List<TimelineItem> messages =
+        wrapMessages(
+            messageRepository.getByRoomIdForward(roomId, anchor, afterId, false, floor, fetch));
+    List<TimelineItem> events =
+        wrapEvents(
+            systemEventRepository.findByRoomIdForwardFrom(
+                roomId, anchor, afterId, false, floor, fetch));
+    return ascendingPage(messages, events, limit);
+  }
+
+  @Override
+  public TimelinePage findAround(
+      String roomId, OffsetDateTime around, String aroundId, OffsetDateTime floor, int limit) {
+    Optional<OffsetDateTime> stored = storedCreatedAt(roomId, aroundId);
+    if (stored.isEmpty()) {
+      return findAround(roomId, around, floor, limit);
+    }
+    int half = limit / 2;
+    int fetch = half + 1;
+    OffsetDateTime anchor = stored.get();
+
+    List<TimelineItem> olderMessages =
+        wrapMessages(messageRepository.getByRoomId(roomId, anchor, aroundId, floor, fetch));
+    List<TimelineItem> olderEvents =
+        wrapEvents(
+            systemEventRepository.findByRoomIdComposite(roomId, anchor, aroundId, floor, fetch));
+    List<TimelineItem> newerMessages =
+        wrapMessages(
+            messageRepository.getByRoomIdForward(roomId, anchor, aroundId, true, floor, fetch));
+    List<TimelineItem> newerEvents =
+        wrapEvents(
+            systemEventRepository.findByRoomIdForwardFrom(
+                roomId, anchor, aroundId, true, floor, fetch));
+
+    List<TimelineItem> olderMerged =
+        TimelineMerger.merge(olderMessages, olderEvents, TimelineMerger.DESCENDING, fetch);
+    List<TimelineItem> newerMerged =
+        TimelineMerger.merge(newerMessages, newerEvents, TimelineMerger.ASCENDING, fetch);
+
+    boolean hasMoreBefore = olderMerged.size() > half;
+    boolean hasMoreAfter = newerMerged.size() > half;
+
+    List<TimelineItem> older =
+        new ArrayList<>(hasMoreBefore ? olderMerged.subList(0, half) : olderMerged);
+    older.sort(TimelineMerger.ASCENDING);
+    List<TimelineItem> newer = hasMoreAfter ? newerMerged.subList(0, half) : newerMerged;
+
+    List<TimelineItem> items = new ArrayList<>(older);
+    items.addAll(newer);
+    return new TimelinePage(items, hasMoreBefore, hasMoreAfter);
+  }
+
+  @Override
   public TimelinePage findAround(
       String roomId, OffsetDateTime around, OffsetDateTime after, int limit) {
     int half = limit / 2;
@@ -135,6 +196,15 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     List<TimelineItem> page = new ArrayList<>(hasMoreBefore ? merged.subList(0, limit) : merged);
     page.sort(TimelineMerger.ASCENDING);
     return new TimelinePage(page, hasMoreBefore, false);
+  }
+
+  private TimelinePage ascendingPage(
+      List<TimelineItem> messages, List<TimelineItem> events, int limit) {
+    List<TimelineItem> merged =
+        TimelineMerger.merge(messages, events, TimelineMerger.ASCENDING, limit + 1);
+    boolean hasMoreAfter = merged.size() > limit;
+    List<TimelineItem> page = hasMoreAfter ? new ArrayList<>(merged.subList(0, limit)) : merged;
+    return new TimelinePage(page, false, hasMoreAfter);
   }
 
   private static List<TimelineItem> wrapMessages(List<Message> messages) {

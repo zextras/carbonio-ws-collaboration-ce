@@ -72,12 +72,19 @@ public interface ChatMessageService {
    * @param roomId room identifier
    * @param searchText text to search for
    * @param before upper time bound for pagination (null = start from most recent)
+   * @param beforeId message that anchors the composite cursor with {@code before}; its stored
+   *     creation time replaces {@code before} when it exists in the room (null = time only)
    * @param after lower time bound (exclusive); used to hide history the caller has cleared
    * @param limit maximum number of messages
    * @return list of {@link Message}
    */
   List<Message> searchMessages(
-      String roomId, String searchText, OffsetDateTime before, OffsetDateTime after, int limit);
+      String roomId,
+      String searchText,
+      OffsetDateTime before,
+      String beforeId,
+      OffsetDateTime after,
+      int limit);
 
   // ==================== INBOX OPERATIONS ====================
 

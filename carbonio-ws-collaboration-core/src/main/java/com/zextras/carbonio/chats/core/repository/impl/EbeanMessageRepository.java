@@ -104,6 +104,28 @@ public class EbeanMessageRepository implements MessageRepository {
 
   @Override
   @Transactional
+  public List<Message> getByRoomIdForward(
+      String roomId,
+      OffsetDateTime from,
+      String fromId,
+      boolean inclusive,
+      OffsetDateTime floor,
+      int limit) {
+    Query<Message> query =
+        db.find(Message.class)
+            .fetch("reactions")
+            .where()
+            .eq("roomId", roomId)
+            .raw(inclusive ? "(created_at, id) >= (?,?)" : "(created_at, id) > (?,?)", from, fromId)
+            .query();
+    if (floor != null) {
+      query = query.where().gt("createdAt", floor).query();
+    }
+    return query.orderBy("createdAt asc, id asc").setMaxRows(limit).findList();
+  }
+
+  @Override
+  @Transactional
   public List<Message> getByRoomIdAndIds(String roomId, List<String> ids) {
     return db.find(Message.class)
         .where()
@@ -127,6 +149,36 @@ public class EbeanMessageRepository implements MessageRepository {
     }
 
     if (before != null) {
+      query = query.where().lt("createdAt", before).query();
+    }
+    if (after != null) {
+      query = query.where().gt("createdAt", after).query();
+    }
+
+    return query.orderBy("createdAt desc, id desc").setMaxRows(limit).findList();
+  }
+
+  @Override
+  @Transactional
+  public List<Message> searchByText(
+      String roomId,
+      List<String> words,
+      OffsetDateTime before,
+      String beforeId,
+      OffsetDateTime after,
+      int limit) {
+    Query<Message> query = db.find(Message.class).where().eq("roomId", roomId).query();
+    for (String word : words) {
+      query =
+          query
+              .where()
+              .raw("text ILIKE ? ESCAPE '\\'", "%" + SearchTextUtils.escapeLike(word) + "%")
+              .query();
+    }
+
+    if (before != null && beforeId != null) {
+      query = query.where().raw("(created_at, id) < (?,?)", before, beforeId).query();
+    } else if (before != null) {
       query = query.where().lt("createdAt", before).query();
     }
     if (after != null) {

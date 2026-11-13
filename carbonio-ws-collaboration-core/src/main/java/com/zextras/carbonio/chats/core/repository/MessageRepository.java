@@ -71,6 +71,20 @@ public interface MessageRepository {
       String roomId, OffsetDateTime before, OffsetDateTime after, int limit, boolean ascending);
 
   /**
+   * Retrieves messages for a room oldest-first from a composite cursor: {@code (created_at, id) >=
+   * (from, fromId)} when inclusive, {@code >} otherwise.
+   *
+   * @param floor only messages strictly after this time (null for no lower bound)
+   */
+  List<Message> getByRoomIdForward(
+      String roomId,
+      OffsetDateTime from,
+      String fromId,
+      boolean inclusive,
+      OffsetDateTime floor,
+      int limit);
+
+  /**
    * Retrieves messages for a room by their ids (batch lookup)
    *
    * @param roomId room identifier
@@ -93,6 +107,15 @@ public interface MessageRepository {
    */
   List<Message> searchByText(
       String roomId, List<String> words, OffsetDateTime before, OffsetDateTime after, int limit);
+
+  /** Same as above with the composite cursor {@code (created_at, id) < (before, beforeId)}. */
+  List<Message> searchByText(
+      String roomId,
+      List<String> words,
+      OffsetDateTime before,
+      String beforeId,
+      OffsetDateTime after,
+      int limit);
 
   /**
    * For each room the user is subscribed to, the newest non-deleted message and the newest system

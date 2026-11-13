@@ -230,4 +230,115 @@ class TimelineCursorIT {
     assertAroundHalvesDisjoint(middle.at().truncatedTo(ChronoUnit.MILLIS), expected);
     assertAroundHalvesDisjoint(middle.at(), expected);
   }
+
+  private List<Stored> saveTieGroup(OffsetDateTime at) {
+    List<Stored> tie = new ArrayList<>();
+    tie.add(saveMessage(at));
+    tie.add(saveMessage(at));
+    tie.add(saveEvent(at));
+    tie.add(saveMessage(at));
+    tie.add(saveEvent(at));
+    return tie;
+  }
+
+  @Test
+  @DisplayName("After with afterId pages through tied timestamps without skips or repeats")
+  void afterIdPagesThroughTiedTimestamps() throws Exception {
+    freshRoom();
+    OffsetDateTime tieAt = BASE.plusNanos(500_000);
+    Stored earlier = saveMessage(BASE.plusNanos(100_000));
+    saveTieGroup(tieAt);
+    Stored later = saveMessage(BASE.plusNanos(900_000));
+    List<String> full = timelineIds("?limit=50&after=" + enc(BASE));
+    assertEquals(7, full.size());
+
+    List<String> walked = new ArrayList<>();
+    String query = "?limit=2&after=" + enc(BASE);
+    for (int guard = 0; guard < 10; guard++) {
+      var response = dispatcher.get(String.format("/rooms/%s/timeline%s", roomId, query), token);
+      assertEquals(200, response.getStatus());
+      JsonNode root = objectMapper.readTree(response.getContentAsString());
+      JsonNode items = root.get("items");
+      items.forEach(item -> walked.add(itemId(item)));
+      if (!root.get("hasMoreAfter").asBoolean()) {
+        break;
+      }
+      JsonNode last = items.get(items.size() - 1);
+      query =
+          String.format(
+              "?limit=2&after=%s&afterId=%s",
+              enc(
+                  OffsetDateTime.parse(last.get("createdAt").asText())
+                      .truncatedTo(ChronoUnit.MILLIS)),
+              itemId(last));
+    }
+    assertEquals(full, walked);
+    assertEquals(earlier.id(), full.get(0));
+    assertEquals(later.id(), full.get(6));
+  }
+
+  @Test
+  @DisplayName("After without afterId keeps the strict timestamp semantics")
+  void afterWithoutIdIsStrict() throws Exception {
+    freshRoom();
+    OffsetDateTime tieAt = BASE.plusNanos(500_000);
+    saveMessage(BASE.plusNanos(100_000));
+    saveTieGroup(tieAt);
+    Stored later = saveMessage(BASE.plusNanos(900_000));
+    assertEquals(List.of(later.id()), timelineIds("?limit=50&after=" + enc(tieAt)));
+  }
+
+  @Test
+  @DisplayName("Around with aroundId centres on the item inside a tied timestamp")
+  void aroundIdCentresInsideTiedTimestamp() throws Exception {
+    freshRoom();
+    OffsetDateTime tieAt = BASE.plusNanos(500_000);
+    saveMessage(BASE.plusNanos(100_000));
+    saveTieGroup(tieAt);
+    saveMessage(BASE.plusNanos(900_000));
+    List<String> full = timelineIds("?limit=50&after=" + enc(BASE));
+    assertEquals(7, full.size());
+
+    int k = 3;
+    assertEquals(
+        full.subList(k - 2, k + 2),
+        timelineIds("?limit=4&around=" + enc(tieAt) + "&aroundId=" + full.get(k)));
+    k = 2;
+    assertEquals(
+        full.subList(k - 2, k + 2),
+        timelineIds("?limit=4&around=" + enc(tieAt) + "&aroundId=" + full.get(k)));
+  }
+
+  @Test
+  @DisplayName("Around without aroundId keeps the timestamp split")
+  void aroundWithoutIdKeepsTimestampSplit() throws Exception {
+    freshRoom();
+    OffsetDateTime tieAt = BASE.plusNanos(500_000);
+    saveMessage(BASE.plusNanos(100_000));
+    saveTieGroup(tieAt);
+    Stored later = saveMessage(BASE.plusNanos(1_500_000));
+    List<String> full = timelineIds("?limit=50&after=" + enc(BASE));
+
+    assertEquals(
+        List.of(full.get(4), full.get(5), later.id()),
+        timelineIds("?limit=4&around=" + enc(tieAt)));
+  }
+
+  @Test
+  @DisplayName("An afterId or aroundId of another room falls back to the client timestamp")
+  void foreignAfterAndAroundIdFallBack() throws Exception {
+    String foreignId = saveMessage(BASE.plusNanos(10_000_000)).id();
+    freshRoom();
+    Stored a = saveMessage(BASE.plusNanos(100_000));
+    Stored b = saveMessage(BASE.plusNanos(200_000));
+    Stored c = saveMessage(BASE.plusNanos(300_000));
+    assertEquals(
+        List.of(b.id(), c.id()),
+        timelineIds("?limit=10&after=" + enc(BASE.plusNanos(150_000)) + "&afterId=" + foreignId));
+    assertEquals(
+        timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000))),
+        timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000)) + "&aroundId=" + foreignId));
+    assertEquals(3, timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000))).size());
+    assertEquals(a.id(), timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000))).get(0));
+  }
 }

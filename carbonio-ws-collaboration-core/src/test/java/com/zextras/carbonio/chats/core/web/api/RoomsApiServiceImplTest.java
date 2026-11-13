@@ -3335,7 +3335,8 @@ class RoomsApiServiceImplTest {
       when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()))).thenReturn(List.of());
 
       Response response =
-          roomsApiService.getTimeline(roomId, null, null, null, null, 50, securityContext);
+          roomsApiService.getTimeline(
+              roomId, null, null, null, null, null, null, 50, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       TimelineDto timeline = (TimelineDto) response.getEntity();
@@ -3379,7 +3380,7 @@ class RoomsApiServiceImplTest {
 
       Response response =
           roomsApiService.getTimeline(
-              roomId, null, null, anchor.toString(), null, 2, securityContext);
+              roomId, null, null, anchor.toString(), null, null, null, 2, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       TimelineDto timeline = (TimelineDto) response.getEntity();
@@ -3419,7 +3420,7 @@ class RoomsApiServiceImplTest {
 
       Response response =
           roomsApiService.getTimeline(
-              roomId, null, null, anchor.toString(), null, 2, securityContext);
+              roomId, null, null, anchor.toString(), null, null, null, 2, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       TimelineDto timeline = (TimelineDto) response.getEntity();
@@ -3461,7 +3462,7 @@ class RoomsApiServiceImplTest {
 
       Response response =
           roomsApiService.getTimeline(
-              roomId, null, null, null, aroundTs.toString(), 4, securityContext);
+              roomId, null, null, null, null, aroundTs.toString(), null, 4, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       TimelineDto timeline = (TimelineDto) response.getEntity();
@@ -3500,7 +3501,8 @@ class RoomsApiServiceImplTest {
       when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()))).thenReturn(List.of());
 
       Response response =
-          roomsApiService.getTimeline(roomId, null, null, null, null, 50, securityContext);
+          roomsApiService.getTimeline(
+              roomId, null, null, null, null, null, null, 50, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       TimelineDto timeline = (TimelineDto) response.getEntity();
@@ -3549,7 +3551,8 @@ class RoomsApiServiceImplTest {
                       .originalSize(20L)));
 
       Response response =
-          roomsApiService.getTimeline(roomId, null, null, null, null, 50, securityContext);
+          roomsApiService.getTimeline(
+              roomId, null, null, null, null, null, null, 50, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       verify(fileMetadataRepository, times(1)).getByIds(any());
@@ -3588,7 +3591,8 @@ class RoomsApiServiceImplTest {
           .thenReturn(List.of(original));
 
       Response response =
-          roomsApiService.getTimeline(roomId, null, null, null, null, 50, securityContext);
+          roomsApiService.getTimeline(
+              roomId, null, null, null, null, null, null, 50, securityContext);
 
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
       verify(messageRepository, times(1)).getByRoomIdAndIds(eq(roomId.toString()), any());
@@ -3623,7 +3627,8 @@ class RoomsApiServiceImplTest {
           .thenReturn(List.of(original));
 
       Response response =
-          roomsApiService.getTimeline(roomId, null, null, null, null, 50, securityContext);
+          roomsApiService.getTimeline(
+              roomId, null, null, null, null, null, null, 50, securityContext);
 
       ChatMessageTimelineItemDto item =
           (ChatMessageTimelineItemDto) ((TimelineDto) response.getEntity()).getItems().get(0);
@@ -3652,7 +3657,8 @@ class RoomsApiServiceImplTest {
           .thenReturn(List.of(original));
 
       Response response =
-          roomsApiService.getTimeline(roomId, null, null, null, null, 50, securityContext);
+          roomsApiService.getTimeline(
+              roomId, null, null, null, null, null, null, 50, securityContext);
 
       ChatMessageTimelineItemDto item =
           (ChatMessageTimelineItemDto) ((TimelineDto) response.getEntity()).getItems().get(0);

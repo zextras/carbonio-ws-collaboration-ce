@@ -209,4 +209,64 @@ class SearchIT {
 
     assertEquals(List.of(visible), found("needle"));
   }
+
+  private List<String> foundPage(String query) throws Exception {
+    MockHttpResponse response =
+        dispatcher.get(String.format("/rooms/%s/messages/search?%s", roomId, query), meToken);
+    assertEquals(200, response.getStatus());
+    List<String> ids = new java.util.ArrayList<>();
+    for (JsonNode m : objectMapper.readTree(response.getContentAsString()).get("messages")) {
+      ids.add(m.get("id").asText());
+    }
+    return ids;
+  }
+
+  private String messageAt(String text, OffsetDateTime at) {
+    String id = UUID.randomUUID().toString();
+    messageRepository.insert(
+        Message.create().id(id).roomId(roomId).senderId(otherId.toString()).text(text));
+    integrationTestUtils.setMessageTime(id, at);
+    return id;
+  }
+
+  @Test
+  @DisplayName("Search before with beforeId pages through messages sharing one timestamp")
+  void beforeIdPagesThroughTiedTimestamps() throws Exception {
+    OffsetDateTime tieAt = T0.plusSeconds(10).plusNanos(123_456_000);
+    messageAt("needle first", T0.plusSeconds(1));
+    for (int i = 0; i < 5; i++) {
+      messageAt("needle tied " + i, tieAt);
+    }
+    messageAt("needle last", T0.plusSeconds(20));
+    List<String> full = foundPage("q=needle&limit=50");
+    assertEquals(7, full.size());
+
+    List<String> walked = new java.util.ArrayList<>(foundPage("q=needle&limit=3"));
+    assertEquals(full.subList(0, 3), walked);
+    for (int guard = 0; guard < 5 && walked.size() < full.size(); guard++) {
+      String lastId = walked.get(walked.size() - 1);
+      OffsetDateTime lastAt = messageRepository.getById(lastId).orElseThrow().getCreatedAt();
+      walked.addAll(
+          foundPage(
+              String.format(
+                  "q=needle&limit=3&before=%s&beforeId=%s",
+                  URLEncoder.encode(lastAt.toString(), StandardCharsets.UTF_8), lastId)));
+    }
+    assertEquals(full, walked);
+  }
+
+  @Test
+  @DisplayName("Search before without beforeId keeps the strict timestamp semantics")
+  void beforeWithoutIdIsStrict() throws Exception {
+    OffsetDateTime tieAt = T0.plusSeconds(10);
+    String first = messageAt("needle first", T0.plusSeconds(1));
+    for (int i = 0; i < 3; i++) {
+      messageAt("needle tied " + i, tieAt);
+    }
+    assertEquals(
+        List.of(first),
+        foundPage(
+            "q=needle&limit=50&before="
+                + URLEncoder.encode(tieAt.toString(), StandardCharsets.UTF_8)));
+  }
 }

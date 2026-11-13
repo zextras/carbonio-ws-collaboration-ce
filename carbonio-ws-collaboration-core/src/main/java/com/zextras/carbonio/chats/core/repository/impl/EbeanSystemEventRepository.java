@@ -132,6 +132,26 @@ public class EbeanSystemEventRepository implements SystemEventRepository {
   }
 
   @Override
+  public List<SystemEvent> findByRoomIdForwardFrom(
+      String roomId,
+      OffsetDateTime from,
+      String fromId,
+      boolean inclusive,
+      OffsetDateTime floor,
+      int limit) {
+    Query<SystemEvent> query =
+        db.find(SystemEvent.class)
+            .where()
+            .eq("roomId", roomId)
+            .raw(inclusive ? "(created_at, id) >= (?,?)" : "(created_at, id) > (?,?)", from, fromId)
+            .query();
+    if (floor != null) {
+      query = query.where().gt("createdAt", floor).query();
+    }
+    return query.orderBy("createdAt asc, id asc").setMaxRows(limit).findList();
+  }
+
+  @Override
   public void deleteByRoomId(String roomId) {
     db.find(SystemEvent.class).where().eq("roomId", roomId).delete();
   }

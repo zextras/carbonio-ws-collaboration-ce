@@ -34,6 +34,23 @@ public interface TimelineRepository {
   /** Page strictly newer than {@code after}. Sets {@code hasMoreAfter}. */
   TimelinePage findAfter(String roomId, OffsetDateTime after, int limit);
 
+  /**
+   * Page strictly newer than the composite cursor {@code (after, afterId)}, where {@code after} is
+   * replaced by the stored time of {@code afterId} when that item exists in the room; {@code floor}
+   * is the caller's visibility floor. Sets {@code hasMoreAfter}.
+   */
+  TimelinePage findAfter(
+      String roomId, OffsetDateTime after, String afterId, OffsetDateTime floor, int limit);
+
+  /**
+   * Page centered on the item {@code aroundId} using the composite order: older items are {@code <
+   * (anchor, aroundId)}, the item itself and newer ones {@code >=}. {@code anchor} is the stored
+   * time of {@code aroundId} when that item exists in the room, else {@code around} with the
+   * time-only split.
+   */
+  TimelinePage findAround(
+      String roomId, OffsetDateTime around, String aroundId, OffsetDateTime floor, int limit);
+
   /** Page centered on {@code around}: half older + half newer. Sets both frontier flags. */
   TimelinePage findAround(String roomId, OffsetDateTime around, OffsetDateTime after, int limit);
 }

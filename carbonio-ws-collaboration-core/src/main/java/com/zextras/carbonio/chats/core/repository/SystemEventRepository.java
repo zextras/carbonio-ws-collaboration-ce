@@ -75,4 +75,12 @@ public interface SystemEventRepository {
 
   List<SystemEvent> findByRoomIdForward(
       String roomId, OffsetDateTime after, String afterId, OffsetDateTime before, int limit);
+
+  List<SystemEvent> findByRoomIdForwardFrom(
+      String roomId,
+      OffsetDateTime from,
+      String fromId,
+      boolean inclusive,
+      OffsetDateTime floor,
+      int limit);
 }

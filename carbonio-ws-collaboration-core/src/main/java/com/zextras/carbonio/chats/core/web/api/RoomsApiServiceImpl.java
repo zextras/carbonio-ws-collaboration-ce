@@ -1248,7 +1248,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response searchMessages(
-      UUID roomId, String q, Integer limit, String before, SecurityContext securityContext) {
+      UUID roomId,
+      String q,
+      Integer limit,
+      String before,
+      String beforeId,
+      SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     VisibilityFloor floor =
         chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
@@ -1257,7 +1262,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     OffsetDateTime beforeTs = before != null ? OffsetDateTime.parse(before) : null;
     List<Message> page =
         chatMessageService.searchMessages(
-            roomId.toString(), q, beforeTs, floorAfter, pageLimit + 1);
+            roomId.toString(),
+            q,
+            beforeTs,
+            beforeId != null && !beforeId.isBlank() ? beforeId : null,
+            floorAfter,
+            pageLimit + 1);
     boolean hasMore = page.size() > pageLimit;
     List<Message> trimmed = hasMore ? page.subList(0, pageLimit) : page;
     Set<String> visibleReplyIds = visibleReplyTargetIds(trimmed, roomId.toString(), floor);
@@ -1274,7 +1284,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       String before,
       String beforeId,
       String after,
+      String afterId,
       String around,
+      String aroundId,
       Integer limit,
       SecurityContext securityContext) {
     UserPrincipal principal = getCurrentUser(securityContext);
@@ -1290,16 +1302,26 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     // beforeId anchors the composite cursor (created_at, id) < (beforeTs, beforeId)
     String effectiveBeforeId = (beforeId != null && !beforeId.isBlank()) ? beforeId : null;
 
+    String effectiveAfterId = (afterId != null && !afterId.isBlank()) ? afterId : null;
+    String effectiveAroundId = (aroundId != null && !aroundId.isBlank()) ? aroundId : null;
+
     OffsetDateTime effectiveAfter = floor.clamp(afterTs);
 
     TimelinePage page;
     if (around != null && !around.isBlank()) {
       OffsetDateTime aroundTs = OffsetDateTime.parse(around);
       page =
-          timelineRepository.findAround(
-              roomId.toString(), aroundTs, effectiveAfter, effectiveLimit);
+          effectiveAroundId != null
+              ? timelineRepository.findAround(
+                  roomId.toString(), aroundTs, effectiveAroundId, effectiveAfter, effectiveLimit)
+              : timelineRepository.findAround(
+                  roomId.toString(), aroundTs, effectiveAfter, effectiveLimit);
     } else if (afterTs != null) {
-      page = timelineRepository.findAfter(roomId.toString(), effectiveAfter, effectiveLimit);
+      page =
+          effectiveAfterId != null
+              ? timelineRepository.findAfter(
+                  roomId.toString(), afterTs, effectiveAfterId, floor.clearedAt(), effectiveLimit)
+              : timelineRepository.findAfter(roomId.toString(), effectiveAfter, effectiveLimit);
     } else if (beforeTs != null) {
       page =
           timelineRepository.findBefore(

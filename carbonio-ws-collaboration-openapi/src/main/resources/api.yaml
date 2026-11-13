@@ -551,6 +551,19 @@ paths:
           description: >
             ISO-8601 timestamp cursor — return messages older than this date (for pagination).
             Stored times have microsecond precision: send the exact value of the oldest result.
+            Send its id as `beforeId` too.
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: beforeId
+          description: >
+            Message ID that anchors the page boundary together with `before`.
+            When provided alongside `before`, pagination uses a composite cursor
+            (created_at, id) < (before, beforeId), so messages that share the same timestamp
+            across page boundaries are neither skipped nor repeated.
+            The server anchors the page on the stored creation time of the
+            `beforeId` message rather than on the client-supplied `before`, when the message exists.
           schema:
             type: string
           required: false
@@ -815,8 +828,30 @@ paths:
             type: string
           required: false
         - in: query
+          name: afterId
+          description: >
+            Item ID that anchors the page boundary together with `after`.
+            When provided alongside `after`, pagination uses a composite cursor
+            (created_at, id) > (after, afterId), so items that share the same timestamp
+            across page boundaries are neither skipped nor repeated.
+            The server anchors the page on the stored creation time of the
+            `afterId` item rather than on the client-supplied `after`, when the item exists.
+          schema:
+            type: string
+          required: false
+        - in: query
           name: around
           description: ISO-8601 timestamp cursor - return items around this date
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: aroundId
+          description: >
+            Item ID that anchors the page together with `around`: the page is centred on that item
+            using the composite order (created_at, id), so items that share its timestamp are placed
+            consistently. The server anchors the page on the stored creation time of the
+            `aroundId` item rather than on the client-supplied `around`, when the item exists.
           schema:
             type: string
           required: false

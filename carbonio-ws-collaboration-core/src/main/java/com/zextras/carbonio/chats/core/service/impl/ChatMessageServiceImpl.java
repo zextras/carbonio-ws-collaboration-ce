@@ -108,10 +108,24 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
   @Override
   public List<Message> searchMessages(
-      String roomId, String searchText, OffsetDateTime before, OffsetDateTime after, int limit) {
+      String roomId,
+      String searchText,
+      OffsetDateTime before,
+      String beforeId,
+      OffsetDateTime after,
+      int limit) {
     List<String> words = SearchTextUtils.toSearchWords(searchText);
     if (words.isEmpty()) {
       return List.of();
+    }
+    if (before != null && beforeId != null) {
+      OffsetDateTime anchor =
+          messageRepository
+              .getById(beforeId)
+              .filter(message -> roomId.equals(message.getRoomId()))
+              .map(Message::getCreatedAt)
+              .orElse(before);
+      return messageRepository.searchByText(roomId, words, anchor, beforeId, after, limit);
     }
     return messageRepository.searchByText(roomId, words, before, after, limit);
   }

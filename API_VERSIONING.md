@@ -40,8 +40,9 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
 
 - `GET /rooms/{roomId}/messages` is removed: use `GET /rooms/{roomId}/timeline`.
 - Every stored time is a database time (UTC instant, microsecond precision); system lines of one action have
-  strictly increasing times instead of 1 ms offsets, and `GET /rooms/{roomId}/timeline` with `beforeId`
-  anchors the page on the stored time of that item (`MIGRATION.md` §4).
+  strictly increasing times instead of 1 ms offsets, and `GET /rooms/{roomId}/timeline` with `beforeId`,
+  `afterId` or `aroundId`, and `GET /rooms/{roomId}/messages/search` with `beforeId`, anchor the page on the
+  stored time of that item (`MIGRATION.md` §4).
 - Event times are the stored values: new fields `MeetingCreated.createdAt`, `MeetingParticipantJoined.joinedAt`,
   `MeetingStopped.durationSec` and `MeetingRecordingStarted.startedAt`; `MessageDeleted.deletedAt`,
   `MessageUnpinned.timestamp` and `MessagePinned.timestamp` now equal the stored values.
