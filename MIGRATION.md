@@ -516,3 +516,9 @@ Upgrade procedure (administrators):
    keeps running until the setup restarts it.
 9. On a 1.x → 2.0 upgrade with rpm, the old service hcl (a 1.x config file) disappears with the 1.x package and
    the service is not registered in Consul until the setup renders it again (step 6).
+10. The service unit has `TimeoutStartSec=120s`. While the Flyway migrations run, the service extends the start
+    timeout by 120 s every 30 s for as long as the migration progresses (a migration step starts or ends, imported
+    rows, or the database backend is actively executing a statement); the current step is shown in
+    `systemctl status`. If nothing progresses for 10 minutes the extension stops and systemd kills and restarts the
+    service. Override the window and the stall limit with `WSC_MIGRATION_EXTEND_SECONDS` and
+    `WSC_MIGRATION_STALL_SECONDS` (environment of the unit).

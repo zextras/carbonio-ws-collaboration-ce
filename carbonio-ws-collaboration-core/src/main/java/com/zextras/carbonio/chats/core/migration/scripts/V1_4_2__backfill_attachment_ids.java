@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.migration.scripts;
 
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.migration.MigrationProgress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -82,6 +83,8 @@ public class V1_4_2__backfill_attachment_ids extends BaseJavaMigration {
     List<UpdateRow> batch = new ArrayList<>(BATCH_SIZE);
 
     for (Map.Entry<String, List<AttachmentRow>> entry : byRoom.entrySet()) {
+      MigrationProgress.tick(
+          "Backfilling attachment ids: " + (resolved + notFound) + "/" + rows.size());
       Set<String> fileIds =
           entry.getValue().stream().map(AttachmentRow::fileId).collect(Collectors.toSet());
       Map<String, MamRecord> mamRecords =
@@ -101,6 +104,7 @@ public class V1_4_2__backfill_attachment_ids extends BaseJavaMigration {
         if (batch.size() >= BATCH_SIZE) {
           applyBatch(chatsConn, batch);
           batch.clear();
+          MigrationProgress.tick();
         }
       }
     }

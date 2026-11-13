@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.migration.mongooseimport;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.migration.MigrationProgress;
 import com.zextras.carbonio.chats.core.migration.mongooseimport.TargetRooms.TargetRoom;
 import java.sql.SQLException;
 import java.util.List;
@@ -72,6 +73,7 @@ final class ImportPipeline {
   private static final long POLL_SECONDS = 1;
   private static final long JOIN_SECONDS = 60;
   private static final long PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(60);
+  private static final long STATUS_NANOS = TimeUnit.SECONDS.toNanos(5);
 
   private final BlockingQueue<Item> queue = new LinkedBlockingQueue<>();
   private final Semaphore budget;
@@ -146,9 +148,11 @@ final class ImportPipeline {
   private void consume(Target importer, Thread reader, int totalRooms) {
     long started = System.nanoTime();
     long lastLog = started;
+    long lastStatus = started;
     int roomsDone = 0;
     while (true) {
       Item item = next(reader);
+      MigrationProgress.tick();
       budget.release(cost(item));
       try {
         switch (item) {
@@ -171,6 +175,16 @@ final class ImportPipeline {
         throw failure(importer.currentRoomId(), importer.failedMam(), e);
       }
       long now = System.nanoTime();
+      if (now - lastStatus >= STATUS_NANOS) {
+        lastStatus = now;
+        MigrationProgress.tick(
+            "Importing MongooseIM history: rooms="
+                + roomsDone
+                + "/"
+                + totalRooms
+                + " messages="
+                + importer.written());
+      }
       if (now - lastLog >= PROGRESS_NANOS) {
         lastLog = now;
         ChatsLogger.info(

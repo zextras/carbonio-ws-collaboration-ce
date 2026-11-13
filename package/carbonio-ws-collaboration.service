@@ -22,7 +22,7 @@ Group=carbonio-ws-collaboration
 Restart=on-failure
 RestartSec=15s
 LimitNOFILE=65536
-TimeoutStartSec=infinity
+TimeoutStartSec=120s
 TimeoutStopSec=120s
 
 [Install]

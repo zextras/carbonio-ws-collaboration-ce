@@ -82,12 +82,21 @@ public class Boot {
     ChatsLogger.info("Application latest version: " + VersionProvider.getVersion());
     ChatsLogger.info("Supported versions: " + VersionProvider.getSupportedVersions());
 
+    MigrationKeepAlive keepAlive =
+        MigrationKeepAlive.systemd(
+            hikariDataSource.getJdbcUrl(),
+            hikariDataSource.getUsername(),
+            hikariDataSource.getPassword());
+    keepAlive.start();
     try {
       flyway.migrate();
     } catch (Throwable t) {
       // Non-daemon RabbitMQ threads would keep the JVM alive: exit so systemd restarts it.
       ChatsLogger.error("Database migration failed, exiting", t);
+      keepAlive.stop();
       System.exit(1);
+    } finally {
+      keepAlive.stop();
     }
 
     try {

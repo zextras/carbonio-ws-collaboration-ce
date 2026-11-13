@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.migration.MigrationProgressCallback;
 import com.zextras.carbonio.chats.core.migration.V2_0_1__migrate_mongoose_data;
 import com.zextras.carbonio.chats.core.migration.scripts.V1_4_2__backfill_attachment_ids;
 import io.ebean.Database;
@@ -119,6 +120,7 @@ public class DatabaseModule extends AbstractModule {
             .dataSource(dataSource)
             .validateMigrationNaming(true)
             .lockRetryCount(-1)
+            .callbacks(new MigrationProgressCallback())
             // One transaction for all pending migrations: a failed upgrade changes nothing.
             .group(true)
             .javaMigrations(javaMigrations(credentials).toArray(JavaMigration[]::new))
