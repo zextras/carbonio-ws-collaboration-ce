@@ -47,6 +47,7 @@ import org.mockito.ArgumentCaptor;
 
 class VideoServerEventListenerTest {
 
+  private static final String EXCHANGE = "videoserver.events";
   private static final String JANUS_EXCHANGE = "janus-exchange";
   private static final String JANUS_ROUTING_KEY = "janus-events";
   private static final String LEGACY_QUEUE = "janus-queue";
@@ -85,11 +86,25 @@ class VideoServerEventListenerTest {
   void start_consumesADurableQuorumQueueSharedByEveryInstance() throws Exception {
     listener.start();
 
-    verify(channel).exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
     verify(channel).queueDeclare(QUEUE, true, false, false, QUORUM);
-    verify(channel).queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
     verify(channel)
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void start_bindsTheQueueToTheExchangeJanusPublishesTo() throws Exception {
+    listener.start();
+
+    verify(channel).exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, false);
+    verify(channel).queueBind(QUEUE, EXCHANGE, "");
+  }
+
+  @Test
+  void start_keepsReceivingFromTheExchangeOfVideoServersNotUpgradedYet() throws Exception {
+    listener.start();
+
+    verify(channel).exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
+    verify(channel).queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
   }
 
   @Test

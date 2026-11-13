@@ -92,4 +92,15 @@ class VideoServerEventListenerIT {
 
     verify(healthMonitor, timeout(5000)).notifyVideoServerReady();
   }
+
+  @Test
+  void anEventOnTheExchangeJanusDeclares_reachesTheListener() throws Exception {
+    try (Connection janus = brokerConnectionFactory().newConnection();
+        Channel channel = janus.createChannel()) {
+      channel.exchangeDeclare("videoserver.events", "fanout", false, false, false, null);
+      channel.basicPublish("videoserver.events", "janus-events", null, HEARTBEAT);
+    }
+
+    verify(healthMonitor, timeout(5000)).notifyVideoServerReady();
+  }
 }
