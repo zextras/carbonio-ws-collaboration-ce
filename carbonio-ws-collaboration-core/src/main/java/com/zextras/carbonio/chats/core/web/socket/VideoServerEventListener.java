@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,8 +46,9 @@ import java.util.UUID;
 public class VideoServerEventListener {
 
   private static final String JANUS_EXCHANGE = "janus-exchange";
-  private static final String JANUS_QUEUE = "janus-queue";
   private static final String JANUS_ROUTING_KEY = "janus-events";
+  private static final String LEGACY_QUEUE = "janus-queue";
+  private static final String QUEUE = "wsc.videoserver-events";
 
   private static final String LOCAL = "local";
   private static final String TALKING = "talking";
@@ -110,10 +112,11 @@ public class VideoServerEventListener {
     }
     try {
       channel.exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
-      channel.queueDeclare(JANUS_QUEUE, false, false, false, null);
-      channel.queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
+      channel.queueDeclare(QUEUE, true, false, false, Map.of("x-queue-type", "quorum"));
+      channel.queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
+      channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, this::resubscribe);
+      consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, this::resubscribe);
     } catch (Exception e) {
       ChatsLogger.error("Error starting video server events processing", e);
     }
