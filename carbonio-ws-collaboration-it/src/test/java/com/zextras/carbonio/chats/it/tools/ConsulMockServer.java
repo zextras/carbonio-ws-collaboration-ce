@@ -6,7 +6,9 @@ package com.zextras.carbonio.chats.it.tools;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.ws.rs.HttpMethod;
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.HttpRequest;
@@ -53,5 +55,31 @@ public class ConsulMockServer extends ClientAndServer implements CloseableResour
                             + "    }\n"
                             + "}"))
                 .withStatusCode(200));
+  }
+
+  /**
+   * Stubs {@code GET /v1/health/service/carbonio-ws-collaboration} with one healthy instance per
+   * given {@code service_id}. The response shape matches {@link
+   * com.orbitz.consul.model.health.ServiceHealth}.
+   */
+  public void mockHealthyServiceInstances(UUID... serviceIds) {
+    String instances =
+        Arrays.stream(serviceIds)
+            .map(
+                serviceId ->
+                    "{\"Node\": {\"Node\": \"node-"
+                        + serviceId
+                        + "\", \"Address\": \"127.0.0.1\"},"
+                        + " \"Service\": {\"ID\": \"carbonio-ws-collaboration\","
+                        + " \"Service\": \"carbonio-ws-collaboration\", \"Tags\": [],"
+                        + " \"Address\": \"127.0.0.1\", \"Meta\": {\"service_id\": \""
+                        + serviceId
+                        + "\"}, \"Port\": 10000},"
+                        + " \"Checks\": []}")
+            .collect(Collectors.joining(",", "[", "]"));
+    when(HttpRequest.request()
+            .withMethod(HttpMethod.GET)
+            .withPath("/v1/health/service/carbonio-ws-collaboration"))
+        .respond(HttpResponse.response().withBody(JsonBody.json(instances)).withStatusCode(200));
   }
 }

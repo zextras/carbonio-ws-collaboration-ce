@@ -84,7 +84,7 @@ public class WsPresenceJanitorService {
   /**
    * Recovers stale services, then repairs this instance's own sessions; the steps are independent.
    */
-  void sweep() {
+  public void sweep() {
     recoverStaleServices();
     repairOwnSessions();
   }
