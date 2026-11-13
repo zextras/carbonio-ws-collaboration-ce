@@ -188,7 +188,6 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     Room room =
         roomService.getRoomAndValidateUser(
