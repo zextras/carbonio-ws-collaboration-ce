@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -83,6 +84,20 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   public List<String> getUserIdsByRoomId(String roomId) {
     return db.sqlQuery("SELECT user_id FROM chats.subscription WHERE room_id = :roomId")
         .setParameter("roomId", roomId)
+        .mapToScalar(String.class)
+        .findList();
+  }
+
+  @Override
+  public List<String> getUserIdsWhoCanAccess(String roomId, OffsetDateTime itemCreatedAt) {
+    return db.sqlQuery(
+            "SELECT s.user_id FROM chats.subscription s"
+                + " LEFT JOIN chats.room_user_settings rus"
+                + " ON rus.room_id = s.room_id AND rus.user_id = s.user_id"
+                + " WHERE s.room_id = :roomId"
+                + " AND (rus.cleared_at IS NULL OR rus.cleared_at < :itemCreatedAt)")
+        .setParameter("roomId", roomId)
+        .setParameter("itemCreatedAt", itemCreatedAt)
         .mapToScalar(String.class)
         .findList();
   }

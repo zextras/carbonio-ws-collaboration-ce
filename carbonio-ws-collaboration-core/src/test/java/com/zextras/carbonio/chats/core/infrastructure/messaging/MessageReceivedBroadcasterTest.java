@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -134,14 +135,24 @@ class MessageReceivedBroadcasterTest {
 
   @Test
   void editEventGoesOnlyToMembersWhoCanAccessTheMessage() {
-    when(subscriptionRepository.getUserIdsByRoomId(ROOM))
-        .thenReturn(List.of("early", "cleared", "other"));
-    when(settingsRepository.getUserIdsClearedAtOrAfter(ROOM, T)).thenReturn(List.of("cleared"));
+    when(subscriptionRepository.getUserIdsWhoCanAccess(ROOM, T))
+        .thenReturn(List.of("early", "other"));
 
     broadcaster.broadcastToMembersWhoCanAccess(ROOM, T, "{}");
 
     verify(eventDispatcher, times(1))
         .sendRawToUserExchange(eq(List.of("early", "other")), eq("{}"));
+    verify(subscriptionRepository, never()).getUserIdsByRoomId(anyString());
+    verify(settingsRepository, never()).getUserIdsClearedAtOrAfter(anyString(), any());
+  }
+
+  @Test
+  void accessEventWithNoAllowedMemberSendsNothing() {
+    when(subscriptionRepository.getUserIdsWhoCanAccess(ROOM, T)).thenReturn(List.of());
+
+    broadcaster.broadcastToMembersWhoCanAccess(ROOM, T, "{}");
+
+    verify(eventDispatcher, never()).sendRawToUserExchange(anyList(), anyString());
   }
 
   @Test

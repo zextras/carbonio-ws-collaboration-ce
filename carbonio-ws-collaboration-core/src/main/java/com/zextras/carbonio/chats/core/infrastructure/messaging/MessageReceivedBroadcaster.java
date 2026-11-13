@@ -92,11 +92,7 @@ public class MessageReceivedBroadcaster {
   /** Sends a pre-serialized event only to the members who can see an item created at that time. */
   public void broadcastToMembersWhoCanAccess(
       String roomId, OffsetDateTime itemCreatedAt, String json) {
-    Set<String> denied = deniedUsers(roomId, itemCreatedAt);
-    List<String> allowed =
-        subscriptionRepository.getUserIdsByRoomId(roomId).stream()
-            .filter(id -> !denied.contains(id))
-            .toList();
+    List<String> allowed = subscriptionRepository.getUserIdsWhoCanAccess(roomId, itemCreatedAt);
     if (!allowed.isEmpty()) {
       eventDispatcher.sendRawToUserExchange(allowed, json);
     }

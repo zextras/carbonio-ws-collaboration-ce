@@ -15,6 +15,7 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
+import com.zextras.carbonio.chats.api.InboxApi;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -23,6 +24,7 @@ import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessagePinRepository;
+import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
@@ -40,10 +42,12 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,6 +71,7 @@ class VisibilityIT {
   private final SystemEventRepository systemEventRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final MessagePinRepository pinRepository;
+  private final MessageReactionRepository reactionRepository;
   private final ReadMarkerRepository readRepository;
   private final Channel channel;
   private final StorageMockServer storageMockServer;
@@ -103,6 +108,7 @@ class VisibilityIT {
   public VisibilityIT(
       RoomsApi roomsApi,
       AttachmentsApi attachmentsApi,
+      InboxApi inboxApi,
       ResteasyRequestDispatcher dispatcher,
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
@@ -110,6 +116,7 @@ class VisibilityIT {
       SystemEventRepository systemEventRepository,
       SubscriptionRepository subscriptionRepository,
       MessagePinRepository pinRepository,
+      MessageReactionRepository reactionRepository,
       ReadMarkerRepository readRepository,
       Channel channel,
       StorageMockServer storageMockServer,
@@ -121,12 +128,14 @@ class VisibilityIT {
     this.systemEventRepository = systemEventRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.pinRepository = pinRepository;
+    this.reactionRepository = reactionRepository;
     this.readRepository = readRepository;
     this.channel = channel;
     this.storageMockServer = storageMockServer;
     this.fileMetadataRepository = fileMetadataRepository;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.dispatcher.getRegistry().addSingletonResource(attachmentsApi);
+    this.dispatcher.getRegistry().addSingletonResource(inboxApi);
   }
 
   @BeforeAll
@@ -263,6 +272,22 @@ class VisibilityIT {
         String.format("/rooms/%s/messages/%s/reaction", roomId, messageId),
         Map.of("reaction", "\uD83D\uDC4D"),
         token);
+  }
+
+  private MockHttpResponse edit(String messageId, String token) throws Exception {
+    return putJson(
+        String.format("/rooms/%s/messages/%s/edit", roomId, messageId),
+        Map.of("text", "edited-text"),
+        token);
+  }
+
+  private MockHttpResponse delete(String messageId, String token) throws Exception {
+    return dispatcher.delete(String.format("/rooms/%s/messages/%s", roomId, messageId), token);
+  }
+
+  private MockHttpResponse removeReaction(String messageId, String token) throws Exception {
+    return dispatcher.delete(
+        String.format("/rooms/%s/messages/%s/reaction", roomId, messageId), token);
   }
 
   private MockHttpResponse pin(String messageId, String token) throws Exception {
@@ -650,6 +675,33 @@ class VisibilityIT {
     }
 
     @Test
+    @DisplayName("Edit, delete and reaction removal of own message below own floor are 404")
+    void ownWritesBelowOwnFloor() throws Exception {
+      assertEquals(204, react(m1, aToken).getStatus());
+      clearHistoryOf(aUserId, T3_5);
+
+      assertEquals(404, edit(m1, aToken).getStatus());
+      assertEquals(404, delete(m1, aToken).getStatus());
+      assertEquals(404, removeReaction(m1, aToken).getStatus());
+
+      Message stored = messageRepository.getById(m1).orElseThrow();
+      assertEquals("needle-one", stored.getText());
+      assertFalse(Boolean.TRUE.equals(stored.isDeleted()));
+      assertEquals(1, reactionRepository.getByMessageId(m1).size());
+      assertEquals(200, edit(m3, aToken).getStatus());
+      assertEquals(204, delete(m3, aToken).getStatus());
+    }
+
+    @Test
+    @DisplayName("B edit and delete of a hidden message are 404, of a visible one of A are 403")
+    void hiddenWritesOfOthers() throws Exception {
+      assertEquals(404, edit(m1, bToken).getStatus());
+      assertEquals(404, delete(m1, bToken).getStatus());
+      assertEquals(403, edit(m2, bToken).getStatus());
+      assertEquals(403, delete(m2, bToken).getStatus());
+    }
+
+    @Test
     @DisplayName("B can unpin a pinned message below its cleared_at")
     void unpinHidden() throws Exception {
       assertEquals(
@@ -755,6 +807,7 @@ class VisibilityIT {
       String queueB = bindQueue(bUserId);
       String queueC = bindQueue(cUserId);
       Map<String, String> edit = Map.of("text", "edited-text");
+      pinRepository.unpin(roomId.toString(), m1);
 
       assertEquals(
           200,
@@ -770,6 +823,97 @@ class VisibilityIT {
         assertEquals(m2, nextEvent(queue).get("messageId").asText());
       }
       assertEquals(m2, nextEvent(queueB).get("messageId").asText());
+    }
+
+    @Test
+    @DisplayName("MessageEdited of the current room pin reaches every member, even below the floor")
+    void editOfCurrentPinReachesEveryone() throws Exception {
+      String queueA = bindQueue(aUserId);
+      String queueB = bindQueue(bUserId);
+      String queueC = bindQueue(cUserId);
+
+      assertEquals(200, edit(m1, aToken).getStatus());
+      for (String queue : List.of(queueA, queueB, queueC)) {
+        JsonNode event = nextEvent(queue);
+        assertEquals("MessageEdited", event.get("type").asText());
+        assertEquals(m1, event.get("messageId").asText());
+      }
+
+      pinRepository.unpin(roomId.toString(), m1);
+      assertEquals(200, edit(m1, aToken).getStatus());
+      assertEquals(200, edit(m2, aToken).getStatus());
+      for (String queue : List.of(queueA, queueC)) {
+        assertEquals(m1, nextEvent(queue).get("messageId").asText());
+        assertEquals(m2, nextEvent(queue).get("messageId").asText());
+      }
+      assertEquals(m2, nextEvent(queueB).get("messageId").asText());
+    }
+
+    @Test
+    @DisplayName("MessageDeleted reaches only members who can see the deleted message")
+    void deleteSplit() throws Exception {
+      pinRepository.unpin(roomId.toString(), m1);
+      String queueA = bindQueue(aUserId);
+      String queueB = bindQueue(bUserId);
+      String queueC = bindQueue(cUserId);
+
+      assertEquals(204, delete(m1, aToken).getStatus());
+      assertEquals(204, delete(m2, aToken).getStatus());
+
+      for (String queue : List.of(queueA, queueC)) {
+        JsonNode first = nextEvent(queue);
+        assertEquals("MessageDeleted", first.get("type").asText());
+        assertEquals(m1, first.get("messageId").asText());
+        assertEquals(m2, nextEvent(queue).get("messageId").asText());
+      }
+      JsonNode forB = nextEvent(queueB);
+      assertEquals("MessageDeleted", forB.get("type").asText());
+      assertEquals(m2, forB.get("messageId").asText());
+    }
+
+    @Test
+    @DisplayName(
+        "Deleting the hidden current pin: MessageDeleted is filtered, MessageUnpinned is not")
+    void deleteOfHiddenPin() throws Exception {
+      String queueA = bindQueue(aUserId);
+      String queueB = bindQueue(bUserId);
+      String queueC = bindQueue(cUserId);
+
+      assertEquals(204, delete(m1, aToken).getStatus());
+
+      for (String queue : List.of(queueA, queueC)) {
+        assertEquals("MessageDeleted", nextEvent(queue).get("type").asText());
+        assertEquals("MessageUnpinned", nextEvent(queue).get("type").asText());
+      }
+      JsonNode forB = nextEvent(queueB);
+      assertEquals("MessageUnpinned", forB.get("type").asText());
+      assertEquals(m1, forB.get("messageId").asText());
+    }
+
+    @Test
+    @DisplayName("ReadUpdated reaches only members who can see the item that was read")
+    void readUpdatedSplit() throws Exception {
+      String queueA = bindQueue(aUserId);
+      String queueB = bindQueue(bUserId);
+      String queueC = bindQueue(cUserId);
+
+      assertEquals(204, markRead(m1, cToken).getStatus());
+      assertEquals(204, markRead(m2, cToken).getStatus());
+
+      for (String queue : List.of(queueA, queueC)) {
+        JsonNode first = nextEvent(queue);
+        assertEquals("ReadUpdated", first.get("type").asText());
+        assertEquals(
+            T1.toInstant(), OffsetDateTime.parse(first.get("itemCreatedAt").asText()).toInstant());
+        assertEquals(
+            T3.toInstant(),
+            OffsetDateTime.parse(nextEvent(queue).get("itemCreatedAt").asText()).toInstant());
+      }
+      JsonNode forB = nextEvent(queueB);
+      assertEquals("ReadUpdated", forB.get("type").asText());
+      assertEquals(cUserId.toString(), forB.get("userId").asText());
+      assertEquals(
+          T3.toInstant(), OffsetDateTime.parse(forB.get("itemCreatedAt").asText()).toInstant());
     }
 
     @Test
@@ -799,6 +943,75 @@ class VisibilityIT {
       JsonNode forB = nextEvent(queueB);
       assertEquals("ReactionChanged", forB.get("type").asText());
       assertEquals(m2, forB.get("messageId").asText());
+    }
+  }
+
+  @Nested
+  @DisplayName("Read markers are clamped to the viewer floor")
+  class ReadMarkers {
+
+    @BeforeEach
+    void markers() {
+      readRepository.advance(aUserId.toString(), roomId.toString(), T1);
+      readRepository.advance(cUserId.toString(), roomId.toString(), T4);
+    }
+
+    private Map<String, Instant> byUser(JsonNode markers) {
+      Map<String, Instant> result = new HashMap<>();
+      markers.forEach(
+          m ->
+              result.put(
+                  m.get("userId").asText(),
+                  OffsetDateTime.parse(m.get("itemCreatedAt").asText()).toInstant()));
+      return result;
+    }
+
+    private void assertClampedForB(Map<String, Instant> markers) {
+      assertEquals(T2.toInstant(), markers.get(aUserId.toString()));
+      assertEquals(T4.toInstant(), markers.get(cUserId.toString()));
+    }
+
+    private void assertRawForC(Map<String, Instant> markers) {
+      assertEquals(T1.toInstant(), markers.get(aUserId.toString()));
+      assertEquals(T4.toInstant(), markers.get(cUserId.toString()));
+    }
+
+    private JsonNode inboxMarkers(String token) throws Exception {
+      JsonNode inbox = json(dispatcher.get("/inbox", token));
+      for (JsonNode conversation : inbox.get("conversations")) {
+        if (roomId.toString().equals(conversation.get("roomId").asText())) {
+          return conversation.get("markers");
+        }
+      }
+      throw new AssertionError("room not in inbox");
+    }
+
+    @Test
+    @DisplayName("Timeline markers show B no marker older than its floor")
+    void timeline() throws Exception {
+      assertClampedForB(
+          byUser(
+              json(dispatcher.get(String.format("/rooms/%s/timeline", roomId), bToken))
+                  .get("markers")));
+      assertRawForC(
+          byUser(
+              json(dispatcher.get(String.format("/rooms/%s/timeline", roomId), cToken))
+                  .get("markers")));
+    }
+
+    @Test
+    @DisplayName("GET read shows B no marker older than its floor")
+    void getRead() throws Exception {
+      assertClampedForB(
+          byUser(json(dispatcher.get(String.format("/rooms/%s/read", roomId), bToken))));
+      assertRawForC(byUser(json(dispatcher.get(String.format("/rooms/%s/read", roomId), cToken))));
+    }
+
+    @Test
+    @DisplayName("Inbox markers show B no marker older than its floor")
+    void inbox() throws Exception {
+      assertClampedForB(byUser(inboxMarkers(bToken)));
+      assertRawForC(byUser(inboxMarkers(cToken)));
     }
   }
 

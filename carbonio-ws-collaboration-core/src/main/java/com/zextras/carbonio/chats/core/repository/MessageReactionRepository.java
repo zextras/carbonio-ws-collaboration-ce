@@ -25,9 +25,23 @@ public interface MessageReactionRepository {
     UNCHANGED
   }
 
-  record SetResult(SetKind kind, String previousReaction, OffsetDateTime updatedAt) {}
+  record SetResult(
+      SetKind kind,
+      String previousReaction,
+      OffsetDateTime updatedAt,
+      OffsetDateTime messageCreatedAt) {
 
-  record Removed(String reaction, OffsetDateTime deletedAt) {}
+    public SetResult withMessageCreatedAt(OffsetDateTime messageCreatedAt) {
+      return new SetResult(kind, previousReaction, updatedAt, messageCreatedAt);
+    }
+  }
+
+  record Removed(String reaction, OffsetDateTime deletedAt, OffsetDateTime messageCreatedAt) {
+
+    public Removed withMessageCreatedAt(OffsetDateTime messageCreatedAt) {
+      return new Removed(reaction, deletedAt, messageCreatedAt);
+    }
+  }
 
   /**
    * Sets the single reaction a user has on a message: inserts it, replaces a different emoji, or
@@ -36,7 +50,8 @@ public interface MessageReactionRepository {
    * @param messageId message identifier
    * @param userId user identifier
    * @param reaction emoji
-   * @return the outcome; updatedAt is the stored value on ADDED and UPDATED, null on UNCHANGED
+   * @return the outcome; updatedAt is the stored value on ADDED and UPDATED, null on UNCHANGED;
+   *     messageCreatedAt is left null for the caller to fill
    */
   SetResult set(String messageId, String userId, String reaction);
 
@@ -45,7 +60,8 @@ public interface MessageReactionRepository {
    *
    * @param messageId message identifier
    * @param userId user identifier
-   * @return the removed emoji and the database time of the delete, empty if there was none
+   * @return the removed emoji and the database time of the delete (messageCreatedAt is left null
+   *     for the caller to fill), empty if there was none
    */
   Optional<Removed> remove(String messageId, String userId);
 

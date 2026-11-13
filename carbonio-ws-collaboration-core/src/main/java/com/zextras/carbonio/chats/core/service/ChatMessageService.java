@@ -132,8 +132,9 @@ public interface ChatMessageService {
   SetResult setReaction(String roomId, String messageId, String userId, String reaction);
 
   /**
-   * Removes the reaction a user has on a message. The message must be in the room (the cleared
-   * history does not matter); a user has a single reaction per message, so no emoji is needed.
+   * Removes the reaction a user has on a message. The message must be in the room and visible to
+   * the user (not at or before their cleared-history instant); a user has a single reaction per
+   * message, so no emoji is needed.
    *
    * @param roomId room identifier the message must belong to
    * @param messageId message identifier

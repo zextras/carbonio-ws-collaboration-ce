@@ -66,12 +66,15 @@ public class EbeanMessageReactionRepository implements MessageReactionRepository
                 .findOneOrEmpty();
         if (inserted.isPresent()) {
           return new SetResult(
-              SetKind.ADDED, null, toOffsetDateTime(inserted.get().getTimestamp("updated_at")));
+              SetKind.ADDED,
+              null,
+              toOffsetDateTime(inserted.get().getTimestamp("updated_at")),
+              null);
         }
         continue;
       }
       if (current.get().equals(reaction)) {
-        return new SetResult(SetKind.UNCHANGED, null, null);
+        return new SetResult(SetKind.UNCHANGED, null, null, null);
       }
       SqlRow updated =
           db.sqlQuery(UPDATE_SQL)
@@ -80,7 +83,10 @@ public class EbeanMessageReactionRepository implements MessageReactionRepository
               .setParameter("r", reaction)
               .findOne();
       return new SetResult(
-          SetKind.UPDATED, current.get(), toOffsetDateTime(updated.getTimestamp("updated_at")));
+          SetKind.UPDATED,
+          current.get(),
+          toOffsetDateTime(updated.getTimestamp("updated_at")),
+          null);
     }
     throw new IllegalStateException(
         String.format("Reaction of user '%s' on message '%s' kept changing", userId, messageId));
@@ -95,7 +101,9 @@ public class EbeanMessageReactionRepository implements MessageReactionRepository
         .map(
             row ->
                 new Removed(
-                    row.getString("reaction"), toOffsetDateTime(row.getTimestamp("deleted_at"))));
+                    row.getString("reaction"),
+                    toOffsetDateTime(row.getTimestamp("deleted_at")),
+                    null));
   }
 
   private Optional<String> lockCurrent(String messageId, String userId) {

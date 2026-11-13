@@ -1791,7 +1791,7 @@ class RoomsApiServiceImplTest {
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, createdId.toString(), "test");
+          .onMessageSent(user1, roomId, createdId.toString(), "test", attachmentCreatedAt);
     }
 
     @BeforeEach
@@ -1839,7 +1839,7 @@ class RoomsApiServiceImplTest {
               anyString(),
               eq(user1));
       verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, createdId.toString(), "a caption");
+          .onMessageSent(user1, roomId, createdId.toString(), "a caption", attachmentCreatedAt);
     }
 
     @Test
@@ -1880,7 +1880,8 @@ class RoomsApiServiceImplTest {
               isNull(),
               anyString(),
               eq(user1));
-      verify(messageSentListener, times(1)).onMessageSent(user1, roomId, createdId.toString(), "");
+      verify(messageSentListener, times(1))
+          .onMessageSent(user1, roomId, createdId.toString(), "", attachmentCreatedAt);
     }
 
     @Test
@@ -1904,7 +1905,7 @@ class RoomsApiServiceImplTest {
           .thenReturn(created);
       doThrow(new RuntimeException("listener failure"))
           .when(messageSentListener)
-          .onMessageSent(user1, roomId, createdId.toString(), "");
+          .onMessageSent(user1, roomId, createdId.toString(), "", attachmentCreatedAt);
 
       Response response =
           roomsApiService.insertAttachmentMultipart(attachmentForm(null), roomId, securityContext);
@@ -1924,7 +1925,8 @@ class RoomsApiServiceImplTest {
               isNull(),
               anyString(),
               eq(user1));
-      verify(messageSentListener, times(1)).onMessageSent(user1, roomId, createdId.toString(), "");
+      verify(messageSentListener, times(1))
+          .onMessageSent(user1, roomId, createdId.toString(), "", attachmentCreatedAt);
     }
 
     @Test
@@ -1964,7 +1966,7 @@ class RoomsApiServiceImplTest {
               isNull(),
               anyString(),
               eq(user1));
-      verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+      verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
     }
 
     private MultipartFormDataInput attachmentForm(String caption) throws Exception {
@@ -1987,9 +1989,12 @@ class RoomsApiServiceImplTest {
       return input;
     }
 
+    private final OffsetDateTime attachmentCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+
     private MessageDto createdMessage(UUID id, String text) {
       return MessageDto.create()
           .id(id)
+          .createdAt(attachmentCreatedAt)
           .roomId(roomId)
           .senderId(user1Id)
           .text(text)
@@ -2516,7 +2521,8 @@ class RoomsApiServiceImplTest {
       verify(messageWriteRepository, never()).sendMessage(any(), any(), any(), any(), any(), any());
       verify(messageReceivedBroadcaster, times(1))
           .broadcast(eq(roomId.toString()), any(), eq("t-1"));
-      verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId, "hello");
+      verify(messageSentListener, times(1))
+          .onMessageSent(user1, roomId, messageId, "hello", createdAt);
     }
 
     @Test
@@ -2752,6 +2758,7 @@ class RoomsApiServiceImplTest {
   @DisplayName("sendMessage notifies the registered message-sent listeners")
   void sendMessage_notifiesMessageSentListeners() throws Exception {
     String generatedMsgId = UUID.randomUUID().toString();
+    OffsetDateTime sentAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(messageWriteRepository.sendMessage(
             eq(roomId.toString()),
@@ -2760,15 +2767,14 @@ class RoomsApiServiceImplTest {
             anyString(),
             isNull(),
             isNull()))
-        .thenReturn(
-            Optional.of(
-                new MessageWriteRepository.SendResult(generatedMsgId, OffsetDateTime.now())));
+        .thenReturn(Optional.of(new MessageWriteRepository.SendResult(generatedMsgId, sentAt)));
 
     SendMessageRequestDto dto = SendMessageRequestDto.create().text("hello");
     Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
 
     assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, generatedMsgId, "hello");
+    verify(messageSentListener, times(1))
+        .onMessageSent(user1, roomId, generatedMsgId, "hello", sentAt);
   }
 
   @Test
@@ -2800,7 +2806,7 @@ class RoomsApiServiceImplTest {
     Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
 
     assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
   }
 
   @Test
@@ -2814,7 +2820,7 @@ class RoomsApiServiceImplTest {
         .thenReturn(
             Optional.of(
                 new MessageWriteRepository.EditResult(
-                    messageId.toString(), "new text", now, now.minusMinutes(1))));
+                    messageId.toString(), "new text", now, now.minusMinutes(1), false)));
 
     Response response =
         roomsApiService.editMessage(
@@ -2825,7 +2831,7 @@ class RoomsApiServiceImplTest {
 
     assertEquals(Status.OK.getStatusCode(), response.getStatus());
     verify(messageSentListener, times(1))
-        .onMessageSent(user1, roomId, messageId.toString(), "new text");
+        .onMessageSent(user1, roomId, messageId.toString(), "new text", now.minusMinutes(1));
   }
 
   @Test
@@ -2844,19 +2850,23 @@ class RoomsApiServiceImplTest {
             securityContext);
 
     assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
   }
 
   @Test
   @DisplayName("setReaction ADDED notifies the message-sent listeners with the emoji")
   void setReaction_added_notifiesMessageSentListeners() throws Exception {
     UUID messageId = UUID.randomUUID();
+    OffsetDateTime targetCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(chatMessageService.setReaction(
             roomId.toString(), messageId.toString(), user1Id.toString(), "👍"))
         .thenReturn(
             new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.ADDED, null, OffsetDateTime.now()));
+                MessageReactionRepository.SetKind.ADDED,
+                null,
+                OffsetDateTime.now(),
+                targetCreatedAt));
 
     Response response =
         roomsApiService.setReaction(
@@ -2866,19 +2876,24 @@ class RoomsApiServiceImplTest {
             securityContext);
 
     assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId.toString(), "👍");
+    verify(messageSentListener, times(1))
+        .onMessageSent(user1, roomId, messageId.toString(), "👍", targetCreatedAt);
   }
 
   @Test
   @DisplayName("setReaction UPDATED notifies the message-sent listeners with the new emoji")
   void setReaction_updated_notifiesMessageSentListeners() throws Exception {
     UUID messageId = UUID.randomUUID();
+    OffsetDateTime targetCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(chatMessageService.setReaction(
             roomId.toString(), messageId.toString(), user1Id.toString(), "❤️"))
         .thenReturn(
             new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.UPDATED, "👍", OffsetDateTime.now()));
+                MessageReactionRepository.SetKind.UPDATED,
+                "👍",
+                OffsetDateTime.now(),
+                targetCreatedAt));
 
     Response response =
         roomsApiService.setReaction(
@@ -2888,18 +2903,23 @@ class RoomsApiServiceImplTest {
             securityContext);
 
     assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId.toString(), "❤️");
+    verify(messageSentListener, times(1))
+        .onMessageSent(user1, roomId, messageId.toString(), "❤️", targetCreatedAt);
   }
 
   @Test
   @DisplayName("setReaction UNCHANGED notifies the message-sent listeners with the emoji")
   void setReaction_unchanged_notifiesMessageSentListeners() throws Exception {
     UUID messageId = UUID.randomUUID();
+    OffsetDateTime targetCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(chatMessageService.setReaction(any(), any(), any(), any()))
         .thenReturn(
             new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.UNCHANGED, "👍", OffsetDateTime.now()));
+                MessageReactionRepository.SetKind.UNCHANGED,
+                "👍",
+                OffsetDateTime.now(),
+                targetCreatedAt));
 
     roomsApiService.setReaction(
         roomId,
@@ -2907,7 +2927,8 @@ class RoomsApiServiceImplTest {
         com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
         securityContext);
 
-    verify(messageSentListener, times(1)).onMessageSent(user1, roomId, messageId.toString(), "👍");
+    verify(messageSentListener, times(1))
+        .onMessageSent(user1, roomId, messageId.toString(), "👍", targetCreatedAt);
   }
 
   @Test
@@ -2917,12 +2938,15 @@ class RoomsApiServiceImplTest {
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(chatMessageService.removeReaction(
             roomId.toString(), messageId.toString(), user1Id.toString()))
-        .thenReturn(Optional.of(new MessageReactionRepository.Removed("👍", OffsetDateTime.now())));
+        .thenReturn(
+            Optional.of(
+                new MessageReactionRepository.Removed(
+                    "👍", OffsetDateTime.now(), OffsetDateTime.now())));
 
     Response response = roomsApiService.removeReaction(roomId, messageId, securityContext);
 
     assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any());
+    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
   }
 
   private ReactionChanged captureReactionBroadcast(OffsetDateTime messageCreatedAt)
@@ -2946,9 +2970,8 @@ class RoomsApiServiceImplTest {
       OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       when(chatMessageService.setReaction(any(), any(), any(), any()))
-          .thenReturn(new MessageReactionRepository.SetResult(kind, "👍", OffsetDateTime.now()));
-      when(messageRepository.getById(messageId.toString()))
-          .thenReturn(Optional.of(Message.create().id(messageId.toString()).createdAt(createdAt)));
+          .thenReturn(
+              new MessageReactionRepository.SetResult(kind, "👍", OffsetDateTime.now(), createdAt));
 
       roomsApiService.setReaction(
           roomId,
@@ -2958,6 +2981,7 @@ class RoomsApiServiceImplTest {
 
       ReactionChanged sent = captureReactionBroadcast(createdAt);
       assertEquals(messageId.toString(), sent.getMessageId());
+      verify(messageRepository, never()).getById(anyString());
     }
   }
 
@@ -2969,7 +2993,7 @@ class RoomsApiServiceImplTest {
     when(chatMessageService.setReaction(any(), any(), any(), any()))
         .thenReturn(
             new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.UNCHANGED, "👍", OffsetDateTime.now()));
+                MessageReactionRepository.SetKind.UNCHANGED, "👍", null, null));
 
     roomsApiService.setReaction(
         roomId,
@@ -2987,14 +3011,15 @@ class RoomsApiServiceImplTest {
     OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(chatMessageService.removeReaction(any(), any(), any()))
-        .thenReturn(Optional.of(new MessageReactionRepository.Removed("👍", OffsetDateTime.now())));
-    when(messageRepository.getById(messageId.toString()))
-        .thenReturn(Optional.of(Message.create().id(messageId.toString()).createdAt(createdAt)));
+        .thenReturn(
+            Optional.of(
+                new MessageReactionRepository.Removed("👍", OffsetDateTime.now(), createdAt)));
 
     roomsApiService.removeReaction(roomId, messageId, securityContext);
 
     ReactionChanged sent = captureReactionBroadcast(createdAt);
     assertEquals(ReactionChanged.OperationEnum.REMOVED, sent.getOperation());
+    verify(messageRepository, never()).getById(anyString());
   }
 
   @Test
@@ -3010,6 +3035,7 @@ class RoomsApiServiceImplTest {
                     messageId.toString(),
                     UUID.randomUUID().toString(),
                     OffsetDateTime.parse("2026-10-30T10:00:00Z"),
+                    OffsetDateTime.parse("2026-10-30T09:00:00Z"),
                     null)));
 
     Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
@@ -3022,6 +3048,7 @@ class RoomsApiServiceImplTest {
   @DisplayName("sendMessage answers 201 even when a message-sent listener fails")
   void sendMessage_listenerFails_stillCreated() throws Exception {
     String generatedMsgId = UUID.randomUUID().toString();
+    OffsetDateTime sentAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(messageWriteRepository.sendMessage(
             eq(roomId.toString()),
@@ -3030,12 +3057,10 @@ class RoomsApiServiceImplTest {
             anyString(),
             isNull(),
             isNull()))
-        .thenReturn(
-            Optional.of(
-                new MessageWriteRepository.SendResult(generatedMsgId, OffsetDateTime.now())));
+        .thenReturn(Optional.of(new MessageWriteRepository.SendResult(generatedMsgId, sentAt)));
     doThrow(new RuntimeException("listener failure"))
         .when(messageSentListener)
-        .onMessageSent(user1, roomId, generatedMsgId, "hello");
+        .onMessageSent(user1, roomId, generatedMsgId, "hello", sentAt);
 
     SendMessageRequestDto dto = SendMessageRequestDto.create().text("hello");
     Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
@@ -3139,11 +3164,14 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
-    @DisplayName("deleteMessage of the room pin sends MessageDeleted, then MessageUnpinned")
+    @DisplayName(
+        "deleteMessage of the room pin sends MessageDeleted floor-filtered and MessageUnpinned to"
+            + " all members")
     void deleteMessage_pinned_sendsDeletedThenUnpinned() throws Exception {
       UUID messageId = UUID.randomUUID();
       OffsetDateTime unpinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
       OffsetDateTime deletedAt = OffsetDateTime.parse("2026-10-30T10:00:00.5Z");
+      OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2026-10-30T09:00:00Z");
       List<String> members = List.of(user1Id.toString(), user2Id.toString());
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
@@ -3155,15 +3183,21 @@ class RoomsApiServiceImplTest {
                       messageId.toString(),
                       null,
                       deletedAt,
+                      messageCreatedAt,
                       new MessageWriteRepository.Unpinned("unpin-event", unpinnedAt))));
 
       Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      ArgumentCaptor<String> payloads = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher, times(2)).sendRawToUserExchange(eq(members), payloads.capture());
-      JsonNode deleted = objectMapper.readTree(payloads.getAllValues().get(0));
-      JsonNode unpinned = objectMapper.readTree(payloads.getAllValues().get(1));
+      ArgumentCaptor<String> deletedPayload = ArgumentCaptor.forClass(String.class);
+      verify(messageReceivedBroadcaster)
+          .broadcastToMembersWhoCanAccess(
+              eq(roomId.toString()), eq(messageCreatedAt), deletedPayload.capture());
+      ArgumentCaptor<String> unpinnedPayload = ArgumentCaptor.forClass(String.class);
+      verify(eventDispatcher, times(1))
+          .sendRawToUserExchange(eq(members), unpinnedPayload.capture());
+      JsonNode deleted = objectMapper.readTree(deletedPayload.getValue());
+      JsonNode unpinned = objectMapper.readTree(unpinnedPayload.getValue());
       assertEquals("MessageDeleted", deleted.get("type").asText());
       assertEquals(
           deletedAt.toInstant(),
@@ -3184,9 +3218,8 @@ class RoomsApiServiceImplTest {
     @DisplayName("deleteMessage of a message that is not the room pin sends only MessageDeleted")
     void deleteMessage_notPinned_sendsOnlyDeleted() throws Exception {
       UUID messageId = UUID.randomUUID();
-      List<String> members = List.of(user1Id.toString(), user2Id.toString());
+      OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2026-10-30T09:00:00Z");
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
       when(messageWriteRepository.deleteMessage(
               messageId.toString(), roomId.toString(), user1Id.toString()))
           .thenReturn(
@@ -3195,13 +3228,17 @@ class RoomsApiServiceImplTest {
                       messageId.toString(),
                       null,
                       OffsetDateTime.parse("2026-10-30T10:00:00Z"),
+                      messageCreatedAt,
                       null)));
 
       Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher, times(1)).sendRawToUserExchange(eq(members), payload.capture());
+      verify(messageReceivedBroadcaster)
+          .broadcastToMembersWhoCanAccess(
+              eq(roomId.toString()), eq(messageCreatedAt), payload.capture());
+      verifyNoInteractions(eventDispatcher);
       assertEquals(
           "MessageDeleted", objectMapper.readTree(payload.getValue()).get("type").asText());
     }

@@ -37,9 +37,12 @@ public interface MessageWriteRepository {
       String roomId, String userId, String text, String messageId, String replyToId, String tempId);
 
   /**
-   * Edits a message text, setting edited=true. Only the original sender can edit.
+   * Edits a message text, setting edited=true. Only the original sender can edit. {@code pinned}
+   * tells whether the message is the current room pin.
    *
    * @return empty if user is not a member, not the sender, or message is deleted
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the message is at or
+   *     before the user's cleared-history instant
    */
   Optional<EditResult> editMessage(String messageId, String roomId, String userId, String newText);
 
@@ -49,6 +52,8 @@ public interface MessageWriteRepository {
    * the same transaction.
    *
    * @return empty if user is not a member, not the sender, or message already deleted
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the message is at or
+   *     before the user's cleared-history instant
    */
   Optional<DeleteResult> deleteMessage(String messageId, String roomId, String userId);
 
@@ -71,10 +76,18 @@ public interface MessageWriteRepository {
   record SendResult(String messageId, OffsetDateTime createdAt) {}
 
   record EditResult(
-      String messageId, String text, OffsetDateTime updatedAt, OffsetDateTime createdAt) {}
+      String messageId,
+      String text,
+      OffsetDateTime updatedAt,
+      OffsetDateTime createdAt,
+      boolean pinned) {}
 
   record DeleteResult(
-      String messageId, String attachmentId, OffsetDateTime deletedAt, Unpinned unpinned) {}
+      String messageId,
+      String attachmentId,
+      OffsetDateTime deletedAt,
+      OffsetDateTime createdAt,
+      Unpinned unpinned) {}
 
   record Unpinned(String systemEventId, OffsetDateTime systemEventCreatedAt) {}
 

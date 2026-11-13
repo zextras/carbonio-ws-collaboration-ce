@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
+import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
@@ -187,10 +188,13 @@ public class InboxApiServiceImpl implements InboxApiService {
 
       List<ReadMarker> roomMarkers = allMarkersByRoom.getOrDefault(roomId, List.of());
       List<Map<String, Object>> markerList = new ArrayList<>();
+      VisibilityFloor floor =
+          new VisibilityFloor(
+              room.getUserSettings() == null ? null : room.getUserSettings().getClearedAt());
       for (ReadMarker marker : roomMarkers) {
         Map<String, Object> entry = new HashMap<>();
         entry.put("userId", marker.getUserId());
-        entry.put("itemCreatedAt", marker.getItemCreatedAt().toString());
+        entry.put("itemCreatedAt", floor.clamp(marker.getItemCreatedAt()).toString());
         markerList.add(entry);
       }
       conversation.put("markers", markerList);

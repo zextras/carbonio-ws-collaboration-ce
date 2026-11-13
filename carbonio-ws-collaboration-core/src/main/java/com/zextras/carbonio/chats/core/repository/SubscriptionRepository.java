@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,4 +77,14 @@ public interface SubscriptionRepository {
    * @return {@link List} of users identifier {@link String}
    */
   List<String> getUserIdsByRoomId(String roomId);
+
+  /**
+   * Gets the identifiers of the room members who can see an item created at the given instant, i.e.
+   * whose cleared-history instant is unset or before it, in a single query
+   *
+   * @param roomId room identifier
+   * @param itemCreatedAt creation instant of the item
+   * @return {@link List} of users identifier {@link String}
+   */
+  List<String> getUserIdsWhoCanAccess(String roomId, OffsetDateTime itemCreatedAt);
 }

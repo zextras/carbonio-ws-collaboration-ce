@@ -210,24 +210,32 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   @Override
   public SetResult setReaction(String roomId, String messageId, String userId, String reaction) {
     VisibilityFloor floor = getVisibilityFloor(roomId, userId);
-    messageRepository
-        .getById(messageId)
-        .filter(m -> roomId.equals(m.getRoomId()))
-        .filter(m -> !Boolean.TRUE.equals(m.isDeleted()))
-        .filter(m -> floor.canAccess(m.getCreatedAt()))
-        .orElseThrow(
-            () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
-    return reactionRepository.set(messageId, userId, reaction);
+    Message target =
+        messageRepository
+            .getById(messageId)
+            .filter(m -> roomId.equals(m.getRoomId()))
+            .filter(m -> !Boolean.TRUE.equals(m.isDeleted()))
+            .filter(m -> floor.canAccess(m.getCreatedAt()))
+            .orElseThrow(
+                () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
+    return reactionRepository
+        .set(messageId, userId, reaction)
+        .withMessageCreatedAt(target.getCreatedAt());
   }
 
   @Override
   public Optional<Removed> removeReaction(String roomId, String messageId, String userId) {
-    messageRepository
-        .getById(messageId)
-        .filter(m -> roomId.equals(m.getRoomId()))
-        .orElseThrow(
-            () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
-    return reactionRepository.remove(messageId, userId);
+    VisibilityFloor floor = getVisibilityFloor(roomId, userId);
+    Message target =
+        messageRepository
+            .getById(messageId)
+            .filter(m -> roomId.equals(m.getRoomId()))
+            .filter(m -> floor.canAccess(m.getCreatedAt()))
+            .orElseThrow(
+                () -> new NotFoundException(String.format("Message '%s' not found", messageId)));
+    return reactionRepository
+        .remove(messageId, userId)
+        .map(removed -> removed.withMessageCreatedAt(target.getCreatedAt()));
   }
 
   @Override

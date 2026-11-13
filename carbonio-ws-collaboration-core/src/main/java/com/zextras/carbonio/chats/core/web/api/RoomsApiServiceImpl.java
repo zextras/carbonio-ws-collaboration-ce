@@ -701,7 +701,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         releaseSendClaim(roomId, currentUser.getId(), dedupTempId, messageId);
       }
     }
-    notifyMessageSent(currentUser, roomId, created.getId().toString(), created.getText());
+    notifyMessageSent(
+        currentUser, roomId, created.getId().toString(), created.getText(), created.getCreatedAt());
     return Response.status(Status.CREATED).entity(created).build();
   }
 
@@ -833,12 +834,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                         : ReactionChanged.OperationEnum.UPDATED)
                 .previousReaction(result.previousReaction())
                 .updatedAt(result.updatedAt());
-        broadcastReactionChanged(roomId, messageId, event);
+        broadcastReactionChanged(roomId, result.messageCreatedAt(), event);
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
     }
-    notifyMessageSent(currentUser, roomId, messageId.toString(), reaction);
+    notifyMessageSent(
+        currentUser, roomId, messageId.toString(), reaction, result.messageCreatedAt());
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -855,7 +857,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             reactionEvent(roomId, messageId, currentUser.getId(), removed.get().reaction())
                 .operation(ReactionChanged.OperationEnum.REMOVED)
                 .deletedAt(removed.get().deletedAt());
-        broadcastReactionChanged(roomId, messageId, event);
+        broadcastReactionChanged(roomId, removed.get().messageCreatedAt(), event);
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting reaction event: " + e.getMessage());
@@ -863,14 +865,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
-  private void broadcastReactionChanged(UUID roomId, UUID messageId, ReactionChanged event)
+  private void broadcastReactionChanged(
+      UUID roomId, OffsetDateTime messageCreatedAt, ReactionChanged event)
       throws JsonProcessingException {
-    Optional<Message> target = messageRepository.getById(messageId.toString());
-    if (target.isEmpty()) {
-      return;
-    }
     messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
-        roomId.toString(), target.get().getCreatedAt(), objectMapper.writeValueAsString(event));
+        roomId.toString(), messageCreatedAt, objectMapper.writeValueAsString(event));
   }
 
   private ReactionChanged reactionEvent(
@@ -956,7 +955,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       ChatsLogger.warn("Error broadcasting message-received event: " + e.getMessage());
     }
 
-    notifyMessageSent(currentUser, roomId, sent.messageId(), text);
+    notifyMessageSent(currentUser, roomId, sent.messageId(), text, sent.createdAt());
 
     MessageDto responseDto =
         MessageDto.create()
@@ -971,10 +970,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.status(Status.CREATED).entity(responseDto).build();
   }
 
-  private void notifyMessageSent(UserPrincipal sender, UUID roomId, String messageId, String text) {
+  private void notifyMessageSent(
+      UserPrincipal sender, UUID roomId, String messageId, String text, OffsetDateTime createdAt) {
     for (MessageSentListener listener : messageSentListeners) {
       try {
-        listener.onMessageSent(sender, roomId, messageId, text);
+        listener.onMessageSent(sender, roomId, messageId, text, createdAt);
       } catch (Exception e) {
         ChatsLogger.warn("Error in message-sent listener: " + e.getMessage());
       }
@@ -1155,7 +1155,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .roomId(roomId.toString())
               .deletedBy(currentUser.getId())
               .deletedAt(deleted.deletedAt());
-      broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+      messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
+          roomId.toString(), deleted.createdAt(), objectMapper.writeValueAsString(event));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-deleted event: " + e.getMessage());
     }
@@ -1200,12 +1201,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               .roomId(roomId.toString())
               .text(edited.text())
               .editedAt(edited.updatedAt());
-      messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
-          roomId.toString(), edited.createdAt(), objectMapper.writeValueAsString(event));
+      String json = objectMapper.writeValueAsString(event);
+      if (edited.pinned()) {
+        broadcastToRoomMembers(roomId.toString(), json);
+      } else {
+        messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
+            roomId.toString(), edited.createdAt(), json);
+      }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-edited event: " + e.getMessage());
     }
-    notifyMessageSent(currentUser, roomId, edited.messageId(), edited.text());
+    notifyMessageSent(currentUser, roomId, edited.messageId(), edited.text(), edited.createdAt());
     return Response.status(Status.OK)
         .entity(
             MessageDto.create()
@@ -1237,7 +1243,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                         .roomId(roomId.toString())
                         .userId(currentUser.getId())
                         .itemCreatedAt(itemCreatedAt);
-                broadcastToRoomMembers(roomId.toString(), objectMapper.writeValueAsString(event));
+                messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
+                    roomId.toString(), itemCreatedAt, objectMapper.writeValueAsString(event));
               } catch (Exception e) {
                 ChatsLogger.warn(
                     "Error broadcasting read-updated event after markRead: " + e.getMessage());
@@ -1349,7 +1356,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                 m ->
                     ReadMarkerDto.create()
                         .userId(UUID.fromString(m.getUserId()))
-                        .itemCreatedAt(m.getItemCreatedAt()))
+                        .itemCreatedAt(floor.clamp(m.getItemCreatedAt())))
             .collect(Collectors.toList());
 
     TimelineDto timeline =
@@ -1365,7 +1372,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response getRoomReadMarkers(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
+    VisibilityFloor floor =
+        chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
     List<ReadMarker> markers = chatMessageService.getRoomReadMarkers(roomId.toString());
     List<ReadMarkerDto> result =
         markers.stream()
@@ -1373,7 +1381,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                 marker ->
                     ReadMarkerDto.create()
                         .userId(UUID.fromString(marker.getUserId()))
-                        .itemCreatedAt(marker.getItemCreatedAt()))
+                        .itemCreatedAt(floor.clamp(marker.getItemCreatedAt())))
             .collect(Collectors.toList());
     return Response.ok(result).build();
   }

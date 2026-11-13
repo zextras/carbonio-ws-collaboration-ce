@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -15,13 +16,15 @@ import java.util.UUID;
  * reaction set with the emoji (also when the same emoji is set again; removals do not call it).
  * {@code text} is the text a notification shows (caption, new text, emoji) and may be blank.
  * Forwards and deletes do not call it. An edit or a reaction may target a message older than the
- * visibility floor of some room members; an implementation that notifies room members must not
- * reach members who cannot see that message (look up the message creation time by id and apply the
- * floor). Implementations are registered with a Guice {@code Multibinder}; none is registered by
- * default. Listeners run on the request thread and must not block; their failures are logged and do
- * not affect the response.
+ * visibility floor of some room members; {@code createdAt} is the creation time of the message the
+ * notification is about (the new message, the edited message, the reaction target) and is provided
+ * for the floor check: an implementation that notifies room members must not reach members who
+ * cannot see that message. Implementations are registered with a Guice {@code Multibinder}; none is
+ * registered by default. Listeners run on the request thread and must not block; their failures are
+ * logged and do not affect the response.
  */
 public interface MessageSentListener {
 
-  void onMessageSent(UserPrincipal sender, UUID roomId, String messageId, String text);
+  void onMessageSent(
+      UserPrincipal sender, UUID roomId, String messageId, String text, OffsetDateTime createdAt);
 }

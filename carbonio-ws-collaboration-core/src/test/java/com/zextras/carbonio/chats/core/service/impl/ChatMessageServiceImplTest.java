@@ -135,14 +135,18 @@ class ChatMessageServiceImplTest {
   class SetReaction {
 
     @Test
-    @DisplayName("Delegates to the repository after the message checks and returns its result")
+    @DisplayName("Delegates to the repository after the message checks and adds the message time")
     void delegates() {
-      SetResult expected =
-          new SetResult(SetKind.ADDED, null, OffsetDateTime.parse("2026-01-01T10:00:00Z"));
-      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.set(MESSAGE_ID, USER_ID, "👍")).thenReturn(expected);
+      OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2025-12-01T10:00:00Z");
+      SetResult stored =
+          new SetResult(SetKind.ADDED, null, OffsetDateTime.parse("2026-01-01T10:00:00Z"), null);
+      when(messageRepository.getById(MESSAGE_ID))
+          .thenReturn(Optional.of(message(MESSAGE_ID, messageCreatedAt)));
+      when(reactionRepository.set(MESSAGE_ID, USER_ID, "👍")).thenReturn(stored);
 
-      assertEquals(expected, chatMessageService.setReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
+      assertEquals(
+          stored.withMessageCreatedAt(messageCreatedAt),
+          chatMessageService.setReaction(ROOM_ID, MESSAGE_ID, USER_ID, "👍"));
     }
 
     @Test
@@ -186,14 +190,17 @@ class ChatMessageServiceImplTest {
   class RemoveReaction {
 
     @Test
-    @DisplayName("Returns what the repository removed")
+    @DisplayName("Returns what the repository removed with the message time")
     void removesExisting() {
-      Removed expected = new Removed("👍", OffsetDateTime.parse("2026-01-01T10:00:00Z"));
-      when(messageRepository.getById(MESSAGE_ID)).thenReturn(Optional.of(message()));
-      when(reactionRepository.remove(MESSAGE_ID, USER_ID)).thenReturn(Optional.of(expected));
+      OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2025-12-01T10:00:00Z");
+      Removed stored = new Removed("👍", OffsetDateTime.parse("2026-01-01T10:00:00Z"), null);
+      when(messageRepository.getById(MESSAGE_ID))
+          .thenReturn(Optional.of(message(MESSAGE_ID, messageCreatedAt)));
+      when(reactionRepository.remove(MESSAGE_ID, USER_ID)).thenReturn(Optional.of(stored));
 
       assertEquals(
-          Optional.of(expected), chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+          Optional.of(stored.withMessageCreatedAt(messageCreatedAt)),
+          chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
     }
 
     @Test
@@ -229,19 +236,18 @@ class ChatMessageServiceImplTest {
     }
 
     @Test
-    @DisplayName("Ignores the visibility floor: a reaction on a hidden message can be removed")
-    void ignoresVisibilityFloor() {
-      Removed expected = new Removed("👍", OffsetDateTime.parse("2026-01-01T10:00:00Z"));
+    @DisplayName("Throws NotFound and removes nothing when the message is at or below the floor")
+    void belowVisibilityFloor() {
+      OffsetDateTime floor = OffsetDateTime.parse("2026-01-01T10:00:00Z");
       when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
-          .thenReturn(
-              Optional.of(new VisibilityFloor(OffsetDateTime.parse("2026-01-01T10:00:00Z"))));
+          .thenReturn(Optional.of(new VisibilityFloor(floor)));
       when(messageRepository.getById(MESSAGE_ID))
-          .thenReturn(
-              Optional.of(message(MESSAGE_ID, OffsetDateTime.parse("2025-01-01T10:00:00Z"))));
-      when(reactionRepository.remove(MESSAGE_ID, USER_ID)).thenReturn(Optional.of(expected));
+          .thenReturn(Optional.of(message(MESSAGE_ID, floor)));
 
-      assertEquals(
-          Optional.of(expected), chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+      assertThrows(
+          NotFoundException.class,
+          () -> chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+      verify(reactionRepository, never()).remove(any(), any());
     }
   }
 

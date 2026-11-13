@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.repository.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import io.ebean.Database;
 import io.ebean.SqlRow;
@@ -110,16 +111,23 @@ SELECT id, created_at FROM new_msg
   private static final String EDIT_SQL =
       """
       WITH check_member AS (
-          SELECT 1 FROM chats.subscription WHERE room_id = :roomId AND user_id = :userId
+          SELECT rus.cleared_at
+          FROM chats.subscription s
+          LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
+          WHERE s.room_id = :roomId AND s.user_id = :userId
       ),
       edit_msg AS (
           UPDATE chats.message
           SET text = :newText, edited = true, updated_at = clock_timestamp()
           WHERE id = :messageId AND room_id = :roomId AND sender_id = :userId AND deleted = false
-            AND EXISTS (SELECT 1 FROM check_member)
+            AND EXISTS (SELECT 1 FROM check_member cm
+                        WHERE cm.cleared_at IS NULL OR created_at > cm.cleared_at)
           RETURNING id, text, updated_at, created_at
       )
-      SELECT id, text, updated_at, created_at FROM edit_msg
+      SELECT id, text, updated_at, created_at,
+             EXISTS (SELECT 1 FROM chats.message_pin p
+                     WHERE p.room_id = :roomId AND p.message_id = edit_msg.id) AS pinned
+      FROM edit_msg
       """;
 
   private static final String DELETE_SQL =
@@ -128,17 +136,30 @@ SELECT id, created_at FROM new_msg
           SELECT clock_timestamp() AS t
       ),
       check_member AS (
-          SELECT 1 FROM chats.subscription WHERE room_id = :roomId AND user_id = :userId
+          SELECT rus.cleared_at
+          FROM chats.subscription s
+          LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
+          WHERE s.room_id = :roomId AND s.user_id = :userId
       ),
       del_msg AS (
           UPDATE chats.message
           SET deleted = true, deleted_at = ts.t, text = '', updated_at = ts.t
           FROM ts
           WHERE id = :messageId AND room_id = :roomId AND sender_id = :userId AND deleted = false
-            AND EXISTS (SELECT 1 FROM check_member)
-          RETURNING id, attachment_id, deleted_at
+            AND EXISTS (SELECT 1 FROM check_member cm
+                        WHERE cm.cleared_at IS NULL OR created_at > cm.cleared_at)
+          RETURNING id, attachment_id, deleted_at, created_at
       )
-      SELECT id, attachment_id, deleted_at FROM del_msg
+      SELECT id, attachment_id, deleted_at, created_at FROM del_msg
+      """;
+
+  private static final String BELOW_FLOOR_SQL =
+      """
+      SELECT 1
+      FROM chats.message m
+      JOIN chats.subscription s ON s.room_id = m.room_id AND s.user_id = :userId
+      JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
+      WHERE m.id = :messageId AND m.room_id = :roomId AND rus.cleared_at >= m.created_at
       """;
 
   private static final String UNPIN_DELETED_SQL =
@@ -294,7 +315,13 @@ LEFT JOIN file_meta ON true
                     row.getString("id"),
                     row.getString("text"),
                     toOffsetDateTime(row.getTimestamp("updated_at")),
-                    toOffsetDateTime(row.getTimestamp("created_at"))));
+                    toOffsetDateTime(row.getTimestamp("created_at")),
+                    Boolean.TRUE.equals(row.getBoolean("pinned"))))
+        .or(
+            () -> {
+              failIfBelowFloor(messageId, roomId, userId);
+              return Optional.empty();
+            });
   }
 
   @Override
@@ -307,6 +334,7 @@ LEFT JOIN file_meta ON true
             .setParameter("messageId", messageId)
             .findOneOrEmpty();
     if (deleted.isEmpty()) {
+      failIfBelowFloor(messageId, roomId, userId);
       return Optional.empty();
     }
     Unpinned unpinned =
@@ -326,6 +354,7 @@ LEFT JOIN file_meta ON true
             deleted.get().getString("id"),
             deleted.get().getString("attachment_id"),
             toOffsetDateTime(deleted.get().getTimestamp("deleted_at")),
+            toOffsetDateTime(deleted.get().getTimestamp("created_at")),
             unpinned));
   }
 
@@ -358,6 +387,19 @@ LEFT JOIN file_meta ON true
                     row.getString("attachment_mime"),
                     row.getLong("attachment_size"),
                     row.getString("attachment_area")));
+  }
+
+  private void failIfBelowFloor(String messageId, String roomId, String userId) {
+    boolean hidden =
+        db.sqlQuery(BELOW_FLOOR_SQL)
+            .setParameter("roomId", roomId)
+            .setParameter("userId", userId)
+            .setParameter("messageId", messageId)
+            .findOneOrEmpty()
+            .isPresent();
+    if (hidden) {
+      throw new NotFoundException(String.format("Message '%s' not found", messageId));
+    }
   }
 
   private static OffsetDateTime toOffsetDateTime(Timestamp ts) {
