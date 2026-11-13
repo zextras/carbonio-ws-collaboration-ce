@@ -66,12 +66,12 @@ class UserEventRoutingIT {
 
   private Instance startInstance() throws Exception {
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
-    WebsocketVersionMigrator migrator = mock(WebsocketVersionMigrator.class);
-    when(migrator.downgradeIfNeeded(anyString(), anyString()))
-        .thenAnswer(invocation -> invocation.getArgument(0));
     UserEventListener listener =
         new UserEventListener(
-            broker, sessions, migrator, mock(MessageBrokerVideoserverHealthMonitor.class));
+            broker,
+            sessions,
+            new WebsocketVersionMigrator(objectMapper),
+            mock(MessageBrokerVideoserverHealthMonitor.class));
     return new Instance(sessions, listener);
   }
 

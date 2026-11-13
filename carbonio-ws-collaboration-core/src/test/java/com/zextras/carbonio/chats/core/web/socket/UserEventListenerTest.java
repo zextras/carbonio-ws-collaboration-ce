@@ -34,8 +34,8 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,28 +97,37 @@ class UserEventListenerTest {
     return callback.getValue();
   }
 
-  private static Delivery delivery(String userId, Map<String, Object> headers) {
+  private static Delivery delivery(Map<String, Object> headers) {
     return new Delivery(
-        new Envelope(1, false, "wsc.events", userId),
+        new Envelope(1, false, "wsc.events", ""),
         new BasicProperties.Builder().headers(headers).build(),
         EVENT.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static Delivery forUsers(String... userIds) {
+    return delivery(
+        Map.of("users", Arrays.stream(userIds).map(LongStringHelper::asLongString).toList()));
+  }
+
+  private static Delivery forSession(String sessionId) {
+    return delivery(Map.of("queueId", LongStringHelper.asLongString(sessionId)));
   }
 
   @Test
   void construction_bindsAServerNamedExclusiveQueueToEveryUserEvent() throws Exception {
     verify(factory).setTopologyRecoveryEnabled(true);
-    verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.TOPIC, true);
+    verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
     verify(channel).queueDeclare("", false, true, true, Map.of("x-max-length", 10_000));
-    verify(channel).queueBind("amq.gen-1", "wsc.events", "#");
+    verify(channel).queueBind("amq.gen-1", "wsc.events", "");
   }
 
   @Test
-  void delivery_reachesEveryLocalSessionOfTheRoutedUserOnly() throws Exception {
+  void delivery_reachesEveryLocalSessionOfTheListedUserOnly() throws Exception {
     Session a1 = openSession("a1", USER_A, "1.6.2");
     Session a2 = openSession("a2", USER_A, "1.6.2");
     Session b1 = openSession("b1", USER_B, "1.6.2");
 
-    consumerCallback().handle("tag", delivery(USER_A, null));
+    consumerCallback().handle("tag", forUsers(USER_A));
 
     verify(a1.getAsyncRemote()).sendText(EVENT);
     verify(a2.getAsyncRemote()).sendText(EVENT);
@@ -131,16 +140,7 @@ class UserEventListenerTest {
     Session b1 = openSession("b1", USER_B, "1.6.2");
     Session c1 = openSession("c1", USER_C, "1.6.2");
 
-    consumerCallback()
-        .handle(
-            "tag",
-            delivery(
-                "",
-                Map.of(
-                    "users",
-                    List.of(
-                        LongStringHelper.asLongString(USER_A),
-                        LongStringHelper.asLongString(USER_B)))));
+    consumerCallback().handle("tag", forUsers(USER_A, USER_B));
 
     verify(a1.getAsyncRemote()).sendText(EVENT);
     verify(b1.getAsyncRemote()).sendText(EVENT);
@@ -152,8 +152,7 @@ class UserEventListenerTest {
     Session a1 = openSession("a1", USER_A, "1.6.2");
     Session a2 = openSession("a2", USER_A, "1.6.2");
 
-    consumerCallback()
-        .handle("tag", delivery(USER_A, Map.of("queueId", LongStringHelper.asLongString("a2"))));
+    consumerCallback().handle("tag", forSession("a2"));
 
     verify(a1.getAsyncRemote(), never()).sendText(anyString());
     verify(a2.getAsyncRemote()).sendText(EVENT);
@@ -163,9 +162,7 @@ class UserEventListenerTest {
   void delivery_withQueueIdOfAnotherInstance_reachesNoLocalSession() throws Exception {
     Session a1 = openSession("a1", USER_A, "1.6.2");
 
-    consumerCallback()
-        .handle(
-            "tag", delivery(USER_A, Map.of("queueId", LongStringHelper.asLongString("remote"))));
+    consumerCallback().handle("tag", forSession("remote"));
 
     verify(a1.getAsyncRemote(), never()).sendText(anyString());
   }
@@ -177,7 +174,7 @@ class UserEventListenerTest {
     when(migrator.downgradeIfNeeded(EVENT, "1.6.2")).thenReturn("latest-json");
     when(migrator.downgradeIfNeeded(EVENT, "1.6.0")).thenReturn("legacy-json");
 
-    consumerCallback().handle("tag", delivery(USER_A, null));
+    consumerCallback().handle("tag", forUsers(USER_A));
 
     verify(latest.getAsyncRemote()).sendText("latest-json");
     verify(legacy.getAsyncRemote()).sendText("legacy-json");

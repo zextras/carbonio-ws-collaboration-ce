@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.it.web.socket;
 
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -27,33 +26,25 @@ import jakarta.websocket.Session;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+@Testcontainers
 class UserEventListenerRecoveryIT {
 
   private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
 
+  @Container
   private static final GenericContainer<?> RABBITMQ =
       new GenericContainer<>("rabbitmq:4.2-alpine")
           .withEnv("RABBITMQ_DEFAULT_USER", "test")
           .withEnv("RABBITMQ_DEFAULT_PASS", "test")
           .withExposedPorts(5672)
           .waitingFor(Wait.forLogMessage(".*Server startup complete.*", 1));
-
-  @BeforeAll
-  static void startBroker() {
-    RABBITMQ.start();
-  }
-
-  @AfterAll
-  static void stopBroker() {
-    RABBITMQ.stop();
-  }
 
   private static ConnectionFactory brokerConnectionFactory() {
     ConnectionFactory factory = new ConnectionFactory();
@@ -88,9 +79,7 @@ class UserEventListenerRecoveryIT {
     String json = objectMapper.writeValueAsString(EVENT);
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
     RemoteEndpoint.Async remote = connect(sessions, USER_A);
-    WebsocketVersionMigrator migrator = mock(WebsocketVersionMigrator.class);
-    when(migrator.downgradeIfNeeded(anyString(), anyString()))
-        .thenAnswer(invocation -> invocation.getArgument(0));
+    WebsocketVersionMigrator migrator = new WebsocketVersionMigrator(objectMapper);
     MessageBrokerVideoserverHealthMonitor healthMonitor =
         mock(MessageBrokerVideoserverHealthMonitor.class);
     UserEventListener listener =
