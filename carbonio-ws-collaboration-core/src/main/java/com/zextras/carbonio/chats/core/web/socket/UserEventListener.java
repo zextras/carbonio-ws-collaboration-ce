@@ -4,13 +4,14 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq.EXCHANGE;
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq.QUEUE_ID_HEADER;
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq.USERS_HEADER;
+import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.EXCHANGE;
+import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.QUEUE_ID_HEADER;
+import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.USERS_HEADER;
+import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.userIdOf;
+import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.versionOf;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -18,7 +19,7 @@ import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.websocket.Session;
@@ -26,7 +27,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 @Singleton
@@ -55,15 +55,15 @@ public class UserEventListener {
     ConnectionFactory factory = connectionFactory.clone();
     factory.setTopologyRecoveryEnabled(true);
     try {
-      Connection opened = factory.newConnection(EventDispatcherRabbitMq.connectionName("consumer"));
+      Connection opened = factory.newConnection(EventBroker.connectionName("consumer"));
       watchBrokerHealth(opened);
       Channel channel = opened.createChannel();
-      channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.TOPIC, true);
+      EventBroker.declareExchange(channel);
       String queue =
           channel
               .queueDeclare("", false, true, true, Map.of("x-max-length", MAX_QUEUE_LENGTH))
               .getQueue();
-      channel.queueBind(queue, EXCHANGE, "#");
+      channel.queueBind(queue, EXCHANGE, "");
       channel.basicConsume(queue, true, (tag, delivery) -> deliver(delivery), tag -> {});
       return opened;
     } catch (IOException | TimeoutException e) {
@@ -81,40 +81,27 @@ public class UserEventListener {
 
   private void deliver(Delivery delivery) {
     String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-    if (headerOf(delivery, USERS_HEADER) instanceof List<?> users) {
-      users.stream()
-          .map(Object::toString)
-          .forEach(user -> sessions.sessionsOf(user).forEach(s -> send(s, user, message)));
-      return;
-    }
-    String userId = delivery.getEnvelope().getRoutingKey();
-    targetSessions(userId, queueIdOf(delivery)).forEach(session -> send(session, userId, message));
+    recipientsOf(delivery.getProperties().getHeaders()).forEach(session -> send(session, message));
   }
 
-  private List<Session> targetSessions(String userId, Optional<String> queueId) {
-    return queueId
-        .map(id -> sessions.get(id).stream().toList())
-        .orElse(sessions.sessionsOf(userId));
+  private List<Session> recipientsOf(Map<String, Object> headers) {
+    if (headers == null) return List.of();
+    Object queueId = headers.get(QUEUE_ID_HEADER);
+    if (queueId != null) return sessions.get(queueId.toString()).stream().toList();
+    if (!(headers.get(USERS_HEADER) instanceof List<?> users)) return List.of();
+    return users.stream().flatMap(user -> sessions.sessionsOf(user.toString()).stream()).toList();
   }
 
-  private static Optional<String> queueIdOf(Delivery delivery) {
-    return Optional.ofNullable(headerOf(delivery, QUEUE_ID_HEADER)).map(Object::toString);
-  }
-
-  private static Object headerOf(Delivery delivery, String name) {
-    Map<String, Object> headers = delivery.getProperties().getHeaders();
-    return headers == null ? null : headers.get(name);
-  }
-
-  private void send(Session session, String userId, String message) {
+  private void send(Session session, String message) {
     try {
-      session
-          .getAsyncRemote()
-          .sendText(migrator.downgradeIfNeeded(message, EventWebSocketSessions.versionOf(session)));
-      ChatsLogger.info(String.format("Sent event to user/queue '%s/%s'", userId, session.getId()));
+      session.getAsyncRemote().sendText(migrator.downgradeIfNeeded(message, versionOf(session)));
+      ChatsLogger.info(
+          String.format("Sent event to user/queue '%s/%s'", userIdOf(session), session.getId()));
     } catch (Exception e) {
       ChatsLogger.warn(
-          String.format("Error sending event to user/queue '%s/%s'", userId, session.getId()), e);
+          String.format(
+              "Error sending event to user/queue '%s/%s'", userIdOf(session), session.getId()),
+          e);
     }
   }
 

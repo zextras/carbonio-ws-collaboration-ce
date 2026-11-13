@@ -15,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.Channel;
 import com.vdurmont.semver4j.Semver;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
@@ -25,7 +24,7 @@ import com.zextras.carbonio.async.model.Pong;
 import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
@@ -50,7 +49,6 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
@@ -84,7 +82,7 @@ class EventsWebSocketIT {
   private Server jettyServer;
   private EventsWebSocketManager eventsWebSocketManager;
   private final AuthenticationService authenticationService;
-  private final Channel channel;
+  private final EventDispatcher eventDispatcher;
   private final EventWebSocketSessions sessions;
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator websocketVersionMigrator;
@@ -95,14 +93,14 @@ class EventsWebSocketIT {
 
   public EventsWebSocketIT(
       AuthenticationService authenticationService,
-      Channel channel,
+      EventDispatcher eventDispatcher,
       EventWebSocketSessions sessions,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
       CacheVideoServerSession cacheVideoServerSession) {
     this.authenticationService = authenticationService;
-    this.channel = channel;
+    this.eventDispatcher = eventDispatcher;
     this.sessions = sessions;
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
@@ -476,12 +474,8 @@ class EventsWebSocketIT {
     }
   }
 
-  private void dispatchEvent(DomainEvent domainEvent) throws IOException {
-    channel.basicPublish(
-        EventDispatcherRabbitMq.EXCHANGE,
-        DEFAULT_USER_ID,
-        null,
-        objectMapper.writeValueAsString(domainEvent).getBytes(StandardCharsets.UTF_8));
+  private void dispatchEvent(DomainEvent domainEvent) {
+    eventDispatcher.sendToUserExchange(DEFAULT_USER_ID, domainEvent);
   }
 
   private static ClientEndpointConfig buildEndpointWith(List<String> requestedVersions) {

@@ -4,12 +4,14 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.event.impl;
 
+import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.QUEUE_ID_HEADER;
+import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.USERS_HEADER;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -18,9 +20,6 @@ import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,14 +32,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
 
-  public static final String EXCHANGE = "wsc.events";
-  public static final String QUEUE_ID_HEADER = "queueId";
-  public static final String USERS_HEADER = "users";
-
   private static final int MAX_PENDING_EVENTS = 10_000;
   private static final int MAX_USERS_PER_MESSAGE = 1_000;
   private static final long ENQUEUE_WAIT_MILLIS = 100;
-  private static final BasicProperties NO_PROPERTIES = new BasicProperties.Builder().build();
 
   private final ObjectMapper objectMapper;
   private final Connection connection;
@@ -61,7 +55,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   public EventDispatcherRabbitMq(ConnectionFactory connectionFactory, ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
     try {
-      this.connection = connectionFactory.newConnection(connectionName("publisher"));
+      this.connection = connectionFactory.newConnection(EventBroker.connectionName("publisher"));
       connection.addBlockedListener(reason -> brokerBlocked = true, () -> brokerBlocked = false);
       this.channel = openChannel();
     } catch (IOException | TimeoutException e) {
@@ -69,17 +63,9 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     }
   }
 
-  public static String connectionName(String role) {
-    try {
-      return "carbonio-ws-collaboration-" + role + "@" + InetAddress.getLocalHost().getHostName();
-    } catch (UnknownHostException e) {
-      return "carbonio-ws-collaboration-" + role;
-    }
-  }
-
   private Channel openChannel() throws IOException {
     Channel opened = connection.createChannel();
-    opened.exchangeDeclare(EXCHANGE, BuiltinExchangeType.TOPIC, true);
+    EventBroker.declareExchange(opened);
     return opened;
   }
 
@@ -95,56 +81,41 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   @Override
   public void sendToUserExchange(String userId, DomainEvent event) {
-    serialize(event).ifPresent(body -> publish(userId, NO_PROPERTIES, body));
+    sendToUserExchange(List.of(userId), event);
   }
 
   @Override
   public void sendToUserExchange(List<String> usersIds, DomainEvent event) {
-    if (usersIds.size() == 1) {
-      sendToUserExchange(usersIds.getFirst(), event);
-      return;
-    }
-    serialize(event)
-        .ifPresent(
-            body -> {
-              for (int from = 0; from < usersIds.size(); from += MAX_USERS_PER_MESSAGE) {
-                List<String> users =
-                    List.copyOf(
-                        usersIds.subList(
-                            from, Math.min(usersIds.size(), from + MAX_USERS_PER_MESSAGE)));
-                publish(
-                    USERS_HEADER,
-                    new BasicProperties.Builder().headers(Map.of(USERS_HEADER, users)).build(),
-                    body);
-              }
-            });
+    serialize(event).ifPresent(body -> publishToUsers(usersIds, body));
   }
 
   @Override
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
-    serialize(event)
-        .ifPresent(
-            body ->
-                publish(
-                    userId,
-                    new BasicProperties.Builder().headers(Map.of(QUEUE_ID_HEADER, queueId)).build(),
-                    body));
+    serialize(event).ifPresent(body -> publish(Map.of(QUEUE_ID_HEADER, queueId), body));
   }
 
   private Optional<byte[]> serialize(DomainEvent event) {
     try {
-      return Optional.of(objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
+      return Optional.of(objectMapper.writeValueAsBytes(event));
     } catch (JsonProcessingException e) {
       ChatsLogger.warn(String.format("Unable to serialize event '%s'", event.getType()), e);
       return Optional.empty();
     }
   }
 
-  private void publish(String routingKey, BasicProperties properties, byte[] body) {
+  private void publishToUsers(List<String> usersIds, byte[] body) {
+    for (int from = 0; from < usersIds.size(); from += MAX_USERS_PER_MESSAGE) {
+      int to = Math.min(usersIds.size(), from + MAX_USERS_PER_MESSAGE);
+      publish(Map.of(USERS_HEADER, List.copyOf(usersIds.subList(from, to))), body);
+    }
+  }
+
+  private void publish(Map<String, Object> headers, byte[] body) {
+    BasicProperties properties = new BasicProperties.Builder().headers(headers).build();
     publisher.execute(
         () -> {
           try {
-            channel().basicPublish(EXCHANGE, routingKey, properties, body);
+            channel().basicPublish(EventBroker.EXCHANGE, "", properties, body);
           } catch (Exception e) {
             ChatsLogger.warn("Unable to send event to the message broker", e);
           }

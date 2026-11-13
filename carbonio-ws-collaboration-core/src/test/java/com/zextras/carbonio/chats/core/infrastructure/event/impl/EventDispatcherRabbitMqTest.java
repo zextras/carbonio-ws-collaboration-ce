@@ -4,9 +4,9 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.event.impl;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,9 +34,9 @@ import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -77,42 +77,28 @@ class EventDispatcherRabbitMqTest {
     dispatcher.stop();
   }
 
-  private byte[] json() throws Exception {
-    return objectMapper.writeValueAsString(EVENT).getBytes(StandardCharsets.UTF_8);
+  private List<BasicProperties> published(int times) throws IOException {
+    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
+    verify(channel, timeout(1000).times(times))
+        .basicPublish(eq("wsc.events"), eq(""), props.capture(), any());
+    return props.getAllValues();
   }
 
   @Test
-  void sendToUserExchange_publishesToTheEventsExchangeRoutedByUser() throws Exception {
+  void sendToUserExchange_publishesOneMessageListingTheUser() throws Exception {
     dispatcher.sendToUserExchange(USER_A, EVENT);
 
-    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
     ArgumentCaptor<byte[]> body = ArgumentCaptor.forClass(byte[].class);
-    verify(channel, timeout(1000))
-        .basicPublish(eq("wsc.events"), eq(USER_A), props.capture(), body.capture());
-    assertNull(props.getValue().getHeaders());
-    assertEquals(new String(json(), StandardCharsets.UTF_8), new String(body.getValue()));
+    verify(channel, timeout(1000)).basicPublish(eq("wsc.events"), eq(""), any(), body.capture());
+    assertEquals(Map.of("users", List.of(USER_A)), published(1).getFirst().getHeaders());
+    assertArrayEquals(objectMapper.writeValueAsBytes(EVENT), body.getValue());
   }
 
   @Test
   void sendToUserExchange_withManyUsers_publishesOneMessageListingThem() throws Exception {
     dispatcher.sendToUserExchange(List.of(USER_A, USER_B), EVENT);
 
-    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
-    ArgumentCaptor<byte[]> body = ArgumentCaptor.forClass(byte[].class);
-    verify(channel, timeout(1000).times(1))
-        .basicPublish(eq("wsc.events"), eq("users"), props.capture(), body.capture());
-    assertEquals(List.of(USER_A, USER_B), props.getValue().getHeaders().get("users"));
-    assertEquals(new String(json(), StandardCharsets.UTF_8), new String(body.getValue()));
-  }
-
-  @Test
-  void sendToUserExchange_withOneUserInTheList_routesByThatUser() throws Exception {
-    dispatcher.sendToUserExchange(List.of(USER_A), EVENT);
-
-    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
-    verify(channel, timeout(1000))
-        .basicPublish(eq("wsc.events"), eq(USER_A), props.capture(), any());
-    assertNull(props.getValue().getHeaders());
+    assertEquals(List.of(USER_A, USER_B), published(1).getFirst().getHeaders().get("users"));
   }
 
   @Test
@@ -123,33 +109,35 @@ class EventDispatcherRabbitMqTest {
 
     dispatcher.sendToUserExchange(users, EVENT);
 
-    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
-    verify(channel, timeout(1000).times(3))
-        .basicPublish(eq("wsc.events"), eq("users"), props.capture(), any());
     assertEquals(
         users,
-        props.getAllValues().stream()
+        published(3).stream()
             .flatMap(p -> ((List<?>) p.getHeaders().get("users")).stream())
             .toList());
   }
 
   @Test
-  void sendToUserQueue_addsTheTargetSessionAsHeader() throws Exception {
-    dispatcher.sendToUserQueue(USER_A, "session-1", EVENT);
+  void sendToUserExchange_withNoUsers_publishesNothing() throws Exception {
+    dispatcher.sendToUserExchange(List.of(), EVENT);
+    dispatcher.stop();
 
-    ArgumentCaptor<BasicProperties> props = ArgumentCaptor.forClass(BasicProperties.class);
-    verify(channel, timeout(1000))
-        .basicPublish(eq("wsc.events"), eq(USER_A), props.capture(), any());
-    assertEquals("session-1", props.getValue().getHeaders().get("queueId"));
+    verify(channel, never()).basicPublish(anyString(), anyString(), any(), any());
   }
 
   @Test
-  void publishing_declaresTheExchangeOnceAndNeverAQueue() throws Exception {
+  void sendToUserQueue_publishesOneMessageNamingTheSession() throws Exception {
+    dispatcher.sendToUserQueue(USER_A, "session-1", EVENT);
+
+    assertEquals(Map.of("queueId", "session-1"), published(1).getFirst().getHeaders());
+  }
+
+  @Test
+  void publishing_declaresTheFanoutExchangeOnceAndNeverAQueue() throws Exception {
     dispatcher.sendToUserExchange(USER_A, EVENT);
     dispatcher.sendToUserQueue(USER_A, "session-1", EVENT);
 
-    verify(channel, timeout(1000).times(2)).basicPublish(anyString(), anyString(), any(), any());
-    verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.TOPIC, true);
+    published(2);
+    verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
     verify(channel, never())
         .queueDeclare(anyString(), anyBoolean(), anyBoolean(), anyBoolean(), any());
   }
@@ -163,8 +151,8 @@ class EventDispatcherRabbitMqTest {
 
     dispatcher.sendToUserExchange(USER_A, EVENT);
 
-    verify(reopened, timeout(1000)).basicPublish(eq("wsc.events"), eq(USER_A), any(), any());
-    verify(reopened).exchangeDeclare("wsc.events", BuiltinExchangeType.TOPIC, true);
+    verify(reopened, timeout(1000)).basicPublish(eq("wsc.events"), eq(""), any(), any());
+    verify(reopened).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
   }
 
   @Test
@@ -218,13 +206,14 @@ class EventDispatcherRabbitMqTest {
   @Test
   void aFailedPublish_doesNotStopLaterPublishes() throws Exception {
     doThrow(new IOException("broker gone"))
+        .doNothing()
         .when(channel)
-        .basicPublish(eq("wsc.events"), eq(USER_A), any(), any());
+        .basicPublish(anyString(), anyString(), any(), any());
 
     dispatcher.sendToUserExchange(USER_A, EVENT);
     dispatcher.sendToUserExchange(USER_B, EVENT);
 
-    verify(channel, timeout(1000)).basicPublish(eq("wsc.events"), eq(USER_B), any(), any());
+    published(2);
   }
 
   @Test
@@ -234,7 +223,7 @@ class EventDispatcherRabbitMqTest {
     dispatcher.stop();
 
     InOrder order = inOrder(channel, connection);
-    order.verify(channel).basicPublish(eq("wsc.events"), eq(USER_A), any(), any());
+    order.verify(channel).basicPublish(eq("wsc.events"), eq(""), any(), any());
     order.verify(connection).close();
   }
 
