@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
+import com.google.common.base.Suppliers;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -55,16 +56,17 @@ public class ProductionConfig extends AbstractModule {
     Map<String, String> consulKeys = new HashMap<>();
     contributions.forEach(contribution -> consulKeys.putAll(contribution.consulKvMappings()));
     return new ConsulCredentialReader(
-        () -> {
-          try {
-            return Consul.builder()
-                .withUrl(new URL("http", host, port, ""))
-                .withPing(false)
-                .build();
-          } catch (MalformedURLException e) {
-            throw new IllegalStateException("Invalid Consul address", e);
-          }
-        },
+        Suppliers.memoize(
+            () -> {
+              try {
+                return Consul.builder()
+                    .withUrl(new URL("http", host, port, ""))
+                    .withPing(false)
+                    .build();
+              } catch (MalformedURLException e) {
+                throw new IllegalStateException("Invalid Consul address", e);
+              }
+            }),
         System.getenv("CONSUL_HTTP_TOKEN"),
         consulKeys);
   }
