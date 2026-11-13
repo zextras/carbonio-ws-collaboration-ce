@@ -62,6 +62,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
     }
+    Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "Event dispatcher shutdown"));
   }
 
   private Channel openChannel() throws IOException {
