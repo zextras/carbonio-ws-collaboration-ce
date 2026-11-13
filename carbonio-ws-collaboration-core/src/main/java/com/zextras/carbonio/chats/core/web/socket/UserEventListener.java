@@ -14,13 +14,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.websocket.Session;
@@ -65,7 +65,7 @@ public class UserEventListener {
 
   private void subscribe() throws IOException {
     Channel channel = connection.createChannel();
-    EventBroker.declareExchange(channel);
+    channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, true);
     String queue =
         channel
             .queueDeclare("", false, true, true, Map.of("x-max-length", MAX_QUEUE_LENGTH))

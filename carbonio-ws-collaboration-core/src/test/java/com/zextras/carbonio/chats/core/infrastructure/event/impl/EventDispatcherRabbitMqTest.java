@@ -127,12 +127,13 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
-  void publishing_declaresTheFanoutExchangeOnceAndNeverAQueue() throws Exception {
+  void publishing_declaresNeitherTheExchangeNorAQueue() throws Exception {
     dispatcher.sendToUserExchange(USER_A, EVENT);
     dispatcher.sendToUserQueue(USER_A, "session-1", EVENT);
 
     published(2);
-    verify(channel).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
+    verify(channel, never())
+        .exchangeDeclare(anyString(), any(BuiltinExchangeType.class), anyBoolean());
     verify(channel, never())
         .queueDeclare(anyString(), anyBoolean(), anyBoolean(), anyBoolean(), any());
   }
@@ -147,7 +148,6 @@ class EventDispatcherRabbitMqTest {
     dispatcher.sendToUserExchange(USER_A, EVENT);
 
     verify(reopened, timeout(1000)).basicPublish(eq("wsc.events"), eq(""), any(), any());
-    verify(reopened).exchangeDeclare("wsc.events", BuiltinExchangeType.FANOUT, true);
   }
 
   @Test
