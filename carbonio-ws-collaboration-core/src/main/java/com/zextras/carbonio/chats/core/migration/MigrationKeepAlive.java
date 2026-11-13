@@ -29,6 +29,7 @@ public class MigrationKeepAlive {
   static final Duration DEFAULT_WINDOW = Duration.ofSeconds(120);
   static final Duration DEFAULT_STALL = Duration.ofMinutes(10);
   static final Duration MAX_PERIOD = Duration.ofSeconds(30);
+  static final Duration STOP_WAIT = Duration.ofSeconds(5);
 
   interface DatabaseProbe {
     boolean isBackendActive() throws Exception;
@@ -48,6 +49,8 @@ public class MigrationKeepAlive {
   private long lastProgressAt;
   private boolean stallLogged;
   private boolean probeFailureLogged;
+  private final Object notifyLock = new Object();
+  private boolean stopped;
 
   MigrationKeepAlive(
       ScheduledExecutorService scheduler,
@@ -141,7 +144,23 @@ public class MigrationKeepAlive {
   }
 
   public void stop() {
+    synchronized (notifyLock) {
+      stopped = true;
+    }
     scheduler.shutdownNow();
+    try {
+      scheduler.awaitTermination(STOP_WAIT.toMillis(), TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private void notifyIfRunning() {
+    synchronized (notifyLock) {
+      if (!stopped) {
+        notifier.accept(window, status.get());
+      }
+    }
   }
 
   void tick() {
@@ -160,7 +179,7 @@ public class MigrationKeepAlive {
     if (progressed || backendActive()) {
       lastProgressAt = now;
       stallLogged = false;
-      notifier.accept(window, status.get());
+      notifyIfRunning();
       return;
     }
     Duration idle = Duration.ofNanos(now - lastProgressAt);
@@ -174,7 +193,7 @@ public class MigrationKeepAlive {
       }
       return;
     }
-    notifier.accept(window, status.get());
+    notifyIfRunning();
   }
 
   private boolean backendActive() {

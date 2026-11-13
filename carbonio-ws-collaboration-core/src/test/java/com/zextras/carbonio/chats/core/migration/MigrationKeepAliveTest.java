@@ -12,6 +12,8 @@ import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +39,7 @@ class MigrationKeepAliveTest {
                   if (method.getName().equals("scheduleAtFixedRate")) {
                     scheduled.add(args);
                   }
-                  return null;
+                  return method.getReturnType() == boolean.class ? Boolean.FALSE : null;
                 });
     long now = 0;
     long progress = 0;
@@ -241,6 +243,50 @@ class MigrationKeepAliveTest {
     fixture.keepAlive.stop();
 
     assertTrue(fixture.calls.contains("shutdownNow"));
+  }
+
+  @Test
+  @DisplayName("no notification is sent once stop returns, even if a tick was in flight")
+  void stop_waitsForInFlightTick_noNotificationAfter() throws Exception {
+    CountDownLatch inNotifier = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    List<String> sent = new CopyOnWriteArrayList<>();
+    MigrationKeepAlive keepAlive =
+        new MigrationKeepAlive(
+            new Fixture().executor,
+            () -> 0L,
+            () -> 1L,
+            () -> "s",
+            () -> false,
+            (duration, text) -> {
+              inNotifier.countDown();
+              try {
+                release.await();
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+              sent.add(text);
+            },
+            WINDOW,
+            STALL);
+    keepAlive.start();
+    Thread tickThread = new Thread(keepAlive::tick);
+    tickThread.start();
+    assertTrue(inNotifier.await(5, TimeUnit.SECONDS));
+    Thread stopThread = new Thread(keepAlive::stop);
+    stopThread.start();
+    stopThread.join(300);
+    assertTrue(stopThread.isAlive());
+    release.countDown();
+    stopThread.join(5000);
+    tickThread.join(5000);
+    assertFalse(stopThread.isAlive());
+    assertEquals(1, sent.size());
+
+    keepAlive.tick();
+    keepAlive.tick();
+
+    assertEquals(1, sent.size());
   }
 
   @Test
