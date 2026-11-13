@@ -74,6 +74,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <skipUTs>${skipTests}</skipUTs>
         <skipITs>${skipTests}</skipITs>
         <sonar.junit.reportPaths>target/surefire-reports,target/failsafe-reports</sonar.junit.reportPaths>
+        <!-- jacoco:prepare-agent overwrites these; the empty defaults keep modules without it building -->
+        <argLine/>
+        <failsafeArgLine/>
         <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/target/site/jacoco-all-tests/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <!-- Carbonio User Management REST SDK -->
         <carbonio-user-management-rest-sdk.version>1.3.9-1</carbonio-user-management-rest-sdk.version>
@@ -526,7 +529,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <configuration>
                         <skipTests>${skipUTs}</skipTests>
                         <argLine>
-                            -javaagent:${settings.localRepository}/org/mockito/mockito-core/${org.mockito.version}/mockito-core-${org.mockito.version}.jar
+                            @{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${org.mockito.version}/mockito-core-${org.mockito.version}.jar
                         </argLine>
                     </configuration>
                 </plugin>

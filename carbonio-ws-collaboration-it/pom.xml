@@ -161,6 +161,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <argLine>@{failsafeArgLine}</argLine>
+        </configuration>
         <executions>
           <execution>
             <id>integration-tests-execution</id>
