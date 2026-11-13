@@ -21,6 +21,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
 
+  <properties>
+    <sonar.exclusions>target/generated-sources/**</sonar.exclusions>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.swagger</groupId>
