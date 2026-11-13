@@ -35,6 +35,14 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
   `online` and `lastActivity`.
 - **History visibility**: the per-user `clearedAt` floor is enforced by the server on every read path, quotes
   of older messages included; pins are the only exception (`MIGRATION.md` §8).
+  - `MessageDeleted` and `ReadUpdated` go only to members who can see the item; `MessageEdited` and
+    `ReactionChanged` are floor-filtered too, except that edits of the current room pin go to all members.
+  - Read markers of other users (timeline `markers`, `/inbox` `markers`, `GET /rooms/{roomId}/read`) are
+    clamped to the viewer's `clearedAt`; the schema is unchanged.
+  - Edit and delete of a message at or below the caller's floor, or unknown to a member, answer `404` (was
+    `403`); removing a reaction below the floor answers `404` (was `204`).
+  - Cursor ids (`beforeId`, `afterId`, `aroundId`, search `beforeId`) at or below the caller's floor are
+    treated as unknown ids.
 
 ### Changes against earlier 2.0.0 development builds
 

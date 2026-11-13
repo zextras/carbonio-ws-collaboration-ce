@@ -75,8 +75,9 @@ Notes:
   replaced a different emoji; `previousReaction` carries the old one). The same emoji again is a no-op: no
   write, no event. `DELETE .../reaction` removes your reaction whatever emoji it is and sends `removed`;
   without a reaction it answers `204` and sends nothing. Both answer `403` to a non-member and `404` when the
-  message is not in the path room; `PUT` also answers `404` for a deleted message or one below your visibility
-  floor. `reaction` is 1 to 32 UTF-16 code units; blank answers `400`.
+  message is not in the path room; `PUT` also answers `404` for a deleted message, and both answer `404` for
+  one below your visibility floor (earlier builds answered `204` to the `DELETE`). `reaction` is 1 to 32 UTF-16 code
+  units; blank answers `400`.
 - `GET /rooms/{roomId}/messages` (the cursor history of earlier 2.0.0 builds) is removed: use
   `GET /rooms/{roomId}/timeline`, which returns messages and system events in one discriminated list, supports
   `before`/`after`/`around` anchoring, and includes read markers.
@@ -109,7 +110,8 @@ only to retry that message.
 Two things that were separate XMPP round-trips now arrive inside responses you already make:
 
 - **Read markers** ride on `GET /rooms/{roomId}/timeline` (`markers`) and on each `GET /inbox` entry (`markers`).
-  `GET /rooms/{roomId}/read` exists if you need them standalone.
+  `GET /rooms/{roomId}/read` exists if you need them standalone. The markers of other users are clamped to
+  your own `clearedAt` (§8); the schema is unchanged.
 - **Member presence** rides on each `GET /inbox` entry (`room.members[].online` / `.lastActivity`).
   `POST /presence/batch` exists for arbitrary user sets.
 
@@ -225,12 +227,12 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 |---|---|---|
 | `MessageReceived` | `POST /rooms/{roomId}/messages` or attachment upload completes | All room members, each with the same `tempId` echo (see below) |
 | `MessageForwarded` | `POST /rooms/{roomId}/forward` | All members of the target room |
-| `MessageEdited` | `PUT .../messages/{messageId}/edit` | Room members who can see the message (§8) |
-| `MessageDeleted` | `DELETE .../messages/{messageId}` | All room members |
+| `MessageEdited` | `PUT .../messages/{messageId}/edit` | Room members who can see the message (§8); edits of the current room pin go to all members |
+| `MessageDeleted` | `DELETE .../messages/{messageId}` | Room members who can see the message (§8) |
 | `MessagePinned` | `PUT .../messages/{messageId}/pin`, also when it replaces the current pin | All room members |
 | `MessageUnpinned` | `DELETE .../messages/{messageId}/pin` of the room pin (unpinning any other message is a 204 no-op: no system line, no event), or `DELETE .../messages/{messageId}` of the pinned message (sent right after `MessageDeleted`, `unpinnedBy` = the deleter) | All room members |
 | `ReactionChanged` | `PUT` (`added` or `updated`) or `DELETE` (`removed`) `.../reaction`; a same-emoji `PUT` and a `DELETE` without a reaction send nothing | Room members who can see the message (§8) |
-| `ReadUpdated` | `PUT /rooms/{roomId}/read` that moves the marker forward (a same or older item writes nothing and sends nothing) | All room members |
+| `ReadUpdated` | `PUT /rooms/{roomId}/read` that moves the marker forward (a same or older item writes nothing and sends nothing) | Room members who can see the item (§8) |
 | `PresenceChanged` | A user opens their first or closes their last WebSocket, across all instances | Online users sharing at least one room with the affected user |
 | `Typing` | Client sends a `Typing` WebSocket action | All room members except the sender |
 
@@ -427,8 +429,16 @@ Each member has a visibility floor, `clearedAt`: the instant of their last per-u
   floor).
 - Requests that target an item below the floor answer `404`: reply (`replyToId`), forward source, pin, add
   reaction, mark as read.
-- WebSocket events that concern one existing message (`MessageEdited`, `ReactionChanged`) are sent only to the
-  members who can see that message.
+- Edit and delete of a message at or below your floor answer `404` (earlier builds: `403`), and so does a
+  message id that is unknown or not in the room when you are a member; non-members still get `403`. Removing
+  a reaction from a message below your floor answers `404` (earlier builds: `204`).
+- Cursor ids (`beforeId`, `afterId`, `aroundId` of the timeline, `beforeId` of the search) at or below your
+  floor are treated exactly like unknown ids.
+- Read markers of other users (timeline `markers`, `/inbox` `markers`, `GET /rooms/{roomId}/read`) are
+  clamped to your `clearedAt`. The schema is unchanged.
+- WebSocket events that concern one existing item are sent only to the members who can see it:
+  `MessageEdited`, `MessageDeleted`, `ReactionChanged` and `ReadUpdated`. The exception is the current room
+  pin: its edits go to all members, like `MessagePinned` and `MessageUnpinned`.
 - **Quotes of older messages are not returned.** For a reader whose floor is after the quoted message,
   `repliedMessage` and `replyToId` are absent in REST responses and in
   `MessageReceived`, `MessageForwarded` and `MessagePinned`. Legacy clients showed such quotes: that was a bug
