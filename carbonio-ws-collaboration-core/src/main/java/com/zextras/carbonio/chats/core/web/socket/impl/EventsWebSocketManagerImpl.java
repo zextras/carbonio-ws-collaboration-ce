@@ -17,7 +17,6 @@ import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
@@ -57,18 +56,6 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.participantService = participantService;
     this.sessions = sessions;
-  }
-
-  @Deprecated(forRemoval = true)
-  @SuppressWarnings("removal")
-  public EventsWebSocketManagerImpl(
-      RabbitConnectionPoolService rabbitPool,
-      ObjectMapper objectMapper,
-      WebsocketVersionMigrator migrator,
-      CacheVideoServerSession cacheVideoServerSession,
-      ParticipantService participantService,
-      EventWebSocketSessions sessions) {
-    this(objectMapper, migrator, cacheVideoServerSession, participantService, sessions);
   }
 
   @Override
@@ -195,9 +182,10 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
   }
 
   private void handleSessionClose(Session session) {
-    if (sessions.remove(session.getId())) {
-      forgetSession(session);
-    }
+    if (!sessions.remove(session.getId())) return;
+    UUID queueId = UUID.fromString(session.getId());
+    cacheVideoServerSession.add(UUID.fromString(userIdOf(session)), queueId);
+    onSessionDisconnected(queueId);
   }
 
   private Optional<JsonNode> getKey(ObjectNode node, String key) {
@@ -206,13 +194,6 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
     } catch (NullPointerException e) {
       return Optional.empty();
     }
-  }
-
-  private void forgetSession(Session session) {
-    UUID userId = UUID.fromString(userIdOf(session));
-    UUID queueId = UUID.fromString(session.getId());
-    cacheVideoServerSession.add(userId, queueId);
-    onSessionDisconnected(queueId);
   }
 
   protected void onSessionDisconnected(UUID queueId) {}
