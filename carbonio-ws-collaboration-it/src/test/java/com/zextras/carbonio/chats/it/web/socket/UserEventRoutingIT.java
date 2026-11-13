@@ -72,6 +72,7 @@ class UserEventRoutingIT {
             sessions,
             new WebsocketVersionMigrator(objectMapper),
             mock(MessageBrokerVideoserverHealthMonitor.class));
+    listener.start();
     return new Instance(sessions, listener);
   }
 
