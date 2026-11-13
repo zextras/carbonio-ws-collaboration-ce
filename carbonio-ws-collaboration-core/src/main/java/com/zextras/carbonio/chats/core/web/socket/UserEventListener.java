@@ -4,9 +4,6 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.EXCHANGE;
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.QUEUE_ID_HEADER;
-import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBroker.USERS_HEADER;
 import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.userIdOf;
 import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.versionOf;
 
@@ -35,6 +32,9 @@ import java.util.concurrent.TimeoutException;
 @Singleton
 public class UserEventListener {
 
+  private static final String EXCHANGE = "wsc.events";
+  private static final String USERS_HEADER = "users";
+  private static final String QUEUE_ID_HEADER = "queueId";
   private static final int MAX_QUEUE_LENGTH = 10_000;
 
   private final Connection connection;
