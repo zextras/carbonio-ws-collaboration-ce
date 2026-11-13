@@ -52,6 +52,7 @@ public class UserEventListener {
     this.migrator = migrator;
     this.healthMonitor = healthMonitor;
     this.connection = connect(connectionFactory);
+    Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "User event listener shutdown"));
   }
 
   private Connection connect(ConnectionFactory connectionFactory) {
