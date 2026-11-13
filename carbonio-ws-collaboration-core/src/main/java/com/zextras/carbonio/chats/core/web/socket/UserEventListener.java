@@ -10,6 +10,7 @@ import static com.zextras.carbonio.chats.core.infrastructure.event.impl.EventBro
 import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.userIdOf;
 import static com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions.versionOf;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.rabbitmq.client.Channel;
@@ -24,7 +25,9 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.websocket.Session;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -80,8 +83,24 @@ public class UserEventListener {
   }
 
   private void deliver(Delivery delivery) {
+    List<Session> recipients = recipientsOf(delivery.getProperties().getHeaders());
+    if (recipients.isEmpty()) return;
     String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-    recipientsOf(delivery.getProperties().getHeaders()).forEach(session -> send(session, message));
+    Map<String, String> messageByVersion = new HashMap<>();
+    for (Session session : recipients) {
+      try {
+        session
+            .getAsyncRemote()
+            .sendText(
+                messageByVersion.computeIfAbsent(
+                    versionOf(session), version -> downgrade(message, version)));
+      } catch (Exception e) {
+        ChatsLogger.warn(
+            String.format(
+                "Error sending event to user/queue '%s/%s'", userIdOf(session), session.getId()),
+            e);
+      }
+    }
   }
 
   private List<Session> recipientsOf(Map<String, Object> headers) {
@@ -92,16 +111,11 @@ public class UserEventListener {
     return users.stream().flatMap(user -> sessions.sessionsOf(user.toString()).stream()).toList();
   }
 
-  private void send(Session session, String message) {
+  private String downgrade(String message, String version) {
     try {
-      session.getAsyncRemote().sendText(migrator.downgradeIfNeeded(message, versionOf(session)));
-      ChatsLogger.info(
-          String.format("Sent event to user/queue '%s/%s'", userIdOf(session), session.getId()));
-    } catch (Exception e) {
-      ChatsLogger.warn(
-          String.format(
-              "Error sending event to user/queue '%s/%s'", userIdOf(session), session.getId()),
-          e);
+      return migrator.downgradeIfNeeded(message, version);
+    } catch (JsonProcessingException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
