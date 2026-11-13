@@ -104,7 +104,9 @@ class ConsulWsInstanceRegistryTest {
         assertThrows(RuntimeException.class, () -> new ConsulWsInstanceRegistry(consul));
     assertEquals(
         "service_id not found in Consul service metadata for 'carbonio-ws-collaboration'."
-            + " Ensure the service is registered with meta { service_id = \"...\" }",
+            + " Set the Consul KV key 'carbonio-ws-collaboration/meta/<node IP>/service_id' to this"
+            + " node's service id: the setup renders the service hcl from it. Run"
+            + " 'pending-setups' to render the hcl and register the service.",
         e.getMessage());
   }
 

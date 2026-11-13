@@ -20,8 +20,8 @@ import java.util.UUID;
 
 /**
  * Identifies this instance and its live peers through the Consul catalog, using {@code
- * Service.Meta["service_id"]} populated by the {@code meta { service_id = "..." }} block of the
- * service registration.
+ * Service.Meta["service_id"]} rendered into the service hcl by the setup from the Consul KV key
+ * {@code carbonio-ws-collaboration/meta/<node IP>/service_id}.
  */
 @Singleton
 public class ConsulWsInstanceRegistry implements WsInstanceRegistry {
@@ -103,8 +103,10 @@ public class ConsulWsInstanceRegistry implements WsInstanceRegistry {
                     new RuntimeException(
                         "service_id not found in Consul service metadata for '"
                             + SERVICE_NAME
-                            + "'. Ensure the service is registered with meta { service_id = \"...\""
-                            + " }"));
+                            + "'. Set the Consul KV key 'carbonio-ws-collaboration/meta/<node"
+                            + " IP>/service_id' to this node's service id: the setup renders the"
+                            + " service hcl from it. Run 'pending-setups' to render the hcl and"
+                            + " register the service."));
     return UUID.fromString(value).toString();
   }
 }
