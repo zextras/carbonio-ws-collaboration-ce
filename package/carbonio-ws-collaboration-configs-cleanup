@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# This script removes from consul the configuration values that are no longer used
+
+CONSUL_TOKEN_PATH="/etc/carbonio/ws-collaboration/service-discover/token"
+
+MAIN_SERVICE_NAME="carbonio-ws-collaboration"
+
+OBSOLETE_CONFIGURATIONS=(
+  "$MAIN_SERVICE_NAME/broker/connection-pool-size"
+)
+
+for KEY in "${OBSOLETE_CONFIGURATIONS[@]}"; do
+  if consul kv get -token-file="$CONSUL_TOKEN_PATH" "$KEY" >/dev/null 2>&1; then
+    consul kv delete -token-file="$CONSUL_TOKEN_PATH" "$KEY"
+  fi
+done
