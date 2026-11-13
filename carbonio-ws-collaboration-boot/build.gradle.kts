@@ -10,7 +10,6 @@ plugins {
 val mainClassName = "com.zextras.carbonio.chats.boot.Chats"
 
 dependencies {
-    implementation(libs.systemdNotify)
     implementation(project(":carbonio-ws-collaboration-core")) {
         exclude(group = "jakarta.ws.rs", module = "jsr311-api")
     }

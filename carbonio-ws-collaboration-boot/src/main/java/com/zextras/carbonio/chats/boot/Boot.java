@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.migration.MigrationKeepAlive;
 import com.zextras.carbonio.chats.core.service.MessageSendDedupPurgeService;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
@@ -82,21 +83,12 @@ public class Boot {
     ChatsLogger.info("Application latest version: " + VersionProvider.getVersion());
     ChatsLogger.info("Supported versions: " + VersionProvider.getSupportedVersions());
 
-    MigrationKeepAlive keepAlive =
-        MigrationKeepAlive.systemd(
-            hikariDataSource.getJdbcUrl(),
-            hikariDataSource.getUsername(),
-            hikariDataSource.getPassword());
-    keepAlive.start();
     try {
-      flyway.migrate();
+      MigrationKeepAlive.migrate(flyway, hikariDataSource);
     } catch (Throwable t) {
       // Non-daemon RabbitMQ threads would keep the JVM alive: exit so systemd restarts it.
       ChatsLogger.error("Database migration failed, exiting", t);
-      keepAlive.stop();
       System.exit(1);
-    } finally {
-      keepAlive.stop();
     }
 
     try {

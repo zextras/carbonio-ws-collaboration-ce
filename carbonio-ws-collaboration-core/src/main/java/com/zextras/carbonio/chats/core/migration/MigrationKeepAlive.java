@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.boot;
+package com.zextras.carbonio.chats.core.migration;
 
+import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.migration.MigrationProgress;
 import com.zextras.carbonio.systemd.SystemdNotify;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import org.flywaydb.core.Flyway;
 
 public class MigrationKeepAlive {
 
@@ -68,7 +69,18 @@ public class MigrationKeepAlive {
     this.stallLimit = stallLimit;
   }
 
-  public static MigrationKeepAlive systemd(String jdbcUrl, String user, String password) {
+  public static void migrate(Flyway flyway, HikariDataSource dataSource) {
+    MigrationKeepAlive keepAlive =
+        systemd(dataSource.getJdbcUrl(), dataSource.getUsername(), dataSource.getPassword());
+    keepAlive.start();
+    try {
+      flyway.migrate();
+    } finally {
+      keepAlive.stop();
+    }
+  }
+
+  static MigrationKeepAlive systemd(String jdbcUrl, String user, String password) {
     return new MigrationKeepAlive(
         Executors.newSingleThreadScheduledExecutor(MigrationKeepAlive::newDaemonThread),
         System::nanoTime,

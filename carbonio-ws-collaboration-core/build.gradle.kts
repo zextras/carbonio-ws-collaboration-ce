@@ -38,6 +38,7 @@ dependencies {
 
     api(libs.ebean.postgres)
     api(libs.hikari)
+    api(libs.systemdNotify)
     api(libs.postgresql)
     api(libs.flyway.postgres)
 
@@ -71,8 +72,12 @@ dependencies {
     mockitoAgent(libs.mockito.core) { isTransitive = false }
 }
 
+tasks.compileJava {
+    options.compilerArgs.add("--enable-preview")
+}
+
 tasks.test {
-    jvmArgs("-javaagent:${mockitoAgent.singleFile}")
+    jvmArgs("--enable-preview", "-javaagent:${mockitoAgent.singleFile}")
 }
 
 tasks.jacocoTestReport {
