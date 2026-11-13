@@ -124,6 +124,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
               .getById(beforeId)
               .filter(message -> roomId.equals(message.getRoomId()))
               .map(Message::getCreatedAt)
+              .filter(createdAt -> after == null || createdAt.isAfter(after))
               .orElse(before);
       return messageRepository.searchByText(roomId, words, anchor, beforeId, after, limit);
     }

@@ -269,4 +269,24 @@ class SearchIT {
             "q=needle&limit=50&before="
                 + URLEncoder.encode(tieAt.toString(), StandardCharsets.UTF_8)));
   }
+
+  @Test
+  @DisplayName("Search beforeId at or below the caller's floor behaves like an unknown id")
+  void beforeIdBelowFloorIsUnknown() throws Exception {
+    message("needle one", 1);
+    String belowFloor = message("needle two", 2);
+    String visible = message("needle three", 3);
+    message("needle four", 4);
+    integrationTestUtils.setRoomUserSettings(
+        RoomUserSettings.create(room, meId.toString()).clearedAt(T0.plusSeconds(2)));
+    String query =
+        "q=needle&limit=50&before="
+            + URLEncoder.encode(
+                T0.plusSeconds(4).minusNanos(500_000_000).toString(), StandardCharsets.UTF_8)
+            + "&beforeId=";
+
+    List<String> viaUnknown = foundPage(query + UUID.randomUUID());
+    assertEquals(List.of(visible), viaUnknown);
+    assertEquals(viaUnknown, foundPage(query + belowFloor));
+  }
 }

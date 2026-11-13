@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.Message;
+import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
@@ -340,5 +342,68 @@ class TimelineCursorIT {
         timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000)) + "&aroundId=" + foreignId));
     assertEquals(3, timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000))).size());
     assertEquals(a.id(), timelineIds("?limit=10&around=" + enc(BASE.plusNanos(250_000))).get(0));
+  }
+
+  private Stored[] belowFloorRoom() {
+    roomId = UUID.randomUUID();
+    Room room =
+        integrationTestUtils.generateAndSaveRoom(
+            roomId, RoomTypeDto.GROUP, "cursor-room", List.of(userId));
+    Stored a = saveMessage(BASE.plusNanos(100_000));
+    Stored b = saveMessage(BASE.plusNanos(200_000));
+    Stored c = saveMessage(BASE.plusNanos(300_000));
+    Stored d = saveMessage(BASE.plusNanos(400_000));
+    integrationTestUtils.setRoomUserSettings(
+        RoomUserSettings.create(room, userId.toString()).clearedAt(BASE.plusNanos(250_000)));
+    return new Stored[] {a, b, c, d};
+  }
+
+  @Test
+  @DisplayName("A beforeId at or below the caller's floor behaves like an unknown id")
+  void beforeIdBelowFloorIsUnknown() throws Exception {
+    Stored[] s = belowFloorRoom();
+    String query = "?limit=10&before=" + enc(BASE.plusNanos(350_000)) + "&beforeId=";
+    List<String> viaUnknown = timelineIds(query + UUID.randomUUID());
+    assertEquals(List.of(s[2].id()), viaUnknown);
+    assertEquals(viaUnknown, timelineIds(query + s[1].id()));
+    assertEquals(viaUnknown, timelineIds(query + s[0].id()));
+  }
+
+  @Test
+  @DisplayName("An afterId at or below the caller's floor behaves like an unknown id")
+  void afterIdBelowFloorIsUnknown() throws Exception {
+    Stored[] s = belowFloorRoom();
+    String query = "?limit=10&after=" + enc(BASE.plusNanos(350_000)) + "&afterId=";
+    List<String> viaUnknown = timelineIds(query + UUID.randomUUID());
+    assertEquals(List.of(s[3].id()), viaUnknown);
+    assertEquals(viaUnknown, timelineIds(query + s[1].id()));
+    assertEquals(viaUnknown, timelineIds(query + s[0].id()));
+  }
+
+  @Test
+  @DisplayName("An aroundId at or below the caller's floor behaves like an unknown id")
+  void aroundIdBelowFloorIsUnknown() throws Exception {
+    Stored[] s = belowFloorRoom();
+    String query = "?limit=2&around=" + enc(BASE.plusNanos(350_000)) + "&aroundId=";
+    List<String> viaUnknown = timelineIds(query + UUID.randomUUID());
+    assertEquals(List.of(s[3].id()), viaUnknown);
+    assertEquals(viaUnknown, timelineIds(query + s[1].id()));
+    assertEquals(viaUnknown, timelineIds(query + s[0].id()));
+  }
+
+  @Test
+  @DisplayName("An afterId unknown to the room keeps the composite comparison with the timestamp")
+  void unknownAfterIdIsComposite() throws Exception {
+    freshRoom();
+    OffsetDateTime tieAt = BASE.plusNanos(500_000);
+    Stored first = saveMessage(tieAt);
+    Stored second = saveMessage(tieAt);
+    List<Stored> tie = newestFirst(List.of(first, second)).reversed();
+    String lowId = "00000000-0000-0000-0000-000000000000";
+    String highId = "ffffffff-ffff-ffff-ffff-ffffffffffff";
+    assertEquals(
+        tie.stream().map(Stored::id).toList(),
+        timelineIds("?limit=10&after=" + enc(tieAt) + "&afterId=" + lowId));
+    assertEquals(List.of(), timelineIds("?limit=10&after=" + enc(tieAt) + "&afterId=" + highId));
   }
 }

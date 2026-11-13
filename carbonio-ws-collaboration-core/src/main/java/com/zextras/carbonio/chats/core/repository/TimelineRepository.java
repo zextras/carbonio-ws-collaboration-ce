@@ -26,7 +26,8 @@ public interface TimelineRepository {
   /**
    * Page strictly older than the composite cursor {@code (before, beforeId)}, where {@code before}
    * is replaced by the stored time of {@code beforeId} when that item exists in the room; with a
-   * null or unknown {@code beforeId} only {@code before} is used. Sets {@code hasMoreBefore}.
+   * null, unknown or at-or-below-{@code after} {@code beforeId} only {@code before} is used. Sets
+   * {@code hasMoreBefore}.
    */
   TimelinePage findBefore(
       String roomId, OffsetDateTime before, String beforeId, OffsetDateTime after, int limit);

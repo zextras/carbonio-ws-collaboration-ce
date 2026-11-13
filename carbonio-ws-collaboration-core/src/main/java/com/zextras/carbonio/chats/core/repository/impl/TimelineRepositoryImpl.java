@@ -48,7 +48,7 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     List<TimelineItem> messages;
     List<TimelineItem> events;
     if (beforeId != null) {
-      OffsetDateTime anchor = storedCreatedAt(roomId, beforeId).orElse(before);
+      OffsetDateTime anchor = storedCreatedAt(roomId, beforeId, after).orElse(before);
       messages =
           wrapMessages(messageRepository.getByRoomId(roomId, anchor, beforeId, after, fetch));
       events =
@@ -79,12 +79,8 @@ public class TimelineRepositoryImpl implements TimelineRepository {
   @Override
   public TimelinePage findAfter(
       String roomId, OffsetDateTime after, String afterId, OffsetDateTime floor, int limit) {
-    Optional<OffsetDateTime> stored = storedCreatedAt(roomId, afterId);
-    if (stored.isEmpty()) {
-      return findAfter(roomId, floor != null && floor.isAfter(after) ? floor : after, limit);
-    }
     int fetch = limit + 1;
-    OffsetDateTime anchor = stored.get();
+    OffsetDateTime anchor = storedCreatedAt(roomId, afterId, floor).orElse(after);
     List<TimelineItem> messages =
         wrapMessages(
             messageRepository.getByRoomIdForward(roomId, anchor, afterId, false, floor, fetch));
@@ -98,7 +94,7 @@ public class TimelineRepositoryImpl implements TimelineRepository {
   @Override
   public TimelinePage findAround(
       String roomId, OffsetDateTime around, String aroundId, OffsetDateTime floor, int limit) {
-    Optional<OffsetDateTime> stored = storedCreatedAt(roomId, aroundId);
+    Optional<OffsetDateTime> stored = storedCreatedAt(roomId, aroundId, floor);
     if (stored.isEmpty()) {
       return findAround(roomId, around, floor, limit);
     }
@@ -175,7 +171,7 @@ public class TimelineRepositoryImpl implements TimelineRepository {
     return new TimelinePage(items, hasMoreBefore, hasMoreAfter);
   }
 
-  private Optional<OffsetDateTime> storedCreatedAt(String roomId, String id) {
+  private Optional<OffsetDateTime> storedCreatedAt(String roomId, String id, OffsetDateTime floor) {
     return messageRepository
         .getById(id)
         .filter(message -> roomId.equals(message.getRoomId()))
@@ -185,7 +181,8 @@ public class TimelineRepositoryImpl implements TimelineRepository {
                 systemEventRepository
                     .getById(id)
                     .filter(event -> roomId.equals(event.getRoomId()))
-                    .map(SystemEvent::getCreatedAt));
+                    .map(SystemEvent::getCreatedAt))
+        .filter(createdAt -> floor == null || createdAt.isAfter(floor));
   }
 
   private TimelinePage descendingPage(
