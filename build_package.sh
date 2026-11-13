@@ -21,7 +21,8 @@
 #                    images instead of the locally installed `yap` binary
 #                    (local yap is the default).
 #   YAP_TAG=2.9.1    Pinned yap image tag, used for the docker mode image and
-#                    for the pre-pull in local mode (default: 2.9.1).
+#                    as the expected version of the local yap binary: a
+#                    mismatch only prints a warning (default: 2.9.1).
 #   PLATFORM=linux/amd64
 #                    Container platform. Defaults to linux/amd64 because the
 #                    PKGBUILD targets arch=('x86_64'). On Apple Silicon / arm64
@@ -95,15 +96,17 @@ cp "${jars[0]}" package/carbonio-ws-collaboration-ce.jar
 
 # --- Build helpers ----------------------------------------------------------
 # Always refresh the pinned image so the local copy is the published one.
-prepull() {
-  local image="$1"
-  log "Pulling ${image} (${PLATFORM}) ..."
-  docker pull --platform "${PLATFORM}" "${image}"
+check_yap_version() {
+  local installed
+  installed="$(yap version 2>&1 || true)"
+  if [[ "${installed}" != *"${YAP_TAG}"* ]]; then
+    log "WARNING: installed yap reports '${installed}', expected ${YAP_TAG} (set YAP_TAG to silence)"
+  fi
 }
 
 build_with_local_yap() {
   local distro="$1"
-  prepull "${IMAGE_ORG}${distro}:${YAP_TAG}"
+  check_yap_version
   log "Building '${distro}' with local yap (platform=${PLATFORM}) ..."
   # yap shells out to docker; DOCKER_DEFAULT_PLATFORM forces the dispatched
   # build container (and its pull) onto the target platform.
