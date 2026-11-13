@@ -61,17 +61,34 @@ public class UserEventListener {
     try {
       Connection opened = factory.newConnection(EventBroker.connectionName("consumer"));
       watchBrokerHealth(opened);
-      Channel channel = opened.createChannel();
-      EventBroker.declareExchange(channel);
-      String queue =
-          channel
-              .queueDeclare("", false, true, true, Map.of("x-max-length", MAX_QUEUE_LENGTH))
-              .getQueue();
-      channel.queueBind(queue, EXCHANGE, "");
-      channel.basicConsume(queue, true, (tag, delivery) -> deliver(delivery), tag -> {});
+      subscribe(opened);
       return opened;
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Could not start the user event listener", e);
+    }
+  }
+
+  private void subscribe(Connection connection) throws IOException {
+    Channel channel = connection.createChannel();
+    EventBroker.declareExchange(channel);
+    String queue =
+        channel
+            .queueDeclare("", false, true, true, Map.of("x-max-length", MAX_QUEUE_LENGTH))
+            .getQueue();
+    channel.queueBind(queue, EXCHANGE, "");
+    channel.basicConsume(
+        queue, true, (tag, delivery) -> deliver(delivery), tag -> resubscribe(connection, channel));
+  }
+
+  // closing the cancelled channel drops its queue and consumer from the recovery records
+  private void resubscribe(Connection connection, Channel cancelled) {
+    if (!connection.isOpen()) return;
+    ChatsLogger.warn("User event listener lost its queue, subscribing again");
+    try {
+      cancelled.close();
+      subscribe(connection);
+    } catch (IOException | TimeoutException e) {
+      ChatsLogger.error("User event listener could not subscribe again", e);
     }
   }
 
@@ -84,9 +101,16 @@ public class UserEventListener {
   }
 
   private void deliver(Delivery delivery) {
-    List<Session> recipients = recipientsOf(delivery.getProperties().getHeaders());
+    try {
+      send(recipientsOf(delivery.getProperties().getHeaders()), delivery.getBody());
+    } catch (RuntimeException e) {
+      ChatsLogger.warn("User event listener skipped an event it could not read", e);
+    }
+  }
+
+  private void send(List<Session> recipients, byte[] body) {
     if (recipients.isEmpty()) return;
-    String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+    String message = new String(body, StandardCharsets.UTF_8);
     Map<String, String> messageByVersion = new HashMap<>();
     for (Session session : recipients) {
       try {

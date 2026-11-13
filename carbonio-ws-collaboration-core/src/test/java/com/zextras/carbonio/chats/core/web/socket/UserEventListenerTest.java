@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -95,6 +96,13 @@ class UserEventListenerTest {
     ArgumentCaptor<DeliverCallback> callback = ArgumentCaptor.forClass(DeliverCallback.class);
     verify(channel)
         .basicConsume(eq("amq.gen-1"), eq(true), callback.capture(), any(CancelCallback.class));
+    return callback.getValue();
+  }
+
+  private CancelCallback cancelCallback() throws Exception {
+    ArgumentCaptor<CancelCallback> callback = ArgumentCaptor.forClass(CancelCallback.class);
+    verify(channel)
+        .basicConsume(eq("amq.gen-1"), eq(true), any(DeliverCallback.class), callback.capture());
     return callback.getValue();
   }
 
@@ -190,6 +198,40 @@ class UserEventListenerTest {
     consumerCallback().handle("tag", forUsers(USER_A, USER_B));
 
     verify(migrator, times(1)).downgradeIfNeeded(EVENT, "1.6.0");
+  }
+
+  @Test
+  void delivery_withAnUnreadableUserList_isSkippedInsteadOfClosingTheChannel() throws Exception {
+    DeliverCallback callback = consumerCallback();
+
+    assertDoesNotThrow(
+        () -> callback.handle("tag", delivery(Map.of("users", Arrays.asList((Object) null)))));
+  }
+
+  @Test
+  void queueCancelledWhileTheConnectionCloses_doesNotSubscribeAgain() throws Exception {
+    when(connection.isOpen()).thenReturn(false);
+
+    cancelCallback().handle("tag");
+
+    verify(connection, times(1)).createChannel();
+  }
+
+  @Test
+  void queueDeletedByTheBroker_subscribesAgainOnAFreshChannel() throws Exception {
+    when(connection.isOpen()).thenReturn(true);
+    Channel fresh = mock(Channel.class);
+    when(connection.createChannel()).thenReturn(fresh);
+    when(fresh.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
+        .thenReturn(new AMQP.Queue.DeclareOk.Builder().queue("amq.gen-2").build());
+
+    cancelCallback().handle("tag");
+
+    verify(channel).close();
+    verify(fresh).queueBind("amq.gen-2", "wsc.events", "");
+    verify(fresh)
+        .basicConsume(
+            eq("amq.gen-2"), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
   }
 
   @Test
