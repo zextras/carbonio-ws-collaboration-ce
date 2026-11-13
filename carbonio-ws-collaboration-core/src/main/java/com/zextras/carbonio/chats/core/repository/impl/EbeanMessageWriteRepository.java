@@ -153,13 +153,15 @@ SELECT id, created_at FROM new_msg
       SELECT id, attachment_id, deleted_at, created_at FROM del_msg
       """;
 
-  private static final String BELOW_FLOOR_SQL =
+  private static final String NOT_VISIBLE_TO_MEMBER_SQL =
       """
       SELECT 1
-      FROM chats.message m
-      JOIN chats.subscription s ON s.room_id = m.room_id AND s.user_id = :userId
-      JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
-      WHERE m.id = :messageId AND m.room_id = :roomId AND rus.cleared_at >= m.created_at
+      FROM chats.subscription s
+      LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
+      WHERE s.room_id = :roomId AND s.user_id = :userId
+        AND NOT EXISTS (SELECT 1 FROM chats.message m
+                        WHERE m.id = :messageId AND m.room_id = s.room_id
+                          AND (rus.cleared_at IS NULL OR m.created_at > rus.cleared_at))
       """;
 
   private static final String UNPIN_DELETED_SQL =
@@ -319,7 +321,7 @@ LEFT JOIN file_meta ON true
                     Boolean.TRUE.equals(row.getBoolean("pinned"))))
         .or(
             () -> {
-              failIfBelowFloor(messageId, roomId, userId);
+              failIfNotVisibleToMember(messageId, roomId, userId);
               return Optional.empty();
             });
   }
@@ -334,7 +336,7 @@ LEFT JOIN file_meta ON true
             .setParameter("messageId", messageId)
             .findOneOrEmpty();
     if (deleted.isEmpty()) {
-      failIfBelowFloor(messageId, roomId, userId);
+      failIfNotVisibleToMember(messageId, roomId, userId);
       return Optional.empty();
     }
     Unpinned unpinned =
@@ -389,9 +391,9 @@ LEFT JOIN file_meta ON true
                     row.getString("attachment_area")));
   }
 
-  private void failIfBelowFloor(String messageId, String roomId, String userId) {
+  private void failIfNotVisibleToMember(String messageId, String roomId, String userId) {
     boolean hidden =
-        db.sqlQuery(BELOW_FLOOR_SQL)
+        db.sqlQuery(NOT_VISIBLE_TO_MEMBER_SQL)
             .setParameter("roomId", roomId)
             .setParameter("userId", userId)
             .setParameter("messageId", messageId)

@@ -702,6 +702,22 @@ class VisibilityIT {
     }
 
     @Test
+    @DisplayName("A member editing or deleting an unknown or foreign-room message gets 404")
+    void unknownWritesOfMembersAre404() throws Exception {
+      String foreign = saveMessage(otherRoom(), aUserId, "foreign", T3, null);
+      String outsiderToken = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getToken();
+
+      for (String id : List.of(UUID.randomUUID().toString(), foreign)) {
+        assertEquals(404, edit(id, aToken).getStatus(), id);
+        assertEquals(404, delete(id, aToken).getStatus(), id);
+        assertEquals(404, edit(id, bToken).getStatus(), id);
+        assertEquals(404, delete(id, bToken).getStatus(), id);
+        assertEquals(403, edit(id, outsiderToken).getStatus(), id);
+        assertEquals(403, delete(id, outsiderToken).getStatus(), id);
+      }
+    }
+
+    @Test
     @DisplayName("B can unpin a pinned message below its cleared_at")
     void unpinHidden() throws Exception {
       assertEquals(
