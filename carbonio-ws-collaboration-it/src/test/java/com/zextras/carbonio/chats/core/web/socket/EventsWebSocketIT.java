@@ -120,6 +120,7 @@ class EventsWebSocketIT {
 
   @BeforeEach
   void setUp() throws Exception {
+    await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
     healthMonitor.notifyVideoServerReady();
     userEventListener =
         new UserEventListener(

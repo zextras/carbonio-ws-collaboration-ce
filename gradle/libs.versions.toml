@@ -45,7 +45,6 @@ testcontainersCore = "2.0.5"
 testcontainersJunit = "1.21.4"
 testcontainersPg = "1.21.4"
 mockserver = "5.15.0"
-rabbitmqMock = "1.2.0"
 awaitility = "4.3.0"
 openapiGenerator = "7.23.0"
 shadow = "9.4.2"
@@ -120,7 +119,6 @@ testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainersJunit" }
 testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainersPg" }
 mockserver-netty = { module = "org.mock-server:mockserver-netty", version.ref = "mockserver" }
-rabbitmq-mock = { module = "com.github.fridujo:rabbitmq-mock", version.ref = "rabbitmqMock" }
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
 
 [plugins]

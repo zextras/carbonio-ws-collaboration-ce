@@ -4,11 +4,9 @@
 
 package com.zextras.carbonio.chats.it.config;
 
-import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
@@ -36,11 +34,5 @@ public class TestModule extends AbstractModule {
   @Singleton
   public Clock getClock() {
     return AppClock.create(ZoneId.systemDefault());
-  }
-
-  @Provides
-  @Singleton
-  public ConnectionFactory getConnectionFactory() {
-    return new MockConnectionFactory();
   }
 }
