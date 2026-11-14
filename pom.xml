@@ -132,7 +132,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <org.testcontainers.junit.jupiter.version>1.21.4</org.testcontainers.junit.jupiter.version>
         <org.testcontainers.postgresql.version>1.21.4</org.testcontainers.postgresql.version>
         <org.mock-server.version>5.15.0</org.mock-server.version>
-        <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
         <org.awaitility.version>4.3.0</org.awaitility.version>
         <!-- Plugins -->
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
@@ -482,12 +481,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <groupId>org.mock-server</groupId>
                 <artifactId>mockserver-netty</artifactId>
                 <version>${org.mock-server.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.github.fridujo</groupId>
-                <artifactId>rabbitmq-mock</artifactId>
-                <version>${com.github.fridujo-rabbitmq-mock.version}</version>
             </dependency>
 
             <dependency>
