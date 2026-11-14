@@ -27,9 +27,12 @@ import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -135,5 +138,19 @@ class UserEventRoutingIT {
 
     verify(userAOnSecond, timeout(2000)).sendText(json);
     verify(userAOnFirst, after(300).never()).sendText(anyString());
+  }
+
+  @Test
+  void anEventForThousandsOfUsers_reachesTheFirstAndTheLast_inMessagesTheBrokerAccepts() {
+    RemoteEndpoint.Async userAOnFirst = connect(first, "a1", USER_A);
+    RemoteEndpoint.Async userBOnSecond = connect(second, "b2", USER_B);
+    List<String> users = new ArrayList<>(List.of(USER_A));
+    Stream.generate(() -> UUID.randomUUID().toString()).limit(9_998).forEach(users::add);
+    users.add(USER_B);
+
+    dispatcher.sendToUserExchange(users, EVENT);
+
+    verify(userAOnFirst, timeout(5000)).sendText(json);
+    verify(userBOnSecond, timeout(5000)).sendText(json);
   }
 }
