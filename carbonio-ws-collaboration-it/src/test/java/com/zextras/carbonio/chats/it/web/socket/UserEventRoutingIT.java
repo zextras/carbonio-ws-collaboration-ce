@@ -13,7 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
@@ -23,6 +22,8 @@ import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealth
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
+import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
+import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
@@ -32,7 +33,9 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(RabbitMqExtension.class)
 class UserEventRoutingIT {
 
   private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -41,13 +44,17 @@ class UserEventRoutingIT {
   private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final ConnectionFactory broker = new MockConnectionFactory();
+  private final ConnectionFactory broker;
   private Instance first;
   private Instance second;
   private EventDispatcherRabbitMq dispatcher;
   private String json;
 
   private record Instance(EventWebSocketSessions sessions, UserEventListener listener) {}
+
+  UserEventRoutingIT(RabbitMqBroker broker) {
+    this.broker = broker.connectionFactory();
+  }
 
   @BeforeEach
   void setUp() throws Exception {

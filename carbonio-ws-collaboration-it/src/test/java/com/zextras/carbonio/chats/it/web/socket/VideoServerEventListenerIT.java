@@ -16,51 +16,31 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
+import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
+import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-@Testcontainers
+@ExtendWith(RabbitMqExtension.class)
 class VideoServerEventListenerIT {
 
   private static final byte[] HEARTBEAT = "{\"type\":256}".getBytes(StandardCharsets.UTF_8);
 
-  @Container
-  private static final GenericContainer<?> RABBITMQ =
-      new GenericContainer<>("rabbitmq:4.2-alpine")
-          .withEnv("RABBITMQ_DEFAULT_USER", "test")
-          .withEnv("RABBITMQ_DEFAULT_PASS", "test")
-          .withCreateContainerCmdModifier(
-              cmd ->
-                  cmd.withEntrypoint("sh", "-c")
-                      .withCmd(
-                          "echo 'deprecated_features.permit.transient_nonexcl_queues = false'"
-                              + " > /etc/rabbitmq/conf.d/90-like-rabbitmq-4.3.conf"
-                              + " && exec docker-entrypoint.sh rabbitmq-server"))
-          .withExposedPorts(5672)
-          .waitingFor(Wait.forLogMessage(".*Server startup complete.*", 1));
-
   private final MessageBrokerVideoserverHealthMonitor healthMonitor =
       mock(MessageBrokerVideoserverHealthMonitor.class);
+  private final ConnectionFactory broker;
   private Connection connection;
   private VideoServerEventListener listener;
 
-  private static ConnectionFactory brokerConnectionFactory() {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setHost(RABBITMQ.getHost());
-    factory.setPort(RABBITMQ.getMappedPort(5672));
-    factory.setUsername("test");
-    factory.setPassword("test");
-    return factory;
+  VideoServerEventListenerIT(RabbitMqBroker broker) {
+    this.broker = broker.connectionFactory();
   }
 
-  private static void publishHeartbeat(String exchange, String routingKey) throws Exception {
-    try (Connection janus = brokerConnectionFactory().newConnection();
+  private void publishHeartbeat(String exchange, String routingKey) throws Exception {
+    try (Connection janus = broker.newConnection();
         Channel channel = janus.createChannel()) {
       channel.basicPublish(exchange, routingKey, null, HEARTBEAT);
     }
@@ -68,7 +48,7 @@ class VideoServerEventListenerIT {
 
   @BeforeEach
   void setUp() throws Exception {
-    connection = brokerConnectionFactory().newConnection();
+    connection = broker.newConnection();
     listener =
         new VideoServerEventListener(
             connection.createChannel(),
@@ -95,7 +75,7 @@ class VideoServerEventListenerIT {
 
   @Test
   void anEventOnTheExchangeJanusDeclares_reachesTheListener() throws Exception {
-    try (Connection janus = brokerConnectionFactory().newConnection();
+    try (Connection janus = broker.newConnection();
         Channel channel = janus.createChannel()) {
       channel.exchangeDeclare("videoserver.events", "fanout", false, false, false, null);
       channel.basicPublish("videoserver.events", "janus-events", null, HEARTBEAT);
