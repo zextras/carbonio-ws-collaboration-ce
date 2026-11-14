@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -35,9 +36,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -153,24 +152,26 @@ class EventDispatcherRabbitMqTest {
   @Test
   void aFullQueue_makesCallersWaitBrieflyForRoom_insteadOfDropping() throws Exception {
     CountDownLatch slowBroker = new CountDownLatch(1);
-    CountDownLatch published = new CountDownLatch(10_002);
     doAnswer(
             invocation -> {
               slowBroker.await();
-              published.countDown();
               return null;
             })
         .when(channel)
         .basicPublish(anyString(), anyString(), any(), any());
-    for (int i = 0; i < 10_001; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
+    int publishingAndQueued = 1 + 10_000;
+    for (int i = 0; i < publishingAndQueued; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
 
-    CompletableFuture<Void> late =
-        CompletableFuture.runAsync(() -> dispatcher.sendToUserExchange(USER_A, EVENT));
-    Thread.sleep(50);
+    Thread late = Thread.ofPlatform().start(() -> dispatcher.sendToUserExchange(USER_B, EVENT));
+    while (late.isAlive() && late.getState() != Thread.State.TIMED_WAITING) Thread.onSpinWait();
     slowBroker.countDown();
 
-    late.get(1, TimeUnit.SECONDS);
-    assertTrue(published.await(5, TimeUnit.SECONDS));
+    verify(channel, timeout(5000))
+        .basicPublish(
+            eq("wsc.events"),
+            eq(""),
+            argThat(props -> List.of(USER_B).equals(props.getHeaders().get("users"))),
+            any());
   }
 
   @Test
