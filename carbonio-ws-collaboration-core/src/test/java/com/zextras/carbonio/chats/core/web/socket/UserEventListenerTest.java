@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -158,6 +159,19 @@ class UserEventListenerTest {
     verify(a1.getAsyncRemote()).sendText(EVENT);
     verify(b1.getAsyncRemote()).sendText(EVENT);
     verify(c1.getAsyncRemote(), never()).sendText(anyString());
+  }
+
+  @Test
+  void delivery_triesEverySession_evenWhenSendingFails() throws Exception {
+    RemoteEndpoint.Async toA = openSession("a1", USER_A, "1.6.2").getAsyncRemote();
+    RemoteEndpoint.Async toB = openSession("b1", USER_B, "1.6.2").getAsyncRemote();
+    doThrow(new IllegalStateException("closing")).when(toA).sendText(EVENT);
+    doThrow(new IllegalStateException("closing")).when(toB).sendText(EVENT);
+
+    consumerCallback().handle("tag", forUsers(USER_A, USER_B));
+
+    verify(toA).sendText(EVENT);
+    verify(toB).sendText(EVENT);
   }
 
   @Test

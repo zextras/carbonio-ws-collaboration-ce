@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -100,6 +101,23 @@ class EventWebSocketSessionsTest {
 
     verify(a.getAsyncRemote()).sendText("hello");
     verify(b.getAsyncRemote()).sendText("hello");
+  }
+
+  @Test
+  void broadcast_triesEverySession_evenWhenSendingFails() {
+    Session a = newOpenSession("a");
+    Session b = newOpenSession("b");
+    sessions.add(a);
+    sessions.add(b);
+    RemoteEndpoint.Async toA = a.getAsyncRemote();
+    RemoteEndpoint.Async toB = b.getAsyncRemote();
+    doThrow(new IllegalStateException("closing")).when(toA).sendText("hello");
+    doThrow(new IllegalStateException("closing")).when(toB).sendText("hello");
+
+    sessions.broadcast("hello");
+
+    verify(toA).sendText("hello");
+    verify(toB).sendText("hello");
   }
 
   @Test
