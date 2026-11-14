@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
+import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import com.zextras.carbonio.systemd.SystemdNotify;
@@ -43,6 +44,7 @@ public class Boot {
   private final HikariDataSource hikariDataSource;
   private final AuthenticationService authenticationService;
   private final EventsWebSocketManager eventsWebSocketManager;
+  private final UserEventListener userEventListener;
   private final VideoServerEventListener videoServerEventListener;
   private final AppConfig appConfig;
 
@@ -54,6 +56,7 @@ public class Boot {
       HikariDataSource hikariDataSource,
       AuthenticationService authenticationService,
       EventsWebSocketManager eventsWebSocketManager,
+      UserEventListener userEventListener,
       VideoServerEventListener videoServerEventListener,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
@@ -62,6 +65,7 @@ public class Boot {
     this.hikariDataSource = hikariDataSource;
     this.authenticationService = authenticationService;
     this.eventsWebSocketManager = eventsWebSocketManager;
+    this.userEventListener = userEventListener;
     this.videoServerEventListener = videoServerEventListener;
     this.appConfig = appConfig;
   }
@@ -108,6 +112,7 @@ public class Boot {
     context.addEventListener(resteasyListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
+    userEventListener.start();
     videoServerEventListener.start();
 
     server.start();
@@ -121,6 +126,7 @@ public class Boot {
                     hikariDataSource.close();
                     ChatsLogger.info("Shutting down server...");
                     server.stop();
+                    userEventListener.stop();
                   } catch (Exception e) {
                     throw new InternalErrorException(e);
                   }

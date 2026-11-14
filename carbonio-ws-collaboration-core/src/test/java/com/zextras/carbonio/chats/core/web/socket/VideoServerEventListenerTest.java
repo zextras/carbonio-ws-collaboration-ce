@@ -39,6 +39,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,9 +47,12 @@ import org.mockito.ArgumentCaptor;
 
 class VideoServerEventListenerTest {
 
+  private static final String EXCHANGE = "videoserver.events";
   private static final String JANUS_EXCHANGE = "janus-exchange";
-  private static final String JANUS_QUEUE = "janus-queue";
   private static final String JANUS_ROUTING_KEY = "janus-events";
+  private static final String LEGACY_QUEUE = "janus-queue";
+  private static final String QUEUE = "wsc.videoserver-events";
+  private static final Map<String, Object> QUORUM = Map.of("x-queue-type", "quorum");
   private static final String CONSUMER_TAG = "consumer-tag-123";
 
   private Channel channel;
@@ -79,15 +83,35 @@ class VideoServerEventListenerTest {
   }
 
   @Test
-  void testStartSuccessfully() throws Exception {
+  void start_consumesADurableQuorumQueueSharedByEveryInstance() throws Exception {
+    listener.start();
+
+    verify(channel).queueDeclare(QUEUE, true, false, false, QUORUM);
+    verify(channel)
+        .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void start_bindsTheQueueToTheExchangeJanusPublishesTo() throws Exception {
+    listener.start();
+
+    verify(channel).exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, false);
+    verify(channel).queueBind(QUEUE, EXCHANGE, "");
+  }
+
+  @Test
+  void start_keepsReceivingFromTheExchangeOfVideoServersNotUpgradedYet() throws Exception {
     listener.start();
 
     verify(channel).exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
-    verify(channel).queueDeclare(JANUS_QUEUE, false, false, false, null);
-    verify(channel).queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
-    verify(channel)
-        .basicConsume(
-            eq(JANUS_QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+    verify(channel).queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
+  }
+
+  @Test
+  void start_deletesTheTransientQueueOfPreviousVersions() throws Exception {
+    listener.start();
+
+    verify(channel).queueDelete(LEGACY_QUEUE);
   }
 
   @Test
@@ -111,6 +135,31 @@ class VideoServerEventListenerTest {
     handleEvent(event);
 
     verify(healthMonitor).notifyVideoServerReady();
+  }
+
+  @Test
+  void anUnreadableEvent_isSkippedInsteadOfClosingTheChannel() throws Exception {
+    listener.start();
+    verify(channel)
+        .basicConsume(
+            anyString(), anyBoolean(), deliverCallbackCaptor.capture(), any(CancelCallback.class));
+
+    assertDoesNotThrow(
+        () -> deliverCallbackCaptor.getValue().handle(CONSUMER_TAG, createDelivery("not json")));
+  }
+
+  @Test
+  void queueDeletedByTheBroker_declaresAndConsumesItAgain() throws Exception {
+    ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
+    listener.start();
+    verify(channel)
+        .basicConsume(anyString(), anyBoolean(), any(DeliverCallback.class), cancel.capture());
+
+    cancel.getValue().handle(CONSUMER_TAG);
+
+    verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUORUM);
+    verify(channel, times(2))
+        .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
   }
 
   @Test

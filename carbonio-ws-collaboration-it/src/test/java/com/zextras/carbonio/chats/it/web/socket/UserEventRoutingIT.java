@@ -1,0 +1,156 @@
+// SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+package com.zextras.carbonio.chats.it.web.socket;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.ConnectionFactory;
+import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
+import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
+import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
+import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
+import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
+import jakarta.servlet.http.HttpSession;
+import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.Session;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+@ExtendWith(RabbitMqExtension.class)
+class UserEventRoutingIT {
+
+  private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  private static final String USER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  private static final String USER_C = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+  private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ConnectionFactory broker;
+  private Instance first;
+  private Instance second;
+  private EventDispatcherRabbitMq dispatcher;
+  private String json;
+
+  private record Instance(EventWebSocketSessions sessions, UserEventListener listener) {}
+
+  UserEventRoutingIT(RabbitMqBroker broker) {
+    this.broker = broker.connectionFactory();
+  }
+
+  @BeforeEach
+  void setUp() throws Exception {
+    first = startInstance();
+    second = startInstance();
+    dispatcher = new EventDispatcherRabbitMq(broker.newConnection(), objectMapper);
+    json = objectMapper.writeValueAsString(EVENT);
+  }
+
+  @AfterEach
+  void tearDown() {
+    dispatcher.stop();
+    first.listener().stop();
+    second.listener().stop();
+  }
+
+  private Instance startInstance() throws Exception {
+    EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
+    UserEventListener listener =
+        new UserEventListener(
+            broker.newConnection(),
+            sessions,
+            new WebsocketVersionMigrator(objectMapper),
+            mock(MessageBrokerVideoserverHealthMonitor.class));
+    listener.start();
+    return new Instance(sessions, listener);
+  }
+
+  private static RemoteEndpoint.Async connect(Instance instance, String sessionId, String userId) {
+    Session session = mock(Session.class);
+    HttpSession httpSession = mock(HttpSession.class);
+    Map<String, Object> userProps = new HashMap<>();
+    userProps.put(HttpSession.class.getName(), httpSession);
+    when(httpSession.getAttribute("userId")).thenReturn(userId);
+    when(session.getUserProperties()).thenReturn(userProps);
+    when(session.getId()).thenReturn(sessionId);
+    when(session.isOpen()).thenReturn(true);
+    when(session.getNegotiatedSubprotocol()).thenReturn("1.6.2");
+    RemoteEndpoint.Async remote = mock(RemoteEndpoint.Async.class);
+    when(session.getAsyncRemote()).thenReturn(remote);
+    instance.sessions().add(session);
+    return remote;
+  }
+
+  @Test
+  void anEventForAUser_reachesTheirSessionsOnEveryInstanceOnly() {
+    RemoteEndpoint.Async userAOnFirst = connect(first, "a1", USER_A);
+    RemoteEndpoint.Async userAOnSecond = connect(second, "a2", USER_A);
+    RemoteEndpoint.Async userBOnFirst = connect(first, "b1", USER_B);
+
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+
+    verify(userAOnFirst, timeout(2000)).sendText(json);
+    verify(userAOnSecond, timeout(2000)).sendText(json);
+    verify(userBOnFirst, after(300).never()).sendText(anyString());
+  }
+
+  @Test
+  void anEventForSeveralUsers_reachesEachOfThemOnEveryInstanceOnce() {
+    RemoteEndpoint.Async userAOnFirst = connect(first, "a1", USER_A);
+    RemoteEndpoint.Async userBOnSecond = connect(second, "b2", USER_B);
+    RemoteEndpoint.Async userCOnFirst = connect(first, "c1", USER_C);
+
+    dispatcher.sendToUserExchange(List.of(USER_A, USER_B), EVENT);
+
+    verify(userAOnFirst, timeout(2000)).sendText(json);
+    verify(userBOnSecond, timeout(2000)).sendText(json);
+    verify(userCOnFirst, after(300).never()).sendText(anyString());
+    verify(userAOnFirst, times(1)).sendText(json);
+  }
+
+  @Test
+  void aSessionTargetedEvent_reachesOnlyThatSessionWhicheverInstanceHoldsIt() {
+    RemoteEndpoint.Async userAOnFirst = connect(first, "a1", USER_A);
+    RemoteEndpoint.Async userAOnSecond = connect(second, "a2", USER_A);
+
+    dispatcher.sendToUserQueue(USER_A, "a2", EVENT);
+
+    verify(userAOnSecond, timeout(2000)).sendText(json);
+    verify(userAOnFirst, after(300).never()).sendText(anyString());
+  }
+
+  @Test
+  void anEventForThousandsOfUsers_reachesTheFirstAndTheLast_inMessagesTheBrokerAccepts() {
+    RemoteEndpoint.Async userAOnFirst = connect(first, "a1", USER_A);
+    RemoteEndpoint.Async userBOnSecond = connect(second, "b2", USER_B);
+    List<String> users = new ArrayList<>(List.of(USER_A));
+    Stream.generate(() -> UUID.randomUUID().toString()).limit(9_998).forEach(users::add);
+    users.add(USER_B);
+
+    dispatcher.sendToUserExchange(users, EVENT);
+
+    verify(userAOnFirst, timeout(5000)).sendText(json);
+    verify(userBOnSecond, timeout(5000)).sendText(json);
+  }
+}

@@ -4,8 +4,10 @@
 
 package com.zextras.carbonio.chats.core.web.socket.impl;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -14,11 +16,12 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
+import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +29,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 @UnitTest
 class EventsWebSocketManagerImplTest {
@@ -34,6 +38,11 @@ class EventsWebSocketManagerImplTest {
   private ParticipantService participantService;
   private Session session;
   private ObjectMapper objectMapper;
+  private EventWebSocketSessions sessions;
+  private CacheVideoServerSession cacheVideoServerSession;
+  private MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private RemoteEndpoint.Async remote;
+  private UUID sessionId;
 
   private static final UUID SENDER_USER_ID =
       UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
@@ -42,21 +51,21 @@ class EventsWebSocketManagerImplTest {
 
   @BeforeEach
   void setUp() {
-    RabbitConnectionPoolService rabbitPool = mock(RabbitConnectionPoolService.class);
     objectMapper = new ObjectMapper();
     WebsocketVersionMigrator migrator = mock(WebsocketVersionMigrator.class);
-    CacheVideoServerSession cacheVideoServerSession = mock(CacheVideoServerSession.class);
+    cacheVideoServerSession = mock(CacheVideoServerSession.class);
     participantService = mock(ParticipantService.class);
-    EventWebSocketSessions sessions = mock(EventWebSocketSessions.class);
+    sessions = mock(EventWebSocketSessions.class);
+    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
 
     manager =
         new EventsWebSocketManagerImpl(
-            rabbitPool,
             objectMapper,
             migrator,
             cacheVideoServerSession,
             participantService,
-            sessions);
+            sessions,
+            healthMonitor);
 
     session = mock(Session.class);
     HttpSession httpSession = mock(HttpSession.class);
@@ -65,7 +74,39 @@ class EventsWebSocketManagerImplTest {
     when(session.getUserProperties()).thenReturn(userProps);
     when(httpSession.getAttribute("userId")).thenReturn(SENDER_USER_ID.toString());
     when(session.isOpen()).thenReturn(true);
-    when(session.getId()).thenReturn(UUID.randomUUID().toString());
+    sessionId = UUID.randomUUID();
+    when(session.getId()).thenReturn(sessionId.toString());
+    remote = mock(RemoteEndpoint.Async.class);
+    when(session.getAsyncRemote()).thenReturn(remote);
+    when(session.getNegotiatedSubprotocol()).thenReturn("");
+  }
+
+  @Test
+  void onOpen_registersTheSessionBeforeAnnouncingIt() throws Exception {
+    manager.onOpen(session);
+
+    InOrder order = inOrder(sessions, remote);
+    order.verify(sessions).add(session);
+    order.verify(remote).sendObject(any());
+  }
+
+  @Test
+  void onOpen_afterAnnouncingTheSession_tellsItIfMeetingMediaIsUnavailable() throws Exception {
+    manager.onOpen(session);
+
+    InOrder order = inOrder(remote, healthMonitor);
+    order.verify(remote).sendObject(any());
+    order.verify(healthMonitor).notifyIfUnavailable(session);
+  }
+
+  @Test
+  void onClose_unregistersTheSessionAndRemembersItForTheVideoServer() {
+    when(sessions.remove(sessionId.toString())).thenReturn(true);
+
+    manager.onClose(session);
+
+    verify(sessions).remove(sessionId.toString());
+    verify(cacheVideoServerSession).add(SENDER_USER_ID, sessionId);
   }
 
   @Test

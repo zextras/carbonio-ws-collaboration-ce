@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.vdurmont.semver4j.Semver;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
@@ -27,7 +25,7 @@ import com.zextras.carbonio.async.model.Pong;
 import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
@@ -52,7 +50,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
@@ -86,38 +84,99 @@ class EventsWebSocketIT {
   private Server jettyServer;
   private EventsWebSocketManager eventsWebSocketManager;
   private final AuthenticationService authenticationService;
-  private final Channel channel;
-  private final RabbitConnectionPoolService rabbitPool;
-  private final Connection rabbitConnection;
+  private final EventDispatcher eventDispatcher;
+  private final EventWebSocketSessions sessions;
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator websocketVersionMigrator;
   private final ParticipantService participantService;
   private final CacheVideoServerSession cacheVideoServerSession;
   private final SessionPingManager pingManager =
       new SessionPingManager(mock(ScheduledExecutorService.class));
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final ConnectionFactory connectionFactory;
+  private UserEventListener userEventListener;
 
   public EventsWebSocketIT(
       AuthenticationService authenticationService,
-      Channel channel,
-      RabbitConnectionPoolService rabbitPool,
-      Connection rabbitConnection,
+      EventDispatcher eventDispatcher,
+      EventWebSocketSessions sessions,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
-      CacheVideoServerSession cacheVideoServerSession) {
+      CacheVideoServerSession cacheVideoServerSession,
+      ConnectionFactory connectionFactory) {
     this.authenticationService = authenticationService;
-    this.channel = channel;
-    this.rabbitPool = rabbitPool;
-    this.rabbitConnection = rabbitConnection;
+    this.eventDispatcher = eventDispatcher;
+    this.sessions = sessions;
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
+    this.connectionFactory = connectionFactory;
+    this.healthMonitor =
+        new MessageBrokerVideoserverHealthMonitor(
+            sessions, objectMapper, Clock.systemUTC(), mock(ScheduledExecutorService.class));
+  }
+
+  @BeforeEach
+  void setUp() throws Exception {
+    await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
+    healthMonitor.notifyVideoServerReady();
+    userEventListener =
+        new UserEventListener(
+            connectionFactory.newConnection(), sessions, websocketVersionMigrator, healthMonitor);
+    userEventListener.start();
   }
 
   @AfterEach
   void init() {
+    userEventListener.stop();
     VersionMigrationsRegistry.REGISTRY.clear();
+  }
+
+  @Nested
+  class MeetingMediaStatus {
+
+    @BeforeEach
+    void startServer() throws Exception {
+      startWebSocketServer(List.of(), sessions);
+    }
+
+    @AfterEach
+    void stopServer() throws Exception {
+      stopWebSocketServer();
+    }
+
+    @Test
+    void sessionOpenedWhileMeetingMediaIsRefused_isToldTheBrokerIsDisconnected() {
+      healthMonitor.notifyBrokerDown();
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session ignored = createSession(clientContext)) {
+        awaitDomainEventReceived(client, 2);
+
+        assertTrue(client.getMessages().get(0).contains("WebsocketConnected"));
+        assertTrue(client.getMessages().get(1).contains("MessageBrokerDisconnected"));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } finally {
+        tryDisconnect(client);
+      }
+    }
+
+    @Test
+    void sessionOpenedWhileMeetingMediaIsAllowed_isToldNothingMore() throws Exception {
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session ignored = createSession(clientContext)) {
+        awaitFirstMessage(client);
+        roundTrip(client);
+
+        assertTrue(client.getMessages().stream().noneMatch(m -> m.contains("MessageBroker")));
+      } finally {
+        tryDisconnect(client);
+      }
+    }
   }
 
   @Nested
@@ -139,7 +198,6 @@ class EventsWebSocketIT {
 
             try (Session ignored = createSession(clientContextWithVersion)) {
               awaitFirstMessage(client);
-              declareBrokerExchange();
               dispatchEvent(
                   MeetingCreated.create()
                       .meetingId(UUID.randomUUID())
@@ -172,7 +230,6 @@ class EventsWebSocketIT {
             try (Session ignored = createSession(clientContext)) {
 
               awaitFirstMessage(client);
-              declareBrokerExchange();
               client.sendMessage(Ping.create().type(EventType.PING).sentDate(OffsetDateTime.now()));
 
               shouldReceiveEventWithType(client, "pong", 2);
@@ -309,9 +366,11 @@ class EventsWebSocketIT {
   @Nested
   class Liveness {
 
+    private final EventWebSocketSessions liveSessions = new EventWebSocketSessions(pingManager);
+
     @BeforeEach
     void startServer() throws Exception {
-      startWebSocketServer(List.of());
+      startWebSocketServer(List.of(), liveSessions);
     }
 
     @AfterEach
@@ -320,17 +379,17 @@ class EventsWebSocketIT {
     }
 
     @Test
-    void abortsClientThatNeverAnswersPings_andTearsDownItsQueue() throws Exception {
+    void abortsClientThatNeverAnswersPings_andForgetsItsSession() throws Exception {
       try (Socket socket = new Socket("localhost", jettyServer.getURI().getPort())) {
         DataInputStream in = new DataInputStream(socket.getInputStream());
         String queueId = upgradeWithoutAnsweringPings(socket, in);
-        await().atMost(5, SECONDS).until(() -> queueExists(queueId));
+        await().atMost(5, SECONDS).until(() -> liveSessions.get(queueId).isPresent());
 
         for (int i = 0; i <= SessionPingManager.MAX_MISSED_PONGS; i++) pingManager.tick();
 
         socket.setSoTimeout(5_000);
         in.readAllBytes();
-        await().atMost(5, SECONDS).until(() -> !queueExists(queueId));
+        await().atMost(5, SECONDS).until(() -> liveSessions.get(queueId).isEmpty());
       }
     }
 
@@ -481,12 +540,8 @@ class EventsWebSocketIT {
     }
   }
 
-  private void dispatchEvent(DomainEvent domainEvent) throws IOException {
-    channel.basicPublish(
-        DEFAULT_USER_ID,
-        "user-events",
-        null,
-        objectMapper.writeValueAsString(domainEvent).getBytes(StandardCharsets.UTF_8));
+  private void dispatchEvent(DomainEvent domainEvent) {
+    eventDispatcher.sendToUserExchange(DEFAULT_USER_ID, domainEvent);
   }
 
   private static ClientEndpointConfig buildEndpointWith(List<String> requestedVersions) {
@@ -521,10 +576,6 @@ class EventsWebSocketIT {
     return () -> client.getMessages().size() == eventNumber;
   }
 
-  private void declareBrokerExchange() throws IOException {
-    channel.exchangeDeclare(DEFAULT_USER_ID, BuiltinExchangeType.DIRECT, false, false, null);
-  }
-
   private void shouldReceiveEventWithType(
       WebSocketClient client, String eventType, int atEventNumber) {
     awaitDomainEventReceived(client, atEventNumber);
@@ -535,16 +586,18 @@ class EventsWebSocketIT {
     return "ws://localhost:" + jettyServer.getURI().getPort() + "/events";
   }
 
-  private void startWebSocketServer(List<String> serverSupportedVersions) throws Exception {
+  private void startWebSocketServer(
+      List<String> serverSupportedVersions, EventWebSocketSessions serverSessions)
+      throws Exception {
     jettyServer = new Server(0);
     eventsWebSocketManager =
         new EventsWebSocketManagerImpl(
-            rabbitPool,
             objectMapper,
             websocketVersionMigrator,
             cacheVideoServerSession,
             participantService,
-            new EventWebSocketSessions(pingManager));
+            serverSessions,
+            healthMonitor);
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
@@ -581,7 +634,7 @@ class EventsWebSocketIT {
   private void withWebSocketServer(List<String> supportedVersions, Runnable runnable)
       throws Exception {
     try {
-      startWebSocketServer(supportedVersions);
+      startWebSocketServer(supportedVersions, sessions);
       runnable.run();
     } finally {
       stopWebSocketServer();
@@ -638,15 +691,6 @@ class EventsWebSocketIT {
     byte[] payload = new byte[length];
     in.readFully(payload);
     return payload;
-  }
-
-  private boolean queueExists(String queueId) throws IOException {
-    try {
-      rabbitConnection.createChannel().queueDeclarePassive(queueId);
-      return true;
-    } catch (IOException e) {
-      return false;
-    }
   }
 
   private static Throwable getRootCause(IllegalStateException exception) {

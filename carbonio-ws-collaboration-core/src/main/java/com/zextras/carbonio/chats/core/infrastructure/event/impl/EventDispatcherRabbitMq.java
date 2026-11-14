@@ -4,95 +4,161 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.event.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.rabbitmq.client.BuiltinExchangeType;
+import com.google.inject.name.Named;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
 
-  private static final String USER_ROUTING_KEY = "user-events";
+  private static final String EXCHANGE = "wsc.events";
+  private static final String USERS_HEADER = "users";
+  private static final String QUEUE_ID_HEADER = "queueId";
+  private static final int MAX_PENDING_EVENTS = 10_000;
+  private static final int MAX_USERS_PER_MESSAGE = 1_000;
+  private static final long ENQUEUE_WAIT_MILLIS = 100;
+  private static final long STALLED_PUBLISH_NANOS = TimeUnit.SECONDS.toNanos(1);
+  private static final long IDLE = 0;
 
-  private final Channel channel;
   private final ObjectMapper objectMapper;
+  private final Connection connection;
+  private volatile Channel channel;
+  private volatile long publishingSince = IDLE;
+  private final AtomicLong dropped = new AtomicLong();
+  private final ThreadPoolExecutor publisher =
+      new ThreadPoolExecutor(
+          1,
+          1,
+          0L,
+          TimeUnit.MILLISECONDS,
+          new ArrayBlockingQueue<>(MAX_PENDING_EVENTS),
+          Thread.ofPlatform().name("wsc-event-publisher").daemon().factory(),
+          this::waitOrDrop);
 
   @Inject
-  public EventDispatcherRabbitMq(Channel channel, ObjectMapper objectMapper) {
-    this.channel = channel;
+  public EventDispatcherRabbitMq(
+      @Named("publisher") Connection connection, ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+    this.connection = connection;
+    try {
+      this.channel = openChannel();
+    } catch (IOException e) {
+      throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
+    }
+    Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "Event dispatcher shutdown"));
+  }
+
+  private Channel openChannel() throws IOException {
+    return connection.createChannel();
+  }
+
+  private Channel channel() throws IOException {
+    if (!channel.isOpen()) channel = openChannel();
+    return channel;
   }
 
   @Override
   public boolean isAlive() {
-    return channel != null && channel.isOpen();
+    return channel.isOpen();
   }
 
   @Override
   public void sendToUserExchange(String userId, DomainEvent event) {
-    sendToExchange(userId, event);
+    sendToUserExchange(List.of(userId), event);
   }
 
   @Override
   public void sendToUserExchange(List<String> usersIds, DomainEvent event) {
-    sendToExchange(usersIds, event);
+    serialize(event).ifPresent(body -> publishToUsers(usersIds, body));
   }
 
   @Override
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
-    if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error("Unable to send event to user queue: event dispatcher channel is not up!");
-      return;
-    }
-    String userQueue = userId + "/" + queueId;
+    serialize(event).ifPresent(body -> publish(Map.of(QUEUE_ID_HEADER, queueId), body));
+  }
+
+  private Optional<byte[]> serialize(DomainEvent event) {
     try {
-      channel.queueDeclare(queueId, false, false, true, null);
-      channel.basicPublish(
-          "",
-          queueId,
-          null,
-          objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
-    } catch (Exception e) {
-      ChatsLogger.warn(String.format("Unable to send message to user queue '%s'", userQueue), e);
+      return Optional.of(objectMapper.writeValueAsBytes(event));
+    } catch (JsonProcessingException e) {
+      ChatsLogger.warn(String.format("Unable to serialize event '%s'", event.getType()), e);
+      return Optional.empty();
     }
   }
 
-  private void sendToExchange(String userId, DomainEvent event) {
-    if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error("Unable to send event to exchange: event dispatcher channel is not up!");
-      return;
-    }
-    try {
-      channel.exchangeDeclare(userId, BuiltinExchangeType.DIRECT, false, false, null);
-      channel.basicPublish(
-          userId,
-          USER_ROUTING_KEY,
-          null,
-          objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
-    } catch (Exception e) {
-      ChatsLogger.warn(String.format("Unable to send message to user '%s'", userId), e);
+  private void publishToUsers(List<String> usersIds, byte[] body) {
+    for (int from = 0; from < usersIds.size(); from += MAX_USERS_PER_MESSAGE) {
+      int to = Math.min(usersIds.size(), from + MAX_USERS_PER_MESSAGE);
+      publish(Map.of(USERS_HEADER, List.copyOf(usersIds.subList(from, to))), body);
     }
   }
 
-  private void sendToExchange(List<String> usersIds, DomainEvent event) {
-    usersIds.forEach(userId -> sendToExchange(userId, event));
+  private void publish(Map<String, Object> headers, byte[] body) {
+    BasicProperties properties = new BasicProperties.Builder().headers(headers).build();
+    publisher.execute(
+        () -> {
+          publishingSince = System.nanoTime();
+          try {
+            channel().basicPublish(EXCHANGE, "", properties, body);
+          } catch (Exception e) {
+            drop("the broker refused it: " + e.getMessage());
+          } finally {
+            publishingSince = IDLE;
+          }
+        });
+  }
+
+  private void waitOrDrop(Runnable event, ThreadPoolExecutor executor) {
+    try {
+      if (!executor.isShutdown()
+          && !brokerStalled()
+          && executor.getQueue().offer(event, ENQUEUE_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    drop("too many events waiting for the broker");
+  }
+
+  private boolean brokerStalled() {
+    long since = publishingSince;
+    return since != IDLE && System.nanoTime() - since > STALLED_PUBLISH_NANOS;
+  }
+
+  private void drop(String reason) {
+    long count = dropped.incrementAndGet();
+    if (count % 1_000 == 1)
+      ChatsLogger.warn(String.format("Event dropped, %s (%d dropped so far)", reason, count));
   }
 
   @Override
   public void stop() {
+    publisher.shutdown();
     try {
-      if (channel != null && channel.isOpen()) {
-        channel.close();
-        ChatsLogger.info("Event dispatcher channel closed successfully.");
-      }
+      publisher.awaitTermination(5, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    try {
+      if (connection.isOpen()) connection.close();
     } catch (Exception e) {
-      ChatsLogger.error("Error during stopping event dispatcher", e);
+      ChatsLogger.error("Error closing the event dispatcher connection", e);
     }
   }
 }
