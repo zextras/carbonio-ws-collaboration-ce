@@ -32,14 +32,10 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   private static final String USERS_HEADER = "users";
   private static final String QUEUE_ID_HEADER = "queueId";
   private static final int MAX_PENDING_EVENTS = 10_000;
-  private static final long ENQUEUE_WAIT_MILLIS = 100;
-  private static final long STALLED_PUBLISH_NANOS = TimeUnit.SECONDS.toNanos(1);
-  private static final long IDLE = 0;
 
   private final ObjectMapper objectMapper;
   private final Connection connection;
   private volatile Channel channel;
-  private volatile long publishingSince = IDLE;
   private final AtomicLong dropped = new AtomicLong();
   private final ThreadPoolExecutor publisher =
       new ThreadPoolExecutor(
@@ -49,7 +45,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
           TimeUnit.MILLISECONDS,
           new ArrayBlockingQueue<>(MAX_PENDING_EVENTS),
           Thread.ofPlatform().name("wsc-event-publisher").daemon().factory(),
-          this::waitOrDrop);
+          (event, executor) -> drop("too many events waiting for the broker"));
 
   @Inject
   public EventDispatcherRabbitMq(
@@ -107,31 +103,12 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     BasicProperties properties = new BasicProperties.Builder().headers(headers).build();
     publisher.execute(
         () -> {
-          publishingSince = System.nanoTime();
           try {
             channel().basicPublish(EXCHANGE, "", properties, body);
           } catch (Exception e) {
             drop("the broker refused it: " + e.getMessage());
-          } finally {
-            publishingSince = IDLE;
           }
         });
-  }
-
-  private void waitOrDrop(Runnable event, ThreadPoolExecutor executor) {
-    try {
-      if (!executor.isShutdown()
-          && !brokerStalled()
-          && executor.getQueue().offer(event, ENQUEUE_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return;
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-    drop("too many events waiting for the broker");
-  }
-
-  private boolean brokerStalled() {
-    long since = publishingSince;
-    return since != IDLE && System.nanoTime() - since > STALLED_PUBLISH_NANOS;
   }
 
   private void drop(String reason) {

@@ -133,50 +133,35 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
-  void aFullQueue_makesCallersWaitBrieflyForRoom_insteadOfDropping() throws Exception {
+  void aFullQueue_dropsTheEvent_withoutBlockingTheCaller() throws Exception {
+    CountDownLatch publishing = new CountDownLatch(1);
     CountDownLatch slowBroker = new CountDownLatch(1);
     doAnswer(
             invocation -> {
+              publishing.countDown();
               slowBroker.await();
               return null;
             })
         .when(channel)
         .basicPublish(anyString(), anyString(), any(), any());
-    int publishingAndQueued = 1 + 10_000;
-    for (int i = 0; i < publishingAndQueued; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
-
-    Thread late = Thread.ofPlatform().start(() -> dispatcher.sendToUserExchange(USER_B, EVENT));
-    while (late.isAlive() && late.getState() != Thread.State.TIMED_WAITING) Thread.onSpinWait();
-    slowBroker.countDown();
-
-    verify(channel, timeout(5000))
-        .basicPublish(
-            eq("wsc.events"),
-            eq(""),
-            argThat(props -> List.of(USER_B).equals(props.getHeaders().get("users"))),
-            any());
-  }
-
-  @Test
-  void callersStopWaiting_onceTheBrokerStopsTakingEvents() throws Exception {
-    CountDownLatch stalledBroker = new CountDownLatch(1);
-    doAnswer(
-            invocation -> {
-              stalledBroker.await();
-              return null;
-            })
-        .when(channel)
-        .basicPublish(anyString(), anyString(), any(), any());
+    dispatcher.sendToUserExchange(USER_A, EVENT);
+    publishing.await();
+    for (int i = 0; i < 10_000; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
 
     try {
       assertTimeoutPreemptively(
-          Duration.ofSeconds(5),
-          () -> {
-            for (int i = 0; i < 50_000; i++) dispatcher.sendToUserExchange(USER_A, EVENT);
-          });
+          Duration.ofSeconds(1), () -> dispatcher.sendToUserExchange(USER_B, EVENT));
     } finally {
-      stalledBroker.countDown();
+      slowBroker.countDown();
     }
+
+    published(1 + 10_000);
+    verify(channel, never())
+        .basicPublish(
+            anyString(),
+            anyString(),
+            argThat(props -> List.of(USER_B).equals(props.getHeaders().get("users"))),
+            any());
   }
 
   @Test
