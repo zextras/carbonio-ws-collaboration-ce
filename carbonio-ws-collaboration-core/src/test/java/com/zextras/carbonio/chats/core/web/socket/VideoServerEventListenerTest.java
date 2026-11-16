@@ -52,7 +52,8 @@ class VideoServerEventListenerTest {
   private static final String JANUS_ROUTING_KEY = "janus-events";
   private static final String LEGACY_QUEUE = "janus-queue";
   private static final String QUEUE = "wsc.videoserver-events";
-  private static final Map<String, Object> QUORUM = Map.of("x-queue-type", "quorum");
+  private static final Map<String, Object> QUEUE_ARGUMENTS =
+      Map.of("x-queue-type", "quorum", "x-message-ttl", 60_000);
   private static final String CONSUMER_TAG = "consumer-tag-123";
 
   private Channel channel;
@@ -86,9 +87,22 @@ class VideoServerEventListenerTest {
   void start_consumesADurableQuorumQueueSharedByEveryInstance() throws Exception {
     listener.start();
 
-    verify(channel).queueDeclare(QUEUE, true, false, false, QUORUM);
+    verify(channel).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel)
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void start_letsTheBrokerDropEventsNoInstanceConsumedWithinAMinute() throws Exception {
+    listener.start();
+
+    verify(channel)
+        .queueDeclare(
+            eq(QUEUE),
+            eq(true),
+            eq(false),
+            eq(false),
+            argThat(arguments -> Integer.valueOf(60_000).equals(arguments.get("x-message-ttl"))));
   }
 
   @Test
@@ -157,7 +171,7 @@ class VideoServerEventListenerTest {
 
     cancel.getValue().handle(CONSUMER_TAG);
 
-    verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUORUM);
+    verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel, times(2))
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
   }

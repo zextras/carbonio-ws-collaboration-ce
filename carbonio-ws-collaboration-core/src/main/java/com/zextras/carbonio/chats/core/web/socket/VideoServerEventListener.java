@@ -51,6 +51,7 @@ public class VideoServerEventListener {
   private static final String JANUS_ROUTING_KEY = "janus-events";
   private static final String LEGACY_QUEUE = "janus-queue";
   private static final String QUEUE = "wsc.videoserver-events";
+  private static final int QUEUE_MESSAGE_TTL_MILLIS = 60_000;
 
   private static final String LOCAL = "local";
   private static final String TALKING = "talking";
@@ -115,7 +116,12 @@ public class VideoServerEventListener {
     try {
       channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, false);
       channel.exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
-      channel.queueDeclare(QUEUE, true, false, false, Map.of("x-queue-type", "quorum"));
+      channel.queueDeclare(
+          QUEUE,
+          true,
+          false,
+          false,
+          Map.of("x-queue-type", "quorum", "x-message-ttl", QUEUE_MESSAGE_TTL_MILLIS));
       channel.queueBind(QUEUE, EXCHANGE, "");
       channel.queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       channel.queueDelete(LEGACY_QUEUE);
