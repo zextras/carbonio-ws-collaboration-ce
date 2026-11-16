@@ -86,7 +86,7 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
     factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
     factory.setRequestedHeartbeat(
-        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
+        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(10));
     factory.setNetworkRecoveryInterval(
         appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(10000));
     factory.setConnectionTimeout(
