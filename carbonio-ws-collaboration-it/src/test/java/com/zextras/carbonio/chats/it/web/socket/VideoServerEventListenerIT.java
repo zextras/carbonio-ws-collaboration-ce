@@ -62,7 +62,6 @@ class VideoServerEventListenerIT {
   @AfterEach
   void tearDown() throws Exception {
     listener.stop();
-    connection.close();
   }
 
   @Test

@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.Session;
 import java.lang.ref.WeakReference;
@@ -88,7 +89,8 @@ public class EventWebSocketSessions {
           if (s != null && s.isOpen()) {
             try {
               s.getAsyncRemote().sendText(message);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+              ChatsLogger.debug("Could not send an event to websocket session " + id, e);
             }
           } else {
             remove(id);

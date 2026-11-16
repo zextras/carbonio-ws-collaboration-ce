@@ -57,22 +57,27 @@ public class UserEventListener {
   public void start() {
     watchBrokerHealth();
     try {
-      subscribe();
+      subscribe(connection.createChannel());
     } catch (IOException e) {
       throw new EventDispatcherException("Could not start the user event listener", e);
     }
   }
 
-  private void subscribe() throws IOException {
-    Channel channel = connection.createChannel();
-    channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, true);
-    String queue =
-        channel
-            .queueDeclare("", false, true, true, Map.of("x-max-length", MAX_QUEUE_LENGTH))
-            .getQueue();
-    channel.queueBind(queue, EXCHANGE, "");
-    channel.basicConsume(
-        queue, true, (tag, delivery) -> deliver(delivery), tag -> resubscribe(channel));
+  // the channel lives as long as its consumer: closed when the queue is lost or by stop()
+  private void subscribe(Channel channel) throws IOException {
+    try {
+      channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, true);
+      String queue =
+          channel
+              .queueDeclare("", false, true, true, Map.of("x-max-length", MAX_QUEUE_LENGTH))
+              .getQueue();
+      channel.queueBind(queue, EXCHANGE, "");
+      channel.basicConsume(
+          queue, true, (tag, delivery) -> deliver(delivery), tag -> resubscribe(channel));
+    } catch (IOException | RuntimeException e) {
+      channel.abort();
+      throw e;
+    }
   }
 
   // closing the cancelled channel drops its queue and consumer from the recovery records
@@ -81,8 +86,8 @@ public class UserEventListener {
     ChatsLogger.warn("User event listener lost its queue, subscribing again");
     try {
       cancelled.close();
-      subscribe();
-    } catch (IOException | TimeoutException e) {
+      subscribe(connection.createChannel());
+    } catch (IOException | TimeoutException | RuntimeException e) {
       ChatsLogger.error("User event listener could not subscribe again", e);
     }
   }

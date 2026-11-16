@@ -126,7 +126,7 @@ public class VideoServerEventListener {
       channel.queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, this::resubscribe);
+      consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, tag -> resubscribe());
     } catch (Exception e) {
       ChatsLogger.error("Error starting video server events processing", e);
     }
@@ -139,15 +139,15 @@ public class VideoServerEventListener {
           channel.basicCancel(consumerTag);
           ChatsLogger.info("Video server event listener consumer canceled successfully.");
         }
-        channel.close();
-        ChatsLogger.info("Video server event listener channel closed successfully.");
+        channel.getConnection().close();
+        ChatsLogger.info("Video server event listener connection closed successfully.");
       }
     } catch (Exception e) {
       ChatsLogger.error("Error during stopping video server event listener", e);
     }
   }
 
-  private void resubscribe(String cancelledTag) {
+  private void resubscribe() {
     ChatsLogger.warn("Video server event listener lost its queue, subscribing again");
     start();
   }

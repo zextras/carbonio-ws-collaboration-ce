@@ -12,6 +12,7 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
@@ -44,6 +45,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 class VideoServerEventListenerTest {
 
@@ -57,6 +59,7 @@ class VideoServerEventListenerTest {
   private static final String CONSUMER_TAG = "consumer-tag-123";
 
   private Channel channel;
+  private Connection connection;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
   private MessageBrokerVideoserverHealthMonitor healthMonitor;
@@ -74,6 +77,8 @@ class VideoServerEventListenerTest {
     objectMapper = new ObjectMapper();
 
     when(channel.isOpen()).thenReturn(true);
+    connection = mock(Connection.class);
+    when(channel.getConnection()).thenReturn(connection);
     when(channel.basicConsume(
             anyString(), anyBoolean(), any(DeliverCallback.class), any(CancelCallback.class)))
         .thenReturn(CONSUMER_TAG);
@@ -103,6 +108,17 @@ class VideoServerEventListenerTest {
             eq(false),
             eq(false),
             argThat(arguments -> Integer.valueOf(60_000).equals(arguments.get("x-message-ttl"))));
+  }
+
+  @Test
+  void stop_cancelsTheConsumerThenClosesTheConnection() throws Exception {
+    listener.start();
+
+    listener.stop();
+
+    InOrder order = inOrder(channel, connection);
+    order.verify(channel).basicCancel(CONSUMER_TAG);
+    order.verify(connection).close();
   }
 
   @Test
@@ -174,15 +190,6 @@ class VideoServerEventListenerTest {
     verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel, times(2))
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
-  }
-
-  @Test
-  void testStopSuccessfully() throws Exception {
-    listener.start();
-    listener.stop();
-
-    verify(channel).basicCancel(CONSUMER_TAG);
-    verify(channel).close();
   }
 
   @Test

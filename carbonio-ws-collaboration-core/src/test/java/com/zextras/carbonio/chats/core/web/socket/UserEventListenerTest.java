@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.socket;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,10 +32,12 @@ import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.impl.LongStringHelper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -250,6 +253,33 @@ class UserEventListenerTest {
     verify(fresh)
         .basicConsume(
             eq("amq.gen-2"), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void subscribingAgainFailsHalfway_abortsTheFreshChannelWithoutThrowing() throws Exception {
+    when(connection.isOpen()).thenReturn(true);
+    Channel fresh = mock(Channel.class);
+    when(connection.createChannel()).thenReturn(fresh);
+    when(fresh.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
+        .thenThrow(new IOException("broker gone"));
+
+    assertDoesNotThrow(() -> cancelCallback().handle("tag"));
+
+    verify(fresh).abort();
+  }
+
+  @Test
+  void subscribingFailsAtStart_abortsTheChannelAndFailsTheStart() throws Exception {
+    Channel failing = mock(Channel.class);
+    when(connection.createChannel()).thenReturn(failing);
+    when(failing.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
+        .thenThrow(new IOException("broker gone"));
+    UserEventListener starting =
+        new UserEventListener(connection, sessions, migrator, healthMonitor);
+
+    assertThrows(EventDispatcherException.class, starting::start);
+
+    verify(failing).abort();
   }
 
   @Test
