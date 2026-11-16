@@ -95,7 +95,7 @@ public class VideoServerEventListener {
           new RecoveryListener() {
             @Override
             public void handleRecovery(Recoverable recoverable) {
-              ChatsLogger.warn(
+              ChatsLogger.info(
                   "Videoserver event listener channel recovery completed successfully");
               start();
             }

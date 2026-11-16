@@ -157,13 +157,13 @@ public class UserEventListener {
         new RecoveryListener() {
           @Override
           public void handleRecovery(Recoverable recoverable) {
-            ChatsLogger.warn("User event listener recovered the message broker connection");
+            ChatsLogger.info("User event listener recovered the message broker connection");
             healthMonitor.notifyBrokerRecovered();
           }
 
           @Override
           public void handleRecoveryStarted(Recoverable recoverable) {
-            ChatsLogger.warn("User event listener is recovering the message broker connection");
+            ChatsLogger.info("User event listener is recovering the message broker connection");
           }
         });
   }

@@ -90,7 +90,8 @@ public class EventWebSocketSessions {
             try {
               s.getAsyncRemote().sendText(message);
             } catch (Exception e) {
-              ChatsLogger.debug("Could not send an event to websocket session " + id, e);
+              ChatsLogger.warn(
+                  String.format("Error sending event to user/queue '%s/%s'", info.userId(), id), e);
             }
           } else {
             remove(id);

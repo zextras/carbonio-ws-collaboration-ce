@@ -12,6 +12,8 @@ import com.google.inject.name.Named;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -57,7 +59,24 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     } catch (IOException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
     }
+    logRecovery();
     Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "Event dispatcher shutdown"));
+  }
+
+  private void logRecovery() {
+    if (!(connection instanceof Recoverable recoverable)) return;
+    recoverable.addRecoveryListener(
+        new RecoveryListener() {
+          @Override
+          public void handleRecovery(Recoverable recoverable) {
+            ChatsLogger.info("Event dispatcher recovered the message broker connection");
+          }
+
+          @Override
+          public void handleRecoveryStarted(Recoverable recoverable) {
+            ChatsLogger.info("Event dispatcher is recovering the message broker connection");
+          }
+        });
   }
 
   private Channel openChannel() throws IOException {
