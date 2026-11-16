@@ -88,7 +88,7 @@ public class MessagingModule extends AbstractModule {
     factory.setRequestedHeartbeat(
         appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
     factory.setNetworkRecoveryInterval(
-        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(30000));
+        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(10000));
     factory.setConnectionTimeout(
         appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
     factory.setAutomaticRecoveryEnabled(
