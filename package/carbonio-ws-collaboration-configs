@@ -54,3 +54,25 @@ for item in "${CONFIGURATIONS[@]}"; do
     consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "${item##*:}"
   fi
 done
+
+# Defaults older releases wrote: replaced by the current default, any value an admin chose is kept.
+PREVIOUS_DEFAULTS=(
+  "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15 60"
+)
+
+current_default() {
+  local item
+  for item in "${CONFIGURATIONS[@]}"; do
+    if [[ "${item%%:*}" == "$1" ]]; then
+      echo "${item##*:}"
+    fi
+  done
+}
+
+for item in "${PREVIOUS_DEFAULTS[@]}"; do
+  KEY=${item%%:*}
+  get_consul_kv "$KEY" >/dev/null 2>&1
+  if [[ " ${item##*:} " == *" $CONSUL_VALUE "* ]]; then
+    consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "$(current_default "$KEY")"
+  fi
+done
