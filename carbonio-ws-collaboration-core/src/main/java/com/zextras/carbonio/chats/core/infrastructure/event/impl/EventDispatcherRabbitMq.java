@@ -59,11 +59,18 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     } catch (IOException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
     }
-    logRecovery();
+    watchConnection();
     Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "Event dispatcher shutdown"));
   }
 
-  private void logRecovery() {
+  private void watchConnection() {
+    connection.addShutdownListener(
+        cause -> {
+          if (!cause.isInitiatedByApplication())
+            ChatsLogger.warn(
+                "Event dispatcher lost the message broker connection, dropping events until it is"
+                    + " back");
+        });
     if (!(connection instanceof Recoverable recoverable)) return;
     recoverable.addRecoveryListener(
         new RecoveryListener() {
