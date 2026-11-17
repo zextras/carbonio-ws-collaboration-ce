@@ -24,7 +24,7 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:10"
   "$MAIN_SERVICE_NAME/broker/connection-timeout-in-milli:60000"
   "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
-  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
+  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:true"
   "$MAIN_SERVICE_NAME/broker/network-recovery-interval-in-milli:10000"
   "$MAIN_SERVICE_NAME/hikari/min-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/max-pool-size:10"
@@ -58,6 +58,7 @@ done
 # Defaults older releases wrote: replaced by the current default, any value an admin chose is kept.
 PREVIOUS_DEFAULTS=(
   "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15 60"
+  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
 )
 
 current_default() {

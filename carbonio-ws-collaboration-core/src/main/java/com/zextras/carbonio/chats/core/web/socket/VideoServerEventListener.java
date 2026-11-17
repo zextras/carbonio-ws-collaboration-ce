@@ -35,6 +35,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Rtc
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.UserFeed;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.validation.constraints.NotNull;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -95,7 +96,6 @@ public class VideoServerEventListener {
             public void handleRecovery(Recoverable recoverable) {
               ChatsLogger.info(
                   "Videoserver event listener channel recovery completed successfully");
-              start();
             }
 
             @Override
@@ -124,7 +124,7 @@ public class VideoServerEventListener {
       channel.queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, tag -> resubscribe());
+      consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, this::resubscribe);
     } catch (Exception e) {
       ChatsLogger.error("Error starting video server events processing", e);
     }
@@ -145,8 +145,14 @@ public class VideoServerEventListener {
     }
   }
 
-  private void resubscribe() {
+  private void resubscribe(String cancelledTag) {
     ChatsLogger.warn("Video server event listener lost its queue, subscribing again");
+    try {
+      // the broker already cancelled it: this only drops it from the client's recovery records
+      channel.basicCancel(cancelledTag);
+    } catch (IOException alreadyCancelled) {
+      ChatsLogger.debug("Video server event listener dropped its cancelled consumer");
+    }
     start();
   }
 

@@ -17,6 +17,7 @@ import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.MediaType;
@@ -180,7 +181,19 @@ class VideoServerEventListenerTest {
   }
 
   @Test
-  void queueDeletedByTheBroker_declaresAndConsumesItAgain() throws Exception {
+  void connectionRecovered_leavesTheConsumerToTheClientsTopologyRecovery() throws Exception {
+    ArgumentCaptor<RecoveryListener> recovery = ArgumentCaptor.forClass(RecoveryListener.class);
+    verify((Recoverable) channel).addRecoveryListener(recovery.capture());
+    listener.start();
+
+    recovery.getValue().handleRecovery((Recoverable) channel);
+
+    verify(channel, times(1))
+        .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void queueDeletedByTheBroker_forgetsTheCancelledConsumerAndConsumesAgain() throws Exception {
     ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
     listener.start();
     verify(channel)
@@ -188,6 +201,7 @@ class VideoServerEventListenerTest {
 
     cancel.getValue().handle(CONSUMER_TAG);
 
+    verify(channel).basicCancel(CONSUMER_TAG);
     verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel, times(2))
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));

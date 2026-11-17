@@ -76,7 +76,7 @@ public class MessagingModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private ConnectionFactory getRabbitMqConnectionFactory(AppConfig appConfig) {
+  ConnectionFactory getRabbitMqConnectionFactory(AppConfig appConfig) {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
     factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
@@ -94,7 +94,7 @@ public class MessagingModule extends AbstractModule {
     factory.setAutomaticRecoveryEnabled(
         appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
     factory.setTopologyRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
+        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(true));
     return factory;
   }
 
@@ -109,9 +109,7 @@ public class MessagingModule extends AbstractModule {
   @Provides
   @Named("consumer")
   Connection getConsumerConnection(ConnectionFactory factory) {
-    ConnectionFactory recovering = factory.clone();
-    recovering.setTopologyRecoveryEnabled(true);
-    return connect(recovering, "consumer");
+    return connect(factory, "consumer");
   }
 
   @Singleton

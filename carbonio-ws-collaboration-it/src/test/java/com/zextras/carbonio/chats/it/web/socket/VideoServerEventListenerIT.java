@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.it.web.socket;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -18,6 +20,7 @@ import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
 import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,12 +33,23 @@ class VideoServerEventListenerIT {
       "{\"type\":256,\"emitter\":\"vs-1\"}".getBytes(StandardCharsets.UTF_8);
 
   private final EventDispatcher eventDispatcher = mock(EventDispatcher.class);
+  private final RabbitMqBroker rabbit;
   private final ConnectionFactory broker;
   private Connection connection;
   private VideoServerEventListener listener;
 
   VideoServerEventListenerIT(RabbitMqBroker broker) {
+    this.rabbit = broker;
     this.broker = broker.connectionFactory();
+  }
+
+  private int consumers() throws Exception {
+    return rabbit
+        .rabbitmqctl("-q", "list_queues", "name", "consumers", "--no-table-headers")
+        .lines()
+        .filter(line -> line.startsWith("wsc.videoserver-events"))
+        .mapToInt(line -> Integer.parseInt(line.trim().split("\\s+")[1]))
+        .sum();
   }
 
   private void publishHeartbeat(String exchange, String routingKey) throws Exception {
@@ -79,5 +93,16 @@ class VideoServerEventListenerIT {
     }
 
     verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
+  }
+
+  @Test
+  void afterTheBrokerDropsEveryConnection_theListenerConsumesAgain_once() throws Exception {
+    rabbit.rabbitmqctl("close_all_connections", "test");
+    await().atMost(Duration.ofSeconds(15)).until(() -> connection.isOpen() && consumers() == 1);
+
+    publishHeartbeat("janus-exchange", "janus-events");
+
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
+    assertEquals(1, consumers());
   }
 }
