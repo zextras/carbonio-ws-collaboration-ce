@@ -55,7 +55,8 @@ for item in "${CONFIGURATIONS[@]}"; do
   fi
 done
 
-# Defaults older releases wrote: replaced by the current default, any value an admin chose is kept.
+# Defaults older releases wrote: replaced once by the current default, any value an admin chose is kept.
+PREVIOUS_DEFAULTS_MIGRATED="$MAIN_SERVICE_NAME/broker/previous-defaults-migrated"
 PREVIOUS_DEFAULTS=(
   "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15 60"
   "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
@@ -70,10 +71,14 @@ current_default() {
   done
 }
 
-for item in "${PREVIOUS_DEFAULTS[@]}"; do
-  KEY=${item%%:*}
-  get_consul_kv "$KEY" >/dev/null 2>&1
-  if [[ " ${item##*:} " == *" $CONSUL_VALUE "* ]]; then
-    consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "$(current_default "$KEY")"
-  fi
-done
+get_consul_kv "$PREVIOUS_DEFAULTS_MIGRATED" >/dev/null 2>&1
+if [[ "$CONSUL_VALUE" == "" ]]; then
+  for item in "${PREVIOUS_DEFAULTS[@]}"; do
+    KEY=${item%%:*}
+    get_consul_kv "$KEY" >/dev/null 2>&1
+    if [[ " ${item##*:} " == *" $CONSUL_VALUE "* ]]; then
+      consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "$(current_default "$KEY")"
+    fi
+  done
+  consul kv put -token-file="$CONSUL_TOKEN_PATH" "$PREVIOUS_DEFAULTS_MIGRATED" true
+fi
