@@ -289,20 +289,24 @@ class RoomServiceImplTest {
             + " is a member")
     void getRooms_testOkWithMembers() {
       when(roomRepository.getByUserId(user1Id.toString(), true))
-          .thenReturn(Arrays.asList(roomGroup1, roomOneToOne1));
+          .thenReturn(Arrays.asList(roomGroup1, roomOneToOne1, roomTemporary1));
 
       List<RoomDto> rooms =
           roomService.getRooms(List.of(RoomExtraFieldDto.MEMBERS), UserPrincipal.create(user1Id));
 
-      assertEquals(2, rooms.size());
+      assertEquals(3, rooms.size());
       assertEquals(roomGroup1Id.toString(), rooms.get(0).getId().toString());
       assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
       assertEquals(roomOneToOne1Id.toString(), rooms.get(1).getId().toString());
       assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertEquals(roomTemporary1Id.toString(), rooms.get(2).getId().toString());
+      assertEquals(RoomTypeDto.TEMPORARY, rooms.get(2).getType());
       assertNotNull(rooms.get(0).getMembers());
       assertNotNull(rooms.get(1).getMembers());
+      assertNotNull(rooms.get(2).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertNull(rooms.get(2).getUserSettings());
     }
 
     @Test
@@ -315,7 +319,7 @@ class RoomServiceImplTest {
       when(roomUserSettingsRepository.getMapGroupedByUserId(user1Id.toString()))
           .thenReturn(
               Map.of(
-                  roomGroup1.toString(),
+                  roomGroup1Id.toString(),
                   RoomUserSettings.create(roomGroup1, user1Id.toString())
                       .mutedUntil(OffsetDateTime.now())));
       List<RoomDto> rooms =
@@ -343,7 +347,9 @@ class RoomServiceImplTest {
               Map.of(
                   roomGroup1Id.toString(),
                   RoomUserSettings.create(roomGroup1, user1Id.toString())
-                      .mutedUntil(OffsetDateTime.now())));
+                      .mutedUntil(OffsetDateTime.now()),
+                  roomOneToOne1Id.toString(),
+                  RoomUserSettings.create(roomOneToOne1, user1Id.toString())));
       List<RoomDto> rooms =
           roomService.getRooms(
               List.of(RoomExtraFieldDto.MEMBERS, RoomExtraFieldDto.SETTINGS), currentUser);
@@ -358,6 +364,8 @@ class RoomServiceImplTest {
       assertNotNull(rooms.get(1).getMembers());
       assertNotNull(rooms.get(0).getUserSettings());
       assertNotNull(rooms.get(1).getUserSettings());
+      assertTrue(rooms.get(0).getUserSettings().isMuted());
+      assertFalse(rooms.get(1).getUserSettings().isMuted());
       assertTrue(rooms.get(0).getUserSettings().isMuted());
       assertFalse(rooms.get(1).getUserSettings().isMuted());
     }
