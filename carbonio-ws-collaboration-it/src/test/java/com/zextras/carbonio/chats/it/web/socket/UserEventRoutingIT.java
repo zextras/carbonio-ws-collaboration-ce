@@ -17,10 +17,10 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
-import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
 import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
@@ -50,7 +50,7 @@ class UserEventRoutingIT {
   private EventDispatcherRabbitMq dispatcher;
   private String json;
 
-  private record Instance(EventWebSocketSessions sessions, UserEventListener listener) {}
+  private record Instance(EventWebSocketSessions sessions, EventListener listener) {}
 
   UserEventRoutingIT(RabbitMqBroker broker) {
     this.broker = broker.connectionFactory();
@@ -73,8 +73,8 @@ class UserEventRoutingIT {
 
   private Instance startInstance() throws Exception {
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
-    UserEventListener listener =
-        new UserEventListener(
+    EventListener listener =
+        new EventListener(
             broker.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),

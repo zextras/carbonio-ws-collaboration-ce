@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @UnitTest
-class UserEventListenerTest {
+class EventListenerTest {
 
   private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   private static final String USER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
@@ -59,7 +59,7 @@ class UserEventListenerTest {
   private EventWebSocketSessions sessions;
   private WebsocketVersionMigrator migrator;
   private MessageBrokerVideoserverHealthMonitor healthMonitor;
-  private UserEventListener listener;
+  private EventListener listener;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -73,7 +73,7 @@ class UserEventListenerTest {
     when(migrator.downgradeIfNeeded(anyString(), anyString()))
         .thenAnswer(invocation -> invocation.getArgument(0));
     healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
-    listener = new UserEventListener(connection, sessions, migrator, healthMonitor);
+    listener = new EventListener(connection, sessions, migrator, healthMonitor);
     listener.start();
   }
 
@@ -126,7 +126,7 @@ class UserEventListenerTest {
   void construction_subscribesNothing_untilStarted() throws Exception {
     Connection idle = mock(Connection.class);
 
-    new UserEventListener(idle, sessions, migrator, healthMonitor);
+    new EventListener(idle, sessions, migrator, healthMonitor);
 
     verify(idle, never()).createChannel();
   }
@@ -274,8 +274,7 @@ class UserEventListenerTest {
     when(connection.createChannel()).thenReturn(failing);
     when(failing.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
         .thenThrow(new IOException("broker gone"));
-    UserEventListener starting =
-        new UserEventListener(connection, sessions, migrator, healthMonitor);
+    EventListener starting = new EventListener(connection, sessions, migrator, healthMonitor);
 
     assertThrows(EventDispatcherException.class, starting::start);
 

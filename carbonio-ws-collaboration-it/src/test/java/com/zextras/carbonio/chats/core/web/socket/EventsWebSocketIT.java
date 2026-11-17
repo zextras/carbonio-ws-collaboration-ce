@@ -94,7 +94,7 @@ class EventsWebSocketIT {
       new SessionPingManager(mock(ScheduledExecutorService.class));
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
   private final ConnectionFactory connectionFactory;
-  private UserEventListener userEventListener;
+  private EventListener eventListener;
 
   public EventsWebSocketIT(
       AuthenticationService authenticationService,
@@ -122,15 +122,15 @@ class EventsWebSocketIT {
   void setUp() throws Exception {
     await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
     healthMonitor.notifyVideoServerReady();
-    userEventListener =
-        new UserEventListener(
+    eventListener =
+        new EventListener(
             connectionFactory.newConnection(), sessions, websocketVersionMigrator, healthMonitor);
-    userEventListener.start();
+    eventListener.start();
   }
 
   @AfterEach
   void init() {
-    userEventListener.stop();
+    eventListener.stop();
     VersionMigrationsRegistry.REGISTRY.clear();
   }
 

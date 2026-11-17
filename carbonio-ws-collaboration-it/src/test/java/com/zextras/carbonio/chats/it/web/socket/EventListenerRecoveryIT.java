@@ -19,10 +19,10 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
-import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
 import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(RabbitMqExtension.class)
-class UserEventListenerRecoveryIT {
+class EventListenerRecoveryIT {
 
   private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
@@ -52,10 +52,10 @@ class UserEventListenerRecoveryIT {
   private final ConnectionFactory factory;
   private String json;
   private RemoteEndpoint.Async remote;
-  private UserEventListener listener;
+  private EventListener listener;
   private EventDispatcherRabbitMq dispatcher;
 
-  UserEventListenerRecoveryIT(RabbitMqBroker broker) {
+  EventListenerRecoveryIT(RabbitMqBroker broker) {
     this.broker = broker;
     this.factory = broker.connectionFactory();
   }
@@ -86,7 +86,7 @@ class UserEventListenerRecoveryIT {
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
     remote = connect(sessions, USER_A);
     listener =
-        new UserEventListener(
+        new EventListener(
             factory.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),

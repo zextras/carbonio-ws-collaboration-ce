@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 @Singleton
-public class UserEventListener {
+public class EventListener {
 
   private static final String EXCHANGE = "wsc.events";
   private static final String USERS_HEADER = "users";
@@ -43,7 +43,7 @@ public class UserEventListener {
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
 
   @Inject
-  public UserEventListener(
+  public EventListener(
       @Named("consumer") Connection connection,
       EventWebSocketSessions sessions,
       WebsocketVersionMigrator migrator,
@@ -59,7 +59,7 @@ public class UserEventListener {
     try {
       subscribe(connection.createChannel());
     } catch (IOException e) {
-      throw new EventDispatcherException("Could not start the user event listener", e);
+      throw new EventDispatcherException("Could not start the event listener", e);
     }
   }
 
@@ -83,12 +83,12 @@ public class UserEventListener {
   // closing the cancelled channel drops its queue and consumer from the recovery records
   private void resubscribe(Channel cancelled) {
     if (!connection.isOpen()) return;
-    ChatsLogger.warn("User event listener lost its queue, subscribing again");
+    ChatsLogger.warn("Event listener lost its queue, subscribing again");
     try {
       cancelled.close();
       subscribe(connection.createChannel());
     } catch (IOException | TimeoutException | RuntimeException e) {
-      ChatsLogger.error("User event listener could not subscribe again", e);
+      ChatsLogger.error("Event listener could not subscribe again", e);
     }
   }
 
@@ -96,7 +96,7 @@ public class UserEventListener {
     try {
       if (connection.isOpen()) connection.close();
     } catch (Exception e) {
-      ChatsLogger.error("Error closing the user event listener connection", e);
+      ChatsLogger.error("Error closing the event listener connection", e);
     }
   }
 
@@ -104,7 +104,7 @@ public class UserEventListener {
     try {
       send(recipientsOf(delivery.getProperties().getHeaders()), delivery.getBody());
     } catch (RuntimeException e) {
-      ChatsLogger.warn("User event listener skipped an event it could not read", e);
+      ChatsLogger.warn("Event listener skipped an event it could not read", e);
     }
   }
 
@@ -148,7 +148,7 @@ public class UserEventListener {
     connection.addShutdownListener(
         cause -> {
           if (!cause.isInitiatedByApplication()) {
-            ChatsLogger.warn("User event listener lost the message broker connection");
+            ChatsLogger.warn("Event listener lost the message broker connection");
             healthMonitor.notifyBrokerDown();
           }
         });
@@ -157,13 +157,13 @@ public class UserEventListener {
         new RecoveryListener() {
           @Override
           public void handleRecovery(Recoverable recoverable) {
-            ChatsLogger.info("User event listener recovered the message broker connection");
+            ChatsLogger.info("Event listener recovered the message broker connection");
             healthMonitor.notifyBrokerRecovered();
           }
 
           @Override
           public void handleRecoveryStarted(Recoverable recoverable) {
-            ChatsLogger.info("User event listener is recovering the message broker connection");
+            ChatsLogger.info("Event listener is recovering the message broker connection");
           }
         });
   }

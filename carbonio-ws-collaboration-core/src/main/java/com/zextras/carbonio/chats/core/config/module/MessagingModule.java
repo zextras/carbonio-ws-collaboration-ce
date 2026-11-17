@@ -26,8 +26,8 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
-import com.zextras.carbonio.chats.core.web.socket.UserEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -40,7 +40,7 @@ public class MessagingModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
-    bind(UserEventListener.class);
+    bind(EventListener.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
   }
