@@ -40,6 +40,7 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -70,20 +71,17 @@ public class VideoServerEventListener {
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
-  private final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
 
   @Inject
   public VideoServerEventListener(
       @Named("videoserver") Channel channel,
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
-      VideoServerService videoServerService,
-      MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor) {
+      VideoServerService videoServerService) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
-    this.messageBrokerVideoserverHealthMonitor = messageBrokerVideoserverHealthMonitor;
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
@@ -167,7 +165,9 @@ public class VideoServerEventListener {
     switch (event.getType()) {
       case JSEP_TYPE -> handleJsepTypeEvent(event);
       case PLUGIN_TYPE -> handlePluginTypeEvent(event);
-      case HEARTBEAT_TYPE -> messageBrokerVideoserverHealthMonitor.notifyVideoServerReady();
+      case HEARTBEAT_TYPE ->
+          eventDispatcher.sendVideoServerHeartbeat(
+              Objects.requireNonNullElse(event.getEmitter(), ""));
       default -> {
         /* just ignore other events */
       }

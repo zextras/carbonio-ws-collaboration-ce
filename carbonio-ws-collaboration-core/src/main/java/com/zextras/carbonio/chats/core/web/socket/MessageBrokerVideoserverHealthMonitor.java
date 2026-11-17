@@ -19,6 +19,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +37,7 @@ public class MessageBrokerVideoserverHealthMonitor {
   private final Clock clock;
   private final Object lock = new Object();
   private boolean brokerConnected = true;
-  private Instant lastHeartbeat = Instant.MIN;
+  private final Map<String, Instant> heartbeats = new HashMap<>();
   private boolean available;
 
   @Inject
@@ -64,9 +66,9 @@ public class MessageBrokerVideoserverHealthMonitor {
         TimeUnit.MILLISECONDS);
   }
 
-  public void notifyVideoServerReady() {
+  public void notifyVideoServerReady(String emitter) {
     synchronized (lock) {
-      lastHeartbeat = clock.instant();
+      heartbeats.put(emitter, clock.instant());
       update();
     }
   }
@@ -74,7 +76,7 @@ public class MessageBrokerVideoserverHealthMonitor {
   public void notifyBrokerDown() {
     synchronized (lock) {
       brokerConnected = false;
-      lastHeartbeat = Instant.MIN;
+      heartbeats.clear();
       update();
     }
   }
@@ -94,6 +96,14 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
+  // a server that never named itself in a heartbeat is covered by the others
+  public boolean isAvailable(String serverId) {
+    synchronized (lock) {
+      Instant heartbeat = heartbeats.get(serverId);
+      return available && (heartbeat == null || isFresh(heartbeat));
+    }
+  }
+
   public void notifyIfUnavailable(Session session) {
     synchronized (lock) {
       if (!available) send(disconnected(), session.getAsyncRemote()::sendText);
@@ -107,11 +117,14 @@ public class MessageBrokerVideoserverHealthMonitor {
   }
 
   private void update() {
-    boolean nowAvailable =
-        brokerConnected && !clock.instant().isAfter(lastHeartbeat.plus(HEARTBEAT_TIMEOUT));
+    boolean nowAvailable = brokerConnected && heartbeats.values().stream().anyMatch(this::isFresh);
     if (available == nowAvailable) return;
     available = nowAvailable;
     send(available ? restored() : disconnected(), sessions::broadcast);
+  }
+
+  private boolean isFresh(Instant heartbeat) {
+    return !clock.instant().isAfter(heartbeat.plus(HEARTBEAT_TIMEOUT));
   }
 
   private DomainEvent disconnected() {

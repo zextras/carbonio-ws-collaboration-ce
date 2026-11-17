@@ -35,6 +35,7 @@ public class EventListener {
   private static final String EXCHANGE = "wsc.events";
   private static final String USERS_HEADER = "users";
   private static final String QUEUE_ID_HEADER = "queueId";
+  private static final String VIDEO_SERVER_HEADER = "videoserver";
   private static final int MAX_QUEUE_LENGTH = 10_000;
 
   private final Connection connection;
@@ -102,7 +103,10 @@ public class EventListener {
 
   private void deliver(Delivery delivery) {
     try {
-      send(recipientsOf(delivery.getProperties().getHeaders()), delivery.getBody());
+      Map<String, Object> headers = delivery.getProperties().getHeaders();
+      Object videoServer = headers == null ? null : headers.get(VIDEO_SERVER_HEADER);
+      if (videoServer != null) healthMonitor.notifyVideoServerReady(videoServer.toString());
+      else send(recipientsOf(headers), delivery.getBody());
     } catch (RuntimeException e) {
       ChatsLogger.warn("Event listener skipped an event it could not read", e);
     }

@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -93,7 +94,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void firstHeartbeat_allowsMeetingMedia_andBroadcastsRestored() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
 
     assertDoesNotThrow(() -> monitor.checkStatus());
     assertEquals(List.of(RESTORED), broadcastTypes());
@@ -101,16 +102,16 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void furtherHeartbeats_broadcastNothingMore() {
-    monitor.notifyVideoServerReady();
-    monitor.notifyVideoServerReady();
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
+    monitor.notifyVideoServerReady("janus");
+    monitor.notifyVideoServerReady("janus");
 
     assertEquals(List.of(RESTORED), broadcastTypes());
   }
 
   @Test
   void heartbeatWithinTheLastMinute_keepsMeetingMediaAllowed() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     elapse(Duration.ofSeconds(60));
 
     runHeartbeatCheck();
@@ -121,7 +122,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void noHeartbeatForOverAMinute_broadcastsDisconnected_andRefusesMeetingMedia() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     elapse(Duration.ofSeconds(61));
 
     runHeartbeatCheck();
@@ -132,7 +133,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void staleHeartbeatCheckedAgain_broadcastsDisconnectedOnce() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     elapse(Duration.ofSeconds(61));
 
     runHeartbeatCheck();
@@ -143,11 +144,11 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void heartbeatAfterItWentStale_allowsMeetingMediaAgain_andBroadcastsRestored() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     elapse(Duration.ofSeconds(61));
     runHeartbeatCheck();
 
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     runHeartbeatCheck();
 
     assertDoesNotThrow(() -> monitor.checkStatus());
@@ -156,7 +157,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void brokerDown_broadcastsDisconnectedAtOnce_andRefusesMeetingMedia() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
 
     monitor.notifyBrokerDown();
 
@@ -174,10 +175,10 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void heartbeatWhileTheBrokerConnectionIsDown_keepsMeetingMediaRefused() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     monitor.notifyBrokerDown();
 
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
 
     assertThrows(VideoServerException.class, () -> monitor.checkStatus());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
@@ -185,9 +186,9 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void brokerRecovered_afterAHeartbeatSinceTheDrop_allowsMeetingMedia_andBroadcastsRestored() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     monitor.notifyBrokerDown();
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
 
     monitor.notifyBrokerRecovered();
 
@@ -197,7 +198,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void brokerRecovered_withoutAHeartbeatSinceTheDrop_waitsForTheNextHeartbeat() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     monitor.notifyBrokerDown();
 
     monitor.notifyBrokerRecovered();
@@ -205,7 +206,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
     assertThrows(VideoServerException.class, () -> monitor.checkStatus());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
 
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
 
     assertDoesNotThrow(() -> monitor.checkStatus());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
@@ -215,7 +216,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
   void broadcastEvents_carryTheCurrentSentDate() {
     OffsetDateTime before = OffsetDateTime.now().minusSeconds(1);
 
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
     monitor.notifyBrokerDown();
 
     broadcastEvents()
@@ -244,10 +245,43 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void sessionOpenedWhileMeetingMediaIsAllowed_isToldNothing() {
-    monitor.notifyVideoServerReady();
+    monitor.notifyVideoServerReady("janus");
 
     RemoteEndpoint.Async remote = openedSession();
 
     verify(remote, never()).sendText(anyString());
+  }
+
+  @Test
+  void oneVideoServerStillSendingHeartbeats_keepsMeetingMediaAllowed() {
+    monitor.notifyVideoServerReady("vs-1");
+    monitor.notifyVideoServerReady("vs-2");
+    elapse(Duration.ofSeconds(45));
+    monitor.notifyVideoServerReady("vs-2");
+    elapse(Duration.ofSeconds(30));
+    runHeartbeatCheck();
+
+    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertFalse(monitor.isAvailable("vs-1"));
+    assertTrue(monitor.isAvailable("vs-2"));
+  }
+
+  @Test
+  void aVideoServerThatNeverNamedItself_isAvailableWhileAnyHeartbeatArrives() {
+    assertFalse(monitor.isAvailable("vs-1"));
+
+    monitor.notifyVideoServerReady("");
+
+    assertTrue(monitor.isAvailable("vs-1"));
+  }
+
+  @Test
+  void brokerDown_makesEveryVideoServerUnavailable() {
+    monitor.notifyVideoServerReady("vs-1");
+
+    monitor.notifyBrokerDown();
+    monitor.notifyBrokerRecovered();
+
+    assertFalse(monitor.isAvailable("vs-1"));
   }
 }

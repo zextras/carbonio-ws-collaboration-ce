@@ -62,7 +62,6 @@ class VideoServerEventListenerTest {
   private Connection connection;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
-  private MessageBrokerVideoserverHealthMonitor healthMonitor;
   private ArgumentCaptor<DeliverCallback> deliverCallbackCaptor;
   private ObjectMapper objectMapper;
   private VideoServerEventListener listener;
@@ -72,7 +71,6 @@ class VideoServerEventListenerTest {
     channel = mock(Channel.class, withSettings().extraInterfaces(Recoverable.class));
     eventDispatcher = mock(EventDispatcher.class);
     videoServerService = mock(VideoServerService.class);
-    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
     deliverCallbackCaptor = ArgumentCaptor.forClass(DeliverCallback.class);
     objectMapper = new ObjectMapper();
 
@@ -84,8 +82,7 @@ class VideoServerEventListenerTest {
         .thenReturn(CONSUMER_TAG);
 
     listener =
-        new VideoServerEventListener(
-            channel, eventDispatcher, objectMapper, videoServerService, healthMonitor);
+        new VideoServerEventListener(channel, eventDispatcher, objectMapper, videoServerService);
   }
 
   @Test
@@ -153,18 +150,22 @@ class VideoServerEventListenerTest {
   @Test
   void testStartWithNullChannel() {
     VideoServerEventListener listenerWithNullChannel =
-        new VideoServerEventListener(
-            null, eventDispatcher, objectMapper, videoServerService, healthMonitor);
+        new VideoServerEventListener(null, eventDispatcher, objectMapper, videoServerService);
     assertThrows(EventDispatcherException.class, listenerWithNullChannel::start);
   }
 
   @Test
-  void heartbeat_notifiesVideoServerReady() throws Exception {
-    VideoServerEvent event = new VideoServerEvent().type(256);
+  void heartbeat_isRelayedToEveryInstance_namingTheVideoServer() throws Exception {
+    handleEvent(new VideoServerEvent().type(256).emitter("videoserver-1"));
 
-    handleEvent(event);
+    verify(eventDispatcher).sendVideoServerHeartbeat("videoserver-1");
+  }
 
-    verify(healthMonitor).notifyVideoServerReady();
+  @Test
+  void heartbeatOfAVideoServerWithoutAName_isRelayedWithAnEmptyName() throws Exception {
+    handleEvent(new VideoServerEvent().type(256));
+
+    verify(eventDispatcher).sendVideoServerHeartbeat("");
   }
 
   @Test

@@ -109,6 +109,13 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
+  void sendVideoServerHeartbeat_publishesOneMessageNamingTheVideoServer() throws Exception {
+    dispatcher.sendVideoServerHeartbeat("vs-1");
+
+    assertEquals(Map.of("videoserver", "vs-1"), published(1).getFirst().getHeaders());
+  }
+
+  @Test
   void publishing_declaresNeitherTheExchangeNorAQueue() throws Exception {
     dispatcher.sendToUserExchange(USER_A, EVENT);
     dispatcher.sendToUserQueue(USER_A, "session-1", EVENT);

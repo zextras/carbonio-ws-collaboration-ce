@@ -50,7 +50,10 @@ class UserEventRoutingIT {
   private EventDispatcherRabbitMq dispatcher;
   private String json;
 
-  private record Instance(EventWebSocketSessions sessions, EventListener listener) {}
+  private record Instance(
+      EventWebSocketSessions sessions,
+      EventListener listener,
+      MessageBrokerVideoserverHealthMonitor healthMonitor) {}
 
   UserEventRoutingIT(RabbitMqBroker broker) {
     this.broker = broker.connectionFactory();
@@ -73,14 +76,16 @@ class UserEventRoutingIT {
 
   private Instance startInstance() throws Exception {
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
+    MessageBrokerVideoserverHealthMonitor healthMonitor =
+        mock(MessageBrokerVideoserverHealthMonitor.class);
     EventListener listener =
         new EventListener(
             broker.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),
-            mock(MessageBrokerVideoserverHealthMonitor.class));
+            healthMonitor);
     listener.start();
-    return new Instance(sessions, listener);
+    return new Instance(sessions, listener, healthMonitor);
   }
 
   private static RemoteEndpoint.Async connect(Instance instance, String sessionId, String userId) {
@@ -110,6 +115,14 @@ class UserEventRoutingIT {
     verify(userAOnFirst, timeout(2000)).sendText(json);
     verify(userAOnSecond, timeout(2000)).sendText(json);
     verify(userBOnFirst, after(300).never()).sendText(anyString());
+  }
+
+  @Test
+  void aVideoServerHeartbeat_reachesTheHealthMonitorOfEveryInstance() {
+    dispatcher.sendVideoServerHeartbeat("vs-1");
+
+    verify(first.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1");
+    verify(second.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1");
   }
 
   @Test

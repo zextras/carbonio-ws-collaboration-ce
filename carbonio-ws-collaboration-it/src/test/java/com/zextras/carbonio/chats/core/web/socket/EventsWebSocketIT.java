@@ -121,7 +121,7 @@ class EventsWebSocketIT {
   @BeforeEach
   void setUp() throws Exception {
     await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
-    healthMonitor.notifyVideoServerReady();
+    healthMonitor.notifyVideoServerReady("janus");
     eventListener =
         new EventListener(
             connectionFactory.newConnection(), sessions, websocketVersionMigrator, healthMonitor);

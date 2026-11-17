@@ -90,7 +90,7 @@ class MeetingApiIT {
 
   @org.junit.jupiter.api.BeforeEach
   void setupActiveSessions() {
-    healthMonitor.notifyVideoServerReady();
+    healthMonitor.notifyVideoServerReady("janus");
   }
 
   private static UUID user1Id;
@@ -1792,7 +1792,9 @@ class MeetingApiIT {
       return meetingTestUtils.generateAndSaveMeeting(
           room1Id,
           List.of(
-              ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+              ParticipantBuilder.create(user1Id, user1Queue)
+                  .audioStreamOn(true)
+                  .videoStreamOn(true),
               ParticipantBuilder.create(user2Id, user2Queue)
                   .audioStreamOn(false)
                   .videoStreamOn(true),
@@ -1969,16 +1971,14 @@ class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If the user to kick isn't a meeting participant then it returns a status code 404")
+    @DisplayName(
+        "If the user to kick isn't a meeting participant then it returns a status code 404")
     void kickMeetingParticipant_testErrorIsNotMeetingParticipant() throws Exception {
       UUID meetingId = generateMeeting(false);
 
       MockHttpResponse response =
           dispatcher.post(
-              url(meetingId),
-              body(UUID.randomUUID()),
-              Map.of("queue-id", user1Queue),
-              user1Token);
+              url(meetingId), body(UUID.randomUUID()), Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
     }
@@ -2001,10 +2001,7 @@ class MeetingApiIT {
     void kickMeetingParticipant_testMeetingNotExists() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
-              url(UUID.randomUUID()),
-              body(user2Id),
-              Map.of("queue-id", user1Queue),
-              user1Token);
+              url(UUID.randomUUID()), body(user2Id), Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);

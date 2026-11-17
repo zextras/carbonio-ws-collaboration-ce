@@ -14,7 +14,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
 import com.zextras.carbonio.chats.it.tools.RabbitMqBroker;
@@ -27,10 +26,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(RabbitMqExtension.class)
 class VideoServerEventListenerIT {
 
-  private static final byte[] HEARTBEAT = "{\"type\":256}".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] HEARTBEAT =
+      "{\"type\":256,\"emitter\":\"vs-1\"}".getBytes(StandardCharsets.UTF_8);
 
-  private final MessageBrokerVideoserverHealthMonitor healthMonitor =
-      mock(MessageBrokerVideoserverHealthMonitor.class);
+  private final EventDispatcher eventDispatcher = mock(EventDispatcher.class);
   private final ConnectionFactory broker;
   private Connection connection;
   private VideoServerEventListener listener;
@@ -52,10 +51,9 @@ class VideoServerEventListenerIT {
     listener =
         new VideoServerEventListener(
             connection.createChannel(),
-            mock(EventDispatcher.class),
+            eventDispatcher,
             new ObjectMapper(),
-            mock(VideoServerService.class),
-            healthMonitor);
+            mock(VideoServerService.class));
     listener.start();
   }
 
@@ -69,7 +67,7 @@ class VideoServerEventListenerIT {
       throws Exception {
     publishHeartbeat("janus-exchange", "janus-events");
 
-    verify(healthMonitor, timeout(5000)).notifyVideoServerReady();
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
   }
 
   @Test
@@ -80,6 +78,6 @@ class VideoServerEventListenerIT {
       channel.basicPublish("videoserver.events", "janus-events", null, HEARTBEAT);
     }
 
-    verify(healthMonitor, timeout(5000)).notifyVideoServerReady();
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
   }
 }

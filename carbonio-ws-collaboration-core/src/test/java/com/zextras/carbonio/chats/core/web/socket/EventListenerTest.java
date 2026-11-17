@@ -152,6 +152,17 @@ class EventListenerTest {
   }
 
   @Test
+  void videoServerHeartbeat_reachesTheHealthMonitor_andNoSession() throws Exception {
+    Session a1 = openSession("a1", USER_A, "1.6.2");
+
+    consumerCallback()
+        .handle("tag", delivery(Map.of("videoserver", LongStringHelper.asLongString("vs-1"))));
+
+    verify(healthMonitor).notifyVideoServerReady("vs-1");
+    verify(a1.getAsyncRemote(), never()).sendText(anyString());
+  }
+
+  @Test
   void delivery_listingSeveralUsers_reachesEveryLocalSessionOfEachOfThem() throws Exception {
     Session a1 = openSession("a1", USER_A, "1.6.2");
     Session b1 = openSession("b1", USER_B, "1.6.2");

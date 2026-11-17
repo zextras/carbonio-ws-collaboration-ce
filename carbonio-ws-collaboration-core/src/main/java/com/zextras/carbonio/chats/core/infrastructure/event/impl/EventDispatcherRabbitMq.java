@@ -33,6 +33,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   private static final String EXCHANGE = "wsc.events";
   private static final String USERS_HEADER = "users";
   private static final String QUEUE_ID_HEADER = "queueId";
+  private static final String VIDEO_SERVER_HEADER = "videoserver";
   private static final int MAX_PENDING_EVENTS = 10_000;
 
   private final ObjectMapper objectMapper;
@@ -114,6 +115,11 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   @Override
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
     serialize(event).ifPresent(body -> publish(Map.of(QUEUE_ID_HEADER, queueId), body));
+  }
+
+  @Override
+  public void sendVideoServerHeartbeat(String emitter) {
+    publish(Map.of(VIDEO_SERVER_HEADER, emitter), new byte[0]);
   }
 
   private Optional<byte[]> serialize(DomainEvent event) {
