@@ -1,6 +1,8 @@
 ARG SIDECAR_IMAGE=registry.dev.zextras.com/dev/carbonio-sidecar:main
 FROM ${SIDECAR_IMAGE}
 
+RUN useradd -r -U carbonio-ws-collaboration
+
 # Service registration
 COPY package/carbonio-ws-collaboration.hcl /consul/config/
 
