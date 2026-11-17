@@ -14,7 +14,6 @@ import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.impl.ForgivingExceptionHandler;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
@@ -25,7 +24,6 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
@@ -97,28 +95,7 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
     factory.setTopologyRecoveryEnabled(
         appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
-    factory.setExceptionHandler(new BrokerConnectionErrors());
     return factory;
-  }
-
-  // the client's default logs every lost connection and failed reconnect with a full stack trace
-  static final class BrokerConnectionErrors extends ForgivingExceptionHandler {
-
-    @Override
-    public void handleUnexpectedConnectionDriverException(Connection connection, Throwable cause) {
-      ChatsLogger.warn(
-          String.format(
-              "Lost the message broker connection %s: %s",
-              connection.getClientProvidedName(), cause));
-    }
-
-    @Override
-    public void handleConnectionRecoveryException(Connection connection, Throwable cause) {
-      ChatsLogger.warn(
-          String.format(
-              "Could not reconnect %s to the message broker: %s",
-              connection.getClientProvidedName(), cause));
-    }
   }
 
   @Singleton
