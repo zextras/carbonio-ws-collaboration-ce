@@ -26,6 +26,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
@@ -39,7 +40,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   private final ObjectMapper objectMapper;
   private final Connection connection;
-  private volatile Channel channel;
+  private final AtomicReference<Channel> channel = new AtomicReference<>();
   private final AtomicLong dropped = new AtomicLong();
   private final ThreadPoolExecutor publisher =
       new ThreadPoolExecutor(
@@ -57,7 +58,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     this.objectMapper = objectMapper;
     this.connection = connection;
     try {
-      this.channel = openChannel();
+      channel.set(openChannel());
     } catch (IOException e) {
       throw new EventDispatcherException("Could not connect the event dispatcher to the broker", e);
     }
@@ -93,13 +94,16 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   }
 
   private Channel channel() throws IOException {
-    if (!channel.isOpen()) channel = openChannel();
-    return channel;
+    Channel current = channel.get();
+    if (current.isOpen()) return current;
+    Channel opened = openChannel();
+    channel.set(opened);
+    return opened;
   }
 
   @Override
   public boolean isAlive() {
-    return channel.isOpen();
+    return channel.get().isOpen();
   }
 
   @Override

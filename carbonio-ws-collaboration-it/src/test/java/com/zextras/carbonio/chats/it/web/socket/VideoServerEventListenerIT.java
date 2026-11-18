@@ -72,7 +72,7 @@ class VideoServerEventListenerIT {
   }
 
   @AfterEach
-  void tearDown() throws Exception {
+  void tearDown() {
     listener.stop();
   }
 

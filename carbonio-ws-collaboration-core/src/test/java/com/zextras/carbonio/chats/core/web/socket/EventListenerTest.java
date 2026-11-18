@@ -87,7 +87,8 @@ class EventListenerTest {
     when(session.getId()).thenReturn(id);
     when(session.isOpen()).thenReturn(true);
     when(session.getNegotiatedSubprotocol()).thenReturn(subprotocol);
-    when(session.getAsyncRemote()).thenReturn(mock(RemoteEndpoint.Async.class));
+    RemoteEndpoint.Async remote = mock(RemoteEndpoint.Async.class);
+    when(session.getAsyncRemote()).thenReturn(remote);
     sessions.add(session);
     return session;
   }
@@ -293,7 +294,7 @@ class EventListenerTest {
   }
 
   @Test
-  void brokerConnectionLost_notifiesBrokerDown() throws Exception {
+  void brokerConnectionLost_notifiesBrokerDown() {
     ArgumentCaptor<ShutdownListener> shutdown = ArgumentCaptor.forClass(ShutdownListener.class);
     verify(connection).addShutdownListener(shutdown.capture());
 
@@ -303,7 +304,7 @@ class EventListenerTest {
   }
 
   @Test
-  void applicationClosingTheConnection_doesNotNotifyBrokerDown() throws Exception {
+  void applicationClosingTheConnection_doesNotNotifyBrokerDown() {
     ArgumentCaptor<ShutdownListener> shutdown = ArgumentCaptor.forClass(ShutdownListener.class);
     verify(connection).addShutdownListener(shutdown.capture());
 
@@ -313,7 +314,7 @@ class EventListenerTest {
   }
 
   @Test
-  void connectionRecovered_notifiesBrokerRecovered() throws Exception {
+  void connectionRecovered_notifiesBrokerRecovered() {
     ArgumentCaptor<RecoveryListener> recovery = ArgumentCaptor.forClass(RecoveryListener.class);
     verify((Recoverable) connection).addRecoveryListener(recovery.capture());
 
