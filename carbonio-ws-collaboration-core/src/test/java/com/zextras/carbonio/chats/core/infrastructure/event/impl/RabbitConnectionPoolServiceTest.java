@@ -32,7 +32,7 @@ import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterEach;

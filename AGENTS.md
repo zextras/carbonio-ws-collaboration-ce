@@ -38,7 +38,7 @@
   implementations keep compiling; never change or remove a signature.
 - Presence lives in `core.service.presence` (`PresenceService`, `WsPresenceManager`,
   `WsPresenceJanitorService`, `WsPresenceBootCleaner`, `PresenceBroadcaster`); `core.web.socket` keeps
-  only the WebSocket endpoint, session and handler classes plus the video-server listeners.
+  only the WebSocket endpoint, session and handler classes.
 - `ChatMessageService` is the message service: send (plain and `tempId` send-once), upload, edit, delete, forward,
   timeline, search, pins, reactions and read markers check the actor's membership, write, then build and dispatch
   the WebSocket events (`MessageReceivedBroadcaster` is its helper). `RoomsApiServiceImpl` only parses requests,
@@ -53,9 +53,21 @@
 - `EventDispatcher` sends `WsEvent` objects (`sendWsEvent`) and `DomainEvent`s; both are serialized once for all
   recipients and there is no raw `String` send. A per-recipient variant of an event (for example the message
   without its quote) is built as an object, never by editing the JSON.
-- Services never import `core.web.*` except `core.web.security.UserPrincipal`: the payload mapper
-  `TimelineItemMapper` lives in `core.infrastructure.event.mapper` and the WebSocket session registry
-  (`EventWebSocketSessions`, `SessionPingManager`) in `core.infrastructure.websocket`.
+- `RoomAccess` (`core.service`) is the only membership check: `loadForMember`/`loadForOwner` return the room with its
+  subscriptions, `requireMember`/`requireOwner` run one targeted query and discard the room. Services and controllers
+  never re-implement it. `RoomLifecycleService` runs the delete cascades (room, member removal, meeting,
+  participants, attachments) with no wrapping transaction: DB-only steps first, then storage, video server and
+  events.
+- `VideoServerEventListener` and `MessageBrokerVideoserverHealthMonitor` live in `core.infrastructure.videoserver`.
+- Layering is enforced by `ArchitectureRulesTest` (core module, ArchUnit, no frozen baseline): `core.service..` does
+  not depend on `core.web..` except `core.web.security.UserPrincipal` (so the payload mapper `TimelineItemMapper`
+  lives in `core.infrastructure.event.mapper` and the WebSocket session registry in
+  `core.infrastructure.websocket`); `core.repository..` depends on neither service nor web; public methods of
+  `core.service..` interfaces never return `com.zextras.carbonio.chats.model..` DTOs, also inside generics, except
+  `HealthcheckService`, `CapabilityService` and `UserService`; a service interface and its implementation form one
+  unit and the units have no dependency cycle; `@io.ebean.annotation.Transactional` code does not call
+  `EventDispatcher`, storage, user-management/preview/video-server/HTTP clients or Consul. A new violation is fixed
+  in the code, never by adding an exception.
 - **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
   dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit
   `bind(NewClass.class);` in the module that owns the feature (project convention, even though Guice can JIT-bind).

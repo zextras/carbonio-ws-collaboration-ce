@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 // SPDX-FileCopyrightText: 2025 Zextras <https://www.zextras.com>
 //
@@ -28,7 +28,6 @@ import com.zextras.carbonio.async.model.MeetingSdpOffered;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.EventData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.EventInfo;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.StreamData;

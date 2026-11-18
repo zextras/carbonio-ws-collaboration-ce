@@ -16,7 +16,7 @@ import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.infrastructure.instance.ConsulWsInstanceRegistry;
 import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.web.api.versioning.DummyVersionedApi;

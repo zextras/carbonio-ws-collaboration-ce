@@ -71,7 +71,8 @@ class MeetingApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final VideoServerMockServer videoServerMockServer;
-  private final com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
+  private final com.zextras.carbonio.chats.core.infrastructure.videoserver
+          .MessageBrokerVideoserverHealthMonitor
       healthMonitor;
   private final SystemEventRepository systemEventRepository;
   private final Database database;
@@ -84,7 +85,8 @@ class MeetingApiIT {
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
       VideoServerMockServer videoServerMockServer,
-      com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
+      com.zextras.carbonio.chats.core.infrastructure.videoserver
+              .MessageBrokerVideoserverHealthMonitor
           healthMonitor,
       SystemEventRepository systemEventRepository,
       Database database) {

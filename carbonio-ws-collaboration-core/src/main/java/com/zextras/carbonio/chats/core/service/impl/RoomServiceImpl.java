@@ -9,7 +9,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.*;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
@@ -398,7 +397,8 @@ public class RoomServiceImpl implements RoomService {
   @Override
   public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
     Room room =
-        getRoom(roomId)
+        roomRepository
+            .getById(roomId.toString())
             .orElseThrow(() -> new NotFoundException(String.format("Room '%s'", roomId)));
 
     if (RoomType.TEMPORARY.equals(room.getType())) {
@@ -484,18 +484,6 @@ public class RoomServiceImpl implements RoomService {
             .type(EventType.ROOM_HISTORY_CLEARED));
 
     return clearedAt;
-  }
-
-  @Override
-  public List<UUID> getRoomsIds(UserPrincipal currentUser) {
-    return roomRepository.getIdsByUserId(currentUser.getId()).stream()
-        .map(UUID::fromString)
-        .toList();
-  }
-
-  @Override
-  public Optional<Room> getRoom(UUID roomId) {
-    return roomRepository.getById(roomId.toString());
   }
 
   @Override
@@ -585,10 +573,5 @@ public class RoomServiceImpl implements RoomService {
             .systemEventId(systemEvent.getId())
             .systemEventCreatedAt(systemEvent.getCreatedAt())
             .type(EventType.ROOM_PICTURE_DELETED));
-  }
-
-  @Override
-  public void setMeetingIntoRoom(Room room, Meeting meeting) {
-    roomRepository.update(room.meetingId(meeting.getId()));
   }
 }

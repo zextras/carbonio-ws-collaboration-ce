@@ -41,6 +41,7 @@ caffeine = "3.2.4"
 junit = "5.11.2"
 junitPlatform = "1.11.2"
 mockito = "5.14.1"
+archunit = "1.5.1"
 testcontainersCore = "2.0.5"
 testcontainersJunit = "1.21.4"
 testcontainersPg = "1.21.4"
@@ -116,6 +117,7 @@ junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", vers
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainersCore" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainersJunit" }
 testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainersPg" }

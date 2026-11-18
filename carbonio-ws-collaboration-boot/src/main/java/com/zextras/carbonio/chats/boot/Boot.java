@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.migration.MigrationKeepAlive;
 import com.zextras.carbonio.chats.core.service.impl.MessageSendDedupPurgeService;
@@ -19,7 +20,6 @@ import com.zextras.carbonio.chats.core.service.presence.WsPresenceJanitorService
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
-import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import com.zextras.carbonio.systemd.SystemdNotify;
 import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;

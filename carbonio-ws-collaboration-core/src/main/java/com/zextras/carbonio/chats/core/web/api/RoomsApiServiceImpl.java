@@ -149,6 +149,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     this.meetingMapper = meetingMapper;
   }
 
+  private static void rejectGuest(UserPrincipal user) {
+    if (UserType.GUEST.equals(user.getUserType())) {
+      throw new ForbiddenException();
+    }
+  }
+
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
     return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
         .orElseThrow(UnauthorizedException::new);
@@ -185,9 +191,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response insertRoom(
       RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
     if (insertRoomRequestDto.getType() == null) {
       throw new BadRequestException("Room type is required");
     }
@@ -237,20 +241,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
+    rejectGuest(currentUser);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.FORBIDDEN).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.FORBIDDEN).build();
-              } else {
-                roomLifecycleService.deleteRoom(roomId, currentUser);
-                return Response.status(Status.NO_CONTENT).build();
-              }
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    roomLifecycleService.deleteRoom(roomId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
@@ -258,53 +255,40 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
+    rejectGuest(currentUser);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.BAD_REQUEST).build();
-              }
-              if (RoomType.GROUP.equals(room.get().getType())) {
-                if (updateRoomRequestDto.getName() == null
-                    && updateRoomRequestDto.getDescription() == null) {
-                  return Response.status(Status.BAD_REQUEST).build();
-                }
-              }
-              return Response.status(Status.OK)
-                  .entity(
-                      roomMapper.ent2dto(
-                          roomService.updateRoom(roomId, updateRoomRequestDto, currentUser),
-                          null,
-                          false,
-                          false))
-                  .build();
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    if (RoomType.GROUP.equals(room.getType())
+        && updateRoomRequestDto.getName() == null
+        && updateRoomRequestDto.getDescription() == null) {
+      return Response.status(Status.BAD_REQUEST).build();
+    }
+    return Response.status(Status.OK)
+        .entity(
+            roomMapper.ent2dto(
+                roomService.updateRoom(roomId, updateRoomRequestDto, currentUser),
+                null,
+                false,
+                false))
+        .build();
   }
 
   @Override
   public Response updateRoomOwners(
       UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
+    rejectGuest(currentUser);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.BAD_REQUEST).build();
-              }
-              return Response.status(Status.OK)
-                  .entity(
-                      subscriptionMapper.ent2memberDto(
-                          membersService.updateRoomOwners(roomId, memberDto, currentUser)))
-                  .build();
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    return Response.status(Status.OK)
+        .entity(
+            subscriptionMapper.ent2memberDto(
+                membersService.updateRoomOwners(roomId, memberDto, currentUser)))
+        .build();
   }
 
   @Override
@@ -332,9 +316,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       InputStream body,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
 
     long maxSizeBytes =
         currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE, 0).toBytes();
@@ -371,9 +353,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
     roomService.deleteRoomPicture(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -382,9 +362,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
     roomService.muteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -393,9 +371,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
     roomService.unmuteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -403,9 +379,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
     return Response.status(Status.OK)
         .entity(
             ClearedDateDto.create().clearedAt(roomService.clearRoomHistory(roomId, currentUser)))
@@ -429,94 +403,67 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       List<@Valid MemberToInsertDto> memberToInsertDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
     if (memberToInsertDto.isEmpty()) {
       return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.BAD_REQUEST).build();
-              }
-              if (RoomType.GROUP.equals(room.get().getType())) {
-                int maxMembers =
-                    currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
-                long newMembers =
-                    memberToInsertDto.stream().map(MemberToInsertDto::getUserId).distinct().count();
-                if ((r.getSubscriptions().size() + newMembers) > maxMembers) {
-                  return Response.status(Status.BAD_REQUEST).build();
-                }
-              }
-              return Response.status(Status.CREATED)
-                  .entity(
-                      membersService
-                          .insertRoomMembers(roomId, memberToInsertDto, currentUser)
-                          .stream()
-                          .map(this::toMemberInsertedDto)
-                          .toList())
-                  .build();
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.BAD_REQUEST).build();
+    }
+    if (RoomType.GROUP.equals(room.getType())) {
+      int maxMembers = currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
+      long newMembers =
+          memberToInsertDto.stream().map(MemberToInsertDto::getUserId).distinct().count();
+      if ((room.getSubscriptions().size() + newMembers) > maxMembers) {
+        return Response.status(Status.BAD_REQUEST).build();
+      }
+    }
+    return Response.status(Status.CREATED)
+        .entity(
+            membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser).stream()
+                .map(this::toMemberInsertedDto)
+                .toList())
+        .build();
   }
 
   @Override
   @TimedCall
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
+    rejectGuest(currentUser);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.BAD_REQUEST).build();
-              }
-              roomLifecycleService.removeMember(roomId, userId, currentUser);
-              return Response.status(Status.NO_CONTENT).build();
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    roomLifecycleService.removeMember(roomId, userId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall
   public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
+    rejectGuest(currentUser);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.BAD_REQUEST).build();
-              }
-              membersService.promoteMemberToOwner(roomId, userId, currentUser);
-              return Response.status(Status.NO_CONTENT).build();
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    membersService.promoteMemberToOwner(roomId, userId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
+    rejectGuest(currentUser);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
+      return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
-    return room.map(
-            r -> {
-              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
-                return Response.status(Status.BAD_REQUEST).build();
-              }
-              membersService.demoteOwnerToMember(roomId, userId, currentUser);
-              return Response.status(Status.NO_CONTENT).build();
-            })
-        .orElse(Response.status(Status.NOT_FOUND).build());
+    membersService.demoteOwnerToMember(roomId, userId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
@@ -587,9 +534,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       MultipartFormDataInput input, UUID roomId, SecurityContext securityContext) {
 
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (UserType.GUEST.equals(currentUser.getUserType())) {
-      throw new ForbiddenException();
-    }
+    rejectGuest(currentUser);
 
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD)) {
       throw new ForbiddenException("Attachment upload is disabled for user");

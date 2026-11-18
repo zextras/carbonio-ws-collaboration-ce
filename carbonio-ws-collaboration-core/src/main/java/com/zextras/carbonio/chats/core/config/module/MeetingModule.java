@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerConfigImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
@@ -38,7 +39,6 @@ import com.zextras.carbonio.chats.core.web.api.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.web.api.mapper.ParticipantMapper;
 import com.zextras.carbonio.chats.core.web.api.mapper.impl.MeetingMapperImpl;
 import com.zextras.carbonio.chats.core.web.api.mapper.impl.ParticipantMapperImpl;
-import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 
 public class MeetingModule extends AbstractModule {

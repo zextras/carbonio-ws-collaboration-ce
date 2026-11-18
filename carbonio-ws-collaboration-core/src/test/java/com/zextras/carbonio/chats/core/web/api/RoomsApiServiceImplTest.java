@@ -924,13 +924,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete room with with an authenticated user but it's not found")
     void deleteRoom_testAuthenticatedUser_notFound() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomAccess.loadForMember(roomId, user1)).thenReturn(null);
+      when(roomAccess.loadForMember(roomId, user1)).thenThrow(new NotFoundException());
 
-      Response response = roomsApiService.deleteRoom(roomId, securityContext);
+      assertThrows(
+          NotFoundException.class, () -> roomsApiService.deleteRoom(roomId, securityContext));
 
       verify(roomAccess, times(1)).loadForMember(roomId, user1);
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
     }
 
     @Test
@@ -1007,15 +1006,14 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room with with an authenticated user but it's not found")
     void updateRoom_testAuthenticatedUser_notFound() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomAccess.loadForMember(roomId, user1)).thenReturn(null);
+      when(roomAccess.loadForMember(roomId, user1)).thenThrow(new NotFoundException());
 
       RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create().name("test123");
-      Response response =
-          roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext);
+      assertThrows(
+          NotFoundException.class,
+          () -> roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext));
 
       verify(roomAccess, times(1)).loadForMember(roomId, user1);
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
     }
 
     @Test

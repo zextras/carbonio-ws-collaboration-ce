@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
@@ -24,7 +24,6 @@ import com.zextras.carbonio.async.model.SubscribedStream;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.EventData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.StreamData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;

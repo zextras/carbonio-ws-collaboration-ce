@@ -16,7 +16,7 @@ import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 

@@ -63,6 +63,7 @@ dependencies {
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.archunit.junit5)
     testImplementation(libs.ebean.test)
 }
 

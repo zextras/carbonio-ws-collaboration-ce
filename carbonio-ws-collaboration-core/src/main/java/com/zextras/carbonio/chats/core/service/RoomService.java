@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.service;
 
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
@@ -21,22 +20,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface RoomService {
-
-  /**
-   * Retrieves rooms identifiers {@link UUID} {@link List} of every room the user has access to
-   *
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return identifier {@link UUID} {@link List} of every room that the user has access to
-   */
-  List<UUID> getRoomsIds(UserPrincipal currentUser);
-
-  /**
-   * Gets the room entity for internal usage
-   *
-   * @param roomId room identifier
-   * @return {@link Room} entity
-   */
-  Optional<Room> getRoom(UUID roomId);
 
   /**
    * Creates a room of the specified type
@@ -143,13 +126,4 @@ public interface RoomService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void deleteRoomPicture(UUID roomId, UserPrincipal currentUser);
-
-  /**
-   * Sets the meeting as a reference in the room. This method accepts entities because it's intended
-   * to be used only to be called by services.
-   *
-   * @param room {@link Room} in which to set up the meeting
-   * @param meeting {@link Meeting} to set
-   */
-  void setMeetingIntoRoom(Room room, Meeting meeting);
 }

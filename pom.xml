@@ -127,6 +127,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <org.junit-pioneer.version>2.3.0</org.junit-pioneer.version>
         <!-- Mockito -->
         <org.mockito.version>5.14.1</org.mockito.version>
+        <com.tngtech.archunit.version>1.5.1</com.tngtech.archunit.version>
         <!-- Integration Tests dependency -->
         <org.testcontainers.version>2.0.5</org.testcontainers.version>
         <org.testcontainers.junit.jupiter.version>1.21.4</org.testcontainers.junit.jupiter.version>
@@ -450,6 +451,13 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${org.mockito.version}</version>
+            </dependency>
+
+            <!-- ArchUnit -->
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${com.tngtech.archunit.version}</version>
             </dependency>
 
             <!-- Ebean -->
