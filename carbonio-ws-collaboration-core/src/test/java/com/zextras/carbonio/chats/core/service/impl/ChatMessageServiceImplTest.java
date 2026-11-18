@@ -1238,10 +1238,7 @@ class ChatMessageServiceImplTest {
       Message returned = upload(null, null, null, "t-1");
 
       assertSame(original, returned);
-      verify(attachmentService, never())
-          .addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
-      verifyNoInteractions(messageSentListener);
+      verifyNoInteractions(attachmentService, messageSentListener);
     }
 
     @Test

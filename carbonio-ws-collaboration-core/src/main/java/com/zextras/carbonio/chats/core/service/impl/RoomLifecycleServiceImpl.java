@@ -98,7 +98,7 @@ public class RoomLifecycleServiceImpl implements RoomLifecycleService {
                     .type(EventType.MEETING_DELETED)));
     eventDispatcher.sendToUserExchange(
         receivers, RoomDeleted.create().roomId(roomId).type(EventType.ROOM_DELETED));
-    attachmentService.deleteAttachmentsByIds(removed.attachmentIds(), currentUser);
+    deleteAttachments(removed.attachmentIds(), currentUser);
     removed.avatar().ifPresent(this::deleteAvatarFile);
   }
 
@@ -117,6 +117,14 @@ public class RoomLifecycleServiceImpl implements RoomLifecycleService {
     avatar.ifPresent(fileMetadataRepository::delete);
     roomRepository.delete(roomId);
     return new RemovedRows(attachmentIds, avatar);
+  }
+
+  private void deleteAttachments(List<String> attachmentIds, UserPrincipal currentUser) {
+    try {
+      attachmentService.deleteAttachmentsByIds(attachmentIds, currentUser);
+    } catch (Exception e) {
+      ChatsLogger.warn("Failed to delete the attachments of a deleted room: " + e.getMessage());
+    }
   }
 
   private void deleteAvatarFile(FileMetadata avatar) {

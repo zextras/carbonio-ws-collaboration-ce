@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -179,6 +180,18 @@ class RoomLifecycleServiceImplTest {
   @DisplayName("Removes a member from a room tests")
   class RemoveMemberTests {
 
+    @AfterEach
+    void noUnexpectedInteractions() {
+      verifyNoMoreInteractions(
+          subscriptionRepository,
+          roomUserSettingsRepository,
+          eventDispatcher,
+          chatMessageService,
+          meetingService,
+          participantService,
+          attachmentService);
+    }
+
     @Test
     @DisplayName("Correctly removes a member of a group room")
     void removeMember_groupTestOk() {
@@ -268,6 +281,8 @@ class RoomLifecycleServiceImplTest {
       verify(roomRepository, times(1)).delete(roomId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(List.of(user1Id.toString()), RoomDeleted.create().roomId(roomId));
+      verify(attachmentService, times(1))
+          .deleteAttachmentsByIds(List.of(), UserPrincipal.create(user1Id));
       verifyNoInteractions(subscriptionRepository, chatMessageService);
       verifyNoMoreInteractions(eventDispatcher);
     }
@@ -365,6 +380,34 @@ class RoomLifecycleServiceImplTest {
       assertEquals("Bad Request - Last owner can't leave the room", exception.getMessage());
 
       verify(roomRepository, times(1)).getById(roomId.toString());
+      verifyNoInteractions(
+          subscriptionRepository,
+          roomUserSettingsRepository,
+          eventDispatcher,
+          chatMessageService,
+          participantService);
+    }
+
+    @Test
+    @DisplayName("A non-owner removing another member gets 'forbidden' and nothing is changed")
+    void removeMember_nonOwnerRemovesAnotherMember_isForbidden() {
+      Room room = groupRoom1();
+      UserPrincipal principal = UserPrincipal.create(user2Id);
+      when(roomRepository.getById(roomId.toString())).thenReturn(Optional.of(room));
+
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () -> roomLifecycleService.removeMember(roomId, user3Id, principal));
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+
+      verify(roomRepository, times(1)).getById(roomId.toString());
+      verifyNoInteractions(
+          subscriptionRepository,
+          roomUserSettingsRepository,
+          eventDispatcher,
+          chatMessageService,
+          participantService);
     }
   }
 
@@ -460,6 +503,28 @@ class RoomLifecycleServiceImplTest {
           .sendToUserExchange(
               List.of(user2Id.toString(), user3Id.toString()),
               RoomDeleted.create().roomId(roomGroup2Id));
+    }
+
+    @Test
+    @DisplayName(
+        "A failure deleting the attachment rows after the commit is logged: the room stays deleted"
+            + " and its events are sent")
+    void deleteRoom_attachmentCleanupFails_isLogged() {
+      Room room = groupRoom1();
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(room));
+      doThrow(new IllegalStateException("db"))
+          .when(attachmentService)
+          .deleteAttachmentsByIds(List.of(), UserPrincipal.create(user1Id));
+
+      roomLifecycleService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
+
+      verify(roomRepository, times(1)).delete(roomGroup1Id.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomDeleted.create().roomId(roomGroup1Id));
+      verify(attachmentService, times(1))
+          .deleteAttachmentsByIds(List.of(), UserPrincipal.create(user1Id));
     }
 
     @Test
@@ -587,7 +652,7 @@ class RoomLifecycleServiceImplTest {
       org.mockito.stubbing.Answer<Object> noIoYet =
           invocation -> {
             verifyNoInteractions(eventDispatcher, storagesService, attachmentService);
-            verify(meetingService, never()).stopMeeting(any(), any());
+            verify(meetingService).releaseMeetingResources(user2Id.toString(), meeting);
             checked.set(true);
             return null;
           };

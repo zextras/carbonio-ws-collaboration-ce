@@ -3162,6 +3162,20 @@ class RoomsApiServiceImplTest {
   class SearchMessagesTest {
 
     @Test
+    @DisplayName("searchMessages with a malformed before date is a bad request")
+    void searchMessages_malformedBefore_isBadRequest() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.searchMessages(
+                  roomId, "hello", null, "not-a-date", null, securityContext));
+
+      verifyNoInteractions(chatMessageService);
+    }
+
+    @Test
     @DisplayName("searchMessages maps hasMore and keeps replyToId only for the visible replies")
     void searchMessages_mapsHasMoreAndVisibleReplies() throws Exception {
       UUID firstId = UUID.randomUUID();
@@ -3252,6 +3266,30 @@ class RoomsApiServiceImplTest {
   @Nested
   @DisplayName("Get timeline tests")
   class GetTimelineTest {
+
+    @Test
+    @DisplayName("getTimeline with a malformed before, after or around date is a bad request")
+    void getTimeline_malformedDate_isBadRequest() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.getTimeline(
+                  roomId, "nope", null, null, null, null, null, 50, securityContext));
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.getTimeline(
+                  roomId, null, null, "2026-13-45", null, null, null, 50, securityContext));
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.getTimeline(
+                  roomId, null, null, null, null, "yesterday", null, 50, securityContext));
+
+      verifyNoInteractions(chatMessageService);
+    }
 
     @Test
     @DisplayName("getTimeline maps the items, the flags, the reply, the attachment and the markers")

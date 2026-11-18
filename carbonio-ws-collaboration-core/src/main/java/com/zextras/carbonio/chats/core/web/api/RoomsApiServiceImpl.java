@@ -89,6 +89,7 @@ import java.time.DateTimeException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -812,7 +813,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       String beforeId,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    OffsetDateTime beforeTs = before != null ? OffsetDateTime.parse(before) : null;
+    OffsetDateTime beforeTs = before != null ? parseTimestamp(before) : null;
     MessageSearchPage page =
         chatMessageService.searchVisibleMessages(
             roomId.toString(),
@@ -912,7 +913,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   private static OffsetDateTime parseTimestamp(String value) {
-    return value != null && !value.isBlank() ? OffsetDateTime.parse(value) : null;
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return OffsetDateTime.parse(value);
+    } catch (DateTimeParseException e) {
+      throw new BadRequestException("Invalid date-time value", e);
+    }
   }
 
   private static String nullIfBlank(String value) {

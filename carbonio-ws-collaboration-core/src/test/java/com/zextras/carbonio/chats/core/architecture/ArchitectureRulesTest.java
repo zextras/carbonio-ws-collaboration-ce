@@ -16,8 +16,11 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.AccessTarget.CodeUnitAccessTarget;
+import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaCodeUnit;
+import com.tngtech.archunit.core.domain.JavaCodeUnitAccess;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.core.importer.Location;
@@ -30,6 +33,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.library.dependencies.SliceAssignment;
 import com.tngtech.archunit.library.dependencies.SliceIdentifier;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
@@ -37,7 +41,11 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerSer
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.spi.MessageSentListener;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Set;
 
 @AnalyzeClasses(
@@ -118,8 +126,9 @@ class ArchitectureRulesTest {
           .areAnnotatedWith(io.ebean.annotation.Transactional.class)
           .should(notCallIo());
 
-  private static DescribedPredicate<JavaClass> ioTypes() {
+  static DescribedPredicate<JavaClass> ioTypes() {
     return assignableTo(EventDispatcher.class)
+        .or(assignableTo(MessageSentListener.class))
         .or(assignableTo(MessageReceivedBroadcaster.class))
         .or(assignableTo(StoragesService.class))
         .or(assignableTo(VideoServerService.class))
@@ -139,21 +148,78 @@ class ArchitectureRulesTest {
                 "com.orbitz.consul..",
                 "com.rabbitmq..",
                 "org.apache.http..",
-                "java.net.http.."));
+                "java.net.http..",
+                "jakarta.websocket.."));
   }
 
   private static ArchCondition<JavaCodeUnit> notCallIo() {
     DescribedPredicate<JavaClass> io = ioTypes();
     return new ArchCondition<>(
-        "not call event dispatch, storage, HTTP/SDK, Consul or video-server code") {
+        "not call event dispatch, storage, HTTP/SDK, Consul or video-server code, directly,"
+            + " through a method reference or through a method of the same class") {
       @Override
       public void check(JavaCodeUnit codeUnit, ConditionEvents events) {
-        codeUnit.getCallsFromSelf().stream()
-            .filter(call -> io.test(call.getTargetOwner()))
-            .forEach(
-                call -> events.add(SimpleConditionEvent.violated(codeUnit, call.getDescription())));
+        Set<JavaCodeUnit> visited = new HashSet<>();
+        Deque<JavaCodeUnit> pending = new ArrayDeque<>();
+        pending.add(codeUnit);
+        while (!pending.isEmpty()) {
+          JavaCodeUnit current = pending.poll();
+          if (!visited.add(current)) {
+            continue;
+          }
+          for (JavaAccess<?> access : accessesOf(current)) {
+            if (io.test(access.getTargetOwner()) && !isInMemoryInstanceId(access)) {
+              events.add(
+                  SimpleConditionEvent.violated(
+                      codeUnit,
+                      current.equals(codeUnit)
+                          ? access.getDescription()
+                          : access.getDescription()
+                              + " (reached from "
+                              + codeUnit.getFullName()
+                              + ")"));
+            }
+            if (access instanceof JavaCodeUnitAccess<?> codeUnitAccess) {
+              CodeUnitAccessTarget target = codeUnitAccess.getTarget();
+              if (target.getOwner().equals(current.getOwner())) {
+                current.getOwner().getCodeUnits().stream()
+                    .filter(
+                        unit ->
+                            unit.getName().equals(target.getName())
+                                && unit.getRawParameterTypes()
+                                    .equals(target.getRawParameterTypes()))
+                    .forEach(pending::add);
+              }
+            }
+          }
+          lambdaBodiesOf(current).forEach(pending::add);
+        }
       }
     };
+  }
+
+  private static boolean isInMemoryInstanceId(JavaAccess<?> access) {
+    return access.getTargetOwner().isAssignableTo(WsInstanceRegistry.class)
+        && access.getTarget().getName().equals("selfId");
+  }
+
+  private static Set<JavaAccess<?>> accessesOf(JavaCodeUnit codeUnit) {
+    Set<JavaAccess<?>> accesses = new HashSet<>();
+    accesses.addAll(codeUnit.getCallsFromSelf());
+    accesses.addAll(codeUnit.getMethodReferencesFromSelf());
+    accesses.addAll(codeUnit.getConstructorReferencesFromSelf());
+    return accesses;
+  }
+
+  private static Set<JavaMethod> lambdaBodiesOf(JavaCodeUnit codeUnit) {
+    String prefix = "lambda$" + (codeUnit.isConstructor() ? "new" : codeUnit.getName()) + "$";
+    Set<JavaMethod> lambdas = new HashSet<>();
+    for (JavaMethod method : codeUnit.getOwner().getMethods()) {
+      if (method.getName().startsWith(prefix)) {
+        lambdas.add(method);
+      }
+    }
+    return lambdas;
   }
 
   private static ArchCondition<JavaMethod> notReturnGeneratedDtos() {

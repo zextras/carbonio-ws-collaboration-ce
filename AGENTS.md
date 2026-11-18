@@ -44,7 +44,7 @@
   the WebSocket events (`MessageReceivedBroadcaster` is its helper). `RoomsApiServiceImpl` only parses requests,
   calls it and maps results to DTOs; it has no repository dependency. `MessageWriteRepository` reports outcomes as
   status enums (`SendStatus`, `SendOnceStatus`, `EditStatus`, `DeleteStatus`, `ForwardStatus`) that the service maps
-  to the HTTP exceptions; the controller turns the 403/404 of send, edit and delete into a plain-text body.
+  to the HTTP exceptions; the controller turns the 403 and 404 of send and the 403 of edit and delete into a plain-text body (the 404 of edit and delete keeps an empty body).
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
   `ChatMessageServiceImpl.sendMessage`, `uploadAttachment` (text = caption or `""`), `editMessage` (text =
   new text) and `setReaction(..., UserPrincipal, ...)` for every reaction set, including the same value again (text = emoji; `removeReaction` never calls it) after the
