@@ -32,14 +32,14 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanWsPresenceRepository
 import com.zextras.carbonio.chats.core.repository.impl.TimelineRepositoryImpl;
 import com.zextras.carbonio.chats.core.service.ChatExportService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.core.service.MessageSendDedupPurgeService;
 import com.zextras.carbonio.chats.core.service.MessageSentListener;
-import com.zextras.carbonio.chats.core.service.SystemEventContentFactory;
+import com.zextras.carbonio.chats.core.service.impl.ChatExportFormatter;
 import com.zextras.carbonio.chats.core.service.impl.ChatExportServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ChatMessageServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.MessageSendDedupPurgeService;
+import com.zextras.carbonio.chats.core.service.impl.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.web.api.InboxApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PresenceApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.utility.ChatExportFormatter;
 
 public class ChatModule extends AbstractModule {
 

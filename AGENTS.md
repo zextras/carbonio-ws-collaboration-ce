@@ -43,6 +43,9 @@
   `bind(NewClass.class);` in the module that owns the feature (project convention, even though Guice can JIT-bind).
   Tests that build the class directly must be updated to pass the new dependency.
 - All new infrastructure clients must be registered in the module of the feature that uses them.
+- Transactions: `@Transactional` only around database work. No storage, RabbitMQ/event dispatch, HTTP/SDK,
+  Consul or video-server call inside a transaction: split into DB-only transactional steps and do the I/O before
+  or after commit. Ebean `@Transactional` also applies to self-invocation and uses REQUIRED propagation.
 
 ## Package / Deploy
 

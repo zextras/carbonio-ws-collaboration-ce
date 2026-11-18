@@ -11,6 +11,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentialReader;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
@@ -51,6 +52,16 @@ public class DatabaseModule extends AbstractModule {
     byte[] key = new byte[32];
     new SecureRandom().nextBytes(key);
     return key;
+  }
+
+  @Singleton
+  @Provides
+  private MessageDispatcherCredentials getMessageDispatcherCredentials(
+      AppConfig appConfig, MessageDispatcherCredentialReader reader) {
+    return MessageDispatcherCredentials.lazy(
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElseThrow(),
+        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElseThrow(),
+        reader);
   }
 
   @Singleton

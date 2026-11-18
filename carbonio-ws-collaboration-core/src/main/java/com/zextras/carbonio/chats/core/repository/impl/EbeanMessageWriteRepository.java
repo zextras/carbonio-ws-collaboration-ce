@@ -84,7 +84,7 @@ SELECT id, created_at FROM new_msg
           FROM reply_ok CROSS JOIN ts
           ON CONFLICT (room_id, sender_id, temp_id) DO UPDATE
               SET message_id = EXCLUDED.message_id, created_at = EXCLUDED.created_at
-              WHERE d.created_at < EXCLUDED.created_at - INTERVAL '1 hour'
+              WHERE d.created_at < EXCLUDED.created_at - {dedupWindow}
           RETURNING d.message_id
       ),
       new_msg AS (
@@ -97,7 +97,7 @@ SELECT id, created_at FROM new_msg
           SELECT d.message_id
           FROM chats.message_send_dedup d CROSS JOIN ts
           WHERE d.room_id = :roomId AND d.sender_id = :userId AND d.temp_id = :tempId
-            AND d.created_at >= ts.t - INTERVAL '1 hour'
+            AND d.created_at >= ts.t - {dedupWindow}
       )
       SELECT EXISTS (SELECT 1 FROM check_member) AS is_member,
              EXISTS (SELECT 1 FROM reply_ok) AS reply_visible,
@@ -106,7 +106,8 @@ SELECT id, created_at FROM new_msg
              (SELECT message_id FROM live_claim) AS existing_message_id
       FROM ts
       LEFT JOIN new_msg ON true
-      """;
+      """
+          .replace("{dedupWindow}", EbeanMessageSendDedupRepository.DEDUP_WINDOW);
 
   private static final String EDIT_SQL =
       """

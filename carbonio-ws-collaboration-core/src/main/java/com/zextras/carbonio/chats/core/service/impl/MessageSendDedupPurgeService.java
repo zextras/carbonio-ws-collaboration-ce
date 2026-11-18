@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.service;
+package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

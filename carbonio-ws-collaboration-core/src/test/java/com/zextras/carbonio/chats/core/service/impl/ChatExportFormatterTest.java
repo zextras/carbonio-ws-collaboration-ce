@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
-package com.zextras.carbonio.chats.core.web.utility;
+package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

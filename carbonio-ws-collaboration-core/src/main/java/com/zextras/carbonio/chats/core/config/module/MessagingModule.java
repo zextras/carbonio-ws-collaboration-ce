@@ -12,8 +12,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentialReader;
-import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
@@ -28,16 +26,6 @@ public class MessagingModule extends AbstractModule {
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
-  }
-
-  @Singleton
-  @Provides
-  private MessageDispatcherCredentials getMessageDispatcherCredentials(
-      AppConfig appConfig, MessageDispatcherCredentialReader reader) {
-    return MessageDispatcherCredentials.lazy(
-        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElseThrow(),
-        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElseThrow(),
-        reader);
   }
 
   @Provides

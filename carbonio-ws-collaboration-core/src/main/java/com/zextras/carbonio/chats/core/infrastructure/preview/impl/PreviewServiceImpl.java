@@ -14,7 +14,7 @@ import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.exception.*;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.service.AttachmentAccessValidator;
+import com.zextras.carbonio.chats.core.service.impl.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;

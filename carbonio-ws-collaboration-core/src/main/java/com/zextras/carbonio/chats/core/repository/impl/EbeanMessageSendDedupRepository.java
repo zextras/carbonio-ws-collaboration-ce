@@ -13,6 +13,8 @@ import io.ebean.SqlRow;
 @Singleton
 public class EbeanMessageSendDedupRepository implements MessageSendDedupRepository {
 
+  static final String DEDUP_WINDOW = "INTERVAL '1 hour'";
+
   private static final String CLAIM_SQL =
       """
       WITH ts AS (
@@ -23,22 +25,24 @@ public class EbeanMessageSendDedupRepository implements MessageSendDedupReposito
           SELECT :roomId, :senderId, :tempId, :messageId, ts.t FROM ts
           ON CONFLICT (room_id, sender_id, temp_id) DO UPDATE
               SET message_id = EXCLUDED.message_id, created_at = EXCLUDED.created_at
-              WHERE d.created_at < EXCLUDED.created_at - INTERVAL '1 hour'
+              WHERE d.created_at < EXCLUDED.created_at - {dedupWindow}
           RETURNING d.message_id
       )
       SELECT (SELECT message_id FROM claim) AS claimed_message_id,
              (SELECT d.message_id
               FROM chats.message_send_dedup d CROSS JOIN ts
               WHERE d.room_id = :roomId AND d.sender_id = :senderId AND d.temp_id = :tempId
-                AND d.created_at >= ts.t - INTERVAL '1 hour') AS existing_message_id
-      """;
+                AND d.created_at >= ts.t - {dedupWindow}) AS existing_message_id
+      """
+          .replace("{dedupWindow}", DEDUP_WINDOW);
 
   private static final String LIVE_CLAIM_SQL =
       """
       SELECT message_id FROM chats.message_send_dedup
       WHERE room_id = :roomId AND sender_id = :senderId AND temp_id = :tempId
-        AND created_at >= clock_timestamp() - INTERVAL '1 hour'
-      """;
+        AND created_at >= clock_timestamp() - {dedupWindow}
+      """
+          .replace("{dedupWindow}", DEDUP_WINDOW);
 
   private static final String RELEASE_SQL =
       """
@@ -53,7 +57,7 @@ public class EbeanMessageSendDedupRepository implements MessageSendDedupReposito
       USING (
           SELECT room_id, sender_id, temp_id
           FROM chats.message_send_dedup
-          WHERE created_at < clock_timestamp() - INTERVAL '1 hour'
+          WHERE created_at < clock_timestamp() - {dedupWindow}
           ORDER BY created_at
           LIMIT :batchSize
           FOR UPDATE SKIP LOCKED
@@ -61,7 +65,8 @@ public class EbeanMessageSendDedupRepository implements MessageSendDedupReposito
       WHERE d.room_id = expired.room_id
         AND d.sender_id = expired.sender_id
         AND d.temp_id = expired.temp_id
-      """;
+      """
+          .replace("{dedupWindow}", DEDUP_WINDOW);
 
   private final Database db;
 
