@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.service.presence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -28,17 +27,17 @@ import org.mockito.ArgumentCaptor;
 @UnitTest
 class PresenceBroadcasterTest {
 
-  private final ChatMessageService chatMessageService = mock(ChatMessageService.class);
+  private final PresenceService presenceService = mock(PresenceService.class);
   private final EventDispatcher eventDispatcher = mock(EventDispatcher.class);
   private final ObjectMapper objectMapper = new JacksonConfig().get();
   private final PresenceBroadcaster broadcaster =
-      new PresenceBroadcaster(chatMessageService, eventDispatcher, objectMapper);
+      new PresenceBroadcaster(presenceService, eventDispatcher, objectMapper);
 
   @Test
   void broadcastPresence_sendsTransitionWithLastActivityToSubscribersButNotTheUser()
       throws Exception {
     OffsetDateTime lastActivity = OffsetDateTime.parse("2026-10-13T10:15:30Z");
-    when(chatMessageService.getPresenceSubscribers("u1")).thenReturn(List.of("u1", "s1"));
+    when(presenceService.getPresenceSubscribers("u1")).thenReturn(List.of("u1", "s1"));
 
     broadcaster.broadcastPresence("u1", false, lastActivity);
 
@@ -55,7 +54,7 @@ class PresenceBroadcasterTest {
   @Test
   void broadcastPresence_onlineWithLastActivity_sendsBoth() throws Exception {
     OffsetDateTime lastActivity = OffsetDateTime.parse("2026-10-12T18:00:00Z");
-    when(chatMessageService.getPresenceSubscribers("u1")).thenReturn(List.of("s1"));
+    when(presenceService.getPresenceSubscribers("u1")).thenReturn(List.of("s1"));
 
     broadcaster.broadcastPresence("u1", true, lastActivity);
 

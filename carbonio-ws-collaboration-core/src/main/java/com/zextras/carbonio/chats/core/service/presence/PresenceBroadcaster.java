@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.service.presence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
@@ -11,7 +11,6 @@ import com.zextras.carbonio.async.model.PresenceChanged;
 import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -25,16 +24,14 @@ import java.util.List;
 @Singleton
 public class PresenceBroadcaster {
 
-  private final ChatMessageService chatMessageService;
+  private final PresenceService presenceService;
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
 
   @Inject
   public PresenceBroadcaster(
-      ChatMessageService chatMessageService,
-      EventDispatcher eventDispatcher,
-      ObjectMapper objectMapper) {
-    this.chatMessageService = chatMessageService;
+      PresenceService presenceService, EventDispatcher eventDispatcher, ObjectMapper objectMapper) {
+    this.presenceService = presenceService;
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
   }
@@ -55,7 +52,7 @@ public class PresenceBroadcaster {
       String json = objectMapper.writeValueAsString(event);
 
       // Notify all users who should receive presence updates for this user
-      List<String> subscribers = chatMessageService.getPresenceSubscribers(userId);
+      List<String> subscribers = presenceService.getPresenceSubscribers(userId);
       for (String subscriberId : subscribers) {
         if (!subscriberId.equals(userId)) {
           eventDispatcher.sendRawToUserExchange(subscriberId, json);

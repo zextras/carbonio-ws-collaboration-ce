@@ -5,13 +5,13 @@
 package com.zextras.carbonio.chats.core.config.module;
 
 import com.google.inject.AbstractModule;
+import com.zextras.carbonio.chats.core.service.presence.PresenceBroadcaster;
+import com.zextras.carbonio.chats.core.service.presence.WsPresenceBootCleaner;
+import com.zextras.carbonio.chats.core.service.presence.WsPresenceJanitorService;
+import com.zextras.carbonio.chats.core.service.presence.WsPresenceManager;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
-import com.zextras.carbonio.chats.core.web.socket.PresenceBroadcaster;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
-import com.zextras.carbonio.chats.core.web.socket.WsPresenceBootCleaner;
-import com.zextras.carbonio.chats.core.web.socket.WsPresenceJanitorService;
-import com.zextras.carbonio.chats.core.web.socket.WsPresenceManager;
 import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;
 import com.zextras.carbonio.chats.core.web.socket.action.impl.TypingHandler;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;

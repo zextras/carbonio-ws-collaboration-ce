@@ -10,7 +10,7 @@ import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.PresenceApiService;
 import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
+import com.zextras.carbonio.chats.core.service.presence.PresenceService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.PresenceBatchRequestDto;
 import com.zextras.carbonio.chats.model.PresenceStatusDto;
@@ -26,11 +26,11 @@ import java.util.UUID;
 @Singleton
 public class PresenceApiServiceImpl implements PresenceApiService {
 
-  private final ChatMessageService chatMessageService;
+  private final PresenceService presenceService;
 
   @Inject
-  public PresenceApiServiceImpl(ChatMessageService chatMessageService) {
-    this.chatMessageService = chatMessageService;
+  public PresenceApiServiceImpl(PresenceService presenceService) {
+    this.presenceService = presenceService;
   }
 
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
@@ -47,7 +47,7 @@ public class PresenceApiServiceImpl implements PresenceApiService {
     List<PresenceStatusDto> result = new ArrayList<>();
     if (presenceBatchRequestDto != null && presenceBatchRequestDto.getUserIds() != null) {
       List<String> ids = presenceBatchRequestDto.getUserIds().stream().map(UUID::toString).toList();
-      List<PresenceSummary> summaries = chatMessageService.getBatchPresence(ids);
+      List<PresenceSummary> summaries = presenceService.getBatchPresence(ids);
       for (PresenceSummary s : summaries) {
         PresenceStatusDto dto =
             PresenceStatusDto.create().userId(UUID.fromString(s.userId())).online(s.online());

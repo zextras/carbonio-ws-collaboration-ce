@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.service.presence;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,8 +18,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository.SessionDeletionResult;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import io.ebean.Database;
 import io.ebean.SqlQuery;
 import jakarta.websocket.Session;

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.service;
+package com.zextras.carbonio.chats.core.spi;
 
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.time.OffsetDateTime;

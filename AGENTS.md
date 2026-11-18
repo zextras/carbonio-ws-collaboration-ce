@@ -30,9 +30,15 @@
   installs the modules a downstream build may replace or extend (`DatabaseModule`, `AttachmentModule`,
   `MeetingModule`, `WebSocketModule`). `BootModule` installs both, plus `ProductionConfig` (or
   `DockerConfig` when `APP_ENVIRONMENT=docker`); those two config modules also bind `WsInstanceRegistry`
-  (Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice (a
+  (`core.infrastructure.instance`; Consul-backed in production, single-instance in docker). No `Consul` client is bound in Guice (a
   downstream build binds its own).
   `@Provides` methods live in the module that owns the feature.
+- SPI: `com.zextras.carbonio.chats.core.spi` holds the extension interfaces downstream builds implement
+  (today `MessageSentListener`). It evolves only by adding `default` methods, so existing downstream
+  implementations keep compiling; never change or remove a signature.
+- Presence lives in `core.service.presence` (`PresenceService`, `WsPresenceManager`,
+  `WsPresenceJanitorService`, `WsPresenceBootCleaner`, `PresenceBroadcaster`); `core.web.socket` keeps
+  only the WebSocket endpoint, session and handler classes plus the video-server listeners.
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
   `RoomsApiServiceImpl.sendMessage`, `insertAttachmentMultipart` (text = caption or `""`), `editMessage` (text =
   new text) and `setReaction` for every reaction set, including the same value again (text = emoji; `removeReaction` never calls it) after the

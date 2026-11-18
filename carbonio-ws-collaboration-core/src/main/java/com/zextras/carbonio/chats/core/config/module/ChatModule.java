@@ -31,12 +31,14 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanWsPresenceRepository
 import com.zextras.carbonio.chats.core.repository.impl.TimelineRepositoryImpl;
 import com.zextras.carbonio.chats.core.service.ChatExportService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.core.service.MessageSentListener;
 import com.zextras.carbonio.chats.core.service.impl.ChatExportFormatter;
 import com.zextras.carbonio.chats.core.service.impl.ChatExportServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ChatMessageServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MessageSendDedupPurgeService;
 import com.zextras.carbonio.chats.core.service.impl.SystemEventContentFactory;
+import com.zextras.carbonio.chats.core.service.presence.PresenceService;
+import com.zextras.carbonio.chats.core.service.presence.PresenceServiceImpl;
+import com.zextras.carbonio.chats.core.spi.MessageSentListener;
 import com.zextras.carbonio.chats.core.web.api.InboxApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PresenceApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
@@ -65,6 +67,7 @@ public class ChatModule extends AbstractModule {
     bind(MessageSendDedupRepository.class).to(EbeanMessageSendDedupRepository.class);
 
     bind(ChatMessageService.class).to(ChatMessageServiceImpl.class);
+    bind(PresenceService.class).to(PresenceServiceImpl.class);
     bind(ChatExportFormatter.class);
     bind(ChatExportService.class).to(ChatExportServiceImpl.class);
     bind(MessageSendDedupPurgeService.class);

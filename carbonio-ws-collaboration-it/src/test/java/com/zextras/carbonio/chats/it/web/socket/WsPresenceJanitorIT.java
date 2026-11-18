@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.it.web.socket;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
-import com.zextras.carbonio.chats.core.web.socket.WsPresenceJanitorService;
+import com.zextras.carbonio.chats.core.service.presence.WsPresenceJanitorService;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ConsulMockServer;
 import java.util.UUID;

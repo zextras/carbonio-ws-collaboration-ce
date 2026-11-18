@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.service.presence;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -10,6 +10,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;

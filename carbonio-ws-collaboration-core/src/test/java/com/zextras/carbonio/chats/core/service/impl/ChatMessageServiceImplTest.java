@@ -42,7 +42,6 @@ import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
-import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -92,8 +91,6 @@ class ChatMessageServiceImplTest {
             readRepository,
             pinRepository,
             systemEventRepository,
-            mock(WsPresenceRepository.class),
-            roomRepository,
             new RoomAccessImpl(roomRepository, subscriptionRepository),
             objectMapper);
   }

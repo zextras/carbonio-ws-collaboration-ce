@@ -18,9 +18,9 @@ import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
-import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.presence.PresenceService;
 import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -49,7 +49,7 @@ public class InboxApiServiceImpl implements InboxApiService {
   private final RoomService roomService;
   private final FileMetadataRepository fileMetadataRepository;
   private final ReadMarkerRepository readMarkerRepository;
-  private final WsPresenceRepository wsPresenceRepository;
+  private final PresenceService presenceService;
   private final TimelineItemMapper timelineItemMapper;
   private final RoomMapper roomMapper;
 
@@ -59,14 +59,14 @@ public class InboxApiServiceImpl implements InboxApiService {
       RoomService roomService,
       FileMetadataRepository fileMetadataRepository,
       ReadMarkerRepository readMarkerRepository,
-      WsPresenceRepository wsPresenceRepository,
+      PresenceService presenceService,
       TimelineItemMapper timelineItemMapper,
       RoomMapper roomMapper) {
     this.chatMessageService = chatMessageService;
     this.roomService = roomService;
     this.fileMetadataRepository = fileMetadataRepository;
     this.readMarkerRepository = readMarkerRepository;
-    this.wsPresenceRepository = wsPresenceRepository;
+    this.presenceService = presenceService;
     this.timelineItemMapper = timelineItemMapper;
     this.roomMapper = roomMapper;
   }
@@ -136,7 +136,7 @@ public class InboxApiServiceImpl implements InboxApiService {
     Map<String, PresenceSummary> presenceById =
         allMemberIds.isEmpty()
             ? Map.of()
-            : wsPresenceRepository.getBatchPresence(allMemberIds).stream()
+            : presenceService.getBatchPresence(allMemberIds).stream()
                 .collect(Collectors.toMap(PresenceSummary::userId, p -> p, (a, b) -> a));
 
     List<Map<String, Object>> conversations = new ArrayList<>();

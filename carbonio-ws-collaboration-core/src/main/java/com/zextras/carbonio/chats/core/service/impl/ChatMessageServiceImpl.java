@@ -15,7 +15,6 @@ import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItemRefs;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
-import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -25,15 +24,12 @@ import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Remo
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
-import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
-import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.utils.SearchTextUtils;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +46,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   private final ReadMarkerRepository readRepository;
   private final MessagePinRepository pinRepository;
   private final SystemEventRepository systemEventRepository;
-  private final WsPresenceRepository wsPresenceRepository;
-  private final RoomRepository roomRepository;
   private final RoomAccess roomAccess;
   private final ObjectMapper objectMapper;
 
@@ -62,8 +56,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       ReadMarkerRepository readRepository,
       MessagePinRepository pinRepository,
       SystemEventRepository systemEventRepository,
-      WsPresenceRepository wsPresenceRepository,
-      RoomRepository roomRepository,
       RoomAccess roomAccess,
       ObjectMapper objectMapper) {
     this.messageRepository = messageRepository;
@@ -71,8 +63,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     this.readRepository = readRepository;
     this.pinRepository = pinRepository;
     this.systemEventRepository = systemEventRepository;
-    this.wsPresenceRepository = wsPresenceRepository;
-    this.roomRepository = roomRepository;
     this.roomAccess = roomAccess;
     this.objectMapper = objectMapper;
   }
@@ -356,19 +346,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   public List<ReadMarker> getRoomReadMarkers(String roomId, String userId) {
     getVisibilityFloor(roomId, userId);
     return readRepository.getByRoomId(roomId);
-  }
-
-  // ==================== PRESENCE OPERATIONS ====================
-
-  @Override
-  public List<PresenceSummary> getBatchPresence(Collection<String> userIds) {
-    return wsPresenceRepository.getBatchPresence(userIds);
-  }
-
-  @Override
-  public List<String> getPresenceSubscribers(String userId) {
-    // Offline users would drop the event anyway and load presence when they connect
-    return roomRepository.getOnlineUserIdsSharingRoomWith(userId);
   }
 
   // ==================== MEMBERSHIP VALIDATION ====================

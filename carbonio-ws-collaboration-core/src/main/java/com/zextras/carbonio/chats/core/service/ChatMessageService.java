@@ -11,12 +11,10 @@ import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
-import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetResult;
 import java.time.OffsetDateTime;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -225,25 +223,6 @@ public interface ChatMessageService {
    *     member of the room
    */
   List<ReadMarker> getRoomReadMarkers(String roomId, String userId);
-
-  // ==================== PRESENCE OPERATIONS ====================
-
-  /**
-   * Returns presence summaries for a batch of user identifiers. Users not found are returned as
-   * offline with a {@code null} last-seen timestamp.
-   *
-   * @param userIds collection of user identifiers to query
-   * @return list of {@link PresenceSummary}
-   */
-  List<PresenceSummary> getBatchPresence(Collection<String> userIds);
-
-  /**
-   * Gets users who should receive presence updates for a user
-   *
-   * @param userId user identifier
-   * @return list of user IDs to notify
-   */
-  List<String> getPresenceSubscribers(String userId);
 
   // ==================== MEMBERSHIP VALIDATION ====================
 

@@ -9,10 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
+import com.zextras.carbonio.chats.core.service.presence.WsPresenceManager;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
-import com.zextras.carbonio.chats.core.web.socket.WsInstanceRegistry;
-import com.zextras.carbonio.chats.core.web.socket.WsPresenceManager;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ConsulMockServer;
 import jakarta.websocket.RemoteEndpoint;
