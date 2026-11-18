@@ -35,7 +35,9 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,6 +93,21 @@ class EventDispatcherRabbitMqTest {
     dispatcher.sendToUserExchange(List.of(USER_A, USER_B), EVENT);
 
     assertEquals(List.of(USER_A, USER_B), published(1).getFirst().getHeaders().get("users"));
+  }
+
+  @Test
+  void sendToUserExchange_withMoreUsersThanOneMessageHolds_splitsThemAcrossMessages()
+      throws Exception {
+    List<String> users =
+        IntStream.range(0, 2_500).mapToObj(i -> UUID.randomUUID().toString()).toList();
+
+    dispatcher.sendToUserExchange(users, EVENT);
+
+    assertEquals(
+        users,
+        published(3).stream()
+            .flatMap(p -> ((List<?>) p.getHeaders().get("users")).stream())
+            .toList());
   }
 
   @Test

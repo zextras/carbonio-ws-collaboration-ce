@@ -35,6 +35,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   private static final String QUEUE_ID_HEADER = "queueId";
   private static final String VIDEO_SERVER_HEADER = "videoserver";
   private static final int MAX_PENDING_EVENTS = 10_000;
+  private static final int MAX_USERS_PER_MESSAGE = 1_000;
 
   private final ObjectMapper objectMapper;
   private final Connection connection;
@@ -109,7 +110,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   @Override
   public void sendToUserExchange(List<String> usersIds, DomainEvent event) {
     if (usersIds.isEmpty()) return;
-    serialize(event).ifPresent(body -> publish(Map.of(USERS_HEADER, List.copyOf(usersIds)), body));
+    serialize(event).ifPresent(body -> publishToUsers(usersIds, body));
   }
 
   @Override
@@ -128,6 +129,13 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     } catch (JsonProcessingException e) {
       ChatsLogger.warn(String.format("Unable to serialize event '%s'", event.getType()), e);
       return Optional.empty();
+    }
+  }
+
+  private void publishToUsers(List<String> usersIds, byte[] body) {
+    for (int from = 0; from < usersIds.size(); from += MAX_USERS_PER_MESSAGE) {
+      int to = Math.min(usersIds.size(), from + MAX_USERS_PER_MESSAGE);
+      publish(Map.of(USERS_HEADER, List.copyOf(usersIds.subList(from, to))), body);
     }
   }
 
