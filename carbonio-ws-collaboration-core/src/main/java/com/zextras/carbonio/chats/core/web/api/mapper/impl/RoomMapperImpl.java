@@ -2,15 +2,16 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.mapper.impl;
+package com.zextras.carbonio.chats.core.web.api.mapper.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
-import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import jakarta.annotation.Nullable;
 import java.util.List;
@@ -33,7 +34,7 @@ public class RoomMapperImpl implements RoomMapper {
         .id(UUID.fromString(room.getId()))
         .name(room.getName())
         .description(room.getDescription())
-        .type(room.getType())
+        .type(room.getType() == null ? null : RoomTypeDto.valueOf(room.getType().name()))
         .pictureUpdatedAt(room.getPictureUpdatedAt())
         .meetingId(room.getMeetingId() == null ? null : UUID.fromString(room.getMeetingId()))
         .createdAt(room.getCreatedAt())

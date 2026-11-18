@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -38,7 +39,6 @@ import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -283,7 +283,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     Meeting meeting = validateMeeting(meetingId);
     Room room =
         roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException("Cannot kick a participant from a one-to-one meeting");
     }
     if (userId.equals(currentUser.getUUID())) {

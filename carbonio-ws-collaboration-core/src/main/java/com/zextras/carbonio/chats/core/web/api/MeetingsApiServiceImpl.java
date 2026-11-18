@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.web.api.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
@@ -38,6 +39,7 @@ import java.util.UUID;
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   private final MeetingService meetingService;
+  protected final MeetingMapper meetingMapper;
   protected final ParticipantService participantService;
   protected final CacheVideoServerSession cacheVideoServerSession;
   protected final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
@@ -45,10 +47,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Inject
   public MeetingsApiServiceImpl(
       MeetingService meetingService,
+      MeetingMapper meetingMapper,
       ParticipantService participantService,
       CacheVideoServerSession cacheVideoServerSession,
       MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor) {
     this.meetingService = meetingService;
+    this.meetingMapper = meetingMapper;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.messageBrokerVideoserverHealthMonitor = messageBrokerVideoserverHealthMonitor;
@@ -73,9 +77,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response listMeeting(SecurityContext securityContext) {
     return Response.ok()
         .entity(
-            meetingService.getMeetings(
-                Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-                    .orElseThrow(UnauthorizedException::new)))
+            meetingMapper.ent2dto(
+                meetingService.getMeetings(
+                    Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+                        .orElseThrow(UnauthorizedException::new))))
         .build();
   }
 
@@ -93,7 +98,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
+    return Response.ok()
+        .entity(meetingMapper.ent2dto(meetingService.getMeetingById(meetingId, currentUser)))
+        .build();
   }
 
   /**
@@ -113,12 +120,13 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       return Response.status(Status.BAD_REQUEST).build();
     } else {
       return Response.ok(
-              meetingService.createMeeting(
-                  currentUser,
-                  newMeetingDataDto.getName(),
-                  newMeetingDataDto.getMeetingType(),
-                  newMeetingDataDto.getRoomId(),
-                  newMeetingDataDto.getExpiration()))
+              meetingMapper.ent2dto(
+                  meetingService.createMeeting(
+                      currentUser,
+                      newMeetingDataDto.getName(),
+                      newMeetingDataDto.getMeetingType(),
+                      newMeetingDataDto.getRoomId(),
+                      newMeetingDataDto.getExpiration())))
           .build();
     }
   }
@@ -179,13 +187,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Kicks the specified user out of the meeting. Only a moderator can kick a
-   * participant.
+   * Kicks the specified user out of the meeting. Only a moderator can kick a participant.
    *
-   * @param meetingId       meeting identifier {@link UUID}
+   * @param meetingId meeting identifier {@link UUID}
    * @param kickParticipantDto the participant to kick {@link KickParticipantDto}
-   * @param securityContext security context created by the authentication filter
-   *                        {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter {@link
+   *     SecurityContext}
    * @return a response {@link Response} with status 204
    */
   @Override
@@ -222,7 +229,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     }
     messageBrokerVideoserverHealthMonitor.checkStatus();
     return Response.status(Status.OK)
-        .entity(meetingService.startMeeting(currentUser, meetingId))
+        .entity(meetingMapper.ent2dto(meetingService.startMeeting(currentUser, meetingId)))
         .build();
   }
 
@@ -241,7 +248,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response stopMeeting(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
-        .entity(meetingService.stopMeeting(currentUser, meetingId))
+        .entity(meetingMapper.ent2dto(meetingService.stopMeeting(currentUser, meetingId)))
         .build();
   }
 

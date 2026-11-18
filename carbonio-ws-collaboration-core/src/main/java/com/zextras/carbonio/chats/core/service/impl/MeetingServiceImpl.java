@@ -19,13 +19,13 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -33,10 +33,7 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
-import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
@@ -52,7 +49,6 @@ import java.util.stream.Stream;
 public class MeetingServiceImpl implements MeetingService {
 
   private final MeetingRepository meetingRepository;
-  private final MeetingMapper meetingMapper;
   protected final RoomService roomService;
   protected final MembersService membersService;
   private final ParticipantService participantService;
@@ -65,7 +61,6 @@ public class MeetingServiceImpl implements MeetingService {
   @Inject
   public MeetingServiceImpl(
       MeetingRepository meetingRepository,
-      MeetingMapper meetingMapper,
       RoomService roomService,
       MembersService membersService,
       ParticipantService participantService,
@@ -75,7 +70,6 @@ public class MeetingServiceImpl implements MeetingService {
       ObjectMapper objectMapper,
       Clock clock) {
     this.meetingRepository = meetingRepository;
-    this.meetingMapper = meetingMapper;
     this.roomService = roomService;
     this.membersService = membersService;
     this.participantService = participantService;
@@ -87,7 +81,7 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
-  public MeetingDto createMeeting(
+  public Meeting createMeeting(
       UserPrincipal user,
       String name,
       MeetingTypeDto meetingTypeDto,
@@ -106,7 +100,7 @@ public class MeetingServiceImpl implements MeetingService {
             .createdAt(meeting.getCreatedAt())
             .type(EventType.MEETING_CREATED));
 
-    return meetingMapper.ent2dto(meeting);
+    return meeting;
   }
 
   private void validateRoomMeeting(String roomId, String meetingId) {
@@ -127,22 +121,23 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
-  public MeetingDto startMeeting(UserPrincipal user, UUID meetingId) {
+  public Meeting startMeeting(UserPrincipal user, UUID meetingId) {
     Meeting meeting = validateMeeting(meetingId);
-    RoomDto room = roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user);
+    Room room =
+        roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), user, false);
     if (Boolean.TRUE.equals(meeting.getActive())) {
-      return meetingMapper.ent2dto(meeting);
+      return meeting;
     }
 
     Meeting updatedMeeting = activateMeeting(meeting);
 
     notifyMeetingStarted(user, room, updatedMeeting);
 
-    return meetingMapper.ent2dto(updatedMeeting);
+    return updatedMeeting;
   }
 
   @Override
-  public MeetingDto stopMeeting(UserPrincipal user, UUID meetingId) {
+  public Meeting stopMeeting(UserPrincipal user, UUID meetingId) {
     Meeting meeting = validateMeeting(meetingId);
     OffsetDateTime startedAt = meeting.getStartedAt();
 
@@ -154,7 +149,7 @@ public class MeetingServiceImpl implements MeetingService {
         .ifPresent(
             room -> {
               Optional<EndedLine> endedLine = Optional.empty();
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && startedAt != null) {
+              if (RoomType.ONE_TO_ONE.equals(room.getType()) && startedAt != null) {
                 endedLine =
                     insertMeetingEndedEvent(
                         room.getId(), user.getId(), updatedMeeting.getId(), startedAt);
@@ -163,7 +158,7 @@ public class MeetingServiceImpl implements MeetingService {
               cleanUpRoomMembers(room);
             });
 
-    return meetingMapper.ent2dto(updatedMeeting);
+    return updatedMeeting;
   }
 
   @Override
@@ -174,7 +169,7 @@ public class MeetingServiceImpl implements MeetingService {
             UUID.fromString(meeting.getRoomId()), currentUser, false);
 
     Optional<SystemEvent> systemEvent = Optional.empty();
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
       systemEvent =
           insertMeetingSystemEvent(
               meeting.getRoomId(),
@@ -201,7 +196,7 @@ public class MeetingServiceImpl implements MeetingService {
             .type(EventType.MEETING_DECLINED));
     afterMeetingDeclined(currentUser, room);
 
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && meeting.getParticipants().size() == 1) {
+    if (RoomType.ONE_TO_ONE.equals(room.getType()) && meeting.getParticipants().size() == 1) {
       Meeting updatedMeeting = deactivateMeeting(currentUser.getId(), meeting);
       notifyMeetingStopped(
           updatedMeeting, room, List.of(), currentUser.getUUID(), Optional.empty());
@@ -211,7 +206,7 @@ public class MeetingServiceImpl implements MeetingService {
   private void cleanUpRoomMembers(Room room) {
     List<Subscription> subscriptions = room.getSubscriptions();
 
-    if (RoomTypeDto.TEMPORARY.equals(room.getType())) {
+    if (RoomType.TEMPORARY.equals(room.getType())) {
       subscriptions.stream()
           .filter(member -> !member.isOwner())
           .forEach(member -> membersService.deleteRoomMember(member.getUserId(), room));
@@ -241,12 +236,12 @@ public class MeetingServiceImpl implements MeetingService {
     return meetingRepository.update(meeting);
   }
 
-  private void notifyMeetingStarted(UserPrincipal user, RoomDto room, Meeting updatedMeeting) {
+  private void notifyMeetingStarted(UserPrincipal user, Room room, Meeting updatedMeeting) {
     List<String> allReceivers =
-        room.getMembers().stream().map(m -> m.getUserId().toString()).toList();
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList();
 
     Optional<SystemEvent> systemEvent = Optional.empty();
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (RoomType.ONE_TO_ONE.equals(room.getType())) {
       systemEvent =
           insertMeetingSystemEvent(
               updatedMeeting.getRoomId(),
@@ -348,15 +343,15 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
-  public List<MeetingDto> getMeetings(UserPrincipal currentUser) {
+  public List<Meeting> getMeetings(UserPrincipal currentUser) {
     List<String> roomsIds =
         roomService.getRoomsIds(currentUser).stream().map(UUID::toString).toList();
     List<Meeting> meetings = meetingRepository.getByRoomsIds(roomsIds);
-    return meetingMapper.ent2dto(meetings);
+    return meetings;
   }
 
   @Override
-  public MeetingDto getMeetingById(UUID meetingId, UserPrincipal currentUser) {
+  public Meeting getMeetingById(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
     if (membersService
         .getSubscription(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
@@ -366,7 +361,7 @@ public class MeetingServiceImpl implements MeetingService {
               "User '%s' hasn't access to the meeting with id '%s'",
               currentUser.getId(), meetingId));
     }
-    return meetingMapper.ent2dto(meeting);
+    return meeting;
   }
 
   @Override
@@ -380,14 +375,13 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
-  public MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
+  public Meeting getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
     roomService.getRoomAndValidateUser(roomId, currentUser, false);
-    return meetingMapper.ent2dto(
-        getMeetingEntityByRoomId(roomId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting of the room with id '%s' doesn't exist", roomId))));
+    return getMeetingEntityByRoomId(roomId)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    String.format("Meeting of the room with id '%s' doesn't exist", roomId)));
   }
 
   @Override
@@ -422,7 +416,7 @@ public class MeetingServiceImpl implements MeetingService {
     return List.of();
   }
 
-  protected void afterMeetingStarted(UserPrincipal user, RoomDto room, List<String> receivers) {}
+  protected void afterMeetingStarted(UserPrincipal user, Room room, List<String> receivers) {}
 
   protected void afterMeetingDeclined(UserPrincipal currentUser, Room room) {}
 

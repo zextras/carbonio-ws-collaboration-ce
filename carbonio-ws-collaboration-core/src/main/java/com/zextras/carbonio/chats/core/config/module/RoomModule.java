@@ -7,10 +7,6 @@ package com.zextras.carbonio.chats.core.config.module;
 import com.google.inject.AbstractModule;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
-import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
-import com.zextras.carbonio.chats.core.mapper.impl.RoomMapperImpl;
-import com.zextras.carbonio.chats.core.mapper.impl.SubscriptionMapperImpl;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
@@ -22,6 +18,10 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.RoomMapperImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.SubscriptionMapperImpl;
 
 public class RoomModule extends AbstractModule {
 

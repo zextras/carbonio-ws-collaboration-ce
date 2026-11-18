@@ -16,12 +16,13 @@ import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -50,6 +51,7 @@ public class InboxApiServiceImpl implements InboxApiService {
   private final ReadMarkerRepository readMarkerRepository;
   private final WsPresenceRepository wsPresenceRepository;
   private final TimelineItemMapper timelineItemMapper;
+  private final RoomMapper roomMapper;
 
   @Inject
   public InboxApiServiceImpl(
@@ -58,13 +60,15 @@ public class InboxApiServiceImpl implements InboxApiService {
       FileMetadataRepository fileMetadataRepository,
       ReadMarkerRepository readMarkerRepository,
       WsPresenceRepository wsPresenceRepository,
-      TimelineItemMapper timelineItemMapper) {
+      TimelineItemMapper timelineItemMapper,
+      RoomMapper roomMapper) {
     this.chatMessageService = chatMessageService;
     this.roomService = roomService;
     this.fileMetadataRepository = fileMetadataRepository;
     this.readMarkerRepository = readMarkerRepository;
     this.wsPresenceRepository = wsPresenceRepository;
     this.timelineItemMapper = timelineItemMapper;
+    this.roomMapper = roomMapper;
   }
 
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
@@ -79,8 +83,12 @@ public class InboxApiServiceImpl implements InboxApiService {
 
     // 1. All rooms with subscriptions (1 query)
     List<RoomDto> rooms =
-        roomService.getRooms(
-            List.of(RoomExtraFieldDto.MEMBERS, RoomExtraFieldDto.SETTINGS), currentUser);
+        roomMapper.ent2dto(
+            roomService.getRooms(
+                List.of(RoomExtraFieldDto.MEMBERS, RoomExtraFieldDto.SETTINGS), currentUser),
+            roomService.getRoomsUserSettings(currentUser),
+            true,
+            true);
     List<String> roomIds = rooms.stream().map(r -> r.getId().toString()).toList();
 
     // 2. Last item + last message per room (independent of room size)

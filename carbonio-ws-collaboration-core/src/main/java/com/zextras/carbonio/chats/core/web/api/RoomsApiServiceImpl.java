@@ -22,9 +22,14 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
+import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
+import com.zextras.carbonio.chats.core.data.model.AttachmentsPage;
+import com.zextras.carbonio.chats.core.data.model.BulkDeleteResult;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.InsertedMember;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.TimelinePage;
@@ -32,6 +37,7 @@ import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
@@ -45,7 +51,6 @@ import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
-import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.Removed;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetKind;
@@ -63,10 +68,17 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.MessageSentListener;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
+import com.zextras.carbonio.chats.core.web.api.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.MeetingMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentOrderDto;
 import com.zextras.carbonio.chats.model.AttachmentSortByDto;
+import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsRequestDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.DeletedInfoDto;
 import com.zextras.carbonio.chats.model.EditedInfoDto;
@@ -75,6 +87,7 @@ import com.zextras.carbonio.chats.model.ForwardMessagesRequestDto;
 import com.zextras.carbonio.chats.model.ForwardedInfoDto;
 import com.zextras.carbonio.chats.model.MarkReadRequestDto;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.MessageSearchResultDto;
@@ -82,7 +95,6 @@ import com.zextras.carbonio.chats.model.MimeTypeCategoryDto;
 import com.zextras.carbonio.chats.model.PinnedMessageDto;
 import com.zextras.carbonio.chats.model.ReadMarkerDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
-import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
@@ -139,6 +151,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   private final ChatExportService chatExportService;
   private final TimelineItemMapper timelineItemMapper;
   private final MessageSendDedupRepository messageSendDedupRepository;
+  private final RoomMapper roomMapper;
+  private final SubscriptionMapper subscriptionMapper;
+  private final AttachmentMapper attachmentMapper;
+  private final MeetingMapper meetingMapper;
 
   @Inject
   public RoomsApiServiceImpl(
@@ -159,7 +175,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       Set<MessageSentListener> messageSentListeners,
       ChatExportService chatExportService,
       TimelineItemMapper timelineItemMapper,
-      MessageSendDedupRepository messageSendDedupRepository) {
+      MessageSendDedupRepository messageSendDedupRepository,
+      RoomMapper roomMapper,
+      SubscriptionMapper subscriptionMapper,
+      AttachmentMapper attachmentMapper,
+      MeetingMapper meetingMapper) {
     this.roomService = roomService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
@@ -178,6 +198,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     this.chatExportService = chatExportService;
     this.timelineItemMapper = timelineItemMapper;
     this.messageSendDedupRepository = messageSendDedupRepository;
+    this.roomMapper = roomMapper;
+    this.subscriptionMapper = subscriptionMapper;
+    this.attachmentMapper = attachmentMapper;
+    this.meetingMapper = meetingMapper;
   }
 
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
@@ -189,8 +213,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response listRooms(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    boolean includeMembers = extraFields != null && extraFields.contains(RoomExtraFieldDto.MEMBERS);
+    boolean includeSettings =
+        extraFields != null && extraFields.contains(RoomExtraFieldDto.SETTINGS);
+    List<Room> rooms = roomService.getRooms(extraFields, currentUser);
+    Map<String, RoomUserSettings> settingsByRoomId =
+        includeSettings ? roomService.getRoomsUserSettings(currentUser) : null;
     return Response.status(Status.OK)
-        .entity(roomService.getRooms(extraFields, currentUser))
+        .entity(roomMapper.ent2dto(rooms, settingsByRoomId, includeMembers, includeSettings))
         .build();
   }
 
@@ -198,7 +228,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response getRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    return Response.status(Status.OK).entity(roomService.getRoomById(roomId, currentUser)).build();
+    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    RoomUserSettings settings = roomService.getRoomUserSettings(roomId, currentUser).orElse(null);
+    return Response.status(Status.OK)
+        .entity(roomMapper.ent2dto(room, settings, true, true))
+        .build();
   }
 
   @Override
@@ -243,8 +277,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         return Response.status(Status.BAD_REQUEST).build();
       }
     }
+    Room createdRoom = roomService.createRoom(insertRoomRequestDto, currentUser);
+    RoomUserSettings createdRoomSettings =
+        createdRoom.getUserSettings().stream()
+            .filter(settings -> settings.getUserId().equals(currentUser.getId()))
+            .findAny()
+            .orElse(null);
     return Response.status(Status.CREATED)
-        .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
+        .entity(roomMapper.ent2dto(createdRoom, createdRoomSettings, true, true))
         .build();
   }
 
@@ -255,10 +295,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.FORBIDDEN).build();
               } else {
                 roomService.deleteRoom(roomId, currentUser);
@@ -276,20 +317,26 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
-              if (RoomTypeDto.GROUP.equals(room.get().getType())) {
+              if (RoomType.GROUP.equals(room.get().getType())) {
                 if (updateRoomRequestDto.getName() == null
                     && updateRoomRequestDto.getDescription() == null) {
                   return Response.status(Status.BAD_REQUEST).build();
                 }
               }
               return Response.status(Status.OK)
-                  .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
+                  .entity(
+                      roomMapper.ent2dto(
+                          roomService.updateRoom(roomId, updateRoomRequestDto, currentUser),
+                          null,
+                          false,
+                          false))
                   .build();
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
@@ -302,14 +349,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
               return Response.status(Status.OK)
-                  .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
+                  .entity(
+                      subscriptionMapper.ent2memberDto(
+                          membersService.updateRoomOwners(roomId, memberDto, currentUser)))
                   .build();
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
@@ -425,7 +475,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response listRoomMembers(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
-        .entity(membersService.getRoomMembers(roomId, currentUser))
+        .entity(
+            subscriptionMapper.ent2memberDto(membersService.getRoomMembers(roomId, currentUser)))
         .build();
   }
 
@@ -442,23 +493,29 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (memberToInsertDto.isEmpty()) {
       return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
-              if (RoomTypeDto.GROUP.equals(room.get().getType())) {
+              if (RoomType.GROUP.equals(room.get().getType())) {
                 int maxMembers =
                     currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
                 long newMembers =
                     memberToInsertDto.stream().map(MemberToInsertDto::getUserId).distinct().count();
-                if ((r.getMembers().size() + newMembers) > maxMembers) {
+                if ((r.getSubscriptions().size() + newMembers) > maxMembers) {
                   return Response.status(Status.BAD_REQUEST).build();
                 }
               }
               return Response.status(Status.CREATED)
-                  .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
+                  .entity(
+                      membersService
+                          .insertRoomMembers(roomId, memberToInsertDto, currentUser)
+                          .stream()
+                          .map(this::toMemberInsertedDto)
+                          .toList())
                   .build();
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
@@ -471,10 +528,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
               membersService.deleteRoomMember(roomId, userId, currentUser);
@@ -490,10 +548,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
               membersService.promoteMemberToOwner(roomId, userId, currentUser);
@@ -509,10 +568,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    Optional<Room> room =
+        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
     return room.map(
             r -> {
-              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+              if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
               membersService.demoteOwnerToMember(roomId, userId, currentUser);
@@ -553,10 +613,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             .maxSize(maxSize)
             .sortBy(sortBy != null ? sortBy.toString() : null)
             .order(order != null ? order.toString() : null);
+    AttachmentsPage page =
+        attachmentService.getAttachmentInfoByRoomId(
+            roomId, limit, cursor, attachmentFilter, currentUser);
     return Response.status(Status.OK)
         .entity(
-            attachmentService.getAttachmentInfoByRoomId(
-                roomId, limit, cursor, attachmentFilter, currentUser))
+            AttachmentsPaginationDto.create()
+                .total(page.total())
+                .attachments(attachmentMapper.ent2dto(page.attachments()))
+                .cursor(page.cursor()))
         .build();
   }
 
@@ -567,10 +632,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       BulkDeleteAttachmentsRequestDto bulkDeleteAttachmentsRequestDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    BulkDeleteResult result =
+        attachmentService.bulkDeleteRoomAttachments(
+            roomId, bulkDeleteAttachmentsRequestDto.getAttachmentIds(), currentUser);
     return Response.ok()
         .entity(
-            attachmentService.bulkDeleteRoomAttachments(
-                roomId, bulkDeleteAttachmentsRequestDto.getAttachmentIds(), currentUser))
+            BulkDeleteAttachmentsResponseDto.create()
+                .successIds(result.successIds())
+                .failedIds(result.failedIds()))
         .build();
   }
 
@@ -676,7 +745,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       }
     }
 
-    MessageDto created = null;
+    Message created = null;
     try {
       created =
           attachmentService.addAttachment(
@@ -702,8 +771,26 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       }
     }
     notifyMessageSent(
-        currentUser, roomId, created.getId().toString(), created.getText(), created.getCreatedAt());
-    return Response.status(Status.CREATED).entity(created).build();
+        currentUser, roomId, created.getId(), created.getText(), created.getCreatedAt());
+    return Response.status(Status.CREATED).entity(toMessageDto(created)).build();
+  }
+
+  private MemberInsertedDto toMemberInsertedDto(InsertedMember member) {
+    return MemberInsertedDto.create()
+        .userId(member.userId())
+        .owner(member.owner())
+        .clearedAt(member.clearedAt());
+  }
+
+  private static MessageDto toMessageDto(Message message) {
+    return MessageDto.create()
+        .id(UUID.fromString(message.getId()))
+        .roomId(UUID.fromString(message.getRoomId()))
+        .senderId(UUID.fromString(message.getSenderId()))
+        .text(message.getText() != null ? message.getText() : "")
+        .replyToId(message.getReplyToId() != null ? UUID.fromString(message.getReplyToId()) : null)
+        .attachmentId(UUID.fromString(message.getAttachmentId()))
+        .createdAt(message.getCreatedAt());
   }
 
   private InputPart getFormPart(Map<String, List<InputPart>> formParts, String fieldName) {
@@ -739,7 +826,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    return Response.ok().entity(meetingService.getMeetingByRoomId(roomId, currentUser)).build();
+    return Response.ok()
+        .entity(meetingMapper.ent2dto(meetingService.getMeetingByRoomId(roomId, currentUser)))
+        .build();
   }
 
   @Override

@@ -37,30 +37,27 @@ import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
+import com.zextras.carbonio.chats.core.data.model.AttachmentsPage;
+import com.zextras.carbonio.chats.core.data.model.BulkDeleteResult;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
-import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
-import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.AttachmentDto;
-import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
-import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
-import com.zextras.carbonio.chats.model.MessageDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.Query;
@@ -96,7 +93,7 @@ public class AttachmentServiceImplTest {
   private final ObjectMapper objectMapper;
   private final PreviewClient previewClient;
 
-  public AttachmentServiceImplTest(AttachmentMapper attachmentMapper) {
+  public AttachmentServiceImplTest() {
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.storagesService = mock(StoragesService.class);
     this.roomService = mock(RoomService.class);
@@ -115,7 +112,6 @@ public class AttachmentServiceImplTest {
     this.attachmentService =
         new AttachmentServiceImpl(
             this.fileMetadataRepository,
-            attachmentMapper,
             this.storagesService,
             this.roomService,
             this.chatMessageService,
@@ -144,7 +140,7 @@ public class AttachmentServiceImplTest {
     room1 = Room.create();
     room1
         .id(roomId.toString())
-        .type(RoomTypeDto.GROUP)
+        .type(RoomType.GROUP)
         .name("room1")
         .description("Room one")
         .subscriptions(
@@ -155,7 +151,7 @@ public class AttachmentServiceImplTest {
     room2 = Room.create();
     room2
         .id(roomId.toString())
-        .type(RoomTypeDto.GROUP)
+        .type(RoomType.GROUP)
         .name("room2")
         .description("Room two")
         .subscriptions(
@@ -202,13 +198,13 @@ public class AttachmentServiceImplTest {
                       .createdAt(attachmentTimestamp.plusHours(1))
                       .updatedAt(attachmentTimestamp.plusHours(1))
                       .build()));
-      AttachmentsPaginationDto attachmentsPagination =
+      AttachmentsPage attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
-      assertEquals(2, attachmentsPagination.getAttachments().size());
-      assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
-      assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
-      assertNull(attachmentsPagination.getCursor());
+      assertEquals(2, attachmentsPagination.attachments().size());
+      assertEquals(file1Id.toString(), attachmentsPagination.attachments().get(0).getId());
+      assertEquals(file2Id.toString(), attachmentsPagination.attachments().get(1).getId());
+      assertNull(attachmentsPagination.cursor());
       verify(chatMessageService, times(1))
           .getVisibilityFloor(roomId.toString(), user1Id.toString());
       verifyNoInteractions(roomService);
@@ -239,11 +235,11 @@ public class AttachmentServiceImplTest {
               roomId.toString(), FileMetadataType.ATTACHMENT, null))
           .thenReturn(42L);
 
-      AttachmentsPaginationDto attachmentsPagination =
+      AttachmentsPage attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
-      assertEquals(42L, attachmentsPagination.getTotal().longValue());
-      assertEquals(1, attachmentsPagination.getAttachments().size());
+      assertEquals(42L, attachmentsPagination.total());
+      assertEquals(1, attachmentsPagination.attachments().size());
       verify(fileMetadataRepository, times(1))
           .countByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT, null);
     }
@@ -293,13 +289,13 @@ public class AttachmentServiceImplTest {
                       .createdAt(attachmentTimestamp)
                       .updatedAt(attachmentTimestamp)
                       .build()));
-      AttachmentsPaginationDto attachmentsPagination =
+      AttachmentsPage attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, null, currentUser);
 
-      assertEquals(2, attachmentsPagination.getAttachments().size());
-      assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
-      assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
-      assertNotNull(attachmentsPagination.getCursor());
+      assertEquals(2, attachmentsPagination.attachments().size());
+      assertEquals(file1Id.toString(), attachmentsPagination.attachments().get(0).getId());
+      assertEquals(file2Id.toString(), attachmentsPagination.attachments().get(1).getId());
+      assertNotNull(attachmentsPagination.cursor());
       String expectedCursor =
           Base64.getEncoder()
               .encodeToString(
@@ -310,7 +306,7 @@ public class AttachmentServiceImplTest {
                           null,
                           "created_at",
                           "desc")));
-      assertEquals(expectedCursor, attachmentsPagination.getCursor());
+      assertEquals(expectedCursor, attachmentsPagination.cursor());
       verify(chatMessageService, times(1))
           .getVisibilityFloor(roomId.toString(), user1Id.toString());
       verifyNoInteractions(roomService);
@@ -347,12 +343,12 @@ public class AttachmentServiceImplTest {
                       .updatedAt(attachmentTimestamp)
                       .build()));
 
-      AttachmentsPaginationDto attachmentsPagination =
+      AttachmentsPage attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 2, filter, null, currentUser);
 
-      assertEquals(1, attachmentsPagination.getAttachments().size());
-      assertEquals(file2Id, attachmentsPagination.getAttachments().get(0).getId());
-      assertNull(attachmentsPagination.getCursor());
+      assertEquals(1, attachmentsPagination.attachments().size());
+      assertEquals(file2Id.toString(), attachmentsPagination.attachments().get(0).getId());
+      assertNull(attachmentsPagination.cursor());
       verify(chatMessageService, times(1))
           .getVisibilityFloor(roomId.toString(), user1Id.toString());
       verifyNoInteractions(roomService);
@@ -421,12 +417,12 @@ public class AttachmentServiceImplTest {
               roomId.toString(), FileMetadataType.ATTACHMENT, 11, null, null))
           .thenReturn(List.of());
 
-      AttachmentsPaginationDto attachmentsPagination =
+      AttachmentsPage attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
       assertNotNull(attachmentsPagination);
-      assertEquals(0, attachmentsPagination.getAttachments().size());
-      assertNull(attachmentsPagination.getCursor());
+      assertEquals(0, attachmentsPagination.attachments().size());
+      assertNull(attachmentsPagination.cursor());
       verify(chatMessageService, times(1))
           .getVisibilityFloor(roomId.toString(), user1Id.toString());
       verifyNoInteractions(roomService);
@@ -622,11 +618,11 @@ public class AttachmentServiceImplTest {
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(metadata));
 
-      AttachmentDto attachmentInfo =
+      FileMetadata attachmentInfo =
           attachmentService.getAttachmentInfoById(attachmentUuid, currentUser);
 
       assertNotNull(attachmentInfo);
-      assertEquals(attachmentUuid, attachmentInfo.getId());
+      assertEquals(attachmentUuid.toString(), attachmentInfo.getId());
       verify(chatMessageService, times(1))
           .getVisibilityFloor(roomId.toString(), currentUser.getId());
       verifyNoMoreInteractions(roomService);
@@ -726,7 +722,7 @@ public class AttachmentServiceImplTest {
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class, Mockito.CALLS_REAL_METHODS)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
 
-        MessageDto created =
+        Message created =
             attachmentService.addAttachment(
                 roomId,
                 fileStream,
@@ -740,11 +736,11 @@ public class AttachmentServiceImplTest {
                 MESSAGE_ID,
                 currentUser);
 
-        assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
-        assertEquals(roomId, created.getRoomId());
-        assertEquals(user1Id, created.getSenderId());
+        assertEquals(MESSAGE_ID, created.getId());
+        assertEquals(roomId.toString(), created.getRoomId());
+        assertEquals(user1Id.toString(), created.getSenderId());
         assertEquals("description", created.getText());
-        assertEquals(attachmentUuid, created.getAttachmentId());
+        assertEquals(attachmentUuid.toString(), created.getAttachmentId());
         assertEquals(attachmentDate, created.getCreatedAt());
       }
 
@@ -866,7 +862,7 @@ public class AttachmentServiceImplTest {
                   new MessageWriteRepository.SendResult(
                       MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
 
-      MessageDto created =
+      Message created =
           attachmentService.addAttachment(
               roomId,
               mock(InputStream.class),
@@ -889,7 +885,7 @@ public class AttachmentServiceImplTest {
               isNull(),
               anyString());
       verify(broadcaster).broadcast(eq(roomId.toString()), any(), eq("t-1"));
-      assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
+      assertEquals(MESSAGE_ID, created.getId());
     }
   }
 
@@ -954,7 +950,7 @@ public class AttachmentServiceImplTest {
           .when(broadcaster)
           .broadcast(anyString(), any(), any());
 
-      MessageDto created =
+      Message created =
           assertDoesNotThrow(
               () ->
                   attachmentService.addAttachment(
@@ -970,7 +966,7 @@ public class AttachmentServiceImplTest {
                       MESSAGE_ID,
                       currentUser));
 
-      assertEquals(UUID.fromString(MESSAGE_ID), created.getId());
+      assertEquals(MESSAGE_ID, created.getId());
       verify(storagesService, never()).deleteFile(anyString(), anyString());
       verify(fileMetadataRepository, never()).delete(any(FileMetadata.class));
     }
@@ -1012,7 +1008,7 @@ public class AttachmentServiceImplTest {
   @DisplayName("Attachment message tests")
   class AttachmentMessageTests {
 
-    private MessageDto send(String replyId) {
+    private Message send(String replyId) {
       UserPrincipal sender = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndValidateUser(roomId, sender, false)).thenReturn(room1);
       return attachmentService.addAttachment(
@@ -1042,7 +1038,7 @@ public class AttachmentServiceImplTest {
     void savesTheMetadataBeforeTheMessageIsInsertedAndBroadcast() throws Exception {
       stubInsertOk();
 
-      MessageDto sent = send(null);
+      Message sent = send(null);
 
       InOrder order = inOrder(fileMetadataRepository, messageWriteRepository, broadcaster);
       ArgumentCaptor<FileMetadata> metadata = ArgumentCaptor.forClass(FileMetadata.class);
@@ -1052,8 +1048,8 @@ public class AttachmentServiceImplTest {
           .sendMessage(anyString(), anyString(), anyString(), anyString(), any(), anyString());
       order.verify(broadcaster).broadcast(anyString(), any(), any());
       assertEquals(roomId.toString(), metadata.getValue().getRoomId());
-      assertEquals(sent.getId().toString(), metadata.getValue().getMessageId());
-      assertEquals(sent.getAttachmentId().toString(), metadata.getValue().getId());
+      assertEquals(sent.getId(), metadata.getValue().getMessageId());
+      assertEquals(sent.getAttachmentId(), metadata.getValue().getId());
     }
 
     @Test
@@ -1381,7 +1377,7 @@ public class AttachmentServiceImplTest {
               List.of(file1Id.toString(), file2Id.toString()), user2Id.toString()))
           .thenReturn(List.of());
 
-      BulkDeleteAttachmentsResponseDto result =
+      BulkDeleteResult result =
           attachmentService.bulkDeleteRoomAttachments(
               roomId, List.of(file1Id, file2Id), currentUser);
 
@@ -1397,8 +1393,8 @@ public class AttachmentServiceImplTest {
           .deleteByIds(List.of(file1Id.toString(), file2Id.toString()));
       verifyNoMoreInteractions(roomService, fileMetadataRepository, storagesService);
       verify(previewClient, timeout(1000).times(2)).deleteVideoPreview(any());
-      assertEquals(List.of(file1Id, file2Id), result.getSuccessIds());
-      assertEquals(List.of(), result.getFailedIds());
+      assertEquals(List.of(file1Id, file2Id), result.successIds());
+      assertEquals(List.of(), result.failedIds());
     }
 
     @Test
@@ -1418,13 +1414,13 @@ public class AttachmentServiceImplTest {
               List.of(file1Id.toString(), file2Id.toString()), user2Id.toString()))
           .thenReturn(List.of(file2Id.toString()));
 
-      BulkDeleteAttachmentsResponseDto result =
+      BulkDeleteResult result =
           attachmentService.bulkDeleteRoomAttachments(
               roomId, List.of(file1Id, file2Id), currentUser);
 
       verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id.toString()));
-      assertEquals(List.of(file1Id), result.getSuccessIds());
-      assertEquals(List.of(file2Id), result.getFailedIds());
+      assertEquals(List.of(file1Id), result.successIds());
+      assertEquals(List.of(file2Id), result.failedIds());
     }
 
     @Test
@@ -1624,13 +1620,13 @@ public class AttachmentServiceImplTest {
               eq(roomId.toString()), eq(FileMetadataType.ATTACHMENT), any(AttachmentFilter.class)))
           .thenReturn(1L);
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, filter, currentUser);
 
-      assertEquals(1, result.getAttachments().size());
-      assertEquals(1L, result.getTotal());
-      assertEquals(user2Id, result.getAttachments().get(0).getUserId());
-      assertNull(result.getCursor());
+      assertEquals(1, result.attachments().size());
+      assertEquals(1L, result.total());
+      assertEquals(user2Id.toString(), result.attachments().get(0).getUserId());
+      assertNull(result.cursor());
     }
 
     @Test
@@ -1660,11 +1656,11 @@ public class AttachmentServiceImplTest {
                       .updatedAt(ts)
                       .build()));
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
 
-      assertEquals(1, result.getAttachments().size());
-      assertEquals("application/pdf", result.getAttachments().get(0).getMimeType());
+      assertEquals(1, result.attachments().size());
+      assertEquals("application/pdf", result.attachments().get(0).getMimeType());
     }
 
     @Test
@@ -1695,10 +1691,10 @@ public class AttachmentServiceImplTest {
                       .updatedAt(base)
                       .build()));
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
 
-      assertEquals(1, result.getAttachments().size());
+      assertEquals(1, result.attachments().size());
     }
 
     @Test
@@ -1728,11 +1724,11 @@ public class AttachmentServiceImplTest {
                       .updatedAt(ts)
                       .build()));
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
 
-      assertEquals(1, result.getAttachments().size());
-      assertEquals(2048L, result.getAttachments().get(0).getSize());
+      assertEquals(1, result.attachments().size());
+      assertEquals(2048L, result.attachments().get(0).getOriginalSize());
     }
 
     @Test
@@ -1786,17 +1782,17 @@ public class AttachmentServiceImplTest {
                       .updatedAt(ts)
                       .build()));
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, attachFilter, currentUser);
 
-      assertEquals(2, result.getAttachments().size());
-      assertNotNull(result.getCursor());
+      assertEquals(2, result.attachments().size());
+      assertNotNull(result.cursor());
       String expectedCursor =
           Base64.getEncoder()
               .encodeToString(
                   objectMapper.writeValueAsBytes(
                       PaginationFilter.create(file2Id.toString(), null, 2000L, "size", "desc")));
-      assertEquals(expectedCursor, result.getCursor());
+      assertEquals(expectedCursor, result.cursor());
     }
 
     @Test
@@ -1812,11 +1808,11 @@ public class AttachmentServiceImplTest {
               any(AttachmentFilter.class)))
           .thenReturn(List.of());
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
 
-      assertEquals(0, result.getAttachments().size());
-      assertNull(result.getCursor());
+      assertEquals(0, result.attachments().size());
+      assertNull(result.cursor());
     }
 
     @Test
@@ -1877,12 +1873,12 @@ public class AttachmentServiceImplTest {
               any(AttachmentFilter.class)))
           .thenReturn(List.of());
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(
               roomId, 10, cursor, attachFilter, currentUser);
 
-      assertEquals(0, result.getAttachments().size());
-      assertNull(result.getCursor());
+      assertEquals(0, result.attachments().size());
+      assertNull(result.cursor());
     }
 
     @Test
@@ -1936,17 +1932,17 @@ public class AttachmentServiceImplTest {
                       .updatedAt(ts)
                       .build()));
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, attachFilter, currentUser);
 
-      assertEquals(2, result.getAttachments().size());
-      assertNotNull(result.getCursor());
+      assertEquals(2, result.attachments().size());
+      assertNotNull(result.cursor());
       String expectedCursor =
           Base64.getEncoder()
               .encodeToString(
                   objectMapper.writeValueAsBytes(
                       PaginationFilter.create(file2Id.toString(), null, 1000L, "size", "asc")));
-      assertEquals(expectedCursor, result.getCursor());
+      assertEquals(expectedCursor, result.cursor());
     }
 
     @Test
@@ -1976,12 +1972,12 @@ public class AttachmentServiceImplTest {
                       .updatedAt(ts)
                       .build()));
 
-      AttachmentsPaginationDto result =
+      AttachmentsPage result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
 
-      assertEquals(1, result.getAttachments().size());
-      assertEquals("image/png", result.getAttachments().get(0).getMimeType());
-      assertNull(result.getCursor());
+      assertEquals(1, result.attachments().size());
+      assertEquals("image/png", result.attachments().get(0).getMimeType());
+      assertNull(result.cursor());
     }
   }
 

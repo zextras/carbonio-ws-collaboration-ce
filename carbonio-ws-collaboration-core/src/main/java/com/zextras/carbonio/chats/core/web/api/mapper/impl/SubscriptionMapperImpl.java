@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.mapper.impl;
+package com.zextras.carbonio.chats.core.web.api.mapper.impl;
 
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.model.MemberDto;
 import jakarta.annotation.Nullable;
 import java.util.List;

@@ -15,11 +15,12 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
+import com.zextras.carbonio.chats.core.data.model.InsertedMember;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -30,9 +31,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,7 +47,6 @@ public class MembersServiceImpl implements MembersService {
   private final SubscriptionRepository subscriptionRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
-  private final SubscriptionMapper subscriptionMapper;
   private final UserService userService;
   private final MeetingService meetingService;
   private final ParticipantService participantService;
@@ -61,7 +59,6 @@ public class MembersServiceImpl implements MembersService {
       SubscriptionRepository subscriptionRepository,
       RoomUserSettingsRepository roomUserSettingsRepository,
       EventDispatcher eventDispatcher,
-      SubscriptionMapper subscriptionMapper,
       UserService userService,
       MeetingService meetingService,
       ParticipantService participantService,
@@ -71,7 +68,6 @@ public class MembersServiceImpl implements MembersService {
     this.subscriptionRepository = subscriptionRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.eventDispatcher = eventDispatcher;
-    this.subscriptionMapper = subscriptionMapper;
     this.userService = userService;
     this.meetingService = meetingService;
     this.participantService = participantService;
@@ -80,7 +76,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<MemberInsertedDto> insertRoomMembers(
+  public List<InsertedMember> insertRoomMembers(
       UUID roomId, List<MemberToInsertDto> membersToInsert, UserPrincipal currentUser) {
     List<MemberToInsertDto> uniqueMembers = deduplicate(membersToInsert);
     List<UUID> memberIds = uniqueMembers.stream().map(MemberToInsertDto::getUserId).toList();
@@ -109,12 +105,12 @@ public class MembersServiceImpl implements MembersService {
   }
 
   private record AddedMember(
-      MemberToInsertDto member, MemberInsertedDto inserted, SystemEvent systemEvent) {}
+      MemberToInsertDto member, InsertedMember inserted, SystemEvent systemEvent) {}
 
   @Transactional
   private List<AddedMember> persistAddedMembers(
       Room room, List<MemberToInsertDto> members, UserPrincipal currentUser) {
-    List<MemberInsertedDto> inserted = new ArrayList<>();
+    List<InsertedMember> inserted = new ArrayList<>();
     for (MemberToInsertDto member : members) {
       inserted.add(processRoomSubscription(room, member));
     }
@@ -165,7 +161,7 @@ public class MembersServiceImpl implements MembersService {
             });
   }
 
-  private MemberInsertedDto processRoomSubscription(Room room, MemberToInsertDto member) {
+  private InsertedMember processRoomSubscription(Room room, MemberToInsertDto member) {
     Subscription subscription =
         subscriptionRepository.insert(
             Subscription.create()
@@ -176,14 +172,13 @@ public class MembersServiceImpl implements MembersService {
                 .temporary(member.isTemporary()));
     room.getSubscriptions().add(subscription);
 
-    MemberInsertedDto memberInsertedDto =
-        MemberInsertedDto.create().userId(member.getUserId()).owner(member.isOwner());
-
     if (member.isHistoryCleared()) {
-      return memberInsertedDto.clearedAt(
+      return new InsertedMember(
+          member.getUserId(),
+          member.isOwner(),
           roomUserSettingsRepository.setClearedAtNow(room.getId(), member.getUserId().toString()));
     }
-    return memberInsertedDto;
+    return new InsertedMember(member.getUserId(), member.isOwner(), null);
   }
 
   @Override
@@ -280,9 +275,8 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, false);
-    return subscriptionMapper.ent2memberDto(room.getSubscriptions());
+  public List<Subscription> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
+    return roomService.getRoomAndValidateUser(roomId, currentUser, false).getSubscriptions();
   }
 
   @Override
@@ -329,7 +323,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<MemberDto> updateRoomOwners(
+  public List<Subscription> updateRoomOwners(
       UUID roomId, List<MemberDto> members, UserPrincipal currentUser) {
     validateUserRequest(members, currentUser);
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
@@ -343,13 +337,7 @@ public class MembersServiceImpl implements MembersService {
     List<Subscription> subscriptionsUpdated =
         subscriptionRepository.updateAll(subscriptionsToUpdate);
     sendOwnersUpdates(roomId, subscriptionsToUpdate, room);
-    return subscriptionsUpdated.stream()
-        .map(
-            subscription ->
-                new MemberDto()
-                    .userId(UUID.fromString(subscription.getUserId()))
-                    .owner(subscription.isOwner()))
-        .toList();
+    return subscriptionsUpdated;
   }
 
   private void sendOwnersUpdates(UUID roomId, List<Subscription> subscriptionsToUpdate, Room room) {
@@ -389,7 +377,7 @@ public class MembersServiceImpl implements MembersService {
                     .userId(member.getUserId().toString())
                     .room(room)
                     // When we have a one-to-one, both members are owners
-                    .owner(member.isOwner() || RoomTypeDto.ONE_TO_ONE.equals(room.getType())))
+                    .owner(member.isOwner() || RoomType.ONE_TO_ONE.equals(room.getType())))
         .map(subscriptionRepository::insert)
         .toList();
   }

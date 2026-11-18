@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.web.api.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -24,10 +25,13 @@ import java.util.UUID;
 public class AttachmentsApiServiceImpl implements AttachmentsApiService {
 
   private final AttachmentService attachmentService;
+  private final AttachmentMapper attachmentMapper;
 
   @Inject
-  public AttachmentsApiServiceImpl(AttachmentService attachmentService) {
+  public AttachmentsApiServiceImpl(
+      AttachmentService attachmentService, AttachmentMapper attachmentMapper) {
     this.attachmentService = attachmentService;
+    this.attachmentMapper = attachmentMapper;
   }
 
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
@@ -55,7 +59,8 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   public Response getAttachmentInfo(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok()
-        .entity(attachmentService.getAttachmentInfoById(fileId, currentUser))
+        .entity(
+            attachmentMapper.ent2dto(attachmentService.getAttachmentInfoById(fileId, currentUser)))
         .build();
   }
 

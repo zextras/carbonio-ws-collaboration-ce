@@ -11,11 +11,11 @@ import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -96,7 +96,7 @@ class MessageExportRepositoryIT {
     Room room = Room.create();
     room.id(roomId)
         .name("export-test-room")
-        .type(RoomTypeDto.GROUP)
+        .type(RoomType.GROUP)
         .subscriptions(
             List.of(
                 Subscription.create()

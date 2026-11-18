@@ -13,6 +13,8 @@ import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
+import com.zextras.carbonio.chats.core.data.model.AttachmentsPage;
+import com.zextras.carbonio.chats.core.data.model.BulkDeleteResult;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
@@ -25,19 +27,14 @@ import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
-import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.AttachmentDto;
-import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
-import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
-import com.zextras.carbonio.chats.model.MessageDto;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.QueryBuilder;
@@ -60,7 +57,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   private static final String SERVICE_TYPE_CHATS = "chats";
 
   private final FileMetadataRepository fileMetadataRepository;
-  private final AttachmentMapper attachmentMapper;
   private final StoragesService storagesService;
   private final RoomService roomService;
   private final ChatMessageService chatMessageService;
@@ -75,7 +71,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Inject
   public AttachmentServiceImpl(
       FileMetadataRepository fileMetadataRepository,
-      AttachmentMapper attachmentMapper,
       StoragesService storagesService,
       RoomService roomService,
       ChatMessageService chatMessageService,
@@ -87,7 +82,6 @@ public class AttachmentServiceImpl implements AttachmentService {
       PreviewClient previewClient,
       AttachmentAccessValidator attachmentAccessValidator) {
     this.fileMetadataRepository = fileMetadataRepository;
-    this.attachmentMapper = attachmentMapper;
     this.storagesService = storagesService;
     this.roomService = roomService;
     this.chatMessageService = chatMessageService;
@@ -113,7 +107,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  public AttachmentsPaginationDto getAttachmentInfoByRoomId(
+  public AttachmentsPage getAttachmentInfoByRoomId(
       UUID roomId,
       Integer limit,
       @Nullable String cursor,
@@ -155,11 +149,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     long total =
         fileMetadataRepository.countByRoomIdAndType(
             roomId.toString(), FileMetadataType.ATTACHMENT, attachmentFilter);
-    return AttachmentsPaginationDto.create()
-        .total(total)
-        .attachments(
-            attachmentMapper.ent2dto(metadataList.subList(0, min(limit, metadataList.size()))))
-        .cursor(createNextCursor(metadataList, limit, attachmentFilter).orElse(null));
+    return new AttachmentsPage(
+        total,
+        metadataList.subList(0, min(limit, metadataList.size())),
+        createNextCursor(metadataList, limit, attachmentFilter).orElse(null));
   }
 
   private Optional<String> createNextCursor(
@@ -185,18 +178,18 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  public AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
+  public FileMetadata getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata =
         fileMetadataRepository
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
     attachmentAccessValidator.validate(metadata, currentUser);
-    return attachmentMapper.ent2dto(metadata);
+    return metadata;
   }
 
   @Override
-  public MessageDto addAttachment(
+  public Message addAttachment(
       UUID roomId,
       InputStream file,
       String mimeType,
@@ -235,14 +228,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       }
       throw e;
     }
-    return MessageDto.create()
-        .id(UUID.fromString(message.getId()))
-        .roomId(UUID.fromString(message.getRoomId()))
-        .senderId(UUID.fromString(message.getSenderId()))
-        .text(message.getText() != null ? message.getText() : "")
-        .replyToId(message.getReplyToId() != null ? UUID.fromString(message.getReplyToId()) : null)
-        .attachmentId(fileId)
-        .createdAt(message.getCreatedAt());
+    return message;
   }
 
   @Override
@@ -318,7 +304,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  public BulkDeleteAttachmentsResponseDto bulkDeleteRoomAttachments(
+  public BulkDeleteResult bulkDeleteRoomAttachments(
       UUID roomId, List<UUID> fileIds, UserPrincipal currentUser) {
     roomService.getRoomAndValidateUser(roomId, currentUser, false);
     List<String> fileIdStrings = fileIds.stream().map(UUID::toString).collect(Collectors.toList());
@@ -346,9 +332,9 @@ public class AttachmentServiceImpl implements AttachmentService {
     for (String id : successIds) {
       deleteVideoPreviewSilently(id, currentUser.getId());
     }
-    return BulkDeleteAttachmentsResponseDto.create()
-        .successIds(successIds.stream().map(UUID::fromString).toList())
-        .failedIds(failedIds.stream().map(UUID::fromString).toList());
+    return new BulkDeleteResult(
+        successIds.stream().map(UUID::fromString).toList(),
+        failedIds.stream().map(UUID::fromString).toList());
   }
 
   @Override

@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
@@ -3837,7 +3838,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3906,7 +3907,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3929,7 +3930,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(

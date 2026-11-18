@@ -6,9 +6,9 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.model.InsertedMember;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import java.util.List;
 import java.util.Optional;
@@ -25,9 +25,9 @@ public interface MembersService {
    * @param roomId room identifier {@link UUID }
    * @param memberToInsertDto members to add or invite {@link MemberDto }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The member added or invited {@link MemberDto }
+   * @return The members added, each with the instant the history was cleared for it, if any
    */
-  List<MemberInsertedDto> insertRoomMembers(
+  List<InsertedMember> insertRoomMembers(
       UUID roomId, List<MemberToInsertDto> memberToInsertDto, UserPrincipal currentUser);
 
   /**
@@ -65,9 +65,9 @@ public interface MembersService {
    *
    * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The room members list {@link MemberDto }
+   * @return The room members subscriptions
    */
-  List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser);
+  List<Subscription> getRoomMembers(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Promotes a member as room owner
@@ -93,9 +93,10 @@ public interface MembersService {
    * @param roomId room identifier {@link UUID }
    * @param members members to update {@link MemberDto }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The member updated {@link MemberDto }
+   * @return The updated subscriptions
    */
-  List<MemberDto> updateRoomOwners(UUID roomId, List<MemberDto> members, UserPrincipal currentUser);
+  List<Subscription> updateRoomOwners(
+      UUID roomId, List<MemberDto> members, UserPrincipal currentUser);
 
   /**
    * Gets the subscription data of the requested room by user identifier

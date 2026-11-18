@@ -36,6 +36,7 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.*;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
@@ -53,7 +54,6 @@ import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Instant;
@@ -173,7 +173,7 @@ class ParticipantServiceImplTest {
     roomId = UUID.randomUUID();
     room = Room.create();
     room.id(roomId.toString())
-        .type(RoomTypeDto.GROUP)
+        .type(RoomType.GROUP)
         .name("room1")
         .description("Room one")
         .subscriptions(
@@ -186,7 +186,7 @@ class ParticipantServiceImplTest {
     scheduledRoom = Room.create();
     scheduledRoom
         .id(scheduledRoomId.toString())
-        .type(RoomTypeDto.TEMPORARY)
+        .type(RoomType.TEMPORARY)
         .name("room1")
         .description("Room one")
         .subscriptions(List.of(Subscription.create(scheduledRoom, user1Id.toString()).owner(true)));
@@ -906,7 +906,7 @@ class ParticipantServiceImplTest {
       Room oneToOneRoom = Room.create();
       oneToOneRoom
           .id(roomId.toString())
-          .type(RoomTypeDto.ONE_TO_ONE)
+          .type(RoomType.ONE_TO_ONE)
           .subscriptions(
               List.of(
                   Subscription.create(oneToOneRoom, user1Id.toString()).owner(true),

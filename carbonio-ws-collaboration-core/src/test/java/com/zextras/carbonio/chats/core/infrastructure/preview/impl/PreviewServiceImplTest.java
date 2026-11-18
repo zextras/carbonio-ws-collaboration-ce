@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.PreviewException;
 import com.zextras.carbonio.chats.core.exception.VideoPreviewFailedException;
@@ -39,7 +40,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.preview.sdk.PreviewResponse;
 import com.zextras.carbonio.preview.sdk.Query;
@@ -94,7 +94,7 @@ class PreviewServiceImplTest {
     room1 = Room.create();
     room1
         .id(UUID.randomUUID().toString())
-        .type(RoomTypeDto.GROUP)
+        .type(RoomType.GROUP)
         .name("room1")
         .description("Room one")
         .subscriptions(

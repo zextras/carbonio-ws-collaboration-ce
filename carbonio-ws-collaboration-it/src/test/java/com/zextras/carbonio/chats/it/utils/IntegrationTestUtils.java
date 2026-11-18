@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -90,7 +91,7 @@ public class IntegrationTestUtils {
     room.id(id.toString())
         .name(name)
         .description(description)
-        .type(type)
+        .type(RoomType.valueOf(type.name()))
         .subscriptions(
             usersIds.stream()
                 .map(
@@ -123,7 +124,11 @@ public class IntegrationTestUtils {
 
   public Room generateAndSaveRoom(UUID roomId, RoomTypeDto type, List<RoomMemberField> members) {
     return generateAndSaveRoom(
-        Room.create().id(roomId.toString()).name("name").description("description").type(type),
+        Room.create()
+            .id(roomId.toString())
+            .name("name")
+            .description("description")
+            .type(RoomType.valueOf(type.name())),
         members);
   }
 

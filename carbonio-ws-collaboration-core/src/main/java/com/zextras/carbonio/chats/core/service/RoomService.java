@@ -6,18 +6,19 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
-import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import jakarta.annotation.Nullable;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,8 +28,7 @@ public interface RoomService {
    * Retrieves rooms identifiers {@link UUID} {@link List} of every room the user has access to
    *
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return identifier {@link UUID} {@link List} of every room that the user has access to {@link
-   *     RoomDto }
+   * @return identifier {@link UUID} {@link List} of every room that the user has access to
    */
   List<UUID> getRoomsIds(UserPrincipal currentUser);
 
@@ -59,9 +59,9 @@ public interface RoomService {
    *
    * @param insertRoomRequestDto room to create {@link RoomCreationFieldsDto }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The newly created room {@link RoomDto }
+   * @return The newly created room {@link Room }
    */
-  RoomDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
+  Room createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
 
   /**
    * Deletes the specified room
@@ -80,22 +80,30 @@ public interface RoomService {
   void deleteRoom(Room room, UserPrincipal currentUser);
 
   /**
-   * Retrieves the requested room
+   * Retrieves the settings of the user for the requested room, without checking membership
    *
    * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return Requested room {@link RoomDto }
+   * @return the settings of the user, empty if the user never changed them
    */
-  RoomDto getRoomById(UUID roomId, UserPrincipal currentUser);
+  Optional<RoomUserSettings> getRoomUserSettings(UUID roomId, UserPrincipal currentUser);
+
+  /**
+   * Retrieves the settings of the user for every room, indexed by room identifier
+   *
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return the settings of the user grouped by room identifier
+   */
+  Map<String, RoomUserSettings> getRoomsUserSettings(UserPrincipal currentUser);
 
   /**
    * Retrieves a list of every room the user has access to
    *
    * @param extraFields
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return List of every room that the user has access to {@link RoomDto }
+   * @return List of every room that the user has access to {@link Room }
    */
-  List<RoomDto> getRooms(@Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser);
+  List<Room> getRooms(@Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser);
 
   /**
    * Mutes notification for the specified room
@@ -128,9 +136,9 @@ public interface RoomService {
    * @param roomId room identifier {@link UUID }
    * @param updateRoomRequestDto room fields to update {@link RoomEditableFieldsDto }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return Updated room {@link RoomDto }
+   * @return Updated room {@link Room }
    */
-  RoomDto updateRoom(
+  Room updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser);
 
   /**

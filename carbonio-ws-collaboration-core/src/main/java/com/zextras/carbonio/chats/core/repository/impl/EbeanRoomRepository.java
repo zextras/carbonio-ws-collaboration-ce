@@ -7,8 +7,8 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.ebean.annotation.Transactional;
@@ -55,7 +55,7 @@ public class EbeanRoomRepository implements RoomRepository {
   public Optional<Room> getOneToOneByAllUserIds(String user1Id, String user2Id) {
     return db.find(Room.class)
         .where()
-        .eq("type", RoomTypeDto.ONE_TO_ONE)
+        .eq("type", RoomType.ONE_TO_ONE)
         .and()
         .raw(
             "id in ( "

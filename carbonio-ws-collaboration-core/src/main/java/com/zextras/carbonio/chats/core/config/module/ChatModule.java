@@ -11,7 +11,6 @@ import com.zextras.carbonio.chats.api.InboxApiService;
 import com.zextras.carbonio.chats.api.PresenceApi;
 import com.zextras.carbonio.chats.api.PresenceApiService;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
-import com.zextras.carbonio.chats.core.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.repository.MessagePinRepository;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
@@ -40,6 +39,7 @@ import com.zextras.carbonio.chats.core.service.impl.MessageSendDedupPurgeService
 import com.zextras.carbonio.chats.core.service.impl.SystemEventContentFactory;
 import com.zextras.carbonio.chats.core.web.api.InboxApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PresenceApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 
 public class ChatModule extends AbstractModule {
 

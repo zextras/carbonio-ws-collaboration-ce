@@ -29,13 +29,13 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -43,12 +43,7 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
-import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.ParticipantDto;
-import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Instant;
@@ -73,7 +68,7 @@ class MeetingServiceImplTest {
   private final ChatMessageService chatMessageService;
   private final Clock clock;
 
-  public MeetingServiceImplTest(MeetingMapper meetingMapper) {
+  public MeetingServiceImplTest() {
     this.meetingRepository = mock(MeetingRepository.class);
     this.roomService = mock(RoomService.class);
     this.membersService = mock(MembersService.class);
@@ -86,7 +81,6 @@ class MeetingServiceImplTest {
     this.meetingService =
         new MeetingServiceImpl(
             meetingRepository,
-            meetingMapper,
             roomService,
             membersService,
             participantService,
@@ -130,7 +124,7 @@ class MeetingServiceImplTest {
     room1 = Room.create();
     room1
         .id(room1Id.toString())
-        .type(RoomTypeDto.GROUP)
+        .type(RoomType.GROUP)
         .name("room1")
         .description("Room one")
         .subscriptions(
@@ -216,10 +210,10 @@ class MeetingServiceImplTest {
       when(roomService.getRoomAndValidateUser(room1Id, user, false)).thenReturn(room1);
       when(meetingRepository.insert(any(Meeting.class))).thenReturn(meeting);
 
-      MeetingDto createdMeeting =
+      Meeting createdMeeting =
           meetingService.createMeeting(user, meetingName, MeetingTypeDto.PERMANENT, room1Id, null);
-      assertEquals(createdMeeting.getId(), meetingId);
-      assertEquals(createdMeeting.getRoomId(), room1Id);
+      assertEquals(meetingId.toString(), createdMeeting.getId());
+      assertEquals(room1Id.toString(), createdMeeting.getRoomId());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               anyList(),
@@ -273,8 +267,10 @@ class MeetingServiceImplTest {
       String xmppMessage = "xmpp-message";
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.markStarted(meeting)).thenReturn(updatedMeeting);
-      when(roomService.getRoomById(roomId, currentUser))
-          .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
+          .thenReturn(
+              Room.create()
+                  .subscriptions(List.of(Subscription.create().userId(user1Id.toString()))));
       meetingService.startMeeting(currentUser, meetingId);
       verify(meetingRepository, times(1)).getById(meetingId.toString());
       verify(meetingRepository, times(1)).markStarted(meeting);
@@ -313,15 +309,16 @@ class MeetingServiceImplTest {
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.markStarted(meeting)).thenReturn(updatedMeeting);
-      when(roomService.getRoomById(roomId, currentUser))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenReturn(
-              RoomDto.create()
-                  .id(roomId)
-                  .type(RoomTypeDto.ONE_TO_ONE)
-                  .meetingId(meetingId)
-                  .members(
+              Room.create()
+                  .id(roomId.toString())
+                  .type(RoomType.ONE_TO_ONE)
+                  .meetingId(meetingId.toString())
+                  .subscriptions(
                       List.of(
-                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+                          Subscription.create().userId(user1Id.toString()),
+                          Subscription.create().userId(user2Id.toString()))));
       meetingService.startMeeting(currentUser, meetingId);
       verify(meetingRepository, times(1)).getById(meetingId.toString());
       verify(meetingRepository, times(1)).markStarted(meeting);
@@ -358,22 +355,23 @@ class MeetingServiceImplTest {
               .startedAt(startedAt)
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(roomService.getRoomById(roomId, currentUser))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenReturn(
-              RoomDto.create()
-                  .id(roomId)
-                  .type(RoomTypeDto.ONE_TO_ONE)
-                  .meetingId(meetingId)
-                  .members(
+              Room.create()
+                  .id(roomId.toString())
+                  .type(RoomType.ONE_TO_ONE)
+                  .meetingId(meetingId.toString())
+                  .subscriptions(
                       List.of(
-                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+                          Subscription.create().userId(user1Id.toString()),
+                          Subscription.create().userId(user2Id.toString()))));
 
-      MeetingDto meetingDto = meetingService.startMeeting(currentUser, meetingId);
+      Meeting meetingDto = meetingService.startMeeting(currentUser, meetingId);
 
-      assertEquals(meetingId, meetingDto.getId());
+      assertEquals(meetingId.toString(), meetingDto.getId());
       assertEquals(startedAt, meetingDto.getStartedAt());
       verify(meetingRepository, times(1)).getById(meetingId.toString());
-      verify(roomService, times(1)).getRoomById(roomId, currentUser);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(meetingRepository, roomService);
       verifyNoInteractions(
           videoServerService, participantService, eventDispatcher, chatMessageService);
@@ -395,15 +393,16 @@ class MeetingServiceImplTest {
               .startedAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(roomService.getRoomById(roomId, currentUser))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenReturn(
-              RoomDto.create()
-                  .id(roomId)
-                  .type(RoomTypeDto.ONE_TO_ONE)
-                  .meetingId(meetingId)
-                  .members(
+              Room.create()
+                  .id(roomId.toString())
+                  .type(RoomType.ONE_TO_ONE)
+                  .meetingId(meetingId.toString())
+                  .subscriptions(
                       List.of(
-                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+                          Subscription.create().userId(user1Id.toString()),
+                          Subscription.create().userId(user2Id.toString()))));
 
       spiedMeetingService.startMeeting(currentUser, meetingId);
 
@@ -424,7 +423,8 @@ class MeetingServiceImplTest {
               .id(meetingId.toString())
               .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
-      when(roomService.getRoomById(roomId, currentUser)).thenThrow(new ForbiddenException());
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
+          .thenThrow(new ForbiddenException());
 
       assertThrows(
           ForbiddenException.class, () -> meetingService.startMeeting(currentUser, meetingId));
@@ -488,7 +488,7 @@ class MeetingServiceImplTest {
           Room.create()
               .id(roomId.toString())
               .meetingId(meetingId.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .subscriptions(
                   List.of(
                       Subscription.create().userId(user1Id.toString()).owner(true),
@@ -535,7 +535,7 @@ class MeetingServiceImplTest {
           Room.create()
               .id(roomId.toString())
               .meetingId(meetingId.toString())
-              .type(RoomTypeDto.TEMPORARY)
+              .type(RoomType.TEMPORARY)
               .subscriptions(
                   List.of(
                       Subscription.create().userId(user1Id.toString()).owner(true),
@@ -586,7 +586,7 @@ class MeetingServiceImplTest {
           Room.create()
               .id(roomId.toString())
               .meetingId(meetingId.toString())
-              .type(RoomTypeDto.ONE_TO_ONE)
+              .type(RoomType.ONE_TO_ONE)
               .subscriptions(
                   List.of(
                       Subscription.create().userId(user1Id.toString()),
@@ -634,16 +634,16 @@ class MeetingServiceImplTest {
           Room.create()
               .id(roomId.toString())
               .meetingId(meetingId.toString())
-              .type(RoomTypeDto.ONE_TO_ONE)
+              .type(RoomType.ONE_TO_ONE)
               .subscriptions(
                   List.of(
                       Subscription.create().userId(user1Id.toString()),
                       Subscription.create().userId(user2Id.toString())));
       when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
 
-      MeetingDto meetingDto = meetingService.stopMeeting(currentUser, meetingId);
+      Meeting meetingDto = meetingService.stopMeeting(currentUser, meetingId);
 
-      assertEquals(meetingId, meetingDto.getId());
+      assertEquals(meetingId.toString(), meetingDto.getId());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -689,64 +689,64 @@ class MeetingServiceImplTest {
               List.of(room1Id.toString(), room2Id.toString(), room3Id.toString())))
           .thenReturn(List.of(meeting1, meeting2));
 
-      List<MeetingDto> meetings = meetingService.getMeetings(currentUser);
+      List<Meeting> meetings = meetingService.getMeetings(currentUser);
 
       assertNotNull(meetings);
       assertEquals(2, meetings.size());
-      MeetingDto meeting1Dto = meetings.get(0);
-      assertEquals(meeting1Id, meeting1Dto.getId());
-      assertEquals(room1Id, meeting1Dto.getRoomId());
+      Meeting meeting1Dto = meetings.get(0);
+      assertEquals(meeting1Id.toString(), meeting1Dto.getId());
+      assertEquals(room1Id.toString(), meeting1Dto.getRoomId());
       assertNotNull(meeting1Dto.getParticipants());
       assertEquals(3, meeting1Dto.getParticipants().size());
       assertEquals(
           1,
           meeting1Dto.getParticipants().stream()
-              .filter(p -> user1Id.equals(p.getUserId()))
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
               .count());
       assertEquals(
           1,
           meeting1Dto.getParticipants().stream()
-              .filter(p -> user2Id.equals(p.getUserId()))
+              .filter(p -> user2Id.toString().equals(p.getUserId()))
               .count());
       assertEquals(
           1,
           meeting1Dto.getParticipants().stream()
-              .filter(p -> user3Id.equals(p.getUserId()))
+              .filter(p -> user3Id.toString().equals(p.getUserId()))
               .count());
-      Optional<ParticipantDto> participant1 =
+      Optional<Participant> participant1 =
           meeting1Dto.getParticipants().stream()
-              .filter(p -> user1Id.equals(p.getUserId()))
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
               .findAny();
       assertTrue(participant1.isPresent());
-      assertEquals(user1Id, participant1.get().getUserId());
+      assertEquals(user1Id.toString(), participant1.get().getUserId());
       assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
-      assertTrue(participant1.get().isVideoStreamEnabled());
-      assertTrue(participant1.get().isAudioStreamEnabled());
+      assertTrue(participant1.get().hasVideoStreamOn());
+      assertTrue(participant1.get().hasAudioStreamOn());
 
-      MeetingDto meeting2Dto = meetings.get(1);
-      assertEquals(meeting2Id, meeting2Dto.getId());
-      assertEquals(room2Id, meeting2Dto.getRoomId());
+      Meeting meeting2Dto = meetings.get(1);
+      assertEquals(meeting2Id.toString(), meeting2Dto.getId());
+      assertEquals(room2Id.toString(), meeting2Dto.getRoomId());
       assertNotNull(meeting2Dto.getParticipants());
       assertEquals(2, meeting2Dto.getParticipants().size());
       assertEquals(
           1,
           meeting2Dto.getParticipants().stream()
-              .filter(p -> user1Id.equals(p.getUserId()))
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
               .count());
       assertEquals(
           1,
           meeting2Dto.getParticipants().stream()
-              .filter(p -> user3Id.equals(p.getUserId()))
+              .filter(p -> user3Id.toString().equals(p.getUserId()))
               .count());
       participant1 =
           meeting2Dto.getParticipants().stream()
-              .filter(p -> user1Id.equals(p.getUserId()))
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
               .findAny();
       assertTrue(participant1.isPresent());
-      assertEquals(user1Id, participant1.get().getUserId());
+      assertEquals(user1Id.toString(), participant1.get().getUserId());
       assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
-      assertTrue(participant1.get().isVideoStreamEnabled());
-      assertTrue(participant1.get().isAudioStreamEnabled());
+      assertTrue(participant1.get().hasVideoStreamOn());
+      assertTrue(participant1.get().hasAudioStreamOn());
 
       verify(roomService, times(1)).getRoomsIds(currentUser);
       verify(meetingRepository, times(1))
@@ -764,7 +764,7 @@ class MeetingServiceImplTest {
               List.of(room1Id.toString(), room2Id.toString(), room3Id.toString())))
           .thenReturn(List.of());
 
-      List<MeetingDto> meetings = meetingService.getMeetings(currentUser);
+      List<Meeting> meetings = meetingService.getMeetings(currentUser);
 
       assertNotNull(meetings);
       assertEquals(0, meetings.size());
@@ -784,7 +784,7 @@ class MeetingServiceImplTest {
       when(roomService.getRoomsIds(currentUser)).thenReturn(List.of());
       when(meetingRepository.getByRoomsIds(List.of())).thenReturn(List.of());
 
-      List<MeetingDto> meetings = meetingService.getMeetings(currentUser);
+      List<Meeting> meetings = meetingService.getMeetings(currentUser);
 
       assertNotNull(meetings);
       assertEquals(0, meetings.size());
@@ -806,32 +806,37 @@ class MeetingServiceImplTest {
       when(membersService.getSubscription(user1Id, room1Id))
           .thenReturn(Optional.of(Subscription.create()));
 
-      MeetingDto meetingDto =
-          meetingService.getMeetingById(meeting1Id, UserPrincipal.create(user1Id));
+      Meeting meetingDto = meetingService.getMeetingById(meeting1Id, UserPrincipal.create(user1Id));
 
       assertNotNull(meetingDto);
-      assertEquals(meeting1Id, meetingDto.getId());
-      assertEquals(room1Id, meetingDto.getRoomId());
+      assertEquals(meeting1Id.toString(), meetingDto.getId());
+      assertEquals(room1Id.toString(), meetingDto.getRoomId());
       assertNotNull(meetingDto.getParticipants());
       assertEquals(3, meetingDto.getParticipants().size());
       assertEquals(
           1,
-          meetingDto.getParticipants().stream().filter(p -> user1Id.equals(p.getUserId())).count());
-      assertEquals(
-          1,
-          meetingDto.getParticipants().stream().filter(p -> user2Id.equals(p.getUserId())).count());
-      assertEquals(
-          1,
-          meetingDto.getParticipants().stream().filter(p -> user3Id.equals(p.getUserId())).count());
-      Optional<ParticipantDto> participant1 =
           meetingDto.getParticipants().stream()
-              .filter(p -> user1Id.equals(p.getUserId()))
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
+              .count());
+      assertEquals(
+          1,
+          meetingDto.getParticipants().stream()
+              .filter(p -> user2Id.toString().equals(p.getUserId()))
+              .count());
+      assertEquals(
+          1,
+          meetingDto.getParticipants().stream()
+              .filter(p -> user3Id.toString().equals(p.getUserId()))
+              .count());
+      Optional<Participant> participant1 =
+          meetingDto.getParticipants().stream()
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
               .findAny();
       assertTrue(participant1.isPresent());
-      assertEquals(user1Id, participant1.get().getUserId());
+      assertEquals(user1Id.toString(), participant1.get().getUserId());
       assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
-      assertTrue(participant1.get().isVideoStreamEnabled());
-      assertTrue(participant1.get().isAudioStreamEnabled());
+      assertTrue(participant1.get().hasVideoStreamOn());
+      assertTrue(participant1.get().hasAudioStreamOn());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
@@ -965,32 +970,38 @@ class MeetingServiceImplTest {
           .thenReturn(room1);
       when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.of(meeting1));
 
-      MeetingDto meetingDto =
+      Meeting meetingDto =
           meetingService.getMeetingByRoomId(room1Id, UserPrincipal.create(user1Id));
 
       assertNotNull(meetingDto);
-      assertEquals(meeting1Id, meetingDto.getId());
-      assertEquals(room1Id, meetingDto.getRoomId());
+      assertEquals(meeting1Id.toString(), meetingDto.getId());
+      assertEquals(room1Id.toString(), meetingDto.getRoomId());
       assertNotNull(meetingDto.getParticipants());
       assertEquals(3, meetingDto.getParticipants().size());
       assertEquals(
           1,
-          meetingDto.getParticipants().stream().filter(p -> user1Id.equals(p.getUserId())).count());
-      assertEquals(
-          1,
-          meetingDto.getParticipants().stream().filter(p -> user2Id.equals(p.getUserId())).count());
-      assertEquals(
-          1,
-          meetingDto.getParticipants().stream().filter(p -> user3Id.equals(p.getUserId())).count());
-      Optional<ParticipantDto> participant1 =
           meetingDto.getParticipants().stream()
-              .filter(p -> user1Id.equals(p.getUserId()))
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
+              .count());
+      assertEquals(
+          1,
+          meetingDto.getParticipants().stream()
+              .filter(p -> user2Id.toString().equals(p.getUserId()))
+              .count());
+      assertEquals(
+          1,
+          meetingDto.getParticipants().stream()
+              .filter(p -> user3Id.toString().equals(p.getUserId()))
+              .count());
+      Optional<Participant> participant1 =
+          meetingDto.getParticipants().stream()
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
               .findAny();
       assertTrue(participant1.isPresent());
-      assertEquals(user1Id, participant1.get().getUserId());
+      assertEquals(user1Id.toString(), participant1.get().getUserId());
       assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
-      assertTrue(participant1.get().isVideoStreamEnabled());
-      assertTrue(participant1.get().isAudioStreamEnabled());
+      assertTrue(participant1.get().hasVideoStreamOn());
+      assertTrue(participant1.get().hasAudioStreamOn());
 
       verify(roomService, times(1))
           .getRoomAndValidateUser(room1Id, UserPrincipal.create(user1Id), false);
@@ -1171,15 +1182,16 @@ class MeetingServiceImplTest {
               .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.markStarted(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
-      when(roomService.getRoomById(roomId, currentUser))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenReturn(
-              RoomDto.create()
-                  .id(roomId)
-                  .type(RoomTypeDto.ONE_TO_ONE)
-                  .meetingId(meetingId)
-                  .members(
+              Room.create()
+                  .id(roomId.toString())
+                  .type(RoomType.ONE_TO_ONE)
+                  .meetingId(meetingId.toString())
+                  .subscriptions(
                       List.of(
-                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+                          Subscription.create().userId(user1Id.toString()),
+                          Subscription.create().userId(user2Id.toString()))));
 
       meetingService.startMeeting(currentUser, meetingId);
 
@@ -1213,7 +1225,7 @@ class MeetingServiceImplTest {
           Room.create()
               .id(roomId.toString())
               .meetingId(meetingId.toString())
-              .type(RoomTypeDto.ONE_TO_ONE)
+              .type(RoomType.ONE_TO_ONE)
               .subscriptions(
                   List.of(
                       Subscription.create().userId(user1Id.toString()).owner(true),
@@ -1263,7 +1275,7 @@ class MeetingServiceImplTest {
       Room room =
           Room.create()
               .id(roomId.toString())
-              .type(RoomTypeDto.ONE_TO_ONE)
+              .type(RoomType.ONE_TO_ONE)
               .meetingId(meetingId.toString());
       UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
@@ -1297,20 +1309,21 @@ class MeetingServiceImplTest {
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.markStarted(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
       when(meetingRepository.update(any(Meeting.class))).thenAnswer(i -> i.getArgument(0));
-      when(roomService.getRoomById(roomId, currentUser))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenReturn(
-              RoomDto.create()
-                  .id(roomId)
-                  .type(RoomTypeDto.GROUP)
-                  .meetingId(meetingId)
-                  .members(
+              Room.create()
+                  .id(roomId.toString())
+                  .type(RoomType.GROUP)
+                  .meetingId(meetingId.toString())
+                  .subscriptions(
                       List.of(
-                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+                          Subscription.create().userId(user1Id.toString()),
+                          Subscription.create().userId(user2Id.toString()))));
       Room room =
           Room.create()
               .id(roomId.toString())
               .meetingId(meetingId.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .subscriptions(
                   List.of(
                       Subscription.create().userId(user1Id.toString()).owner(true),
@@ -1352,10 +1365,7 @@ class MeetingServiceImplTest {
                   .queueId(session1User1Id)
                   .build()));
       Room room =
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .meetingId(meetingId.toString());
+          Room.create().id(roomId.toString()).type(RoomType.GROUP).meetingId(meetingId.toString());
       UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
@@ -1400,10 +1410,7 @@ class MeetingServiceImplTest {
       UUID meetingId = UUID.randomUUID();
       Meeting meeting = meetingWith(meetingId, roomId, List.of(user1Id, user3Id));
       Room room =
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .meetingId(meetingId.toString());
+          Room.create().id(roomId.toString()).type(RoomType.GROUP).meetingId(meetingId.toString());
       UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
@@ -1423,10 +1430,7 @@ class MeetingServiceImplTest {
       UUID meetingId = UUID.randomUUID();
       Meeting meeting = meetingWith(meetingId, roomId, List.of(user1Id, user2Id));
       Room room =
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .meetingId(meetingId.toString());
+          Room.create().id(roomId.toString()).type(RoomType.GROUP).meetingId(meetingId.toString());
       UserPrincipal decliner = UserPrincipal.create(user2Id).name("alice");
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(roomService.getRoomAndValidateUser(roomId, decliner, false)).thenReturn(room);
@@ -1447,7 +1451,7 @@ class MeetingServiceImplTest {
       Room room =
           Room.create()
               .id(roomId.toString())
-              .type(RoomTypeDto.ONE_TO_ONE)
+              .type(RoomType.ONE_TO_ONE)
               .meetingId(meetingId.toString());
       room.subscriptions(
           List.of(
@@ -1473,7 +1477,7 @@ class MeetingServiceImplTest {
       Room room =
           Room.create()
               .id(roomId.toString())
-              .type(RoomTypeDto.ONE_TO_ONE)
+              .type(RoomType.ONE_TO_ONE)
               .meetingId(meetingId.toString());
       room.subscriptions(
           List.of(

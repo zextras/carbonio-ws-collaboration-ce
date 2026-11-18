@@ -35,12 +35,13 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
+import com.zextras.carbonio.chats.core.data.model.InsertedMember;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -51,9 +52,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -81,7 +80,7 @@ class MembersServiceImplTest {
   private final ParticipantService participantService;
   private final ChatMessageService chatMessageService;
 
-  public MembersServiceImplTest(SubscriptionMapper subscriptionMapper) {
+  public MembersServiceImplTest() {
     this.roomService = mock(RoomService.class);
     this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
@@ -96,7 +95,6 @@ class MembersServiceImplTest {
             subscriptionRepository,
             roomUserSettingsRepository,
             eventDispatcher,
-            subscriptionMapper,
             userService,
             meetingService,
             participantService,
@@ -134,7 +132,7 @@ class MembersServiceImplTest {
         chatMessageService);
   }
 
-  protected Room generateRoom(RoomTypeDto type) {
+  protected Room generateRoom(RoomType type) {
     return Room.create()
         .id(roomId.toString())
         .type(type)
@@ -161,7 +159,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly promote a member as room owner")
     void promoteMemberToOwner_testOk() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
       room.subscriptions(
           List.of(
@@ -183,7 +181,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If the target user isn't a room member, it throws a 'forbidden' exception")
     void promoteMemberToUser_userNotARoomMember() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -208,7 +206,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If the target member is the requester, it throws a 'bad request' exception")
     void promoteMemberToOwner_targetMemberIsRequester() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -234,7 +232,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly demote an owner to a room member")
     void demoteOwnerToMember_testOk() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(true);
       room.subscriptions(
           List.of(
@@ -256,7 +254,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If the target user isn't a room member, it throws a 'forbidden' exception")
     void demoteOwnerToMember_userNotARoomMember() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -281,7 +279,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If the target owner is the requester, it throws a 'bad request' exception")
     void demoteOwnerToMember_targetOwnerIsRequester() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -307,7 +305,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly adds a user as a member of group room")
     void insertGroupRoomMember_testOk() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           new ArrayList<>(
               List.of(
@@ -321,15 +319,15 @@ class MembersServiceImplTest {
           .thenReturn(Subscription.create(room, user2Id.toString()));
       insertSetsCreatedAt();
 
-      List<MemberInsertedDto> members =
+      List<InsertedMember> members =
           membersService.insertRoomMembers(
               roomId,
               List.of(MemberToInsertDto.create().userId(user2Id).historyCleared(false)),
               principal);
       assertEquals(1, members.size());
-      MemberInsertedDto memberInsertedDto = members.get(0);
+      InsertedMember memberInsertedDto = members.get(0);
       assertNotNull(memberInsertedDto);
-      assertEquals(user2Id, memberInsertedDto.getUserId());
+      assertEquals(user2Id, memberInsertedDto.userId());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
@@ -354,7 +352,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If user is already a room member, it throws a 'bad request' exception")
     void insertRoomMember_userIsAlreadyARoomMember() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -381,7 +379,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If the user doesn't exist, it throws a 'not found' exception")
     void insertRoomMember_userNotExists() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -410,7 +408,7 @@ class MembersServiceImplTest {
     @DisplayName("Correctly adds a user as a member of group room clearing history")
     void insertRoomMember_historyCleared() {
       insertSetsCreatedAt();
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           new ArrayList<>(
               List.of(
@@ -426,16 +424,16 @@ class MembersServiceImplTest {
       when(roomUserSettingsRepository.setClearedAtNow(roomId.toString(), user2Id.toString()))
           .thenReturn(stored);
 
-      List<MemberInsertedDto> members =
+      List<InsertedMember> members =
           membersService.insertRoomMembers(
               roomId,
               List.of(MemberToInsertDto.create().userId(user2Id).owner(false).historyCleared(true)),
               principal);
       assertEquals(1, members.size());
-      MemberInsertedDto memberInsertedDto = members.get(0);
+      InsertedMember memberInsertedDto = members.get(0);
       assertNotNull(memberInsertedDto);
-      assertEquals(user2Id, memberInsertedDto.getUserId());
-      assertEquals(stored, memberInsertedDto.getClearedAt());
+      assertEquals(user2Id, memberInsertedDto.userId());
+      assertEquals(stored, memberInsertedDto.clearedAt());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
@@ -468,7 +466,7 @@ class MembersServiceImplTest {
     @DisplayName("Correctly adds a temporary member to a group room")
     void insertRoomMember_temporaryMember() {
       insertSetsCreatedAt();
-      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      Room room = generateRoom(RoomType.TEMPORARY);
       room.subscriptions(
           new ArrayList<>(
               List.of(
@@ -481,16 +479,16 @@ class MembersServiceImplTest {
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()).temporary(true));
 
-      List<MemberInsertedDto> members =
+      List<InsertedMember> members =
           membersService.insertRoomMembers(
               roomId,
               List.of(
                   MemberToInsertDto.create().userId(user2Id).temporary(true).historyCleared(false)),
               principal);
       assertEquals(1, members.size());
-      MemberInsertedDto memberInsertedDto = members.get(0);
+      InsertedMember memberInsertedDto = members.get(0);
       assertNotNull(memberInsertedDto);
-      assertEquals(user2Id, memberInsertedDto.getUserId());
+      assertEquals(user2Id, memberInsertedDto.userId());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
@@ -521,7 +519,7 @@ class MembersServiceImplTest {
     @DisplayName("Correctly adds an external member to a group room")
     void insertRoomMember_externalMember() {
       insertSetsCreatedAt();
-      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      Room room = generateRoom(RoomType.TEMPORARY);
       room.subscriptions(
           new ArrayList<>(
               List.of(
@@ -534,16 +532,16 @@ class MembersServiceImplTest {
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()).external(true));
 
-      List<MemberInsertedDto> members =
+      List<InsertedMember> members =
           membersService.insertRoomMembers(
               roomId,
               List.of(
                   MemberToInsertDto.create().userId(user2Id).external(true).historyCleared(false)),
               principal);
       assertEquals(1, members.size());
-      MemberInsertedDto memberInsertedDto = members.get(0);
+      InsertedMember memberInsertedDto = members.get(0);
       assertNotNull(memberInsertedDto);
-      assertEquals(user2Id, memberInsertedDto.getUserId());
+      assertEquals(user2Id, memberInsertedDto.userId());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
@@ -573,7 +571,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Bulk add writes one MEMBER_ADDED row per member, 1 ms apart, one event per row")
     void insertRoomMembers_bulkWritesOneRowPerMember() throws Exception {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
@@ -617,7 +615,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("A user id listed twice is inserted once, with one row and one event")
     void insertRoomMembers_duplicatesInsertedOnce() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
@@ -626,7 +624,7 @@ class MembersServiceImplTest {
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenAnswer(i -> i.getArgument(0));
 
-      List<MemberInsertedDto> inserted =
+      List<InsertedMember> inserted =
           membersService.insertRoomMembers(
               roomId,
               List.of(
@@ -635,8 +633,8 @@ class MembersServiceImplTest {
               principal);
 
       assertEquals(1, inserted.size());
-      assertEquals(user2Id, inserted.get(0).getUserId());
-      assertEquals(Boolean.FALSE, inserted.get(0).isOwner());
+      assertEquals(user2Id, inserted.get(0).userId());
+      assertEquals(Boolean.FALSE, inserted.get(0).owner());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
@@ -659,7 +657,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly promotes members to owners of a room")
     void updateOwners_testOkPromote() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
       Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(false);
       room.subscriptions(
@@ -692,7 +690,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Owner update events carry their type")
     void updateOwners_eventsCarryType() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
       Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
       room.subscriptions(
@@ -722,7 +720,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly demote owners to members of a room")
     void updateOwners_testOkDemote() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(true);
       Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
       room.subscriptions(
@@ -755,7 +753,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("It throws exception if a user is not a room member")
     void updateOwners_testErrorUserIsNotAMember() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
       room.subscriptions(
           List.of(Subscription.create(room, user1Id.toString()).owner(true), user3subscription));
@@ -785,7 +783,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If the user is the requester, it throws a 'bad request' exception")
     void updateOwners_testErrorUserIsRequester() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -814,7 +812,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly removes a member of a group room")
     void deleteRoomMember_groupTestOk() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -847,7 +845,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly removes a member of a group room during a meeting")
     void deleteRoomMember_groupTestOkWithMeeting() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -889,7 +887,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("When the last member leaves, the room is deleted and no member removal is done")
     void deleteRoomMember_lastMemberLeaves_deletesRoom() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(List.of(Subscription.create(room, user1Id.toString()).owner(true)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
@@ -904,7 +902,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly user removes itself of a group room")
     void deleteRoomMember_userRemoveItselfTestOk() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(false),
@@ -937,7 +935,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly user removes itself of a group room muted and with history cleared")
     void deleteRoomMember_userRemoveItselfTestOkWithMuteAndHistoryCleared() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(false),
@@ -976,7 +974,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Automatic removal persists MEMBER_REMOVED authored by the first room owner")
     void deleteRoomMember_automaticRemovalAuthoredByFirstOwner() throws Exception {
-      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      Room room = generateRoom(RoomType.TEMPORARY);
       room.subscriptions(
           List.of(
               Subscription.create(room, user3Id.toString()).owner(false),
@@ -1011,7 +1009,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("A removal on behalf of a user persists MEMBER_REMOVED authored by that user")
     void deleteRoomMember_removalAuthoredByGivenUser() throws Exception {
-      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      Room room = generateRoom(RoomType.TEMPORARY);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -1046,7 +1044,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("If user is the last room owner, it throws a 'bad request' exception")
     void deleteRoomMember_userIsTheLastOwner() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -1074,7 +1072,7 @@ class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly gets all group members")
     void getGroupMembers_testOk() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
+      Room room = generateRoom(RoomType.GROUP);
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(true),
@@ -1082,12 +1080,12 @@ class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
-      List<MemberDto> roomMembers = membersService.getRoomMembers(roomId, principal);
+      List<Subscription> roomMembers = membersService.getRoomMembers(roomId, principal);
       assertNotNull(roomMembers);
       assertEquals(3, roomMembers.size());
-      assertEquals(user1Id, roomMembers.get(0).getUserId());
-      assertEquals(user2Id, roomMembers.get(1).getUserId());
-      assertEquals(user3Id, roomMembers.get(2).getUserId());
+      assertEquals(user1Id.toString(), roomMembers.get(0).getUserId());
+      assertEquals(user2Id.toString(), roomMembers.get(1).getUserId());
+      assertEquals(user3Id.toString(), roomMembers.get(2).getUserId());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
     }
@@ -1108,7 +1106,7 @@ class MembersServiceImplTest {
                   MemberDto.create().userId(user1Id),
                   MemberDto.create().userId(user2Id).owner(true),
                   MemberDto.create().userId(user3Id)),
-              generateRoom(RoomTypeDto.GROUP));
+              generateRoom(RoomType.GROUP));
       assertNotNull(subscriptions);
       assertEquals(3, subscriptions.size());
 
@@ -1134,7 +1132,7 @@ class MembersServiceImplTest {
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
               List.of(MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id)),
-              generateRoom(RoomTypeDto.ONE_TO_ONE));
+              generateRoom(RoomType.ONE_TO_ONE));
       assertNotNull(subscriptions);
       assertEquals(2, subscriptions.size());
 

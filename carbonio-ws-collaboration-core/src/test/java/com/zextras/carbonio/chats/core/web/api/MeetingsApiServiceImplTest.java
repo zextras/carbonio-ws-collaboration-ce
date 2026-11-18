@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -17,23 +18,32 @@ import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.MeetingMapperImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
+import com.zextras.carbonio.chats.model.MeetingDto;
+import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -61,7 +71,11 @@ class MeetingsApiServiceImplTest {
     this.healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
     this.meetingsApiService =
         new MeetingsApiServiceImpl(
-            meetingService, participantService, cacheVideoServerSession, healthMonitor);
+            meetingService,
+            new MeetingMapperImpl(new ParticipantMapperImpl()),
+            participantService,
+            cacheVideoServerSession,
+            healthMonitor);
   }
 
   @BeforeEach
@@ -155,7 +169,11 @@ class MeetingsApiServiceImplTest {
     realMonitor.notifyVideoServerReady();
     MeetingsApiServiceImpl service =
         new MeetingsApiServiceImpl(
-            meetingService, participantService, mock(CacheVideoServerSession.class), realMonitor);
+            meetingService,
+            new MeetingMapperImpl(new ParticipantMapperImpl()),
+            participantService,
+            mock(CacheVideoServerSession.class),
+            realMonitor);
     when(securityContext.getUserPrincipal()).thenReturn(user1);
     when(participantService.insertMeetingParticipant(meetingId, JoinSettingsDto.create(), user1))
         .thenReturn(JoinStatus.ACCEPTED);
@@ -274,5 +292,102 @@ class MeetingsApiServiceImplTest {
 
     assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     verify(participantService, times(1)).updateSubscribedMediaQuality(meetingId, dto, user1);
+  }
+
+  private Meeting activeMeeting(UUID id) {
+    return Meeting.create()
+        .id(id.toString())
+        .roomId(roomId.toString())
+        .name("meeting")
+        .meetingType(MeetingType.SCHEDULED)
+        .active(true)
+        .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+        .participants(
+            List.of(
+                Participant.create()
+                    .userId(user1Id.toString())
+                    .queueId("queue")
+                    .audioStreamOn(true)
+                    .videoStreamOn(false)));
+  }
+
+  private void assertMeetingDto(UUID id, Object entity) {
+    MeetingDto dto = (MeetingDto) entity;
+    assertEquals(id, dto.getId());
+    assertEquals(roomId, dto.getRoomId());
+    assertEquals("meeting", dto.getName());
+    assertEquals(MeetingTypeDto.SCHEDULED, dto.getMeetingType());
+    assertTrue(dto.isActive());
+    assertEquals(OffsetDateTime.parse("2022-01-01T13:00:00Z"), dto.getStartedAt());
+    assertEquals(1, dto.getParticipants().size());
+    assertEquals(user1Id, dto.getParticipants().get(0).getUserId());
+    assertEquals("queue", dto.getParticipants().get(0).getQueueId());
+    assertTrue(dto.getParticipants().get(0).isAudioStreamEnabled());
+  }
+
+  @Test
+  void listMeeting_mapsEveryMeeting() throws Exception {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(meetingService.getMeetings(user1)).thenReturn(List.of(activeMeeting(meetingId)));
+
+    Response response = meetingsApiService.listMeeting(securityContext);
+
+    verify(meetingService, times(1)).getMeetings(user1);
+    assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    List<?> body = (List<?>) response.getEntity();
+    assertEquals(1, body.size());
+    assertMeetingDto(meetingId, body.get(0));
+  }
+
+  @Test
+  void getMeeting_mapsTheMeeting() throws Exception {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(meetingService.getMeetingById(meetingId, user1)).thenReturn(activeMeeting(meetingId));
+
+    Response response = meetingsApiService.getMeeting(meetingId, securityContext);
+
+    verify(meetingService, times(1)).getMeetingById(meetingId, user1);
+    assertMeetingDto(meetingId, response.getEntity());
+  }
+
+  @Test
+  void createMeeting_mapsTheCreatedMeeting() throws Exception {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(meetingService.createMeeting(user1, "meeting", MeetingTypeDto.SCHEDULED, roomId, null))
+        .thenReturn(activeMeeting(meetingId));
+
+    Response response =
+        meetingsApiService.createMeeting(
+            NewMeetingDataDto.create()
+                .name("meeting")
+                .meetingType(MeetingTypeDto.SCHEDULED)
+                .roomId(roomId),
+            securityContext);
+
+    verify(meetingService, times(1))
+        .createMeeting(user1, "meeting", MeetingTypeDto.SCHEDULED, roomId, null);
+    assertMeetingDto(meetingId, response.getEntity());
+  }
+
+  @Test
+  void startMeeting_mapsTheStartedMeeting() throws Exception {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(meetingService.startMeeting(user1, meetingId)).thenReturn(activeMeeting(meetingId));
+
+    Response response = meetingsApiService.startMeeting(meetingId, securityContext);
+
+    verify(meetingService, times(1)).startMeeting(user1, meetingId);
+    assertMeetingDto(meetingId, response.getEntity());
+  }
+
+  @Test
+  void stopMeeting_mapsTheStoppedMeeting() throws Exception {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(meetingService.stopMeeting(user1, meetingId)).thenReturn(activeMeeting(meetingId));
+
+    Response response = meetingsApiService.stopMeeting(meetingId, securityContext);
+
+    verify(meetingService, times(1)).stopMeeting(user1, meetingId);
+    assertMeetingDto(meetingId, response.getEntity());
   }
 }

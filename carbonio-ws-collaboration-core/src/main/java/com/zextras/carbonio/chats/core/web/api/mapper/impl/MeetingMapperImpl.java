@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.mapper.impl;
+package com.zextras.carbonio.chats.core.web.api.mapper.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
-import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.MeetingMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.ParticipantMapper;
 import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import jakarta.annotation.Nullable;

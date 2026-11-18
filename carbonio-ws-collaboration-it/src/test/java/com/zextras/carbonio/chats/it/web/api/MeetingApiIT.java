@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
@@ -41,7 +42,6 @@ import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import com.zextras.carbonio.chats.model.ParticipantDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import io.ebean.Database;
@@ -144,7 +144,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -179,7 +179,7 @@ class MeetingApiIT {
           integrationTestUtils.generateAndSaveRoom(
               Room.create()
                   .id(room1Id.toString())
-                  .type(RoomTypeDto.GROUP)
+                  .type(RoomType.GROUP)
                   .name("room1")
                   .description("Room one"),
               List.of(
@@ -239,7 +239,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -309,7 +309,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -361,7 +361,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -433,7 +433,7 @@ class MeetingApiIT {
     @DisplayName("The ended line duration is computed from the database times")
     void stopMeeting_testEndedLineDurationFromDatabaseTimes() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
-          Room.create().id(room1Id.toString()).type(RoomTypeDto.ONE_TO_ONE),
+          Room.create().id(room1Id.toString()).type(RoomType.ONE_TO_ONE),
           List.of(
               RoomMemberField.create().id(user1Id).owner(true),
               RoomMemberField.create().id(user2Id)));
@@ -483,7 +483,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.TEMPORARY)
+              .type(RoomType.TEMPORARY)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -584,7 +584,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -594,7 +594,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room2Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room2")
               .description("Room two"),
           List.of(
@@ -604,7 +604,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room3Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room3")
               .description("Room three"),
           List.of(
@@ -708,7 +708,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -718,7 +718,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room2Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room2")
               .description("Room two"),
           List.of(
@@ -728,7 +728,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room3Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room3")
               .description("Room three"),
           List.of(
@@ -750,7 +750,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room1")
               .description("Room one"),
           List.of(
@@ -759,7 +759,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room2Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("room2")
               .description("Room two"),
           List.of(
@@ -799,7 +799,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -866,7 +866,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -926,7 +926,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1001,7 +1001,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1065,7 +1065,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1160,7 +1160,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1296,7 +1296,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1374,7 +1374,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.TEMPORARY)
+              .type(RoomType.TEMPORARY)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -1467,7 +1467,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1559,7 +1559,7 @@ class MeetingApiIT {
           integrationTestUtils.generateAndSaveRoom(
               Room.create()
                   .id(room1Id.toString())
-                  .type(RoomTypeDto.GROUP)
+                  .type(RoomType.GROUP)
                   .name("name")
                   .description("description"),
               List.of(
@@ -1671,7 +1671,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.TEMPORARY)
+              .type(RoomType.TEMPORARY)
               .name("name")
               .description("description"),
           List.of(
@@ -1765,7 +1765,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.TEMPORARY)
+              .type(RoomType.TEMPORARY)
               .name("name")
               .description("description"),
           List.of(
@@ -1861,7 +1861,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -1938,7 +1938,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2041,7 +2041,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.TEMPORARY)
+              .type(RoomType.TEMPORARY)
               .name("name")
               .description("description"),
           List.of(
@@ -2140,7 +2140,7 @@ class MeetingApiIT {
     @DisplayName("If the meeting is a one-to-one then it returns a status code 400")
     void kickMeetingParticipant_testErrorOneToOneMeeting() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
-          Room.create().id(room1Id.toString()).type(RoomTypeDto.ONE_TO_ONE),
+          Room.create().id(room1Id.toString()).type(RoomType.ONE_TO_ONE),
           List.of(
               RoomMemberField.create().id(user1Id).owner(true),
               RoomMemberField.create().id(user2Id).owner(true)));
@@ -2165,7 +2165,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2251,7 +2251,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2308,7 +2308,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2342,7 +2342,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2428,7 +2428,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2482,7 +2482,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2555,7 +2555,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2616,7 +2616,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2649,7 +2649,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2716,7 +2716,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2777,7 +2777,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -2809,7 +2809,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2890,7 +2890,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2930,7 +2930,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -2968,7 +2968,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3038,7 +3038,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3098,7 +3098,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3132,7 +3132,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3218,7 +3218,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3271,7 +3271,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3345,7 +3345,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3428,7 +3428,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3512,7 +3512,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3617,7 +3617,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(
@@ -3700,7 +3700,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3790,7 +3790,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3886,7 +3886,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -3976,7 +3976,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -4007,7 +4007,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
@@ -4041,7 +4041,7 @@ class MeetingApiIT {
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
               .id(room1Id.toString())
-              .type(RoomTypeDto.GROUP)
+              .type(RoomType.GROUP)
               .name("name")
               .description("description"),
           List.of(

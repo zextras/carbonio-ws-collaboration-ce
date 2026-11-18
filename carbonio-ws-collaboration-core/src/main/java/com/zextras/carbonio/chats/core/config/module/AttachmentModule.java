@@ -19,8 +19,6 @@ import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
-import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
-import com.zextras.carbonio.chats.core.mapper.impl.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanFileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
@@ -28,6 +26,8 @@ import com.zextras.carbonio.chats.core.service.impl.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.AttachmentMapperImpl;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.storages.api.StoragesClient;
 

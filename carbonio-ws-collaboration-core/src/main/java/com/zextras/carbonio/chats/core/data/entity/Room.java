@@ -4,7 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
-import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,7 +35,7 @@ public class Room {
 
   @Column(name = "TYPE", length = 32, nullable = false)
   @Enumerated(EnumType.STRING)
-  private RoomTypeDto type;
+  private RoomType type;
 
   // This is a redundancy which simplifies querying, allowing us to retrieve this without a join on
   // the attachment table
@@ -91,11 +91,11 @@ public class Room {
     return this;
   }
 
-  public RoomTypeDto getType() {
+  public RoomType getType() {
     return type;
   }
 
-  public Room type(RoomTypeDto type) {
+  public Room type(RoomType type) {
     this.type = type;
     return this;
   }

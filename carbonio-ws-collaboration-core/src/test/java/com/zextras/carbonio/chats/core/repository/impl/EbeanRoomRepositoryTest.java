@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.chats.core.data.type.RoomType;
 import io.ebean.Database;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -47,7 +47,7 @@ class EbeanRoomRepositoryTest {
       when(database
               .find(Room.class)
               .where()
-              .eq("type", RoomTypeDto.ONE_TO_ONE)
+              .eq("type", RoomType.ONE_TO_ONE)
               .and()
               .raw(
                   "id in ( "
@@ -72,7 +72,7 @@ class EbeanRoomRepositoryTest {
       when(database
               .find(Room.class)
               .where()
-              .eq("type", RoomTypeDto.ONE_TO_ONE)
+              .eq("type", RoomType.ONE_TO_ONE)
               .and()
               .raw(
                   "id in ( "

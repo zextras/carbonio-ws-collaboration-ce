@@ -21,10 +21,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerSer
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerConfigImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
-import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
-import com.zextras.carbonio.chats.core.mapper.impl.MeetingMapperImpl;
-import com.zextras.carbonio.chats.core.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
@@ -38,6 +34,10 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.MeetingMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.ParticipantMapper;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.MeetingMapperImpl;
+import com.zextras.carbonio.chats.core.web.api.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 
