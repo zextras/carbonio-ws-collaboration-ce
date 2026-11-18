@@ -19,9 +19,9 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
+import com.zextras.carbonio.chats.core.infrastructure.websocket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository.SessionDeletionResult;
-import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import io.ebean.Database;
 import io.ebean.SqlQuery;
 import jakarta.websocket.Session;

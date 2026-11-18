@@ -24,6 +24,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
+import com.zextras.carbonio.chats.core.infrastructure.event.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -31,9 +32,7 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomAccess;
-import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
@@ -59,7 +58,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService storagesService;
   private final RoomAccess roomAccess;
-  private final ChatMessageService chatMessageService;
   private final AttachmentAccessValidator attachmentAccessValidator;
   private final MessageWriteRepository messageWriteRepository;
   private final MessageRepository messageRepository;
@@ -73,7 +71,6 @@ public class AttachmentServiceImpl implements AttachmentService {
       FileMetadataRepository fileMetadataRepository,
       StoragesService storagesService,
       RoomAccess roomAccess,
-      ChatMessageService chatMessageService,
       MessageWriteRepository messageWriteRepository,
       MessageRepository messageRepository,
       MessageReceivedBroadcaster messageReceivedBroadcaster,
@@ -84,7 +81,6 @@ public class AttachmentServiceImpl implements AttachmentService {
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
     this.roomAccess = roomAccess;
-    this.chatMessageService = chatMessageService;
     this.messageWriteRepository = messageWriteRepository;
     this.messageRepository = messageRepository;
     this.messageReceivedBroadcaster = messageReceivedBroadcaster;
@@ -113,8 +109,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String cursor,
       @Nullable AttachmentFilter attachmentFilter,
       UserPrincipal currentUser) {
-    VisibilityFloor floor =
-        chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
+    VisibilityFloor floor = roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId());
     if (floor.clearedAt() != null) {
       attachmentFilter =
           (attachmentFilter != null ? attachmentFilter : AttachmentFilter.create())
@@ -201,11 +196,6 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String tempId,
       String messageId,
       UserPrincipal currentUser) {
-    VisibilityFloor floor = roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId());
-    if (replyId != null) {
-      chatMessageService.validateReplyTarget(roomId.toString(), floor, replyId);
-    }
-
     UUID fileId = UUID.randomUUID();
     storagesService.saveFile(file, fileId.toString(), currentUser.getId(), contentLength);
     Message message;
@@ -389,17 +379,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     fileMetadataRepository.save(metadata);
     MessageWriteRepository.SendResult sent;
     try {
-      sent =
-          messageWriteRepository
-              .sendMessage(roomId, senderId, text, messageId, replyId, fileId)
-              .orElseThrow(
-                  () ->
-                      replyId != null
-                          ? new NotFoundException(
-                              String.format("Reply target '%s' not found", replyId))
-                          : new ForbiddenException(
-                              String.format(
-                                  "User '%s' is not a member of room '%s'", senderId, roomId)));
+      sent = messageWriteRepository.sendMessage(roomId, senderId, text, messageId, replyId, fileId);
+      if (sent.status() != MessageWriteRepository.SendStatus.SENT) {
+        throw rejectedAttachmentMessage(sent.status(), roomId, senderId, replyId);
+      }
     } catch (RuntimeException e) {
       fileMetadataRepository.delete(metadata);
       throw e;
@@ -438,6 +421,14 @@ public class AttachmentServiceImpl implements AttachmentService {
       ChatsLogger.warn("Error broadcasting attachment message: " + e.getMessage());
     }
     return message;
+  }
+
+  private static RuntimeException rejectedAttachmentMessage(
+      MessageWriteRepository.SendStatus status, String roomId, String senderId, String replyId) {
+    return status == MessageWriteRepository.SendStatus.REPLY_NOT_FOUND
+        ? new NotFoundException(String.format("Reply target '%s' not found", replyId))
+        : new ForbiddenException(
+            String.format("User '%s' is not a member of room '%s'", senderId, roomId));
   }
 
   /**

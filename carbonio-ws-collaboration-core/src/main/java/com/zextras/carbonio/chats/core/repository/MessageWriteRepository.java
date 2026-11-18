@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
 
 /**
  * Repository for write-path message operations using single-CTE queries. Each method performs
@@ -17,9 +16,11 @@ public interface MessageWriteRepository {
    * Inserts a new message atomically. When the message has an attachment, the attachment's {@code
    * file_metadata.created_at} and {@code updated_at} take the message's {@code created_at}.
    *
-   * @return empty if the user is not a room member or message ID conflicts
+   * @return the outcome: {@link SendStatus#NOT_MEMBER} if the user is not a room member, {@link
+   *     SendStatus#REPLY_NOT_FOUND} if the reply target is missing, in another room or hidden by
+   *     the user's cleared history, {@link SendStatus#ID_CONFLICT} if the message ID already exists
    */
-  Optional<SendResult> sendMessage(
+  SendResult sendMessage(
       String roomId,
       String userId,
       String text,
@@ -40,22 +41,22 @@ public interface MessageWriteRepository {
    * Edits a message text, setting edited=true. Only the original sender can edit. {@code pinned}
    * tells whether the message is the current room pin.
    *
-   * @return empty if user is not a member, not the sender, or message is deleted
-   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the message is at or
-   *     before the user's cleared-history instant
+   * @return the outcome: {@link EditStatus#NOT_VISIBLE} if the message is at or before the user's
+   *     cleared-history instant, {@link EditStatus#NOT_ALLOWED} if user is not a member, not the
+   *     sender, or message is deleted
    */
-  Optional<EditResult> editMessage(String messageId, String roomId, String userId, String newText);
+  EditResult editMessage(String messageId, String roomId, String userId, String newText);
 
   /**
    * Soft-deletes a message. Only the original sender can delete. When the message is the room pin,
    * the pin is removed and a MESSAGE_UNPINNED system event authored by the deleter is written in
    * the same transaction.
    *
-   * @return empty if user is not a member, not the sender, or message already deleted
-   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the message is at or
-   *     before the user's cleared-history instant
+   * @return the outcome: {@link DeleteStatus#NOT_VISIBLE} if the message is at or before the user's
+   *     cleared-history instant, {@link DeleteStatus#NOT_ALLOWED} if user is not a member, not the
+   *     sender, or message already deleted
    */
-  Optional<DeleteResult> deleteMessage(String messageId, String roomId, String userId);
+  DeleteResult deleteMessage(String messageId, String roomId, String userId);
 
   /**
    * Forwards a message from one room to another, inserting a new message. The {@code
@@ -63,9 +64,11 @@ public interface MessageWriteRepository {
    * the original attachment) take the new message's {@code created_at}.
    *
    * @param newAttachmentId the ID of the already-copied blob (null if no attachment)
-   * @return empty if the user is not a member of either room or original message not found
+   * @return the outcome: {@link ForwardStatus#NOT_MEMBER} if the user is not a member of either
+   *     room, {@link ForwardStatus#MESSAGE_NOT_FOUND} if the original message is missing, deleted,
+   *     in another room or hidden by the user's cleared history
    */
-  Optional<ForwardResult> forwardMessage(
+  ForwardResult forwardMessage(
       String sourceRoomId,
       String targetRoomId,
       String userId,
@@ -73,25 +76,68 @@ public interface MessageWriteRepository {
       String newMessageId,
       String newAttachmentId);
 
-  record SendResult(String messageId, OffsetDateTime createdAt) {}
+  enum SendStatus {
+    SENT,
+    NOT_MEMBER,
+    REPLY_NOT_FOUND,
+    ID_CONFLICT
+  }
+
+  record SendResult(SendStatus status, String messageId, OffsetDateTime createdAt) {
+
+    public static SendResult rejected(SendStatus status) {
+      return new SendResult(status, null, null);
+    }
+  }
+
+  enum EditStatus {
+    EDITED,
+    NOT_ALLOWED,
+    NOT_VISIBLE
+  }
 
   record EditResult(
+      EditStatus status,
       String messageId,
       String text,
       OffsetDateTime updatedAt,
       OffsetDateTime createdAt,
-      boolean pinned) {}
+      boolean pinned) {
+
+    public static EditResult rejected(EditStatus status) {
+      return new EditResult(status, null, null, null, null, false);
+    }
+  }
+
+  enum DeleteStatus {
+    DELETED,
+    NOT_ALLOWED,
+    NOT_VISIBLE
+  }
 
   record DeleteResult(
+      DeleteStatus status,
       String messageId,
       String attachmentId,
       OffsetDateTime deletedAt,
       OffsetDateTime createdAt,
-      Unpinned unpinned) {}
+      Unpinned unpinned) {
+
+    public static DeleteResult rejected(DeleteStatus status) {
+      return new DeleteResult(status, null, null, null, null, null);
+    }
+  }
 
   record Unpinned(String systemEventId, OffsetDateTime systemEventCreatedAt) {}
 
+  enum ForwardStatus {
+    FORWARDED,
+    NOT_MEMBER,
+    MESSAGE_NOT_FOUND
+  }
+
   record ForwardResult(
+      ForwardStatus status,
       String messageId,
       OffsetDateTime createdAt,
       String originalText,
@@ -101,7 +147,12 @@ public interface MessageWriteRepository {
       String attachmentName,
       String attachmentMime,
       Long attachmentSize,
-      String attachmentArea) {}
+      String attachmentArea) {
+
+    public static ForwardResult rejected(ForwardStatus status) {
+      return new ForwardResult(status, null, null, null, null, null, null, null, null, null, null);
+    }
+  }
 
   enum SendOnceStatus {
     SENT,

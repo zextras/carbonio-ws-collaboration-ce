@@ -14,6 +14,7 @@ import com.zextras.carbonio.async.model.MessageBrokerDisconnected;
 import com.zextras.carbonio.async.model.MessageBrokerRestored;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
+import com.zextras.carbonio.chats.core.infrastructure.websocket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.concurrent.atomic.AtomicBoolean;
 

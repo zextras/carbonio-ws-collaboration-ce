@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
+import com.zextras.carbonio.chats.core.infrastructure.websocket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.presence.WsPresenceManager;
 import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;

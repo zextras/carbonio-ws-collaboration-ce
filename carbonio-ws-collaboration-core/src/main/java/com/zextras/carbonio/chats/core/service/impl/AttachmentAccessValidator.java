@@ -11,26 +11,24 @@ import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.time.OffsetDateTime;
 
 @Singleton
 public class AttachmentAccessValidator {
 
-  private final ChatMessageService chatMessageService;
+  private final RoomAccess roomAccess;
   private final MessageRepository messageRepository;
 
   @Inject
-  public AttachmentAccessValidator(
-      ChatMessageService chatMessageService, MessageRepository messageRepository) {
-    this.chatMessageService = chatMessageService;
+  public AttachmentAccessValidator(RoomAccess roomAccess, MessageRepository messageRepository) {
+    this.roomAccess = roomAccess;
     this.messageRepository = messageRepository;
   }
 
   public void validate(FileMetadata metadata, UserPrincipal user) {
-    VisibilityFloor floor =
-        chatMessageService.getVisibilityFloor(metadata.getRoomId(), user.getId());
+    VisibilityFloor floor = roomAccess.getVisibilityFloor(metadata.getRoomId(), user.getId());
     if (floor.clearedAt() == null) {
       return;
     }

@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.repository.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import io.ebean.Database;
 import io.ebean.SqlRow;
@@ -37,15 +36,19 @@ check_member AS (
     LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
     WHERE s.room_id = :roomId AND s.user_id = :userId
 ),
-new_msg AS (
-    INSERT INTO chats.message (id, room_id, sender_id, text, reply_to_id, attachment_id, created_at, updated_at)
-    SELECT :messageId, :roomId, :userId, :text, :replyToId, :attachmentId, ts.t, ts.t
-    FROM check_member cm CROSS JOIN ts
+reply_ok AS (
+    SELECT 1 AS ok
+    FROM check_member cm
     WHERE CAST(:replyToId AS text) IS NULL
        OR EXISTS (
             SELECT 1 FROM chats.message r
             WHERE r.id = :replyToId AND r.room_id = :roomId
               AND (cm.cleared_at IS NULL OR r.created_at > cm.cleared_at))
+),
+new_msg AS (
+    INSERT INTO chats.message (id, room_id, sender_id, text, reply_to_id, attachment_id, created_at, updated_at)
+    SELECT :messageId, :roomId, :userId, :text, :replyToId, :attachmentId, ts.t, ts.t
+    FROM reply_ok CROSS JOIN ts
     ON CONFLICT (id) DO NOTHING
     RETURNING id, created_at, attachment_id
 ),
@@ -55,7 +58,12 @@ att AS (
     FROM new_msg
     WHERE f.id = new_msg.attachment_id
 )
-SELECT id, created_at FROM new_msg
+SELECT EXISTS (SELECT 1 FROM check_member) AS is_member,
+       EXISTS (SELECT 1 FROM reply_ok) AS reply_visible,
+       new_msg.id,
+       new_msg.created_at
+FROM ts
+LEFT JOIN new_msg ON true
 """;
 
   private static final String SEND_ONCE_SQL =
@@ -223,7 +231,9 @@ file_meta AS (
     FROM chats.file_metadata
     WHERE id = (SELECT attachment_id FROM new_msg)
 )
-SELECT new_msg.id, new_msg.created_at,
+SELECT EXISTS (SELECT 1 FROM check_source) AS source_member,
+       EXISTS (SELECT 1 FROM check_target) AS target_member,
+       new_msg.id, new_msg.created_at,
        orig_msg.text AS original_text, orig_msg.sender_id AS forwarded_sender_id,
        orig_msg.created_at AS forwarded_at,
        new_msg.attachment_id,
@@ -231,8 +241,9 @@ SELECT new_msg.id, new_msg.created_at,
        file_meta.mime_type AS attachment_mime,
        file_meta.original_size AS attachment_size,
        file_meta.area AS attachment_area
-FROM new_msg
-CROSS JOIN orig_msg
+FROM ts
+LEFT JOIN new_msg ON true
+LEFT JOIN orig_msg ON true
 LEFT JOIN file_meta ON true
 """;
 
@@ -244,25 +255,34 @@ LEFT JOIN file_meta ON true
   }
 
   @Override
-  public Optional<SendResult> sendMessage(
+  public SendResult sendMessage(
       String roomId,
       String userId,
       String text,
       String messageId,
       String replyToId,
       String attachmentId) {
-    return db.sqlQuery(SEND_SQL)
-        .setParameter("roomId", roomId)
-        .setParameter("userId", userId)
-        .setParameter("messageId", messageId)
-        .setParameter("text", text != null ? text : "")
-        .setParameter("replyToId", replyToId)
-        .setParameter("attachmentId", attachmentId)
-        .findOneOrEmpty()
-        .map(
-            row ->
-                new SendResult(
-                    row.getString("id"), toOffsetDateTime(row.getTimestamp("created_at"))));
+    SqlRow row =
+        db.sqlQuery(SEND_SQL)
+            .setParameter("roomId", roomId)
+            .setParameter("userId", userId)
+            .setParameter("messageId", messageId)
+            .setParameter("text", text != null ? text : "")
+            .setParameter("replyToId", replyToId)
+            .setParameter("attachmentId", attachmentId)
+            .findOne();
+    if (!Boolean.TRUE.equals(row.getBoolean("is_member"))) {
+      return SendResult.rejected(SendStatus.NOT_MEMBER);
+    }
+    String sentId = row.getString("id");
+    if (sentId != null) {
+      return new SendResult(
+          SendStatus.SENT, sentId, toOffsetDateTime(row.getTimestamp("created_at")));
+    }
+    return SendResult.rejected(
+        Boolean.TRUE.equals(row.getBoolean("reply_visible"))
+            ? SendStatus.ID_CONFLICT
+            : SendStatus.REPLY_NOT_FOUND);
   }
 
   @Override
@@ -304,8 +324,7 @@ LEFT JOIN file_meta ON true
   }
 
   @Override
-  public Optional<EditResult> editMessage(
-      String messageId, String roomId, String userId, String newText) {
+  public EditResult editMessage(String messageId, String roomId, String userId, String newText) {
     return db.sqlQuery(EDIT_SQL)
         .setParameter("roomId", roomId)
         .setParameter("userId", userId)
@@ -315,21 +334,23 @@ LEFT JOIN file_meta ON true
         .map(
             row ->
                 new EditResult(
+                    EditStatus.EDITED,
                     row.getString("id"),
                     row.getString("text"),
                     toOffsetDateTime(row.getTimestamp("updated_at")),
                     toOffsetDateTime(row.getTimestamp("created_at")),
                     Boolean.TRUE.equals(row.getBoolean("pinned"))))
-        .or(
-            () -> {
-              failIfNotVisibleToMember(messageId, roomId, userId);
-              return Optional.empty();
-            });
+        .orElseGet(
+            () ->
+                EditResult.rejected(
+                    isNotVisibleToMember(messageId, roomId, userId)
+                        ? EditStatus.NOT_VISIBLE
+                        : EditStatus.NOT_ALLOWED));
   }
 
   @Override
   @Transactional
-  public Optional<DeleteResult> deleteMessage(String messageId, String roomId, String userId) {
+  public DeleteResult deleteMessage(String messageId, String roomId, String userId) {
     Optional<SqlRow> deleted =
         db.sqlQuery(DELETE_SQL)
             .setParameter("roomId", roomId)
@@ -337,8 +358,10 @@ LEFT JOIN file_meta ON true
             .setParameter("messageId", messageId)
             .findOneOrEmpty();
     if (deleted.isEmpty()) {
-      failIfNotVisibleToMember(messageId, roomId, userId);
-      return Optional.empty();
+      return DeleteResult.rejected(
+          isNotVisibleToMember(messageId, roomId, userId)
+              ? DeleteStatus.NOT_VISIBLE
+              : DeleteStatus.NOT_ALLOWED);
     }
     Unpinned unpinned =
         db.sqlQuery(UNPIN_DELETED_SQL)
@@ -352,57 +375,60 @@ LEFT JOIN file_meta ON true
                     new Unpinned(
                         row.getString("id"), toOffsetDateTime(row.getTimestamp("created_at"))))
             .orElse(null);
-    return Optional.of(
-        new DeleteResult(
-            deleted.get().getString("id"),
-            deleted.get().getString("attachment_id"),
-            toOffsetDateTime(deleted.get().getTimestamp("deleted_at")),
-            toOffsetDateTime(deleted.get().getTimestamp("created_at")),
-            unpinned));
+    return new DeleteResult(
+        DeleteStatus.DELETED,
+        deleted.get().getString("id"),
+        deleted.get().getString("attachment_id"),
+        toOffsetDateTime(deleted.get().getTimestamp("deleted_at")),
+        toOffsetDateTime(deleted.get().getTimestamp("created_at")),
+        unpinned);
   }
 
   @Override
-  public Optional<ForwardResult> forwardMessage(
+  public ForwardResult forwardMessage(
       String sourceRoomId,
       String targetRoomId,
       String userId,
       String originalMessageId,
       String newMessageId,
       String newAttachmentId) {
-    return db.sqlQuery(FORWARD_SQL)
-        .setParameter("sourceRoomId", sourceRoomId)
-        .setParameter("targetRoomId", targetRoomId)
-        .setParameter("userId", userId)
-        .setParameter("originalMessageId", originalMessageId)
-        .setParameter("newMessageId", newMessageId)
-        .setParameter("newAttachmentId", newAttachmentId)
-        .findOneOrEmpty()
-        .map(
-            row ->
-                new ForwardResult(
-                    row.getString("id"),
-                    toOffsetDateTime(row.getTimestamp("created_at")),
-                    row.getString("original_text"),
-                    row.getString("forwarded_sender_id"),
-                    toOffsetDateTime(row.getTimestamp("forwarded_at")),
-                    row.getString("attachment_id"),
-                    row.getString("attachment_name"),
-                    row.getString("attachment_mime"),
-                    row.getLong("attachment_size"),
-                    row.getString("attachment_area")));
+    SqlRow row =
+        db.sqlQuery(FORWARD_SQL)
+            .setParameter("sourceRoomId", sourceRoomId)
+            .setParameter("targetRoomId", targetRoomId)
+            .setParameter("userId", userId)
+            .setParameter("originalMessageId", originalMessageId)
+            .setParameter("newMessageId", newMessageId)
+            .setParameter("newAttachmentId", newAttachmentId)
+            .findOne();
+    if (row.getString("id") == null) {
+      boolean memberOfBoth =
+          Boolean.TRUE.equals(row.getBoolean("source_member"))
+              && Boolean.TRUE.equals(row.getBoolean("target_member"));
+      return ForwardResult.rejected(
+          memberOfBoth ? ForwardStatus.MESSAGE_NOT_FOUND : ForwardStatus.NOT_MEMBER);
+    }
+    return new ForwardResult(
+        ForwardStatus.FORWARDED,
+        row.getString("id"),
+        toOffsetDateTime(row.getTimestamp("created_at")),
+        row.getString("original_text"),
+        row.getString("forwarded_sender_id"),
+        toOffsetDateTime(row.getTimestamp("forwarded_at")),
+        row.getString("attachment_id"),
+        row.getString("attachment_name"),
+        row.getString("attachment_mime"),
+        row.getLong("attachment_size"),
+        row.getString("attachment_area"));
   }
 
-  private void failIfNotVisibleToMember(String messageId, String roomId, String userId) {
-    boolean hidden =
-        db.sqlQuery(NOT_VISIBLE_TO_MEMBER_SQL)
-            .setParameter("roomId", roomId)
-            .setParameter("userId", userId)
-            .setParameter("messageId", messageId)
-            .findOneOrEmpty()
-            .isPresent();
-    if (hidden) {
-      throw new NotFoundException(String.format("Message '%s' not found", messageId));
-    }
+  private boolean isNotVisibleToMember(String messageId, String roomId, String userId) {
+    return db.sqlQuery(NOT_VISIBLE_TO_MEMBER_SQL)
+        .setParameter("roomId", roomId)
+        .setParameter("userId", userId)
+        .setParameter("messageId", messageId)
+        .findOneOrEmpty()
+        .isPresent();
   }
 
   private static OffsetDateTime toOffsetDateTime(Timestamp ts) {

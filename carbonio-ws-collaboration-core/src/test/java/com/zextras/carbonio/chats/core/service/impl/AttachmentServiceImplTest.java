@@ -48,15 +48,14 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
+import com.zextras.carbonio.chats.core.infrastructure.event.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomAccess;
-import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
@@ -86,7 +85,6 @@ public class AttachmentServiceImplTest {
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService storagesService;
   private final RoomAccess roomAccess;
-  private final ChatMessageService chatMessageService;
   private final MessageWriteRepository messageWriteRepository;
   private final MessageRepository messageRepository;
   private final MessageReceivedBroadcaster broadcaster;
@@ -97,8 +95,7 @@ public class AttachmentServiceImplTest {
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.storagesService = mock(StoragesService.class);
     this.roomAccess = mock(RoomAccess.class);
-    this.chatMessageService = mock(ChatMessageService.class);
-    when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
+    when(roomAccess.getVisibilityFloor(anyString(), anyString()))
         .thenReturn(new VisibilityFloor(null));
     this.messageWriteRepository = mock(MessageWriteRepository.class);
     this.messageRepository = mock(MessageRepository.class);
@@ -114,14 +111,13 @@ public class AttachmentServiceImplTest {
             this.fileMetadataRepository,
             this.storagesService,
             this.roomAccess,
-            this.chatMessageService,
             this.messageWriteRepository,
             this.messageRepository,
             this.broadcaster,
             new TimelineItemMapper(new JacksonConfig().get()),
             this.objectMapper,
             this.previewClient,
-            new AttachmentAccessValidator(chatMessageService, mock(MessageRepository.class)));
+            new AttachmentAccessValidator(roomAccess, mock(MessageRepository.class)));
   }
 
   private static UUID user1Id;
@@ -205,9 +201,8 @@ public class AttachmentServiceImplTest {
       assertEquals(file1Id.toString(), attachmentsPagination.attachments().get(0).getId());
       assertEquals(file2Id.toString(), attachmentsPagination.attachments().get(1).getId());
       assertNull(attachmentsPagination.cursor());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), user1Id.toString());
-      verifyNoInteractions(roomAccess);
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), user1Id.toString());
+      verifyNoMoreInteractions(roomAccess);
     }
 
     @Test
@@ -307,9 +302,8 @@ public class AttachmentServiceImplTest {
                           "created_at",
                           "desc")));
       assertEquals(expectedCursor, attachmentsPagination.cursor());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), user1Id.toString());
-      verifyNoInteractions(roomAccess);
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), user1Id.toString());
+      verifyNoMoreInteractions(roomAccess);
     }
 
     @Test
@@ -349,9 +343,8 @@ public class AttachmentServiceImplTest {
       assertEquals(1, attachmentsPagination.attachments().size());
       assertEquals(file2Id.toString(), attachmentsPagination.attachments().get(0).getId());
       assertNull(attachmentsPagination.cursor());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), user1Id.toString());
-      verifyNoInteractions(roomAccess);
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), user1Id.toString());
+      verifyNoMoreInteractions(roomAccess);
     }
 
     @Test
@@ -360,7 +353,7 @@ public class AttachmentServiceImplTest {
             + " 'forbidden' exception")
     void getAttachmentInfoByRoomId_testAuthenticatedUserIsNotARoomMember() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenThrow(
               new ForbiddenException(
                   String.format(
@@ -376,7 +369,7 @@ public class AttachmentServiceImplTest {
     void getAttachmentInfoByRoomId_appliesVisibilityFloor() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       OffsetDateTime clearedAt = OffsetDateTime.now().minusDays(1);
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenReturn(new VisibilityFloor(clearedAt));
       ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
       when(fileMetadataRepository.getByRoomIdAndType(
@@ -396,7 +389,7 @@ public class AttachmentServiceImplTest {
     @DisplayName("Re throws the exception if the room was not found")
     void getAttachmentInfoByRoomId_testRoomNotFound() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException =
@@ -423,9 +416,8 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachmentsPagination);
       assertEquals(0, attachmentsPagination.attachments().size());
       assertNull(attachmentsPagination.cursor());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), user1Id.toString());
-      verifyNoInteractions(roomAccess);
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), user1Id.toString());
+      verifyNoMoreInteractions(roomAccess);
     }
   }
 
@@ -464,8 +456,7 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachmentById.getMetadata());
       assertEquals(attachmentUuid.toString(), attachmentById.getMetadata().getId());
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), currentUser.getId());
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verify(storagesService, times(1))
           .getFileStreamById(attachmentUuid.toString(), user1Id.toString());
       verifyNoMoreInteractions(fileMetadataRepository, roomAccess, storagesService);
@@ -510,7 +501,7 @@ public class AttachmentServiceImplTest {
                       .createdAt(OffsetDateTime.now())
                       .updatedAt(OffsetDateTime.now())
                       .build()));
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenThrow(new ForbiddenException());
 
       assertThrows(
@@ -518,8 +509,7 @@ public class AttachmentServiceImplTest {
           () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
 
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), currentUser.getId());
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verifyNoMoreInteractions(fileMetadataRepository, roomAccess);
       verifyNoInteractions(storagesService);
     }
@@ -543,7 +533,7 @@ public class AttachmentServiceImplTest {
                       .createdAt(OffsetDateTime.now())
                       .updatedAt(OffsetDateTime.now())
                       .build()));
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException =
@@ -553,8 +543,7 @@ public class AttachmentServiceImplTest {
       assertEquals("Not Found - Not Found", notFoundException.getMessage());
 
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), currentUser.getId());
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verifyNoMoreInteractions(fileMetadataRepository, roomAccess);
       verifyNoInteractions(storagesService);
     }
@@ -586,8 +575,7 @@ public class AttachmentServiceImplTest {
           () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
 
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), currentUser.getId());
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verify(storagesService, times(1))
           .getFileStreamById(attachmentUuid.toString(), user1Id.toString());
       verifyNoMoreInteractions(fileMetadataRepository, roomAccess, storagesService);
@@ -623,8 +611,7 @@ public class AttachmentServiceImplTest {
 
       assertNotNull(attachmentInfo);
       assertEquals(attachmentUuid.toString(), attachmentInfo.getId());
-      verify(chatMessageService, times(1))
-          .getVisibilityFloor(roomId.toString(), currentUser.getId());
+      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verifyNoMoreInteractions(roomAccess);
     }
 
@@ -663,7 +650,7 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(metadata));
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenThrow(new ForbiddenException());
 
       assertThrows(
@@ -690,7 +677,7 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(metadata));
-      when(chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId()))
+      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
           .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException =
@@ -711,15 +698,14 @@ public class AttachmentServiceImplTest {
       UUID attachmentUuid = UUID.randomUUID();
       OffsetDateTime attachmentDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenReturn(new VisibilityFloor(null));
       InputStream fileStream = mock(InputStream.class);
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
           .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.SendResult(
-                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+              new MessageWriteRepository.SendResult(
+                  MessageWriteRepository.SendStatus.SENT,
+                  MESSAGE_ID,
+                  OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class, Mockito.CALLS_REAL_METHODS)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
 
@@ -745,74 +731,10 @@ public class AttachmentServiceImplTest {
         assertEquals(attachmentDate, created.getCreatedAt());
       }
 
-      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verify(storagesService, times(1))
           .saveFile(fileStream, attachmentUuid.toString(), currentUser.getId(), 1024L);
-      verifyNoMoreInteractions(roomAccess, storagesService);
-    }
-
-    @Test
-    @DisplayName("Re throws an exception if the room is not found")
-    void addAttachment_testErrorRoomNotFound() {
-      UUID attachmentUuid = UUID.randomUUID();
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      InputStream fileStream = mock(InputStream.class);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenThrow(new NotFoundException());
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        assertThrows(
-            NotFoundException.class,
-            () ->
-                attachmentService.addAttachment(
-                    roomId,
-                    fileStream,
-                    "application/pdf",
-                    1024L,
-                    "temp.pdf",
-                    "description",
-                    null,
-                    null,
-                    null,
-                    MESSAGE_ID,
-                    currentUser));
-      }
-
-      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
-      verifyNoMoreInteractions(roomAccess, storagesService, fileMetadataRepository);
-    }
-
-    @Test
-    @DisplayName("Re throws an exception if the user is not a member of the room")
-    void addAttachment_testErrorForbiddenException() {
-      UUID attachmentUuid = UUID.randomUUID();
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      InputStream fileStream = mock(InputStream.class);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenThrow(new ForbiddenException());
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        assertThrows(
-            ForbiddenException.class,
-            () ->
-                attachmentService.addAttachment(
-                    roomId,
-                    fileStream,
-                    "application/pdf",
-                    1024L,
-                    "temp.pdf",
-                    "description",
-                    null,
-                    null,
-                    null,
-                    MESSAGE_ID,
-                    currentUser));
-      }
-
-      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
-      verifyNoMoreInteractions(roomAccess, storagesService, fileMetadataRepository);
+      verifyNoInteractions(roomAccess);
+      verifyNoMoreInteractions(storagesService);
     }
 
     @Test
@@ -821,8 +743,6 @@ public class AttachmentServiceImplTest {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       InputStream fileStream = mock(InputStream.class);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenReturn(new VisibilityFloor(null));
       doThrow(new StorageException())
           .when(storagesService)
           .saveFile(fileStream, attachmentUuid.toString(), user1Id.toString(), 1024L);
@@ -846,24 +766,23 @@ public class AttachmentServiceImplTest {
                     currentUser));
       }
 
-      verify(roomAccess, times(1)).getVisibilityFloor(roomId.toString(), currentUser.getId());
       verify(storagesService, times(1))
           .saveFile(fileStream, attachmentUuid.toString(), currentUser.getId(), 1024L);
-      verifyNoMoreInteractions(roomAccess, storagesService, fileMetadataRepository);
+      verifyNoInteractions(roomAccess);
+      verifyNoMoreInteractions(storagesService, fileMetadataRepository);
     }
 
     @Test
     @DisplayName("Creates the message with the id given by the caller")
     void addAttachment_usesTheGivenMessageId() throws Exception {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenReturn(new VisibilityFloor(null));
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
           .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.SendResult(
-                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+              new MessageWriteRepository.SendResult(
+                  MessageWriteRepository.SendStatus.SENT,
+                  MESSAGE_ID,
+                  OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       Message created =
           attachmentService.addAttachment(
@@ -902,11 +821,11 @@ public class AttachmentServiceImplTest {
     void addAttachment_sendFailureDeletesTheBlob() throws Exception {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID attachmentUuid = UUID.randomUUID();
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenReturn(new VisibilityFloor(null));
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
-          .thenReturn(Optional.empty());
+          .thenReturn(
+              MessageWriteRepository.SendResult.rejected(
+                  MessageWriteRepository.SendStatus.REPLY_NOT_FOUND));
 
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class, Mockito.CALLS_REAL_METHODS)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
@@ -943,14 +862,13 @@ public class AttachmentServiceImplTest {
     @DisplayName("A broadcast failure after the insert keeps the blob and the message")
     void addAttachment_broadcastFailureKeepsTheUpload() throws Exception {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenReturn(new VisibilityFloor(null));
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
           .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.SendResult(
-                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+              new MessageWriteRepository.SendResult(
+                  MessageWriteRepository.SendStatus.SENT,
+                  MESSAGE_ID,
+                  OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       doThrow(new IllegalStateException("broker down"))
           .when(broadcaster)
           .broadcast(anyString(), any(), any());
@@ -980,14 +898,13 @@ public class AttachmentServiceImplTest {
     @DisplayName("A failure while building the broadcast payload keeps the blob and the message")
     void addAttachment_payloadFailureKeepsTheUpload() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId()))
-          .thenReturn(new VisibilityFloor(null));
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
           .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.SendResult(
-                      MESSAGE_ID, OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+              new MessageWriteRepository.SendResult(
+                  MessageWriteRepository.SendStatus.SENT,
+                  MESSAGE_ID,
+                  OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       when(messageRepository.getById(REPLY_ID)).thenThrow(new IllegalStateException("db down"));
 
       assertDoesNotThrow(
@@ -1016,8 +933,6 @@ public class AttachmentServiceImplTest {
 
     private Message send(String replyId) {
       UserPrincipal sender = UserPrincipal.create(user1Id);
-      when(roomAccess.getVisibilityFloor(roomId.toString(), sender.getId()))
-          .thenReturn(new VisibilityFloor(null));
       return attachmentService.addAttachment(
           roomId,
           mock(InputStream.class),
@@ -1036,9 +951,10 @@ public class AttachmentServiceImplTest {
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
           .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.SendResult(
-                      MESSAGE_ID, OffsetDateTime.parse("2026-01-01T10:00:00Z"))));
+              new MessageWriteRepository.SendResult(
+                  MessageWriteRepository.SendStatus.SENT,
+                  MESSAGE_ID,
+                  OffsetDateTime.parse("2026-01-01T10:00:00Z")));
     }
 
     @Test
@@ -1063,7 +979,9 @@ public class AttachmentServiceImplTest {
     void deletesTheMetadataWhenTheSendFailsOnReplyTarget() throws Exception {
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
-          .thenReturn(Optional.empty());
+          .thenReturn(
+              MessageWriteRepository.SendResult.rejected(
+                  MessageWriteRepository.SendStatus.REPLY_NOT_FOUND));
 
       assertThrows(NotFoundException.class, () -> send(REPLY_ID));
 
@@ -1075,7 +993,9 @@ public class AttachmentServiceImplTest {
     void deletesTheMetadataWhenTheSenderIsNotAMember() {
       when(messageWriteRepository.sendMessage(
               anyString(), anyString(), anyString(), anyString(), any(), anyString()))
-          .thenReturn(Optional.empty());
+          .thenReturn(
+              MessageWriteRepository.SendResult.rejected(
+                  MessageWriteRepository.SendStatus.NOT_MEMBER));
 
       assertThrows(ForbiddenException.class, () -> send(null));
 

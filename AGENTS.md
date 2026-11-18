@@ -39,11 +39,20 @@
 - Presence lives in `core.service.presence` (`PresenceService`, `WsPresenceManager`,
   `WsPresenceJanitorService`, `WsPresenceBootCleaner`, `PresenceBroadcaster`); `core.web.socket` keeps
   only the WebSocket endpoint, session and handler classes plus the video-server listeners.
+- `ChatMessageService` is the message service: send (plain and `tempId` send-once), upload, edit, delete, forward,
+  timeline, search, pins, reactions and read markers check the actor's membership, write, then build and dispatch
+  the WebSocket events (`MessageReceivedBroadcaster` is its helper). `RoomsApiServiceImpl` only parses requests,
+  calls it and maps results to DTOs; it has no repository dependency. `MessageWriteRepository` reports outcomes as
+  status enums (`SendStatus`, `SendOnceStatus`, `EditStatus`, `DeleteStatus`, `ForwardStatus`) that the service maps
+  to the HTTP exceptions; the controller turns the 403/404 of send, edit and delete into a plain-text body.
 - `MessageSentListener` (multibound in `ChatModule`, empty by default) is called by
-  `RoomsApiServiceImpl.sendMessage`, `insertAttachmentMultipart` (text = caption or `""`), `editMessage` (text =
-  new text) and `setReaction` for every reaction set, including the same value again (text = emoji; `removeReaction` never calls it) after the
+  `ChatMessageServiceImpl.sendMessage`, `uploadAttachment` (text = caption or `""`), `editMessage` (text =
+  new text) and `setReaction(..., UserPrincipal, ...)` for every reaction set, including the same value again (text = emoji; `removeReaction` never calls it) after the
   change is stored and broadcast; downstream builds add listeners with
   `Multibinder.newSetBinder(binder(), MessageSentListener.class).addBinding()`.
+- Services never import `core.web.*` except `core.web.security.UserPrincipal`: the payload mapper
+  `TimelineItemMapper` lives in `core.infrastructure.event.mapper` and the WebSocket session registry
+  (`EventWebSocketSessions`, `SessionPingManager`) in `core.infrastructure.websocket`.
 - **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
   dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit
   `bind(NewClass.class);` in the module that owns the feature (project convention, even though Guice can JIT-bind).

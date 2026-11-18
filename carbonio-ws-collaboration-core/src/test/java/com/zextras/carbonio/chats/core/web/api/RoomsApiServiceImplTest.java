@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
@@ -25,13 +25,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.zextras.carbonio.async.model.MessagePinned;
-import com.zextras.carbonio.async.model.ReactionChanged;
-import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -39,7 +35,9 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Message;
+import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
+import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
@@ -49,7 +47,13 @@ import com.zextras.carbonio.chats.core.data.model.AttachmentsPage;
 import com.zextras.carbonio.chats.core.data.model.BulkDeleteResult;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.InsertedMember;
-import com.zextras.carbonio.chats.core.data.model.PinResult;
+import com.zextras.carbonio.chats.core.data.model.MessageContext;
+import com.zextras.carbonio.chats.core.data.model.MessageSearchPage;
+import com.zextras.carbonio.chats.core.data.model.PinnedMessagesView;
+import com.zextras.carbonio.chats.core.data.model.ReadMarkersView;
+import com.zextras.carbonio.chats.core.data.model.TimelineItem;
+import com.zextras.carbonio.chats.core.data.model.TimelinePage;
+import com.zextras.carbonio.chats.core.data.model.TimelineView;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -60,19 +64,10 @@ import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageReceivedBroadcaster;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
-import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
-import com.zextras.carbonio.chats.core.repository.MessageRepository;
-import com.zextras.carbonio.chats.core.repository.MessageSendDedupRepository;
-import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
-import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
-import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
-import com.zextras.carbonio.chats.core.repository.impl.TimelineRepositoryImpl;
+import com.zextras.carbonio.chats.core.infrastructure.event.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatExportService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -81,9 +76,7 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.service.RoomLifecycleService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.spi.MessageSentListener;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
-import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.api.mapper.impl.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.web.api.mapper.impl.MeetingMapperImpl;
 import com.zextras.carbonio.chats.core.web.api.mapper.impl.ParticipantMapperImpl;
@@ -96,15 +89,21 @@ import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsRequestDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.ChatMessageTimelineItemDto;
+import com.zextras.carbonio.chats.model.DeletedInfoDto;
+import com.zextras.carbonio.chats.model.EditedInfoDto;
 import com.zextras.carbonio.chats.model.ForwardMessagesRequestDto;
 import com.zextras.carbonio.chats.model.ForwardMessagesRequestMessagesInnerDto;
+import com.zextras.carbonio.chats.model.ForwardedInfoDto;
 import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.MessageDto;
+import com.zextras.carbonio.chats.model.MessageSearchResultDto;
 import com.zextras.carbonio.chats.model.MimeTypeCategoryDto;
+import com.zextras.carbonio.chats.model.PinnedMessageDto;
+import com.zextras.carbonio.chats.model.ReadMarkerDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -113,14 +112,12 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.SendMessageRequestDto;
 import com.zextras.carbonio.chats.model.TimelineDto;
 import com.zextras.carbonio.chats.model.TimelineItemTypeDto;
-import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -148,18 +145,8 @@ class RoomsApiServiceImplTest {
   private final AttachmentService attachmentService;
   private final MeetingService meetingService;
   private final SecurityContext securityContext;
-  private final MessageWriteRepository messageWriteRepository;
-  private final MessageSentListener messageSentListener;
   private final ChatMessageService chatMessageService;
-  private final SystemEventRepository systemEventRepository;
-  private final MessageRepository messageRepository;
-  private final FileMetadataRepository fileMetadataRepository;
-  private final SubscriptionRepository subscriptionRepository;
-  private final StoragesService storagesService;
-  private final EventDispatcher eventDispatcher;
-  private final MessageReceivedBroadcaster messageReceivedBroadcaster;
   private final ObjectMapper objectMapper;
-  private final MessageSendDedupRepository messageSendDedupRepository;
 
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
@@ -170,24 +157,12 @@ class RoomsApiServiceImplTest {
     this.attachmentService = mock(AttachmentService.class);
     this.meetingService = mock(MeetingService.class);
     this.chatMessageService = mock(ChatMessageService.class);
-    when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
-        .thenReturn(new VisibilityFloor(null));
-    this.eventDispatcher = mock(EventDispatcher.class);
-    this.messageReceivedBroadcaster = mock(MessageReceivedBroadcaster.class);
     this.objectMapper =
         JsonMapper.builder()
             .addModule(new JavaTimeModule())
             .build()
             .setDateFormat(new RFC3339DateFormat());
-    this.fileMetadataRepository = mock(FileMetadataRepository.class);
-    this.messageRepository = mock(MessageRepository.class);
-    this.messageWriteRepository = mock(MessageWriteRepository.class);
-    this.storagesService = mock(StoragesService.class);
-    this.systemEventRepository = mock(SystemEventRepository.class);
-    this.subscriptionRepository = mock(SubscriptionRepository.class);
-    this.messageSentListener = mock(MessageSentListener.class);
     ChatExportService chatExportService = mock(ChatExportService.class);
-    this.messageSendDedupRepository = mock(MessageSendDedupRepository.class);
     this.roomsApiService =
         new RoomsApiServiceImpl(
             roomService,
@@ -197,19 +172,8 @@ class RoomsApiServiceImplTest {
             attachmentService,
             meetingService,
             chatMessageService,
-            eventDispatcher,
-            objectMapper,
-            fileMetadataRepository,
-            messageRepository,
-            messageWriteRepository,
-            storagesService,
-            new TimelineRepositoryImpl(messageRepository, systemEventRepository),
-            subscriptionRepository,
-            messageReceivedBroadcaster,
-            Set.of(messageSentListener),
             chatExportService,
             new TimelineItemMapper(objectMapper),
-            messageSendDedupRepository,
             new RoomMapperImpl(new SubscriptionMapperImpl()),
             new SubscriptionMapperImpl(),
             new AttachmentMapperImpl(),
@@ -268,7 +232,8 @@ class RoomsApiServiceImplTest {
         roomLifecycleService,
         membersService,
         attachmentService,
-        meetingService);
+        meetingService,
+        chatMessageService);
     reset(
         roomService,
         roomAccess,
@@ -277,8 +242,7 @@ class RoomsApiServiceImplTest {
         attachmentService,
         meetingService,
         securityContext,
-        chatMessageService,
-        systemEventRepository);
+        chatMessageService);
   }
 
   @Nested
@@ -2091,1532 +2055,6 @@ class RoomsApiServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Insert attachment multipart tests")
-  class InsertAttachmentMultipartTest {
-
-    InputStream attachment = mock(InputStream.class);
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user with all fields")
-    void insertAttachmentMultipart_testAuthenticatedUser_withAllFields() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName())
-          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart descriptionPart = mock(InputPart.class);
-      when(descriptionPart.getBody(String.class, null)).thenReturn("test");
-      formDataMap.put("description", List.of(descriptionPart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      InputPart replyToIdPart = mock(InputPart.class);
-      when(replyToIdPart.getBody(String.class, null)).thenReturn("reply-id");
-      formDataMap.put("replyToId", List.of(replyToIdPart));
-      InputPart areaPart = mock(InputPart.class);
-      when(areaPart.getBody(String.class, null)).thenReturn("10x5");
-      formDataMap.put("area", List.of(areaPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-      UUID createdId = UUID.randomUUID();
-      when(attachmentService.addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              eq("test"),
-              eq("reply-id"),
-              eq("10x5"),
-              isNull(),
-              anyString(),
-              eq(user1)))
-          .thenReturn(createdMessage(createdId, "test"));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      verify(attachmentService, times(1))
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              eq("test"),
-              eq("reply-id"),
-              eq("10x5"),
-              isNull(),
-              anyString(),
-              eq(user1));
-      verifyNoInteractions(messageSendDedupRepository);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, createdId.toString(), "test", attachmentCreatedAt);
-    }
-
-    @BeforeEach
-    void stubAddAttachmentWithACreatedMessage() throws Exception {
-      when(attachmentService.addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-          .thenReturn(createdMessage(UUID.randomUUID(), ""));
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart notifies the message-sent listeners with the caption")
-    void insertAttachmentMultipart_notifiesMessageSentListenersWithCaption() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      UUID createdId = UUID.randomUUID();
-      when(attachmentService.addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              eq("a caption"),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1)))
-          .thenReturn(createdMessage(createdId, "a caption"));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              attachmentForm("a caption"), roomId, securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verify(attachmentService, times(1))
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              eq("a caption"),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1));
-      verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, createdId.toString(), "a caption", attachmentCreatedAt);
-    }
-
-    @Test
-    @DisplayName(
-        "Insert attachment multipart without a caption notifies the listeners with an empty text")
-    void insertAttachmentMultipart_withoutCaption_notifiesMessageSentListenersWithEmptyText()
-        throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      UUID createdId = UUID.randomUUID();
-      when(attachmentService.addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1)))
-          .thenReturn(createdMessage(createdId, ""));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(attachmentForm(null), roomId, securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verify(attachmentService, times(1))
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1));
-      verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, createdId.toString(), "", attachmentCreatedAt);
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart answers 201 even when a message-sent listener fails")
-    void insertAttachmentMultipart_listenerFails_stillCreated() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      UUID createdId = UUID.randomUUID();
-      Message created = createdMessage(createdId, "");
-      when(attachmentService.addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1)))
-          .thenReturn(created);
-      doThrow(new RuntimeException("listener failure"))
-          .when(messageSentListener)
-          .onMessageSent(user1, roomId, createdId.toString(), "", attachmentCreatedAt);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(attachmentForm(null), roomId, securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      assertEquals(
-          MessageDto.create()
-              .id(createdId)
-              .roomId(roomId)
-              .senderId(user1Id)
-              .text("")
-              .attachmentId(UUID.fromString(created.getAttachmentId()))
-              .createdAt(attachmentCreatedAt),
-          response.getEntity());
-      verify(attachmentService, times(1))
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1));
-      verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, createdId.toString(), "", attachmentCreatedAt);
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart does not notify the listeners when the upload fails")
-    void insertAttachmentMultipart_uploadFails_doesNotNotifyMessageSentListeners()
-        throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(attachmentService.addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1)))
-          .thenThrow(new ForbiddenException("not a member"));
-      MultipartFormDataInput form = attachmentForm(null);
-
-      assertThrows(
-          ForbiddenException.class,
-          () -> roomsApiService.insertAttachmentMultipart(form, roomId, securityContext));
-
-      verify(attachmentService, times(1))
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1));
-      verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
-    }
-
-    private MultipartFormDataInput attachmentForm(String caption) throws Exception {
-      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName()).thenReturn(genericFileName);
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      if (caption != null) {
-        InputPart descriptionPart = mock(InputPart.class);
-        when(descriptionPart.getBody(String.class, null)).thenReturn(caption);
-        formDataMap.put("description", List.of(descriptionPart));
-      }
-      when(input.getFormDataMap()).thenReturn(formDataMap);
-      return input;
-    }
-
-    private final OffsetDateTime attachmentCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-
-    private Message createdMessage(UUID id, String text) {
-      return Message.create()
-          .id(id.toString())
-          .createdAt(attachmentCreatedAt)
-          .roomId(roomId.toString())
-          .senderId(user1Id.toString())
-          .text(text)
-          .attachmentId(UUID.randomUUID().toString());
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user with feature disabled")
-    void insertAttachmentMultipart_testAuthenticatedUser_featureDisabled() {
-      when(securityContext.getUserPrincipal()).thenReturn(user2);
-
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      assertThrows(
-          ForbiddenException.class,
-          () ->
-              roomsApiService.insertAttachmentMultipart(
-                  multipartFormDataInput, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName(
-        "Insert attachment multipart with an authenticated user with invalid content length format")
-    void insertAttachmentMultipart_testAuthenticatedUser_invalidContentLengthFormat()
-        throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName())
-          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("not-a-number");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      assertThrows(
-          BadRequestException.class,
-          () ->
-              roomsApiService.insertAttachmentMultipart(
-                  multipartFormDataInput, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName(
-        "Insert attachment multipart with an authenticated user with negative content length")
-    void insertAttachmentMultipart_testAuthenticatedUser_negativeContentLength() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName())
-          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("-1");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      assertThrows(
-          BadRequestException.class,
-          () ->
-              roomsApiService.insertAttachmentMultipart(
-                  multipartFormDataInput, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName(
-        "Insert attachment multipart that exceeds the max size limit with an authenticated user")
-    void insertAttachmentMultipart_testAuthenticatedUser_maxSizeLimitExceeded() throws Exception {
-      user2.carbonioAttributes(
-          Map.of(
-              CarbonioAttribute.WSC_ATTACHMENT_UPLOAD.getValue(),
-              "TRUE",
-              CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE.getValue(),
-              "1"));
-      when(securityContext.getUserPrincipal()).thenReturn(user2);
-
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName())
-          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("268435456");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      assertThrows(
-          ForbiddenException.class,
-          () ->
-              roomsApiService.insertAttachmentMultipart(
-                  multipartFormDataInput, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user without file")
-    void insertAttachmentMultipart_testAuthenticatedUser_fileNotFound() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
-      assertEquals("File not found", response.getEntity().toString());
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user without file name")
-    void insertAttachmentMultipart_testAuthenticatedUser_fileNameNotFound() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
-      assertEquals("File name not found", response.getEntity().toString());
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user without mime type")
-    void insertAttachmentMultipart_testAuthenticatedUser_mimeTypeNotFound() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName()).thenReturn("fileName");
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
-      assertEquals("Mime type not found", response.getEntity().toString());
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user without content length")
-    void insertAttachmentMultipart_testAuthenticatedUser_contentLengthNotFound() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName()).thenReturn("fileName");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
-      assertEquals("Content length not found", response.getEntity().toString());
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with an authenticated user with invalid area format")
-    void insertAttachmentMultipart_testAuthenticatedUser_invalidAreaFormat() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName()).thenReturn("fileName");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      InputPart areaPart = mock(InputPart.class);
-      when(areaPart.getBody(String.class, null)).thenReturn("10+5");
-      formDataMap.put("area", List.of(areaPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
-      assertEquals("Invalid area format", response.getEntity().toString());
-    }
-
-    @Test
-    @DisplayName(
-        "Insert attachment multipart with an authenticated user but unable to get file body")
-    void insertAttachmentMultipart_testAuthenticatedUser_returnsInternalServerError()
-        throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenThrow(RuntimeException.class);
-      when(filePart.getFileName()).thenReturn("fileName");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      formDataMap.put("contentLength", List.of(contentLengthPart));
-      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipartFormDataInput, roomId, securityContext);
-
-      assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatus());
-      assertEquals("Error processing file", response.getEntity());
-    }
-
-    private InputPart textPart(String value, boolean contentTypeFromMessage) throws Exception {
-      InputPart part = mock(InputPart.class);
-      when(part.getBody(String.class, null)).thenReturn(value);
-      when(part.isContentTypeFromMessage()).thenReturn(contentTypeFromMessage);
-      return part;
-    }
-
-    private MultipartFormDataInput multipart(String fileName, Map<String, InputPart> textParts)
-        throws Exception {
-      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
-      Map<String, List<InputPart>> formDataMap = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName()).thenReturn(fileName);
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      formDataMap.put("file", List.of(filePart));
-      formDataMap.put("contentLength", List.of(textPart("1024", true)));
-      textParts.forEach((name, part) -> formDataMap.put(name, List.of(part)));
-      when(input.getFormDataMap()).thenReturn(formDataMap);
-      return input;
-    }
-
-    @Test
-    @DisplayName("A raw file name is used as-is")
-    void insertAttachmentMultipart_rawFileNameIsUsedAsIs() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      for (String name : List.of("foto.jpg", "foto àè.jpg", "cafe", "foto\\u00e0.jpg")) {
-        Response response =
-            roomsApiService.insertAttachmentMultipart(
-                multipart(name, Map.of()), roomId, securityContext);
-
-        assertEquals(Status.CREATED.getStatusCode(), response.getStatus(), name);
-        verify(attachmentService)
-            .addAttachment(
-                eq(roomId),
-                eq(attachment),
-                eq("image/jpeg"),
-                eq(1024L),
-                eq(name),
-                isNull(),
-                isNull(),
-                isNull(),
-                isNull(),
-                anyString(),
-                eq(user1));
-      }
-    }
-
-    @Test
-    @DisplayName("A fully escaped file name is decoded")
-    void insertAttachmentMultipart_escapedFileNameIsDecoded() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-
-      roomsApiService.insertAttachmentMultipart(
-          multipart("\\ud83d\\ude00\\u002e\\u006a\\u0070\\u0067", Map.of()),
-          roomId,
-          securityContext);
-
-      verify(attachmentService)
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("😀.jpg"),
-              isNull(),
-              isNull(),
-              isNull(),
-              isNull(),
-              anyString(),
-              eq(user1));
-    }
-
-    @Test
-    @DisplayName("A file name that decodes to a lone surrogate is a bad request")
-    void insertAttachmentMultipart_loneSurrogateFileNameIsBadRequest() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput input = multipart("\\ud83d", Map.of());
-
-      assertThrows(
-          BadRequestException.class,
-          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName("Text parts without a content type are read as UTF-8, explicit ones are kept")
-    void insertAttachmentMultipart_textPartsWithoutContentTypeAreUtf8() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      InputPart descriptionPart = textPart("àè", false);
-      InputPart areaPart = textPart("10x5", true);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipart(genericFileName, Map.of("description", descriptionPart, "area", areaPart)),
-              roomId,
-              securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verify(descriptionPart).setMediaType(MediaType.TEXT_PLAIN_TYPE.withCharset("UTF-8"));
-      verify(areaPart, never()).setMediaType(any());
-      verify(attachmentService)
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              eq("àè"),
-              isNull(),
-              eq("10x5"),
-              isNull(),
-              anyString(),
-              eq(user1));
-    }
-
-    @Test
-    @DisplayName("A tempId longer than 64 characters is a bad request")
-    void insertAttachmentMultipart_tempIdTooLong() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput input =
-          multipart(genericFileName, Map.of("tempId", textPart("t".repeat(65), false)));
-
-      assertThrows(
-          BadRequestException.class,
-          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName("A description longer than 8192 characters is a bad request")
-    void insertAttachmentMultipart_descriptionTooLong() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput input =
-          multipart(genericFileName, Map.of("description", textPart("d".repeat(8193), false)));
-
-      assertThrows(
-          BadRequestException.class,
-          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName("A tempId of 64 characters and a description of 8192 characters are accepted")
-    void insertAttachmentMultipart_limitsAreInclusive() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
-          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
-      String tempId = "t".repeat(64);
-      String description = "d".repeat(8192);
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(
-              multipart(
-                  genericFileName,
-                  Map.of(
-                      "tempId",
-                      textPart(tempId, false),
-                      "description",
-                      textPart(description, false))),
-              roomId,
-              securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verify(attachmentService)
-          .addAttachment(
-              eq(roomId),
-              eq(attachment),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              eq(description),
-              isNull(),
-              isNull(),
-              eq(tempId),
-              anyString(),
-              eq(user1));
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with a guest user")
-    void insertAttachmentMultipart_testGuestUser() {
-      when(securityContext.getUserPrincipal()).thenReturn(guest);
-
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      assertThrows(
-          ForbiddenException.class,
-          () ->
-              roomsApiService.insertAttachmentMultipart(
-                  multipartFormDataInput, roomId, securityContext));
-    }
-
-    @Test
-    @DisplayName("Insert attachment multipart with a non-valid user")
-    void insertAttachmentMultipart_testUnauthorizedUser() {
-      when(securityContext.getUserPrincipal()).thenReturn(null);
-
-      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
-
-      assertThrows(
-          UnauthorizedException.class,
-          () ->
-              roomsApiService.insertAttachmentMultipart(
-                  multipartFormDataInput, roomId, securityContext));
-    }
-  }
-
-  @Nested
-  @DisplayName("Send idempotency on tempId tests")
-  class SendIdempotencyTest {
-
-    private final OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T20:00:00Z");
-
-    private Message original(String id, String attachmentId) {
-      return Message.create()
-          .id(id)
-          .roomId(roomId.toString())
-          .senderId(user1Id.toString())
-          .text("hello")
-          .createdAt(createdAt)
-          .attachmentId(attachmentId);
-    }
-
-    private MultipartFormDataInput upload(String tempId) throws Exception {
-      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
-      Map<String, List<InputPart>> form = new HashMap<>();
-      InputPart filePart = mock(InputPart.class);
-      when(filePart.getBody(InputStream.class, null)).thenReturn(mock(InputStream.class));
-      when(filePart.getFileName())
-          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
-      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
-      form.put("file", List.of(filePart));
-      InputPart contentLengthPart = mock(InputPart.class);
-      when(contentLengthPart.getBody(String.class, null)).thenReturn("1024");
-      form.put("contentLength", List.of(contentLengthPart));
-      if (tempId != null) {
-        InputPart tempIdPart = mock(InputPart.class);
-        when(tempIdPart.getBody(String.class, null)).thenReturn(tempId);
-        form.put("tempId", List.of(tempIdPart));
-      }
-      when(input.getFormDataMap()).thenReturn(form);
-      return input;
-    }
-
-    private Message stored(String messageId) {
-      return Message.create()
-          .id(messageId)
-          .roomId(roomId.toString())
-          .senderId(user1Id.toString())
-          .text("")
-          .attachmentId(UUID.randomUUID().toString())
-          .createdAt(createdAt);
-    }
-
-    private SendMessageRequestDto request(String tempId) {
-      return SendMessageRequestDto.create().text("hello").tempId(tempId);
-    }
-
-    @Test
-    @DisplayName("A first send with a tempId goes through the claiming query and is broadcast")
-    void sendMessage_withTempId_firstSend() throws Exception {
-      String messageId = UUID.randomUUID().toString();
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.sendMessageOnce(
-              eq(roomId.toString()),
-              eq(user1Id.toString()),
-              eq("hello"),
-              anyString(),
-              isNull(),
-              eq("t-1")))
-          .thenReturn(
-              new MessageWriteRepository.SendOnceResult(
-                  MessageWriteRepository.SendOnceStatus.SENT, messageId, createdAt));
-
-      Response response = roomsApiService.sendMessage(roomId, request("t-1"), securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      assertEquals(UUID.fromString(messageId), ((MessageDto) response.getEntity()).getId());
-      verify(messageWriteRepository, never()).sendMessage(any(), any(), any(), any(), any(), any());
-      verify(messageReceivedBroadcaster, times(1))
-          .broadcast(eq(roomId.toString()), any(), eq("t-1"));
-      verify(messageSentListener, times(1))
-          .onMessageSent(user1, roomId, messageId, "hello", createdAt);
-    }
-
-    @Test
-    @DisplayName("A duplicate tempId answers 201 with the original, without event or listener")
-    void sendMessage_duplicateTempId_returnsOriginal() throws Exception {
-      String originalId = UUID.randomUUID().toString();
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
-          .thenReturn(
-              new MessageWriteRepository.SendOnceResult(
-                  MessageWriteRepository.SendOnceStatus.DUPLICATE, originalId, null));
-      when(messageRepository.getById(originalId))
-          .thenReturn(Optional.of(original(originalId, null)));
-
-      Response response = roomsApiService.sendMessage(roomId, request("t-1"), securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      MessageDto body = (MessageDto) response.getEntity();
-      assertEquals(UUID.fromString(originalId), body.getId());
-      assertEquals(createdAt, body.getCreatedAt());
-      assertEquals("hello", body.getText());
-      verifyNoInteractions(messageReceivedBroadcaster, messageSentListener);
-    }
-
-    @Test
-    @DisplayName("A duplicate whose first send has not stored its message yet answers 409")
-    void sendMessage_duplicateInFlight_conflict() {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
-          .thenReturn(
-              new MessageWriteRepository.SendOnceResult(
-                  MessageWriteRepository.SendOnceStatus.DUPLICATE, null, null));
-
-      assertThrows(
-          ConflictException.class,
-          () -> roomsApiService.sendMessage(roomId, request("t-1"), securityContext));
-      verifyNoInteractions(messageReceivedBroadcaster, messageSentListener);
-    }
-
-    @Test
-    @DisplayName("A duplicate pointing to a message of another room answers 409")
-    void sendMessage_duplicateOfOtherRoom_conflict() {
-      String originalId = UUID.randomUUID().toString();
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
-          .thenReturn(
-              new MessageWriteRepository.SendOnceResult(
-                  MessageWriteRepository.SendOnceStatus.DUPLICATE, originalId, null));
-      when(messageRepository.getById(originalId))
-          .thenReturn(Optional.of(original(originalId, null).roomId(UUID.randomUUID().toString())));
-
-      assertThrows(
-          ConflictException.class,
-          () -> roomsApiService.sendMessage(roomId, request("t-1"), securityContext));
-    }
-
-    @Test
-    @DisplayName("Not a member and invisible reply target keep their 403 and 404")
-    void sendMessage_withTempId_errors() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.sendMessageOnce(any(), any(), any(), any(), any(), any()))
-          .thenReturn(
-              new MessageWriteRepository.SendOnceResult(
-                  MessageWriteRepository.SendOnceStatus.NOT_MEMBER, null, null))
-          .thenReturn(
-              new MessageWriteRepository.SendOnceResult(
-                  MessageWriteRepository.SendOnceStatus.REPLY_NOT_FOUND, null, null));
-
-      assertEquals(
-          Status.FORBIDDEN.getStatusCode(),
-          roomsApiService.sendMessage(roomId, request("t-1"), securityContext).getStatus());
-      assertEquals(
-          Status.NOT_FOUND.getStatusCode(),
-          roomsApiService.sendMessage(roomId, request("t-1"), securityContext).getStatus());
-      verifyNoInteractions(messageReceivedBroadcaster, messageSentListener);
-    }
-
-    @Test
-    @DisplayName("A blank tempId is not a dedup key: the plain send path is used")
-    void sendMessage_blankTempId_plainPath() throws Exception {
-      String messageId = UUID.randomUUID().toString();
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.sendMessage(any(), any(), any(), any(), any(), any()))
-          .thenReturn(Optional.of(new MessageWriteRepository.SendResult(messageId, createdAt)));
-
-      Response response = roomsApiService.sendMessage(roomId, request("  "), securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verify(messageWriteRepository, never())
-          .sendMessageOnce(any(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("An upload with a tempId claims it before storing and creates that message id")
-    void insertAttachmentMultipart_withTempId_claimsFirst() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageSendDedupRepository.claim(
-              eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), anyString()))
-          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
-      when(attachmentService.addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-          .thenAnswer(invocation -> stored(invocation.getArgument(9)));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(upload("t-1"), roomId, securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      ArgumentCaptor<String> claimed = ArgumentCaptor.forClass(String.class);
-      InOrder order = inOrder(chatMessageService, messageSendDedupRepository, attachmentService);
-      order.verify(chatMessageService).getVisibilityFloor(roomId.toString(), user1Id.toString());
-      order
-          .verify(messageSendDedupRepository)
-          .claim(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), claimed.capture());
-      order
-          .verify(attachmentService)
-          .addAttachment(
-              eq(roomId),
-              any(),
-              eq("image/jpeg"),
-              eq(1024L),
-              eq("fileName"),
-              isNull(),
-              isNull(),
-              isNull(),
-              eq("t-1"),
-              eq(claimed.getValue()),
-              eq(user1));
-      verify(messageSendDedupRepository, never()).release(any(), any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("A duplicate upload answers 201 with the original and stores nothing")
-    void insertAttachmentMultipart_duplicate_returnsOriginalWithoutStoring() throws Exception {
-      String originalId = UUID.randomUUID().toString();
-      String attachmentId = UUID.randomUUID().toString();
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
-          .thenReturn(new MessageSendDedupRepository.Claim(false, originalId));
-      when(messageRepository.getById(originalId))
-          .thenReturn(Optional.of(original(originalId, attachmentId)));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(upload("t-1"), roomId, securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      MessageDto body = (MessageDto) response.getEntity();
-      assertEquals(UUID.fromString(originalId), body.getId());
-      assertEquals(UUID.fromString(attachmentId), body.getAttachmentId());
-      verifyNoInteractions(attachmentService, messageSentListener);
-    }
-
-    @Test
-    @DisplayName("A storage failure after the claim releases it and keeps the error status")
-    void insertAttachmentMultipart_storageFailure_releasesTheClaim() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
-          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
-      when(attachmentService.addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-          .thenThrow(new StorageException("storage down"));
-      MultipartFormDataInput input = upload("t-1");
-
-      assertThrows(
-          StorageException.class,
-          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
-
-      ArgumentCaptor<String> claimed = ArgumentCaptor.forClass(String.class);
-      verify(messageSendDedupRepository)
-          .claim(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), claimed.capture());
-      verify(messageSendDedupRepository)
-          .release(roomId.toString(), user1Id.toString(), "t-1", claimed.getValue());
-      verifyNoInteractions(messageSentListener);
-      verify(attachmentService)
-          .addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("An unexpected failure after the claim releases it and answers 500")
-    void insertAttachmentMultipart_unexpectedFailure_releasesTheClaim() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageSendDedupRepository.claim(any(), any(), any(), any()))
-          .thenReturn(new MessageSendDedupRepository.Claim(true, null));
-      when(attachmentService.addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-          .thenThrow(new RuntimeException("boom"));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(upload("t-1"), roomId, securityContext);
-
-      assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatus());
-      verify(messageSendDedupRepository)
-          .release(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), anyString());
-      verify(attachmentService)
-          .addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("An upload without tempId never touches the claims")
-    void insertAttachmentMultipart_withoutTempId_noClaim() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(attachmentService.addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-          .thenAnswer(invocation -> stored(invocation.getArgument(9)));
-
-      Response response =
-          roomsApiService.insertAttachmentMultipart(upload(null), roomId, securityContext);
-
-      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-      verifyNoInteractions(messageSendDedupRepository);
-      verify(attachmentService)
-          .addAttachment(
-              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("An upload tempId longer than 64 characters is rejected before any write")
-    void insertAttachmentMultipart_tempIdTooLong() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      MultipartFormDataInput input = upload("t".repeat(65));
-
-      assertThrows(
-          BadRequestException.class,
-          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
-      verifyNoInteractions(messageSendDedupRepository, attachmentService);
-    }
-  }
-
-  @Test
-  @DisplayName("sendMessage notifies the registered message-sent listeners")
-  void sendMessage_notifiesMessageSentListeners() throws Exception {
-    String generatedMsgId = UUID.randomUUID().toString();
-    OffsetDateTime sentAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(messageWriteRepository.sendMessage(
-            eq(roomId.toString()),
-            eq(user1Id.toString()),
-            eq("hello"),
-            anyString(),
-            isNull(),
-            isNull()))
-        .thenReturn(Optional.of(new MessageWriteRepository.SendResult(generatedMsgId, sentAt)));
-
-    SendMessageRequestDto dto = SendMessageRequestDto.create().text("hello");
-    Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
-
-    assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1))
-        .onMessageSent(user1, roomId, generatedMsgId, "hello", sentAt);
-  }
-
-  @Test
-  @DisplayName("sendMessage rejects a blank text with 400 and stores nothing")
-  void sendMessage_blankText_badRequest() {
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    SendMessageRequestDto dto = SendMessageRequestDto.create().text(" \n\t ");
-
-    assertThrows(
-        BadRequestException.class, () -> roomsApiService.sendMessage(roomId, dto, securityContext));
-
-    verifyNoInteractions(messageWriteRepository, messageSentListener);
-  }
-
-  @Test
-  @DisplayName("sendMessage does not notify the listeners when the message is not stored")
-  void sendMessage_notStored_doesNotNotifyMessageSentListeners() throws Exception {
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(messageWriteRepository.sendMessage(
-            eq(roomId.toString()),
-            eq(user1Id.toString()),
-            eq("hello"),
-            anyString(),
-            isNull(),
-            isNull()))
-        .thenReturn(Optional.empty());
-
-    SendMessageRequestDto dto = SendMessageRequestDto.create().text("hello");
-    Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
-
-    assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
-  }
-
-  @Test
-  @DisplayName("editMessage notifies the message-sent listeners with the new text")
-  void editMessage_notifiesMessageSentListeners() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    OffsetDateTime now = OffsetDateTime.now();
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(messageWriteRepository.editMessage(
-            messageId.toString(), roomId.toString(), user1Id.toString(), "new text"))
-        .thenReturn(
-            Optional.of(
-                new MessageWriteRepository.EditResult(
-                    messageId.toString(), "new text", now, now.minusMinutes(1), false)));
-
-    Response response =
-        roomsApiService.editMessage(
-            roomId,
-            messageId,
-            com.zextras.carbonio.chats.model.EditMessageRequestDto.create().text("new text"),
-            securityContext);
-
-    assertEquals(Status.OK.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1))
-        .onMessageSent(user1, roomId, messageId.toString(), "new text", now.minusMinutes(1));
-  }
-
-  @Test
-  @DisplayName("editMessage does not notify the listeners when the edit is refused")
-  void editMessage_refused_doesNotNotifyMessageSentListeners() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(messageWriteRepository.editMessage(any(), any(), any(), any()))
-        .thenReturn(Optional.empty());
-
-    Response response =
-        roomsApiService.editMessage(
-            roomId,
-            messageId,
-            com.zextras.carbonio.chats.model.EditMessageRequestDto.create().text("new text"),
-            securityContext);
-
-    assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
-  }
-
-  @Test
-  @DisplayName("setReaction ADDED notifies the message-sent listeners with the emoji")
-  void setReaction_added_notifiesMessageSentListeners() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    OffsetDateTime targetCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(chatMessageService.setReaction(
-            roomId.toString(), messageId.toString(), user1Id.toString(), "👍"))
-        .thenReturn(
-            new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.ADDED,
-                null,
-                OffsetDateTime.now(),
-                targetCreatedAt));
-
-    Response response =
-        roomsApiService.setReaction(
-            roomId,
-            messageId,
-            com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
-            securityContext);
-
-    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1))
-        .onMessageSent(user1, roomId, messageId.toString(), "👍", targetCreatedAt);
-  }
-
-  @Test
-  @DisplayName("setReaction UPDATED notifies the message-sent listeners with the new emoji")
-  void setReaction_updated_notifiesMessageSentListeners() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    OffsetDateTime targetCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(chatMessageService.setReaction(
-            roomId.toString(), messageId.toString(), user1Id.toString(), "❤️"))
-        .thenReturn(
-            new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.UPDATED,
-                "👍",
-                OffsetDateTime.now(),
-                targetCreatedAt));
-
-    Response response =
-        roomsApiService.setReaction(
-            roomId,
-            messageId,
-            com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("❤️"),
-            securityContext);
-
-    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verify(messageSentListener, times(1))
-        .onMessageSent(user1, roomId, messageId.toString(), "❤️", targetCreatedAt);
-  }
-
-  @Test
-  @DisplayName("setReaction UNCHANGED notifies the message-sent listeners with the emoji")
-  void setReaction_unchanged_notifiesMessageSentListeners() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    OffsetDateTime targetCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(chatMessageService.setReaction(any(), any(), any(), any()))
-        .thenReturn(
-            new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.UNCHANGED,
-                "👍",
-                OffsetDateTime.now(),
-                targetCreatedAt));
-
-    roomsApiService.setReaction(
-        roomId,
-        messageId,
-        com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
-        securityContext);
-
-    verify(messageSentListener, times(1))
-        .onMessageSent(user1, roomId, messageId.toString(), "👍", targetCreatedAt);
-  }
-
-  @Test
-  @DisplayName("removeReaction never notifies the message-sent listeners")
-  void removeReaction_doesNotNotifyMessageSentListeners() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(chatMessageService.removeReaction(
-            roomId.toString(), messageId.toString(), user1Id.toString()))
-        .thenReturn(
-            Optional.of(
-                new MessageReactionRepository.Removed(
-                    "👍", OffsetDateTime.now(), OffsetDateTime.now())));
-
-    Response response = roomsApiService.removeReaction(roomId, messageId, securityContext);
-
-    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verify(messageSentListener, never()).onMessageSent(any(), any(), any(), any(), any());
-  }
-
-  private ReactionChanged captureReactionBroadcast(OffsetDateTime messageCreatedAt)
-      throws Exception {
-    ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
-    verify(messageReceivedBroadcaster)
-        .broadcastToMembersWhoCanAccess(
-            eq(roomId.toString()), eq(messageCreatedAt), json.capture());
-    verifyNoInteractions(eventDispatcher);
-    return objectMapper.readValue(json.getValue(), ReactionChanged.class);
-  }
-
-  @Test
-  @DisplayName("setReaction ADDED and UPDATED broadcast ReactionChanged with the message floor")
-  void setReaction_broadcastsToMembersWhoCanAccess() throws Exception {
-    for (MessageReactionRepository.SetKind kind :
-        List.of(
-            MessageReactionRepository.SetKind.ADDED, MessageReactionRepository.SetKind.UPDATED)) {
-      org.mockito.Mockito.clearInvocations(messageReceivedBroadcaster, eventDispatcher);
-      UUID messageId = UUID.randomUUID();
-      OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.setReaction(any(), any(), any(), any()))
-          .thenReturn(
-              new MessageReactionRepository.SetResult(kind, "👍", OffsetDateTime.now(), createdAt));
-
-      roomsApiService.setReaction(
-          roomId,
-          messageId,
-          com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("❤️"),
-          securityContext);
-
-      ReactionChanged sent = captureReactionBroadcast(createdAt);
-      assertEquals(messageId.toString(), sent.getMessageId());
-      verify(messageRepository, never()).getById(anyString());
-    }
-  }
-
-  @Test
-  @DisplayName("setReaction UNCHANGED broadcasts nothing")
-  void setReaction_unchanged_broadcastsNothing() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(chatMessageService.setReaction(any(), any(), any(), any()))
-        .thenReturn(
-            new MessageReactionRepository.SetResult(
-                MessageReactionRepository.SetKind.UNCHANGED, "👍", null, null));
-
-    roomsApiService.setReaction(
-        roomId,
-        messageId,
-        com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
-        securityContext);
-
-    verifyNoInteractions(messageReceivedBroadcaster, eventDispatcher);
-  }
-
-  @Test
-  @DisplayName("removeReaction broadcasts ReactionChanged removed with the message floor")
-  void removeReaction_broadcastsToMembersWhoCanAccess() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    OffsetDateTime createdAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(chatMessageService.removeReaction(any(), any(), any()))
-        .thenReturn(
-            Optional.of(
-                new MessageReactionRepository.Removed("👍", OffsetDateTime.now(), createdAt)));
-
-    roomsApiService.removeReaction(roomId, messageId, securityContext);
-
-    ReactionChanged sent = captureReactionBroadcast(createdAt);
-    assertEquals(ReactionChanged.OperationEnum.REMOVED, sent.getOperation());
-    verify(messageRepository, never()).getById(anyString());
-  }
-
-  @Test
-  @DisplayName("deleteMessage leaves the attachment file of the deleted message in place")
-  void deleteMessage_keepsAttachmentFile() throws Exception {
-    UUID messageId = UUID.randomUUID();
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(messageWriteRepository.deleteMessage(
-            messageId.toString(), roomId.toString(), user1Id.toString()))
-        .thenReturn(
-            Optional.of(
-                new MessageWriteRepository.DeleteResult(
-                    messageId.toString(),
-                    UUID.randomUUID().toString(),
-                    OffsetDateTime.parse("2026-10-30T10:00:00Z"),
-                    OffsetDateTime.parse("2026-10-30T09:00:00Z"),
-                    null)));
-
-    Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
-
-    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-    verifyNoInteractions(storagesService);
-  }
-
-  @Test
-  @DisplayName("sendMessage answers 201 even when a message-sent listener fails")
-  void sendMessage_listenerFails_stillCreated() throws Exception {
-    String generatedMsgId = UUID.randomUUID().toString();
-    OffsetDateTime sentAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
-    when(messageWriteRepository.sendMessage(
-            eq(roomId.toString()),
-            eq(user1Id.toString()),
-            eq("hello"),
-            anyString(),
-            isNull(),
-            isNull()))
-        .thenReturn(Optional.of(new MessageWriteRepository.SendResult(generatedMsgId, sentAt)));
-    doThrow(new RuntimeException("listener failure"))
-        .when(messageSentListener)
-        .onMessageSent(user1, roomId, generatedMsgId, "hello", sentAt);
-
-    SendMessageRequestDto dto = SendMessageRequestDto.create().text("hello");
-    Response response = roomsApiService.sendMessage(roomId, dto, securityContext);
-
-    assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
-  }
-
-  @Nested
-  @DisplayName("Pin, unpin and delete events tests")
-  class PinUnpinDeleteEventsTest {
-
-    @Test
-    @DisplayName("unpinMessage of a message that is not the room pin answers 204 and sends nothing")
-    void unpinMessage_notPinned_sendsNothing() throws Exception {
-      UUID messageId = UUID.randomUUID();
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.unpinMessage(
-              roomId.toString(), messageId.toString(), user1Id.toString()))
-          .thenReturn(Optional.empty());
-
-      Response response = roomsApiService.unpinMessage(roomId, messageId, securityContext);
-
-      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      verifyNoInteractions(eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("unpinMessage of the room pin sends MessageUnpinned with the persisted row")
-    void unpinMessage_pinned_sendsUnpinned() throws Exception {
-      UUID messageId = UUID.randomUUID();
-      List<String> members = List.of(user1Id.toString(), user2Id.toString());
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
-      when(chatMessageService.unpinMessage(
-              roomId.toString(), messageId.toString(), user1Id.toString()))
-          .thenReturn(
-              Optional.of(
-                  SystemEvent.create()
-                      .id("unpin-event")
-                      .roomId(roomId.toString())
-                      .type("MESSAGE_UNPINNED")
-                      .actorId(user1Id.toString())
-                      .createdAt(OffsetDateTime.parse("2026-10-30T10:00:00Z"))));
-
-      Response response = roomsApiService.unpinMessage(roomId, messageId, securityContext);
-
-      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher).sendRawToUserExchange(eq(members), payload.capture());
-      JsonNode event = objectMapper.readTree(payload.getValue());
-      assertEquals("MessageUnpinned", event.get("type").asText());
-      assertEquals(messageId.toString(), event.get("messageId").asText());
-      assertEquals(user1Id.toString(), event.get("unpinnedBy").asText());
-      assertEquals("unpin-event", event.get("systemEventId").asText());
-      assertEquals(
-          OffsetDateTime.parse("2026-10-30T10:00:00Z").toInstant(),
-          OffsetDateTime.parse(event.get("timestamp").asText()).toInstant());
-    }
-
-    @Test
-    @DisplayName("pinMessage announces the pin it committed without re-reading the room pin")
-    void pinMessage_broadcastsCommittedPin() throws Exception {
-      UUID messageId = UUID.randomUUID();
-      OffsetDateTime pinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-      Message message =
-          Message.create()
-              .id(messageId.toString())
-              .roomId(roomId.toString())
-              .senderId(user2Id.toString())
-              .text("pinned text")
-              .createdAt(pinnedAt.minusMinutes(1));
-      SystemEvent systemEvent =
-          SystemEvent.create()
-              .id("pin-event")
-              .roomId(roomId.toString())
-              .type("MESSAGE_PINNED")
-              .actorId(user1Id.toString())
-              .createdAt(pinnedAt);
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.pinMessage(
-              roomId.toString(), messageId.toString(), user1Id.toString()))
-          .thenReturn(new PinResult(message, systemEvent));
-
-      Response response = roomsApiService.pinMessage(roomId, messageId, securityContext);
-
-      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      verify(chatMessageService, never()).getPinnedMessages(anyString(), anyString());
-      ArgumentCaptor<WsEvent> event = ArgumentCaptor.forClass(WsEvent.class);
-      ArgumentCaptor<TimelineMessageDto> broadcastMessage =
-          ArgumentCaptor.forClass(TimelineMessageDto.class);
-      verify(messageReceivedBroadcaster)
-          .broadcastWithReplyVisibility(
-              eq(roomId.toString()), event.capture(), broadcastMessage.capture());
-      MessagePinned pinned = (MessagePinned) event.getValue();
-      assertEquals(messageId.toString(), pinned.getMessageId());
-      assertEquals(user1Id.toString(), pinned.getPinnedBy());
-      assertEquals("pin-event", pinned.getSystemEventId());
-      assertEquals(pinnedAt, pinned.getSystemEventCreatedAt());
-      assertEquals("pinned text", broadcastMessage.getValue().getText());
-    }
-
-    @Test
-    @DisplayName(
-        "deleteMessage of the room pin sends MessageDeleted floor-filtered and MessageUnpinned to"
-            + " all members")
-    void deleteMessage_pinned_sendsDeletedThenUnpinned() throws Exception {
-      UUID messageId = UUID.randomUUID();
-      OffsetDateTime unpinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
-      OffsetDateTime deletedAt = OffsetDateTime.parse("2026-10-30T10:00:00.5Z");
-      OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2026-10-30T09:00:00Z");
-      List<String> members = List.of(user1Id.toString(), user2Id.toString());
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(subscriptionRepository.getUserIdsByRoomId(roomId.toString())).thenReturn(members);
-      when(messageWriteRepository.deleteMessage(
-              messageId.toString(), roomId.toString(), user1Id.toString()))
-          .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.DeleteResult(
-                      messageId.toString(),
-                      null,
-                      deletedAt,
-                      messageCreatedAt,
-                      new MessageWriteRepository.Unpinned("unpin-event", unpinnedAt))));
-
-      Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
-
-      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      ArgumentCaptor<String> deletedPayload = ArgumentCaptor.forClass(String.class);
-      verify(messageReceivedBroadcaster)
-          .broadcastToMembersWhoCanAccess(
-              eq(roomId.toString()), eq(messageCreatedAt), deletedPayload.capture());
-      ArgumentCaptor<String> unpinnedPayload = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher, times(1))
-          .sendRawToUserExchange(eq(members), unpinnedPayload.capture());
-      JsonNode deleted = objectMapper.readTree(deletedPayload.getValue());
-      JsonNode unpinned = objectMapper.readTree(unpinnedPayload.getValue());
-      assertEquals("MessageDeleted", deleted.get("type").asText());
-      assertEquals(
-          deletedAt.toInstant(),
-          OffsetDateTime.parse(deleted.get("deletedAt").asText()).toInstant());
-      assertEquals("MessageUnpinned", unpinned.get("type").asText());
-      assertEquals(
-          unpinnedAt.toInstant(),
-          OffsetDateTime.parse(unpinned.get("timestamp").asText()).toInstant());
-      assertEquals(messageId.toString(), unpinned.get("messageId").asText());
-      assertEquals(user1Id.toString(), unpinned.get("unpinnedBy").asText());
-      assertEquals("unpin-event", unpinned.get("systemEventId").asText());
-      assertEquals(
-          unpinnedAt.toInstant(),
-          OffsetDateTime.parse(unpinned.get("systemEventCreatedAt").asText()).toInstant());
-    }
-
-    @Test
-    @DisplayName("deleteMessage of a message that is not the room pin sends only MessageDeleted")
-    void deleteMessage_notPinned_sendsOnlyDeleted() throws Exception {
-      UUID messageId = UUID.randomUUID();
-      OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2026-10-30T09:00:00Z");
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageWriteRepository.deleteMessage(
-              messageId.toString(), roomId.toString(), user1Id.toString()))
-          .thenReturn(
-              Optional.of(
-                  new MessageWriteRepository.DeleteResult(
-                      messageId.toString(),
-                      null,
-                      OffsetDateTime.parse("2026-10-30T10:00:00Z"),
-                      messageCreatedAt,
-                      null)));
-
-      Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
-
-      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-      verify(messageReceivedBroadcaster)
-          .broadcastToMembersWhoCanAccess(
-              eq(roomId.toString()), eq(messageCreatedAt), payload.capture());
-      verifyNoInteractions(eventDispatcher);
-      assertEquals(
-          "MessageDeleted", objectMapper.readTree(payload.getValue()).get("type").asText());
-    }
-  }
-
-  @Nested
   @DisplayName("Get meeting room by id tests")
   class GetMeetingRoomByIdTest {
 
@@ -3697,346 +2135,1216 @@ class RoomsApiServiceImplTest {
     }
   }
 
+  private final OffsetDateTime messageCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+
+  private Message storedMessage(UUID id, String text) {
+    return Message.create()
+        .id(id.toString())
+        .roomId(roomId.toString())
+        .senderId(user1Id.toString())
+        .text(text)
+        .createdAt(messageCreatedAt);
+  }
+
+  private MessageDto messageDto(UUID id, String text) {
+    return MessageDto.create()
+        .id(id)
+        .roomId(roomId)
+        .senderId(user1Id)
+        .text(text)
+        .createdAt(messageCreatedAt);
+  }
+
+  @Nested
+  @DisplayName("Insert attachment multipart tests")
+  class InsertAttachmentMultipartTest {
+
+    InputStream attachment = mock(InputStream.class);
+
+    private final OffsetDateTime attachmentCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+
+    private Message createdMessage(UUID id, String text) {
+      return Message.create()
+          .id(id.toString())
+          .createdAt(attachmentCreatedAt)
+          .roomId(roomId.toString())
+          .senderId(user1Id.toString())
+          .text(text)
+          .attachmentId(UUID.randomUUID().toString());
+    }
+
+    @BeforeEach
+    void stubUploadWithACreatedMessage() throws Exception {
+      when(chatMessageService.uploadAttachment(
+              any(), any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(createdMessage(UUID.randomUUID(), ""));
+    }
+
+    private void verifyUpload(
+        String fileName, String description, String replyToId, String area, String tempId) {
+      verify(chatMessageService, times(1))
+          .uploadAttachment(
+              eq(roomId.toString()),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq(fileName),
+              eq(description),
+              eq(replyToId),
+              eq(area),
+              eq(tempId),
+              eq(user1));
+    }
+
+    private InputPart textPart(String value, boolean contentTypeFromMessage) throws Exception {
+      InputPart part = mock(InputPart.class);
+      when(part.getBody(String.class, null)).thenReturn(value);
+      when(part.isContentTypeFromMessage()).thenReturn(contentTypeFromMessage);
+      return part;
+    }
+
+    private MultipartFormDataInput multipart(String fileName, Map<String, InputPart> textParts)
+        throws Exception {
+      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
+      Map<String, List<InputPart>> formDataMap = new HashMap<>();
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
+      when(filePart.getFileName()).thenReturn(fileName);
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      formDataMap.put("file", List.of(filePart));
+      formDataMap.put("contentLength", List.of(textPart("1024", true)));
+      textParts.forEach((name, part) -> formDataMap.put(name, List.of(part)));
+      when(input.getFormDataMap()).thenReturn(formDataMap);
+      return input;
+    }
+
+    private MultipartFormDataInput formWithFilePartOnly(InputPart filePart, String contentLength)
+        throws Exception {
+      MultipartFormDataInput input = mock(MultipartFormDataInput.class);
+      Map<String, List<InputPart>> formDataMap = new HashMap<>();
+      formDataMap.put("file", List.of(filePart));
+      if (contentLength != null) {
+        formDataMap.put("contentLength", List.of(textPart(contentLength, true)));
+      }
+      when(input.getFormDataMap()).thenReturn(formDataMap);
+      return input;
+    }
+
+    private InputPart filePart(String fileName, MediaType mediaType) throws Exception {
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
+      when(filePart.getFileName()).thenReturn(fileName);
+      when(filePart.getMediaType()).thenReturn(mediaType);
+      return filePart;
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user with all fields")
+    void insertAttachmentMultipart_testAuthenticatedUser_withAllFields() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID createdId = UUID.randomUUID();
+      Message created = createdMessage(createdId, "test").replyToId(UUID.randomUUID().toString());
+      when(chatMessageService.uploadAttachment(
+              eq(roomId.toString()),
+              eq(attachment),
+              eq("image/jpeg"),
+              eq(1024L),
+              eq("fileName"),
+              eq("test"),
+              eq("reply-id"),
+              eq("10x5"),
+              isNull(),
+              eq(user1)))
+          .thenReturn(created);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(
+                  "\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065",
+                  Map.of(
+                      "description", textPart("test", true),
+                      "replyToId", textPart("reply-id", true),
+                      "area", textPart("10x5", true))),
+              roomId,
+              securityContext);
+
+      verifyUpload("fileName", "test", "reply-id", "10x5", null);
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(
+          messageDto(createdId, "test")
+              .replyToId(UUID.fromString(created.getReplyToId()))
+              .attachmentId(UUID.fromString(created.getAttachmentId())),
+          response.getEntity());
+    }
+
+    @Test
+    @DisplayName("The created message is mapped with its edited, deleted and forwarded info")
+    void insertAttachmentMultipart_mapsTheReturnedMessage() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID createdId = UUID.randomUUID();
+      OffsetDateTime updatedAt = OffsetDateTime.parse("2026-10-30T11:00:00Z");
+      OffsetDateTime deletedAt = OffsetDateTime.parse("2026-10-30T12:00:00Z");
+      OffsetDateTime forwardedAt = OffsetDateTime.parse("2026-10-29T12:00:00Z");
+      String originalSender = UUID.randomUUID().toString();
+      Message duplicate =
+          createdMessage(createdId, "hello")
+              .edited(true)
+              .updatedAt(updatedAt)
+              .deleted(true)
+              .deletedAt(deletedAt)
+              .forwarded(true)
+              .forwardedSenderId(originalSender)
+              .forwardedAt(forwardedAt);
+      when(chatMessageService.uploadAttachment(
+              any(), any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(duplicate);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(genericFileName, Map.of("tempId", textPart("t-1", false))),
+              roomId,
+              securityContext);
+
+      verifyUpload("fileName", null, null, null, "t-1");
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(
+          messageDto(createdId, "hello")
+              .attachmentId(UUID.fromString(duplicate.getAttachmentId()))
+              .editedInfo(EditedInfoDto.create().editedAt(updatedAt))
+              .deletedInfo(
+                  DeletedInfoDto.create().deletedBy(user1Id.toString()).deletedAt(deletedAt))
+              .forwardedInfo(
+                  ForwardedInfoDto.create()
+                      .originalSenderId(originalSender)
+                      .originalSentAt(forwardedAt)),
+          response.getEntity());
+    }
+
+    @Test
+    @DisplayName("Empty description, reply id and tempId are passed to the service as null")
+    void insertAttachmentMultipart_emptyOptionalPartsAreNull() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(
+                  genericFileName,
+                  Map.of(
+                      "description", textPart("", true),
+                      "replyToId", textPart("", true),
+                      "tempId", textPart("", true))),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verifyUpload("fileName", null, null, null, null);
+    }
+
+    @Test
+    @DisplayName("An empty area is not a valid area")
+    void insertAttachmentMultipart_emptyAreaIsInvalid() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(genericFileName, Map.of("area", textPart("", true))),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      assertEquals("Invalid area format", response.getEntity().toString());
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user with feature disabled")
+    void insertAttachmentMultipart_testAuthenticatedUser_featureDisabled() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user2);
+
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipartFormDataInput, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart with an authenticated user with invalid content length format")
+    void insertAttachmentMultipart_testAuthenticatedUser_invalidContentLengthFormat()
+        throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          formWithFilePartOnly(
+              filePart(
+                  "\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065",
+                  MediaType.valueOf("image/jpeg")),
+              "not-a-number");
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart with an authenticated user with negative content length")
+    void insertAttachmentMultipart_testAuthenticatedUser_negativeContentLength() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          formWithFilePartOnly(
+              filePart(
+                  "\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065",
+                  MediaType.valueOf("image/jpeg")),
+              "-1");
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart that exceeds the max size limit with an authenticated user")
+    void insertAttachmentMultipart_testAuthenticatedUser_maxSizeLimitExceeded() throws Exception {
+      user2.carbonioAttributes(
+          Map.of(
+              CarbonioAttribute.WSC_ATTACHMENT_UPLOAD.getValue(),
+              "TRUE",
+              CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE.getValue(),
+              "1"));
+      when(securityContext.getUserPrincipal()).thenReturn(user2);
+      MultipartFormDataInput input =
+          formWithFilePartOnly(
+              filePart(
+                  "\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065",
+                  MediaType.valueOf("image/jpeg")),
+              "268435456");
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user without file")
+    void insertAttachmentMultipart_testAuthenticatedUser_fileNotFound() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+      when(multipartFormDataInput.getFormDataMap()).thenReturn(new HashMap<>());
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipartFormDataInput, roomId, securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      assertEquals("File not found", response.getEntity().toString());
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user without file name")
+    void insertAttachmentMultipart_testAuthenticatedUser_fileNameNotFound() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          formWithFilePartOnly(filePart(null, MediaType.valueOf("image/jpeg")), "1024");
+
+      Response response = roomsApiService.insertAttachmentMultipart(input, roomId, securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      assertEquals("File name not found", response.getEntity().toString());
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user without mime type")
+    void insertAttachmentMultipart_testAuthenticatedUser_mimeTypeNotFound() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input = formWithFilePartOnly(filePart("fileName", null), "1024");
+
+      Response response = roomsApiService.insertAttachmentMultipart(input, roomId, securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      assertEquals("Mime type not found", response.getEntity().toString());
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user without content length")
+    void insertAttachmentMultipart_testAuthenticatedUser_contentLengthNotFound() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          formWithFilePartOnly(filePart("fileName", MediaType.valueOf("image/jpeg")), null);
+
+      Response response = roomsApiService.insertAttachmentMultipart(input, roomId, securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      assertEquals("Content length not found", response.getEntity().toString());
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with an authenticated user with invalid area format")
+    void insertAttachmentMultipart_testAuthenticatedUser_invalidAreaFormat() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart("fileName", Map.of("area", textPart("10+5", true))),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+      assertEquals("Invalid area format", response.getEntity().toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart with an authenticated user but unable to get file body")
+    void insertAttachmentMultipart_testAuthenticatedUser_returnsInternalServerError()
+        throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenThrow(RuntimeException.class);
+      when(filePart.getFileName()).thenReturn("fileName");
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      MultipartFormDataInput input = formWithFilePartOnly(filePart, "1024");
+
+      Response response = roomsApiService.insertAttachmentMultipart(input, roomId, securityContext);
+
+      assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatus());
+      assertEquals("Error processing file", response.getEntity());
+    }
+
+    @Test
+    @DisplayName("A non-Chats failure of the service answers 500 \"Error processing file\"")
+    void insertAttachmentMultipart_unexpectedFailure_returnsInternalServerError() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.uploadAttachment(
+              any(), any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+          .thenThrow(new RuntimeException("boom"));
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(genericFileName, Map.of()), roomId, securityContext);
+
+      assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatus());
+      assertEquals("Error processing file", response.getEntity());
+      verifyUpload("fileName", null, null, null, null);
+    }
+
+    @Test
+    @DisplayName("A Chats exception of the service propagates with its status")
+    void insertAttachmentMultipart_chatsHttpExceptionPropagates() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.uploadAttachment(
+              any(), any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+          .thenThrow(new ForbiddenException("not a member"))
+          .thenThrow(new NotFoundException("Room not found"))
+          .thenThrow(new ConflictException("not completed"))
+          .thenThrow(new StorageException("storage down"));
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipart(genericFileName, Map.of()), roomId, securityContext));
+      assertThrows(
+          NotFoundException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipart(genericFileName, Map.of()), roomId, securityContext));
+      assertThrows(
+          ConflictException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipart(genericFileName, Map.of()), roomId, securityContext));
+      assertThrows(
+          StorageException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipart(genericFileName, Map.of()), roomId, securityContext));
+      verify(chatMessageService, times(4))
+          .uploadAttachment(
+              any(), any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("A raw file name is used as-is")
+    void insertAttachmentMultipart_rawFileNameIsUsedAsIs() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      for (String name : List.of("foto.jpg", "foto àè.jpg", "cafe", "foto\\u00e0.jpg")) {
+        Response response =
+            roomsApiService.insertAttachmentMultipart(
+                multipart(name, Map.of()), roomId, securityContext);
+
+        assertEquals(Status.CREATED.getStatusCode(), response.getStatus(), name);
+        verifyUpload(name, null, null, null, null);
+      }
+    }
+
+    @Test
+    @DisplayName("A fully escaped file name is decoded")
+    void insertAttachmentMultipart_escapedFileNameIsDecoded() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.insertAttachmentMultipart(
+          multipart("\\ud83d\\ude00\\u002e\\u006a\\u0070\\u0067", Map.of()),
+          roomId,
+          securityContext);
+
+      verifyUpload("😀.jpg", null, null, null, null);
+    }
+
+    @Test
+    @DisplayName("A file name that decodes to a lone surrogate is a bad request")
+    void insertAttachmentMultipart_loneSurrogateFileNameIsBadRequest() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input = multipart("\\ud83d", Map.of());
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName("Text parts without a content type are read as UTF-8, explicit ones are kept")
+    void insertAttachmentMultipart_textPartsWithoutContentTypeAreUtf8() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      InputPart descriptionPart = textPart("àè", false);
+      InputPart areaPart = textPart("10x5", true);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(genericFileName, Map.of("description", descriptionPart, "area", areaPart)),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verify(descriptionPart).setMediaType(MediaType.TEXT_PLAIN_TYPE.withCharset("UTF-8"));
+      verify(areaPart, never()).setMediaType(any());
+      verifyUpload("fileName", "àè", null, "10x5", null);
+    }
+
+    @Test
+    @DisplayName("A tempId longer than 64 characters is a bad request before the service is called")
+    void insertAttachmentMultipart_tempIdTooLong() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          multipart(genericFileName, Map.of("tempId", textPart("t".repeat(65), false)));
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName(
+        "A description longer than 8192 characters is a bad request before the service is called")
+    void insertAttachmentMultipart_descriptionTooLong() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput input =
+          multipart(genericFileName, Map.of("description", textPart("d".repeat(8193), false)));
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.insertAttachmentMultipart(input, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName("A tempId of 64 characters and a description of 8192 characters are accepted")
+    void insertAttachmentMultipart_limitsAreInclusive() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      String tempId = "t".repeat(64);
+      String description = "d".repeat(8192);
+
+      Response response =
+          roomsApiService.insertAttachmentMultipart(
+              multipart(
+                  genericFileName,
+                  Map.of(
+                      "tempId",
+                      textPart(tempId, false),
+                      "description",
+                      textPart(description, false))),
+              roomId,
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      verifyUpload("fileName", description, null, null, tempId);
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with a guest user")
+    void insertAttachmentMultipart_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipartFormDataInput, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName("Insert attachment multipart with a non-valid user")
+    void insertAttachmentMultipart_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipartFormDataInput, roomId, securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Send message tests")
+  class SendMessageTest {
+
+    @Test
+    @DisplayName("sendMessage answers 201 with the sent message")
+    void sendMessage_created() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.sendMessage(roomId.toString(), user1, "hello", null, null))
+          .thenReturn(storedMessage(messageId, "hello"));
+
+      Response response =
+          roomsApiService.sendMessage(
+              roomId, SendMessageRequestDto.create().text("hello"), securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(messageDto(messageId, "hello"), response.getEntity());
+      verify(chatMessageService, times(1))
+          .sendMessage(roomId.toString(), user1, "hello", null, null);
+    }
+
+    @Test
+    @DisplayName("sendMessage passes the reply id and the tempId and maps the reply")
+    void sendMessage_withReplyAndTempId() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      UUID replyToId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.sendMessage(
+              roomId.toString(), user1, "hello", replyToId.toString(), "t-1"))
+          .thenReturn(storedMessage(messageId, "hello").replyToId(replyToId.toString()));
+
+      Response response =
+          roomsApiService.sendMessage(
+              roomId,
+              SendMessageRequestDto.create().text("hello").replyToId(replyToId).tempId("t-1"),
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(messageDto(messageId, "hello").replyToId(replyToId), response.getEntity());
+      verify(chatMessageService, times(1))
+          .sendMessage(roomId.toString(), user1, "hello", replyToId.toString(), "t-1");
+    }
+
+    @Test
+    @DisplayName("sendMessage maps the message returned for a duplicate tempId like a new one")
+    void sendMessage_duplicate_mapsTheOriginal() throws Exception {
+      UUID originalId = UUID.randomUUID();
+      OffsetDateTime updatedAt = OffsetDateTime.parse("2026-10-30T11:00:00Z");
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.sendMessage(roomId.toString(), user1, "hello", null, "t-1"))
+          .thenReturn(storedMessage(originalId, "hello").edited(true).updatedAt(updatedAt));
+
+      Response response =
+          roomsApiService.sendMessage(
+              roomId, SendMessageRequestDto.create().text("hello").tempId("t-1"), securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(
+          messageDto(originalId, "hello").editedInfo(EditedInfoDto.create().editedAt(updatedAt)),
+          response.getEntity());
+      verify(chatMessageService, times(1))
+          .sendMessage(roomId.toString(), user1, "hello", null, "t-1");
+    }
+
+    @Test
+    @DisplayName("sendMessage answers the status and the text of a Forbidden rejection")
+    void sendMessage_forbidden_rejectionBody() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.sendMessage(any(), any(), any(), any(), any()))
+          .thenThrow(new ForbiddenException("Not a room member or message ID conflict"));
+
+      Response response =
+          roomsApiService.sendMessage(
+              roomId, SendMessageRequestDto.create().text("hello"), securityContext);
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+      assertEquals("Not a room member or message ID conflict", response.getEntity());
+      verify(chatMessageService, times(1))
+          .sendMessage(roomId.toString(), user1, "hello", null, null);
+    }
+
+    @Test
+    @DisplayName("sendMessage answers the status and the text of a NotFound rejection")
+    void sendMessage_notFound_rejectionBody() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.sendMessage(any(), any(), any(), any(), any()))
+          .thenThrow(new NotFoundException("Reply target not found"));
+
+      Response response =
+          roomsApiService.sendMessage(
+              roomId, SendMessageRequestDto.create().text("hello"), securityContext);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals("Reply target not found", response.getEntity());
+      verify(chatMessageService, times(1))
+          .sendMessage(roomId.toString(), user1, "hello", null, null);
+    }
+
+    @Test
+    @DisplayName("sendMessage lets a blank text (400) and a Conflict (409) propagate")
+    void sendMessage_otherExceptionsPropagate() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.sendMessage(any(), any(), any(), any(), any()))
+          .thenThrow(new BadRequestException("Message text must not be blank"))
+          .thenThrow(
+              new ConflictException("The first request with this tempId has not completed yet"));
+      SendMessageRequestDto dto = SendMessageRequestDto.create().text(" \n\t ");
+
+      assertThrows(
+          BadRequestException.class,
+          () -> roomsApiService.sendMessage(roomId, dto, securityContext));
+      assertThrows(
+          ConflictException.class, () -> roomsApiService.sendMessage(roomId, dto, securityContext));
+      verify(chatMessageService, times(2))
+          .sendMessage(roomId.toString(), user1, " \n\t ", null, null);
+    }
+
+    @Test
+    @DisplayName("sendMessage with a non-valid user")
+    void sendMessage_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () ->
+              roomsApiService.sendMessage(
+                  roomId, SendMessageRequestDto.create().text("hello"), securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Edit message tests")
+  class EditMessageTest {
+
+    private final com.zextras.carbonio.chats.model.EditMessageRequestDto request =
+        com.zextras.carbonio.chats.model.EditMessageRequestDto.create().text("new text");
+
+    @Test
+    @DisplayName("editMessage answers 200 with the edited message")
+    void editMessage_ok() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      OffsetDateTime updatedAt = OffsetDateTime.parse("2026-10-30T11:00:00Z");
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.editMessage(
+              roomId.toString(), messageId.toString(), user1, "new text"))
+          .thenReturn(storedMessage(messageId, "new text").edited(true).updatedAt(updatedAt));
+
+      Response response = roomsApiService.editMessage(roomId, messageId, request, securityContext);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertEquals(
+          messageDto(messageId, "new text").editedInfo(EditedInfoDto.create().editedAt(updatedAt)),
+          response.getEntity());
+      verify(chatMessageService, times(1))
+          .editMessage(roomId.toString(), messageId.toString(), user1, "new text");
+    }
+
+    @Test
+    @DisplayName("editMessage answers the status and the text of a Forbidden rejection")
+    void editMessage_forbidden_rejectionBody() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.editMessage(any(), any(), any(), any()))
+          .thenThrow(
+              new ForbiddenException("Not a room member, not the sender, or message is deleted"));
+
+      Response response = roomsApiService.editMessage(roomId, messageId, request, securityContext);
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+      assertEquals(
+          "Not a room member, not the sender, or message is deleted", response.getEntity());
+      verify(chatMessageService, times(1))
+          .editMessage(roomId.toString(), messageId.toString(), user1, "new text");
+    }
+
+    @Test
+    @DisplayName("editMessage lets a NotFound propagate without a body")
+    void editMessage_notFound_propagates() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.editMessage(any(), any(), any(), any()))
+          .thenThrow(new NotFoundException(String.format("Message '%s' not found", messageId)));
+
+      assertThrows(
+          NotFoundException.class,
+          () -> roomsApiService.editMessage(roomId, messageId, request, securityContext));
+      verify(chatMessageService, times(1))
+          .editMessage(roomId.toString(), messageId.toString(), user1, "new text");
+    }
+
+    @Test
+    @DisplayName("editMessage with a non-valid user")
+    void editMessage_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.editMessage(roomId, UUID.randomUUID(), request, securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Delete message tests")
+  class DeleteMessageTest {
+
+    @Test
+    @DisplayName("deleteMessage answers 204")
+    void deleteMessage_noContent() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      assertNull(response.getEntity());
+      verify(chatMessageService, times(1))
+          .deleteMessage(roomId.toString(), messageId.toString(), user1);
+    }
+
+    @Test
+    @DisplayName("deleteMessage answers the status and the text of a Forbidden rejection")
+    void deleteMessage_forbidden_rejectionBody() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      doThrow(
+              new ForbiddenException(
+                  "Not a room member, not the sender, or message already deleted"))
+          .when(chatMessageService)
+          .deleteMessage(roomId.toString(), messageId.toString(), user1);
+
+      Response response = roomsApiService.deleteMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+      assertEquals(
+          "Not a room member, not the sender, or message already deleted", response.getEntity());
+      verify(chatMessageService, times(1))
+          .deleteMessage(roomId.toString(), messageId.toString(), user1);
+    }
+
+    @Test
+    @DisplayName("deleteMessage lets a NotFound propagate without a body")
+    void deleteMessage_notFound_propagates() throws Exception {
+      UUID messageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      doThrow(new NotFoundException(String.format("Message '%s' not found", messageId)))
+          .when(chatMessageService)
+          .deleteMessage(roomId.toString(), messageId.toString(), user1);
+
+      assertThrows(
+          NotFoundException.class,
+          () -> roomsApiService.deleteMessage(roomId, messageId, securityContext));
+      verify(chatMessageService, times(1))
+          .deleteMessage(roomId.toString(), messageId.toString(), user1);
+    }
+
+    @Test
+    @DisplayName("deleteMessage with a non-valid user")
+    void deleteMessage_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.deleteMessage(roomId, UUID.randomUUID(), securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Forward message tests")
+  class ForwardMessageTest {
+
+    private final UUID sourceRoomId = UUID.randomUUID();
+    private final UUID targetRoomId = UUID.randomUUID();
+    private final UUID messageId = UUID.randomUUID();
+
+    private Message forwarded(UUID id, String originalSender, OffsetDateTime forwardedAt) {
+      return Message.create()
+          .id(id.toString())
+          .roomId(targetRoomId.toString())
+          .senderId(user1Id.toString())
+          .text("")
+          .createdAt(messageCreatedAt)
+          .forwarded(true)
+          .forwardedSenderId(originalSender)
+          .forwardedAt(forwardedAt);
+    }
+
+    private MessageDto forwardedDto(UUID id, String originalSender, OffsetDateTime forwardedAt) {
+      return MessageDto.create()
+          .id(id)
+          .roomId(targetRoomId)
+          .senderId(user1Id)
+          .text("")
+          .createdAt(messageCreatedAt)
+          .forwardedInfo(
+              ForwardedInfoDto.create()
+                  .originalSenderId(originalSender)
+                  .originalSentAt(forwardedAt));
+    }
+
+    @Test
+    @DisplayName("forwardMessage answers 201 with the forwarded message")
+    void forwardMessage_created() throws Exception {
+      UUID newId = UUID.randomUUID();
+      String originalSender = UUID.randomUUID().toString();
+      OffsetDateTime forwardedAt = OffsetDateTime.parse("2026-10-29T10:00:00Z");
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1))
+          .thenReturn(forwarded(newId, originalSender, forwardedAt));
+
+      Response response =
+          roomsApiService.forwardMessage(
+              sourceRoomId,
+              messageId,
+              com.zextras.carbonio.chats.model.ForwardMessageRequestDto.create()
+                  .toRoomId(targetRoomId),
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(forwardedDto(newId, originalSender, forwardedAt), response.getEntity());
+      verify(chatMessageService, times(1))
+          .forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1);
+    }
+
+    @Test
+    @DisplayName("forwardMessage lets the rejections of the service propagate")
+    void forwardMessage_rejectionsPropagate() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.forwardMessage(any(), any(), any(), any()))
+          .thenThrow(
+              new ForbiddenException("Not a member of source/target room or message not found"))
+          .thenThrow(new NotFoundException("Message not found"));
+      com.zextras.carbonio.chats.model.ForwardMessageRequestDto request =
+          com.zextras.carbonio.chats.model.ForwardMessageRequestDto.create().toRoomId(targetRoomId);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.forwardMessage(sourceRoomId, messageId, request, securityContext));
+      assertThrows(
+          NotFoundException.class,
+          () -> roomsApiService.forwardMessage(sourceRoomId, messageId, request, securityContext));
+      verify(chatMessageService, times(2))
+          .forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1);
+    }
+
+    @Test
+    @DisplayName("forwardMessages forwards every message in order and answers 201 with the copies")
+    void forwardMessages_loopInOrder() throws Exception {
+      UUID otherSourceRoomId = UUID.randomUUID();
+      UUID secondMessageId = UUID.randomUUID();
+      UUID firstCopy = UUID.randomUUID();
+      UUID secondCopy = UUID.randomUUID();
+      OffsetDateTime forwardedAt = OffsetDateTime.parse("2026-10-29T10:00:00Z");
+      String originalSender = UUID.randomUUID().toString();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1))
+          .thenReturn(forwarded(firstCopy, originalSender, forwardedAt));
+      when(chatMessageService.forwardMessage(
+              otherSourceRoomId.toString(),
+              secondMessageId.toString(),
+              targetRoomId.toString(),
+              user1))
+          .thenReturn(forwarded(secondCopy, originalSender, forwardedAt));
+
+      Response response =
+          roomsApiService.forwardMessages(
+              targetRoomId,
+              ForwardMessagesRequestDto.create()
+                  .messages(
+                      List.of(
+                          ForwardMessagesRequestMessagesInnerDto.create()
+                              .sourceRoomId(sourceRoomId)
+                              .messageId(messageId),
+                          ForwardMessagesRequestMessagesInnerDto.create()
+                              .sourceRoomId(otherSourceRoomId)
+                              .messageId(secondMessageId))),
+              securityContext);
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+      assertEquals(
+          List.of(
+              forwardedDto(firstCopy, originalSender, forwardedAt),
+              forwardedDto(secondCopy, originalSender, forwardedAt)),
+          response.getEntity());
+      InOrder order = inOrder(chatMessageService);
+      order
+          .verify(chatMessageService)
+          .forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1);
+      order
+          .verify(chatMessageService)
+          .forwardMessage(
+              otherSourceRoomId.toString(),
+              secondMessageId.toString(),
+              targetRoomId.toString(),
+              user1);
+    }
+
+    @Test
+    @DisplayName("forwardMessages stops at the first failure and forwards nothing else")
+    void forwardMessages_stopsAtFirstFailure() throws Exception {
+      UUID secondMessageId = UUID.randomUUID();
+      UUID thirdMessageId = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1))
+          .thenReturn(forwarded(UUID.randomUUID(), user2Id.toString(), messageCreatedAt));
+      when(chatMessageService.forwardMessage(
+              sourceRoomId.toString(), secondMessageId.toString(), targetRoomId.toString(), user1))
+          .thenThrow(
+              new ForbiddenException("Not a member of source/target room or message not found"));
+      ForwardMessagesRequestDto request =
+          ForwardMessagesRequestDto.create()
+              .messages(
+                  List.of(
+                      ForwardMessagesRequestMessagesInnerDto.create()
+                          .sourceRoomId(sourceRoomId)
+                          .messageId(messageId),
+                      ForwardMessagesRequestMessagesInnerDto.create()
+                          .sourceRoomId(sourceRoomId)
+                          .messageId(secondMessageId),
+                      ForwardMessagesRequestMessagesInnerDto.create()
+                          .sourceRoomId(sourceRoomId)
+                          .messageId(thirdMessageId)));
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.forwardMessages(targetRoomId, request, securityContext));
+
+      verify(chatMessageService, times(1))
+          .forwardMessage(
+              sourceRoomId.toString(), messageId.toString(), targetRoomId.toString(), user1);
+      verify(chatMessageService, times(1))
+          .forwardMessage(
+              sourceRoomId.toString(), secondMessageId.toString(), targetRoomId.toString(), user1);
+      verify(chatMessageService, never())
+          .forwardMessage(
+              sourceRoomId.toString(), thirdMessageId.toString(), targetRoomId.toString(), user1);
+    }
+
+    @Test
+    @DisplayName("forwardMessages with a non-valid user")
+    void forwardMessages_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () ->
+              roomsApiService.forwardMessages(
+                  targetRoomId,
+                  ForwardMessagesRequestDto.create().messages(List.of()),
+                  securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Search messages tests")
+  class SearchMessagesTest {
+
+    @Test
+    @DisplayName("searchMessages maps hasMore and keeps replyToId only for the visible replies")
+    void searchMessages_mapsHasMoreAndVisibleReplies() throws Exception {
+      UUID firstId = UUID.randomUUID();
+      UUID secondId = UUID.randomUUID();
+      UUID visibleReply = UUID.randomUUID();
+      UUID hiddenReply = UUID.randomUUID();
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.searchVisibleMessages(
+              roomId.toString(), user1Id.toString(), "hello", null, null, 50))
+          .thenReturn(
+              new MessageSearchPage(
+                  List.of(
+                      storedMessage(firstId, "hello 1").replyToId(visibleReply.toString()),
+                      storedMessage(secondId, "hello 2").replyToId(hiddenReply.toString())),
+                  true,
+                  Set.of(visibleReply.toString())));
+
+      Response response =
+          roomsApiService.searchMessages(roomId, "hello", null, null, null, securityContext);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertEquals(
+          MessageSearchResultDto.create()
+              .messages(
+                  List.of(
+                      messageDto(firstId, "hello 1").replyToId(visibleReply),
+                      messageDto(secondId, "hello 2")))
+              .hasMore(true),
+          response.getEntity());
+      verify(chatMessageService, times(1))
+          .searchVisibleMessages(roomId.toString(), user1Id.toString(), "hello", null, null, 50);
+    }
+
+    @Test
+    @DisplayName("searchMessages parses the cursor, ignores a blank beforeId and keeps the limit")
+    void searchMessages_parsesTheCursor() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.searchVisibleMessages(any(), any(), any(), any(), any(), anyInt()))
+          .thenReturn(new MessageSearchPage(List.of(), false, Set.of()));
+
+      Response first =
+          roomsApiService.searchMessages(
+              roomId, "hello", 20, "2026-10-30T10:00:00Z", "  ", securityContext);
+      Response second =
+          roomsApiService.searchMessages(
+              roomId, "hello", 20, "2026-10-30T10:00:00Z", "anchor-id", securityContext);
+
+      assertEquals(
+          MessageSearchResultDto.create().messages(List.of()).hasMore(false), first.getEntity());
+      assertEquals(
+          MessageSearchResultDto.create().messages(List.of()).hasMore(false), second.getEntity());
+      verify(chatMessageService, times(1))
+          .searchVisibleMessages(
+              roomId.toString(),
+              user1Id.toString(),
+              "hello",
+              OffsetDateTime.parse("2026-10-30T10:00:00Z"),
+              null,
+              20);
+      verify(chatMessageService, times(1))
+          .searchVisibleMessages(
+              roomId.toString(),
+              user1Id.toString(),
+              "hello",
+              OffsetDateTime.parse("2026-10-30T10:00:00Z"),
+              "anchor-id",
+              20);
+    }
+
+    @Test
+    @DisplayName("searchMessages with a non-valid user")
+    void searchMessages_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.searchMessages(roomId, "hello", null, null, null, securityContext));
+    }
+  }
+
+  private TimelineView emptyTimelineView() {
+    return new TimelineView(
+        new TimelinePage(List.of(), false, false),
+        new MessageContext(Map.of(), Map.of()),
+        new ReadMarkersView(List.of(), new VisibilityFloor(null)));
+  }
+
   @Nested
   @DisplayName("Get timeline tests")
   class GetTimelineTest {
 
-    private List<Message> makeMessages(int count, OffsetDateTime newestTs) {
-      List<Message> list = new ArrayList<>();
-      for (int i = 0; i < count; i++) {
-        list.add(
-            Message.create()
-                .id("msg-" + String.format("%04d", count - i))
-                .roomId(roomId.toString())
-                .senderId(user1Id.toString())
-                .createdAt(newestTs.minusSeconds(i)));
-      }
-      return list;
-    }
-
-    private SystemEvent makeRoomCreatedEvent(OffsetDateTime ts) {
-      return SystemEvent.create()
-          .id("evt-room-created")
-          .roomId(roomId.toString())
-          .type("ROOM_CREATED")
-          .actorId(user1.getId())
-          .createdAt(ts);
-    }
-
     @Test
-    @DisplayName(
-        "Default branch: 50 messages + ROOM_CREATED → 50 items total, hasMoreBefore=true, oldest"
-            + " item is MESSAGE")
-    void defaultBranch_50MessagesAndRoomCreated_returns50ItemsWithHasMore() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-
-      OffsetDateTime newestMsg = OffsetDateTime.parse("2026-01-01T12:00:50Z");
-      OffsetDateTime roomCreatedAt = OffsetDateTime.parse("2026-01-01T10:00:00Z");
-
-      List<Message> messages = makeMessages(50, newestMsg);
-      when(messageRepository.getByRoomId(eq(roomId.toString()), isNull(), isNull(), eq(51)))
-          .thenReturn(messages);
-
-      SystemEvent roomCreated = makeRoomCreatedEvent(roomCreatedAt);
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), isNull(), anyInt()))
-          .thenReturn(List.of(roomCreated));
-
-      when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()), anyString()))
-          .thenReturn(List.of());
-
-      Response response =
-          roomsApiService.getTimeline(
-              roomId, null, null, null, null, null, null, 50, securityContext);
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      TimelineDto timeline = (TimelineDto) response.getEntity();
-      assertEquals(50, timeline.getItems().size(), "merged+trimmed list must be exactly 50");
-      assertEquals(
-          Boolean.TRUE,
-          timeline.isHasMoreBefore(),
-          "hasMoreBefore must be true when merged exceeded limit");
-      assertEquals(
-          TimelineItemTypeDto.MESSAGE,
-          timeline.getItems().get(0).getItemType(),
-          "oldest kept item must be a MESSAGE (ROOM_CREATED trimmed off)");
-    }
-
-    private SystemEvent makeSe(String id, OffsetDateTime ts) {
-      return SystemEvent.create().id(id).roomId(roomId.toString()).type("PIN").createdAt(ts);
-    }
-
-    @Test
-    @DisplayName(
-        "After branch: forward-skip — when more events exist than fetchLimit, oldest events after"
-            + " anchor are returned (not newest)")
-    void afterBranch_forwardSkip_oldestEventsReturnedNotNewest() throws Exception {
-      OffsetDateTime anchor = OffsetDateTime.parse("2026-01-01T10:00:00Z");
-      OffsetDateTime t1 = anchor.plusSeconds(1);
-      OffsetDateTime t2 = anchor.plusSeconds(2);
-      OffsetDateTime t3 = anchor.plusSeconds(3);
-      OffsetDateTime t4 = anchor.plusSeconds(4);
-      OffsetDateTime t5 = anchor.plusSeconds(5);
-
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), eq(anchor), eq(3)))
-          .thenReturn(List.of(makeSe("evt-t5", t5), makeSe("evt-t4", t4), makeSe("evt-t3", t3)));
-
-      when(systemEventRepository.findByRoomIdForward(
-              eq(roomId.toString()), eq(anchor), isNull(), isNull(), eq(3)))
-          .thenReturn(List.of(makeSe("evt-t1", t1), makeSe("evt-t2", t2), makeSe("evt-t3", t3)));
-
-      Response response =
-          roomsApiService.getTimeline(
-              roomId, null, null, anchor.toString(), null, null, null, 2, securityContext);
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      TimelineDto timeline = (TimelineDto) response.getEntity();
-      assertEquals(2, timeline.getItems().size());
-      assertEquals(
-          t1,
-          timeline.getItems().get(0).getCreatedAt(),
-          "oldest event (T1) after anchor must be first — DESC fetch returns newest (T3+) instead");
-    }
-
-    @Test
-    @DisplayName("After branch: equal-timestamp items are ordered stably by id (ASC tiebreak)")
-    void afterBranch_equalTimestamp_idTiebreakDeterminesOrder() throws Exception {
-      OffsetDateTime anchor = OffsetDateTime.parse("2026-01-01T10:00:00Z");
-      OffsetDateTime t1 = anchor.plusSeconds(1);
-
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      Message msg =
-          Message.create()
-              .id("msg-zzz")
-              .roomId(roomId.toString())
-              .senderId(user1Id.toString())
-              .createdAt(t1);
-      when(messageRepository.getByRoomId(
-              eq(roomId.toString()), isNull(), eq(anchor), eq(3), eq(true)))
-          .thenReturn(List.of(msg));
-
-      SystemEvent se = makeSe("evt-aaa", t1);
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), eq(anchor), eq(3)))
-          .thenReturn(List.of(se));
-      when(systemEventRepository.findByRoomIdForward(
-              eq(roomId.toString()), eq(anchor), isNull(), isNull(), eq(3)))
-          .thenReturn(List.of(se));
-
-      Response response =
-          roomsApiService.getTimeline(
-              roomId, null, null, anchor.toString(), null, null, null, 2, securityContext);
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      TimelineDto timeline = (TimelineDto) response.getEntity();
-      assertEquals(2, timeline.getItems().size());
-      assertEquals(
-          TimelineItemTypeDto.SYSTEM_EVENT,
-          timeline.getItems().get(0).getItemType(),
-          "id 'evt-aaa' < 'msg-zzz' so SYSTEM_EVENT must sort first — fails without id tiebreak");
-    }
-
-    @Test
-    @DisplayName(
-        "Around branch: only events closest to aroundTs are kept on each side, not arbitrary"
-            + " room-wide events")
-    void aroundBranch_closestEventsKept_notArbitraryRoomWide() throws Exception {
-      OffsetDateTime aroundTs = OffsetDateTime.parse("2026-01-01T12:00:05Z");
-      OffsetDateTime t2 = OffsetDateTime.parse("2026-01-01T12:00:02Z");
-      OffsetDateTime t3 = OffsetDateTime.parse("2026-01-01T12:00:03Z");
-      OffsetDateTime t4 = OffsetDateTime.parse("2026-01-01T12:00:04Z");
-      OffsetDateTime t6 = OffsetDateTime.parse("2026-01-01T12:00:06Z");
-      OffsetDateTime t7 = OffsetDateTime.parse("2026-01-01T12:00:07Z");
-      OffsetDateTime t8 = OffsetDateTime.parse("2026-01-01T12:00:08Z");
-
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), isNull(), anyInt()))
-          .thenReturn(
-              List.of(makeSe("e8", t8), makeSe("e7", t7), makeSe("e6", t6), makeSe("e4", t4)));
-
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), any(OffsetDateTime.class), isNull(), eq(3)))
-          .thenReturn(List.of(makeSe("e4", t4), makeSe("e3", t3), makeSe("e2", t2)));
-
-      when(systemEventRepository.findByRoomIdForward(
-              eq(roomId.toString()), eq(aroundTs.plusNanos(999_000)), isNull(), isNull(), eq(3)))
-          .thenReturn(List.of(makeSe("e6", t6), makeSe("e7", t7), makeSe("e8", t8)));
-
-      Response response =
-          roomsApiService.getTimeline(
-              roomId, null, null, null, null, aroundTs.toString(), null, 4, securityContext);
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      TimelineDto timeline = (TimelineDto) response.getEntity();
-      assertEquals(
-          4,
-          timeline.getItems().size(),
-          "around(limit=4,half=2): 2 closest older + 2 closest newer = 4 items");
-      assertEquals(
-          t3,
-          timeline.getItems().get(0).getCreatedAt(),
-          "oldest kept older event must be T3 (closest: T4, T3)");
-      assertEquals(
-          t6,
-          timeline.getItems().get(2).getCreatedAt(),
-          "first newer event must be T6 (closest newer to aroundTs)");
-    }
-
-    @Test
-    @DisplayName(
-        "Default branch: 51 messages + ROOM_CREATED → exactly 50 items total, no over-count")
-    void defaultBranch_51MessagesAndRoomCreated_noOverCount() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-
-      OffsetDateTime newestMsg = OffsetDateTime.parse("2026-01-01T12:00:51Z");
-      OffsetDateTime roomCreatedAt = OffsetDateTime.parse("2026-01-01T10:00:00Z");
-
-      List<Message> messages = makeMessages(51, newestMsg);
-      when(messageRepository.getByRoomId(eq(roomId.toString()), isNull(), isNull(), eq(51)))
-          .thenReturn(messages);
-
-      SystemEvent roomCreated = makeRoomCreatedEvent(roomCreatedAt);
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), isNull(), anyInt()))
-          .thenReturn(List.of(roomCreated));
-
-      when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()), anyString()))
-          .thenReturn(List.of());
-
-      Response response =
-          roomsApiService.getTimeline(
-              roomId, null, null, null, null, null, null, 50, securityContext);
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      TimelineDto timeline = (TimelineDto) response.getEntity();
-      assertEquals(50, timeline.getItems().size(), "must never return more than limit items");
-      assertEquals(Boolean.TRUE, timeline.isHasMoreBefore());
-    }
-
-    @Test
-    @DisplayName("Attachments are batch-fetched via getByIds once, never per-message getById")
-    void attachments_batchedNotPerMessage() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      OffsetDateTime t = OffsetDateTime.parse("2026-01-01T12:00:00Z");
-      Message m1 =
-          Message.create()
-              .id("m1")
-              .roomId(roomId.toString())
-              .senderId(user1Id.toString())
-              .createdAt(t)
-              .attachmentId("att-1");
-      Message m2 =
-          Message.create()
-              .id("m2")
-              .roomId(roomId.toString())
-              .senderId(user1Id.toString())
-              .createdAt(t.plusSeconds(1))
-              .attachmentId("att-2");
-      when(messageRepository.getByRoomId(eq(roomId.toString()), isNull(), isNull(), eq(51)))
-          .thenReturn(List.of(m2, m1));
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), isNull(), anyInt()))
-          .thenReturn(List.of());
-      when(fileMetadataRepository.getByIds(any()))
-          .thenReturn(
-              List.of(
-                  FileMetadata.create()
-                      .id("att-1")
-                      .name("a.png")
-                      .mimeType("image/png")
-                      .originalSize(10L),
-                  FileMetadata.create()
-                      .id("att-2")
-                      .name("b.png")
-                      .mimeType("image/png")
-                      .originalSize(20L)));
-
-      Response response =
-          roomsApiService.getTimeline(
-              roomId, null, null, null, null, null, null, 50, securityContext);
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      verify(fileMetadataRepository, times(1)).getByIds(any());
-      verify(fileMetadataRepository, times(0)).getById(anyString());
-      assertEquals(2, ((TimelineDto) response.getEntity()).getItems().size());
-    }
-
-    @Test
-    @DisplayName("Reply is exploded: original embedded depth-1, batch-fetched once")
-    void reply_isExplodedDepth1() throws Exception {
-      when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      OffsetDateTime t = OffsetDateTime.parse("2026-01-01T12:00:00Z");
+    @DisplayName("getTimeline maps the items, the flags, the reply, the attachment and the markers")
+    void getTimeline_mapsTheView() throws Exception {
+      OffsetDateTime clearedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      OffsetDateTime eventAt = OffsetDateTime.parse("2026-10-30T11:00:00Z");
       Message original =
           Message.create()
               .id("orig")
               .roomId(roomId.toString())
               .senderId(user2Id.toString())
               .text("original text")
-              .createdAt(t);
+              .createdAt(clearedAt.plusMinutes(1));
       Message reply =
-          Message.create()
-              .id("reply")
+          storedMessage(UUID.randomUUID(), "the reply")
+              .replyToId("orig")
+              .attachmentId("att-1")
+              .createdAt(clearedAt.plusMinutes(5));
+      SystemEvent event =
+          SystemEvent.create()
+              .id("evt-1")
               .roomId(roomId.toString())
-              .senderId(user1Id.toString())
-              .text("the reply")
-              .createdAt(t.plusSeconds(5))
-              .replyToId("orig");
-      when(messageRepository.getByRoomId(eq(roomId.toString()), isNull(), isNull(), eq(51)))
-          .thenReturn(List.of(reply));
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), isNull(), anyInt()))
-          .thenReturn(List.of());
-      when(messageRepository.getByRoomIdAndIds(eq(roomId.toString()), any()))
-          .thenReturn(List.of(original));
+              .type("MESSAGE_PINNED")
+              .actorId(user1Id.toString())
+              .createdAt(eventAt);
+      ReadMarker before =
+          ReadMarker.create().userId(user1Id.toString()).itemCreatedAt(clearedAt.minusHours(1));
+      ReadMarker after =
+          ReadMarker.create().userId(user2Id.toString()).itemCreatedAt(clearedAt.plusHours(1));
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.getTimeline(
+              any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+          .thenReturn(
+              new TimelineView(
+                  new TimelinePage(
+                      List.of(
+                          new TimelineItem.MessageItem(reply),
+                          new TimelineItem.SystemEventItem(event)),
+                      true,
+                      false),
+                  new MessageContext(
+                      Map.of("orig", original),
+                      Map.of(
+                          "att-1",
+                          FileMetadata.create()
+                              .id("att-1")
+                              .name("a.png")
+                              .mimeType("image/png")
+                              .originalSize(10L))),
+                  new ReadMarkersView(List.of(before, after), new VisibilityFloor(clearedAt))));
 
       Response response =
           roomsApiService.getTimeline(
               roomId, null, null, null, null, null, null, 50, securityContext);
 
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-      verify(messageRepository, times(1)).getByRoomIdAndIds(eq(roomId.toString()), any());
-      ChatMessageTimelineItemDto item =
-          (ChatMessageTimelineItemDto) ((TimelineDto) response.getEntity()).getItems().get(0);
-      assertEquals("orig", item.getMessage().getReplyToId());
-      assertEquals("original text", item.getMessage().getRepliedMessage().getText());
-      assertEquals(user2Id.toString(), item.getMessage().getRepliedMessage().getSenderId());
-      assertNull(
-          item.getMessage().getRepliedMessage().getRepliedMessage(),
-          "depth-1: the embedded original must not carry its own repliedMessage");
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      TimelineDto timeline = (TimelineDto) response.getEntity();
+      assertEquals(2, timeline.getItems().size());
+      assertEquals(Boolean.TRUE, timeline.isHasMoreBefore());
+      assertEquals(Boolean.FALSE, timeline.isHasMoreAfter());
+      ChatMessageTimelineItemDto messageItem =
+          (ChatMessageTimelineItemDto) timeline.getItems().get(0);
+      assertEquals(TimelineItemTypeDto.MESSAGE, messageItem.getItemType());
+      assertEquals("the reply", messageItem.getMessage().getText());
+      assertEquals("orig", messageItem.getMessage().getReplyToId());
+      assertEquals("original text", messageItem.getMessage().getRepliedMessage().getText());
+      assertEquals("a.png", messageItem.getMessage().getAttachment().getName());
+      assertEquals(TimelineItemTypeDto.SYSTEM_EVENT, timeline.getItems().get(1).getItemType());
+      assertEquals(eventAt, timeline.getItems().get(1).getCreatedAt());
+      assertEquals(
+          List.of(
+              ReadMarkerDto.create().userId(user1Id).itemCreatedAt(clearedAt),
+              ReadMarkerDto.create().userId(user2Id).itemCreatedAt(clearedAt.plusHours(1))),
+          timeline.getMarkers());
+      verify(chatMessageService, times(1))
+          .getTimeline(
+              roomId.toString(), user1Id.toString(), null, null, null, null, null, null, 50);
     }
 
     @Test
-    @DisplayName("Reply target at or before the caller's cleared-at is NOT exploded")
-    void reply_belowClearedAt_notExploded() throws Exception {
+    @DisplayName("A reply whose target is not in the context is mapped without reply info")
+    void getTimeline_replyOutsideTheContext_notExploded() throws Exception {
+      Message reply = storedMessage(UUID.randomUUID(), "the reply").replyToId("orig");
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      OffsetDateTime t = OffsetDateTime.parse("2026-01-01T12:00:00Z");
-      OffsetDateTime clearedAt = t.plusSeconds(3);
-      when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
-          .thenReturn(new VisibilityFloor(clearedAt));
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      Message original = original(t);
-      Message reply = reply(t.plusSeconds(10));
-      when(messageRepository.getByRoomId(eq(roomId.toString()), isNull(), eq(clearedAt), eq(51)))
-          .thenReturn(List.of(reply));
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), eq(clearedAt), anyInt()))
-          .thenReturn(List.of());
-      when(messageRepository.getByRoomIdAndIds(eq(roomId.toString()), any()))
-          .thenReturn(List.of(original));
+      when(chatMessageService.getTimeline(
+              any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+          .thenReturn(
+              new TimelineView(
+                  new TimelinePage(List.of(new TimelineItem.MessageItem(reply)), false, false),
+                  new MessageContext(Map.of(), Map.of()),
+                  new ReadMarkersView(List.of(), new VisibilityFloor(null))));
 
       Response response =
           roomsApiService.getTimeline(
@@ -4046,178 +3354,352 @@ class RoomsApiServiceImplTest {
           (ChatMessageTimelineItemDto) ((TimelineDto) response.getEntity()).getItems().get(0);
       assertNull(item.getMessage().getReplyToId());
       assertNull(item.getMessage().getRepliedMessage());
+      verify(chatMessageService, times(1))
+          .getTimeline(
+              roomId.toString(), user1Id.toString(), null, null, null, null, null, null, 50);
     }
 
     @Test
-    @DisplayName("Reply target after the caller's cleared-at is exploded")
-    void reply_afterClearedAt_exploded() throws Exception {
+    @DisplayName("Blank query parameters become null and the limit defaults to 50")
+    void getTimeline_blankParametersAreNull() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      OffsetDateTime t = OffsetDateTime.parse("2026-01-01T12:00:00Z");
-      OffsetDateTime clearedAt = t.minusSeconds(3);
-      when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
-          .thenReturn(new VisibilityFloor(clearedAt));
-      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
-
-      Message original = original(t);
-      Message reply = reply(t.plusSeconds(10));
-      when(messageRepository.getByRoomId(eq(roomId.toString()), isNull(), eq(clearedAt), eq(51)))
-          .thenReturn(List.of(reply));
-      when(systemEventRepository.findByRoomIdBounded(
-              eq(roomId.toString()), isNull(), eq(clearedAt), anyInt()))
-          .thenReturn(List.of());
-      when(messageRepository.getByRoomIdAndIds(eq(roomId.toString()), any()))
-          .thenReturn(List.of(original));
+      when(chatMessageService.getTimeline(
+              any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+          .thenReturn(emptyTimelineView());
 
       Response response =
           roomsApiService.getTimeline(
-              roomId, null, null, null, null, null, null, 50, securityContext);
+              roomId, "", " ", "  ", "", "   ", null, null, securityContext);
 
-      ChatMessageTimelineItemDto item =
-          (ChatMessageTimelineItemDto) ((TimelineDto) response.getEntity()).getItems().get(0);
-      assertEquals("original text", item.getMessage().getRepliedMessage().getText());
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      verify(chatMessageService, times(1))
+          .getTimeline(
+              roomId.toString(), user1Id.toString(), null, null, null, null, null, null, 50);
     }
 
-    private Message original(OffsetDateTime createdAt) {
-      return Message.create()
-          .id("orig")
-          .roomId(roomId.toString())
-          .senderId(user2Id.toString())
-          .text("original text")
-          .createdAt(createdAt);
+    @Test
+    @DisplayName("The timestamps, the ids and the limit are passed to the service")
+    void getTimeline_passesTheParameters() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.getTimeline(
+              any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+          .thenReturn(emptyTimelineView());
+
+      roomsApiService.getTimeline(
+          roomId,
+          "2026-10-30T10:00:00Z",
+          "before-id",
+          "2026-10-30T11:00:00Z",
+          "after-id",
+          "2026-10-30T12:00:00Z",
+          "around-id",
+          20,
+          securityContext);
+
+      verify(chatMessageService, times(1))
+          .getTimeline(
+              roomId.toString(),
+              user1Id.toString(),
+              OffsetDateTime.parse("2026-10-30T10:00:00Z"),
+              "before-id",
+              OffsetDateTime.parse("2026-10-30T11:00:00Z"),
+              "after-id",
+              OffsetDateTime.parse("2026-10-30T12:00:00Z"),
+              "around-id",
+              20);
     }
 
-    private Message reply(OffsetDateTime createdAt) {
-      return Message.create()
-          .id("reply")
-          .roomId(roomId.toString())
-          .senderId(user1Id.toString())
-          .text("the reply")
-          .createdAt(createdAt)
-          .replyToId("orig");
+    @Test
+    @DisplayName("getTimeline with a non-valid user")
+    void getTimeline_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () ->
+              roomsApiService.getTimeline(
+                  roomId, null, null, null, null, null, null, 50, securityContext));
     }
   }
 
   @Nested
-  @DisplayName("Forward attachment preview tests")
-  class ForwardAttachmentPreviewTests {
+  @DisplayName("Pinned messages and read markers tests")
+  class PinnedMessagesAndReadMarkersTest {
 
-    private final UUID sourceRoomId = UUID.randomUUID();
-    private final UUID targetRoomId = UUID.randomUUID();
-    private final UUID messageId = UUID.randomUUID();
-    private final String attachmentId = UUID.randomUUID().toString();
-    private FileMetadata video;
-
-    @BeforeEach
-    void setUpForward() {
+    @Test
+    @DisplayName("getPinnedMessages maps the pins with their rendered message")
+    void getPinnedMessages_mapsThePins() throws Exception {
+      OffsetDateTime pinnedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      UUID pinnedMessageId = UUID.randomUUID();
+      UUID unpinnedAtMessageId = UUID.randomUUID();
+      Message original =
+          Message.create()
+              .id("orig")
+              .roomId(roomId.toString())
+              .senderId(user2Id.toString())
+              .text("original text")
+              .createdAt(pinnedAt.minusDays(1));
+      Message pinned =
+          storedMessage(pinnedMessageId, "pinned text").replyToId("orig").attachmentId("att-1");
+      Message other = storedMessage(unpinnedAtMessageId, "other text");
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(messageRepository.getById(messageId.toString()))
+      when(chatMessageService.getPinnedMessagesView(roomId.toString(), user1Id.toString()))
           .thenReturn(
-              Optional.of(
-                  Message.create()
-                      .id(messageId.toString())
-                      .roomId(sourceRoomId.toString())
-                      .senderId(user2Id.toString())
-                      .attachmentId(attachmentId)
-                      .createdAt(OffsetDateTime.now())));
-      video =
-          FileMetadata.create()
-              .id(attachmentId)
-              .name("clip.mp4")
-              .mimeType("video/mp4")
-              .originalSize(1024L)
-              .type(FileMetadataType.ATTACHMENT)
-              .userId(user2Id.toString())
-              .roomId(sourceRoomId.toString());
-      when(fileMetadataRepository.getById(attachmentId)).thenReturn(Optional.of(video));
-    }
+              new PinnedMessagesView(
+                  List.of(
+                      MessagePin.create(
+                              roomId.toString(), pinnedMessageId.toString(), user2Id.toString())
+                          .pinnedAt(pinnedAt)
+                          .message(pinned),
+                      MessagePin.create(
+                              roomId.toString(), unpinnedAtMessageId.toString(), user1Id.toString())
+                          .message(other)),
+                  new MessageContext(
+                      Map.of("orig", original),
+                      Map.of(
+                          "att-1",
+                          FileMetadata.create()
+                              .id("att-1")
+                              .name("a.png")
+                              .mimeType("image/png")
+                              .originalSize(10L)))));
 
-    private ForwardMessagesRequestDto request() {
-      return ForwardMessagesRequestDto.create()
-          .messages(
-              List.of(
-                  ForwardMessagesRequestMessagesInnerDto.create()
-                      .sourceRoomId(sourceRoomId)
-                      .messageId(messageId)));
-    }
+      Response response = roomsApiService.getPinnedMessages(roomId, securityContext);
 
-    @Test
-    @DisplayName("Forwarding a video copies its preview to the forwarded copy")
-    void forwardMessages_video_copiesPreviewToTheCopy() throws Exception {
-      ArgumentCaptor<String> copyId = ArgumentCaptor.forClass(String.class);
-      when(messageWriteRepository.forwardMessage(
-              eq(sourceRoomId.toString()),
-              eq(targetRoomId.toString()),
-              eq(user1Id.toString()),
-              eq(messageId.toString()),
-              anyString(),
-              copyId.capture()))
-          .thenAnswer(
-              invocation ->
-                  Optional.of(
-                      new MessageWriteRepository.ForwardResult(
-                          invocation.getArgument(4),
-                          OffsetDateTime.now(),
-                          "",
-                          user2Id.toString(),
-                          OffsetDateTime.now(),
-                          invocation.getArgument(5),
-                          "clip.mp4",
-                          "video/mp4",
-                          1024L,
-                          null)));
-
-      roomsApiService.forwardMessages(targetRoomId, request(), securityContext);
-
-      verify(attachmentService).copyVideoPreview(video, copyId.getValue(), user1Id.toString());
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      @SuppressWarnings("unchecked")
+      List<PinnedMessageDto> pins = (List<PinnedMessageDto>) response.getEntity();
+      assertEquals(2, pins.size());
+      assertEquals(pinnedMessageId.toString(), pins.get(0).getMessageId());
+      assertEquals(roomId.toString(), pins.get(0).getRoomId());
+      assertEquals(user2Id.toString(), pins.get(0).getPinnedBy());
+      assertEquals(pinnedAt, pins.get(0).getPinnedAt());
+      assertEquals("pinned text", pins.get(0).getMessage().getText());
+      assertEquals("original text", pins.get(0).getMessage().getRepliedMessage().getText());
+      assertEquals("a.png", pins.get(0).getMessage().getAttachment().getName());
+      assertEquals(unpinnedAtMessageId.toString(), pins.get(1).getMessageId());
+      assertNull(pins.get(1).getPinnedAt());
+      assertNull(pins.get(1).getMessage().getRepliedMessage());
+      verify(chatMessageService, times(1))
+          .getPinnedMessagesView(roomId.toString(), user1Id.toString());
     }
 
     @Test
-    @DisplayName("Forwarding an attachment copies its area to the forwarded copy")
-    void forwardMessages_copiesTheAreaToTheCopy() throws Exception {
-      video.area("640x480");
-      when(messageWriteRepository.forwardMessage(
-              eq(sourceRoomId.toString()),
-              eq(targetRoomId.toString()),
-              eq(user1Id.toString()),
-              eq(messageId.toString()),
-              anyString(),
-              anyString()))
-          .thenAnswer(
-              invocation ->
-                  Optional.of(
-                      new MessageWriteRepository.ForwardResult(
-                          invocation.getArgument(4),
-                          OffsetDateTime.now(),
-                          "",
-                          user2Id.toString(),
-                          OffsetDateTime.now(),
-                          invocation.getArgument(5),
-                          "clip.mp4",
-                          "video/mp4",
-                          1024L,
-                          "640x480")));
-
-      roomsApiService.forwardMessages(targetRoomId, request(), securityContext);
-
-      ArgumentCaptor<FileMetadata> copy = ArgumentCaptor.forClass(FileMetadata.class);
-      verify(fileMetadataRepository).save(copy.capture());
-      assertEquals("640x480", copy.getValue().getArea());
-      verify(attachmentService)
-          .copyVideoPreview(video, copy.getValue().getId(), user1Id.toString());
-    }
-
-    @Test
-    @DisplayName("No preview copy when the forward fails and the copied file is removed")
-    void forwardMessages_forwardFails_noPreviewCopy() {
-      when(messageWriteRepository.forwardMessage(
-              anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
-          .thenReturn(Optional.empty());
+    @DisplayName("getPinnedMessages with a non-valid user")
+    void getPinnedMessages_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
 
       assertThrows(
-          RuntimeException.class,
-          () -> roomsApiService.forwardMessages(targetRoomId, request(), securityContext));
+          UnauthorizedException.class,
+          () -> roomsApiService.getPinnedMessages(roomId, securityContext));
+    }
 
-      verify(attachmentService, never()).copyVideoPreview(any(), anyString(), anyString());
+    @Test
+    @DisplayName("getRoomReadMarkers clamps the markers to the floor of the requester")
+    void getRoomReadMarkers_clampsTheMarkers() throws Exception {
+      OffsetDateTime clearedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.getRoomReadMarkers(roomId.toString(), user1Id.toString()))
+          .thenReturn(
+              new ReadMarkersView(
+                  List.of(
+                      ReadMarker.create()
+                          .userId(user1Id.toString())
+                          .itemCreatedAt(clearedAt.minusHours(1)),
+                      ReadMarker.create()
+                          .userId(user2Id.toString())
+                          .itemCreatedAt(clearedAt.plusHours(1))),
+                  new VisibilityFloor(clearedAt)));
+
+      Response response = roomsApiService.getRoomReadMarkers(roomId, securityContext);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertEquals(
+          List.of(
+              ReadMarkerDto.create().userId(user1Id).itemCreatedAt(clearedAt),
+              ReadMarkerDto.create().userId(user2Id).itemCreatedAt(clearedAt.plusHours(1))),
+          response.getEntity());
+      verify(chatMessageService, times(1))
+          .getRoomReadMarkers(roomId.toString(), user1Id.toString());
+    }
+
+    @Test
+    @DisplayName("getRoomReadMarkers without a floor keeps the markers as they are")
+    void getRoomReadMarkers_withoutFloor() throws Exception {
+      OffsetDateTime itemCreatedAt = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.getRoomReadMarkers(roomId.toString(), user1Id.toString()))
+          .thenReturn(
+              new ReadMarkersView(
+                  List.of(
+                      ReadMarker.create().userId(user2Id.toString()).itemCreatedAt(itemCreatedAt)),
+                  new VisibilityFloor(null)));
+
+      Response response = roomsApiService.getRoomReadMarkers(roomId, securityContext);
+
+      assertEquals(
+          List.of(ReadMarkerDto.create().userId(user2Id).itemCreatedAt(itemCreatedAt)),
+          response.getEntity());
+      verify(chatMessageService, times(1))
+          .getRoomReadMarkers(roomId.toString(), user1Id.toString());
+    }
+
+    @Test
+    @DisplayName("getRoomReadMarkers with a non-valid user")
+    void getRoomReadMarkers_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.getRoomReadMarkers(roomId, securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Pin, reaction and read marker tests")
+  class PinReactionAndReadMarkerTest {
+
+    private final UUID messageId = UUID.randomUUID();
+
+    @Test
+    @DisplayName("pinMessage answers 204")
+    void pinMessage_noContent() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response = roomsApiService.pinMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService, times(1))
+          .pinMessage(roomId.toString(), messageId.toString(), user1Id.toString());
+    }
+
+    @Test
+    @DisplayName("unpinMessage answers 204 whether or not the message was the room pin")
+    void unpinMessage_noContent() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.unpinMessage(
+              roomId.toString(), messageId.toString(), user1Id.toString()))
+          .thenReturn(Optional.empty());
+
+      Response response = roomsApiService.unpinMessage(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService, times(1))
+          .unpinMessage(roomId.toString(), messageId.toString(), user1Id.toString());
+    }
+
+    @Test
+    @DisplayName("setReaction answers 204 and sets the reaction of the user")
+    void setReaction_noContent() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response =
+          roomsApiService.setReaction(
+              roomId,
+              messageId,
+              com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
+              securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService, times(1))
+          .setReaction(roomId.toString(), messageId.toString(), user1, "👍");
+    }
+
+    @Test
+    @DisplayName("setReaction rejects a blank reaction with 400 and calls nothing")
+    void setReaction_blankReaction_badRequest() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.setReaction(
+                  roomId,
+                  messageId,
+                  com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("  "),
+                  securityContext));
+
+      verifyNoInteractions(chatMessageService);
+    }
+
+    @Test
+    @DisplayName("removeReaction answers 204 whether or not the user had a reaction")
+    void removeReaction_noContent() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      when(chatMessageService.removeReaction(
+              roomId.toString(), messageId.toString(), user1Id.toString()))
+          .thenReturn(Optional.empty());
+
+      Response response = roomsApiService.removeReaction(roomId, messageId, securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService, times(1))
+          .removeReaction(roomId.toString(), messageId.toString(), user1Id.toString());
+    }
+
+    @Test
+    @DisplayName("markRead answers 204 and moves the marker of the user")
+    void markRead_noContent() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      Response response =
+          roomsApiService.markRead(
+              roomId,
+              com.zextras.carbonio.chats.model.MarkReadRequestDto.create().itemId("item-id"),
+              securityContext);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      verify(chatMessageService, times(1))
+          .setReadMarker(roomId.toString(), user1Id.toString(), "item-id");
+    }
+
+    @Test
+    @DisplayName("markRead without an itemId answers 400 \"itemId is required\" and calls nothing")
+    void markRead_withoutItemId_badRequest() throws Exception {
+      for (com.zextras.carbonio.chats.model.MarkReadRequestDto request :
+          java.util.Arrays.asList(
+              null,
+              com.zextras.carbonio.chats.model.MarkReadRequestDto.create(),
+              com.zextras.carbonio.chats.model.MarkReadRequestDto.create().itemId("  "))) {
+        Response response = roomsApiService.markRead(roomId, request, securityContext);
+
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+        assertEquals("itemId is required", response.getEntity());
+      }
+
+      verifyNoInteractions(chatMessageService);
+    }
+
+    @Test
+    @DisplayName("The message endpoints reject a non-valid user")
+    void messageEndpoints_testUnauthorizedUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.pinMessage(roomId, messageId, securityContext));
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.unpinMessage(roomId, messageId, securityContext));
+      assertThrows(
+          UnauthorizedException.class,
+          () ->
+              roomsApiService.setReaction(
+                  roomId,
+                  messageId,
+                  com.zextras.carbonio.chats.model.SetReactionRequestDto.create().reaction("👍"),
+                  securityContext));
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.removeReaction(roomId, messageId, securityContext));
+      assertThrows(
+          UnauthorizedException.class,
+          () ->
+              roomsApiService.markRead(
+                  roomId,
+                  com.zextras.carbonio.chats.model.MarkReadRequestDto.create().itemId("item-id"),
+                  securityContext));
+      verifyNoInteractions(chatMessageService);
     }
   }
 }

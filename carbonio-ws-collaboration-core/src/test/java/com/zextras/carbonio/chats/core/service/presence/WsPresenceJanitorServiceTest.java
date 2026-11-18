@@ -14,8 +14,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.infrastructure.instance.WsInstanceRegistry;
+import com.zextras.carbonio.chats.core.infrastructure.websocket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
-import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;

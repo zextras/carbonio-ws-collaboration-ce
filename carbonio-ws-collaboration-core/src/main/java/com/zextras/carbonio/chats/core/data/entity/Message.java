@@ -239,6 +239,11 @@ public class Message {
     return updatedAt;
   }
 
+  public Message updatedAt(OffsetDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+    return this;
+  }
+
   public List<MessageReaction> getReactions() {
     return reactions;
   }

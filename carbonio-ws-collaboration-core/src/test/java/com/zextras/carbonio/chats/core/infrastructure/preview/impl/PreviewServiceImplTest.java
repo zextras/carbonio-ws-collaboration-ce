@@ -33,7 +33,7 @@ import com.zextras.carbonio.chats.core.exception.VideoPreviewUnsupportedExceptio
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
-import com.zextras.carbonio.chats.core.service.ChatMessageService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
@@ -56,7 +56,7 @@ import org.mockito.ArgumentCaptor;
 @UnitTest
 class PreviewServiceImplTest {
 
-  private final ChatMessageService chatMessageService;
+  private final RoomAccess roomAccess;
   private final FileMetadataRepository fileMetadataRepository;
   private final PreviewClient previewClient;
   private final AppConfig appConfig;
@@ -73,12 +73,12 @@ class PreviewServiceImplTest {
     // that don't care about it. Individual tests override as needed.
     when(this.appConfig.get(Long.class, ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB))
         .thenReturn(Optional.of(100_000L));
-    this.chatMessageService = mock(ChatMessageService.class);
-    when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
+    this.roomAccess = mock(RoomAccess.class);
+    when(roomAccess.getVisibilityFloor(anyString(), anyString()))
         .thenReturn(new VisibilityFloor(null));
     this.previewService =
         new PreviewServiceImpl(
-            new AttachmentAccessValidator(chatMessageService, mock(MessageRepository.class)),
+            new AttachmentAccessValidator(roomAccess, mock(MessageRepository.class)),
             fileMetadataRepository,
             previewClient,
             appConfig);
@@ -532,7 +532,7 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(chatMessageService.getVisibilityFloor(room1.getId(), currentUser.getId()))
+    when(roomAccess.getVisibilityFloor(room1.getId(), currentUser.getId()))
         .thenThrow(new ForbiddenException());
 
     assertThrows(

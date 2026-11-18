@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.infrastructure.websocket;
 
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;

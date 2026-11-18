@@ -56,7 +56,9 @@ public interface AttachmentService {
   FileMetadata getAttachmentInfoById(UUID fileId, UserPrincipal currentUser);
 
   /**
-   * Saves a room's attachment file
+   * Saves a room's attachment file. The caller has already verified that the user is a member of
+   * the room and that the reply target, if any, is visible to the user; no membership or reply
+   * check is made here.
    *
    * @param roomId identifier of the room attachment {@link UUID}
    * @param file file stream to save {@link InputStream}

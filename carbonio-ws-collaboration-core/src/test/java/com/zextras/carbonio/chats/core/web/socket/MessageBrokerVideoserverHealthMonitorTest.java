@@ -22,6 +22,7 @@ import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
+import com.zextras.carbonio.chats.core.infrastructure.websocket.EventWebSocketSessions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
