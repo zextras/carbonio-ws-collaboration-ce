@@ -102,6 +102,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -1521,11 +1522,11 @@ class ChatMessageServiceImplTest {
 
       chatMessageService.editMessage(ROOM_ID, MESSAGE_ID, user, "new text");
 
-      ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<WsEvent> json = ArgumentCaptor.forClass(WsEvent.class);
       verify(messageReceivedBroadcaster)
           .broadcastToMembersWhoCanAccess(eq(ROOM_ID), eq(createdAt), json.capture());
       verifyNoInteractions(eventDispatcher);
-      JsonNode event = objectMapper.readTree(json.getValue());
+      JsonNode event = objectMapper.valueToTree(json.getValue());
       assertEquals("MessageEdited", event.get("type").asText());
       assertEquals(MESSAGE_ID, event.get("messageId").asText());
       assertEquals(ROOM_ID, event.get("roomId").asText());
@@ -1543,11 +1544,11 @@ class ChatMessageServiceImplTest {
 
       chatMessageService.editMessage(ROOM_ID, MESSAGE_ID, user, "new text");
 
-      ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher).sendRawToUserExchange(eq(members), json.capture());
+      ArgumentCaptor<WsEvent> json = ArgumentCaptor.forClass(WsEvent.class);
+      verify(eventDispatcher).sendWsEvent(eq(members), json.capture());
       verify(messageReceivedBroadcaster, never())
           .broadcastToMembersWhoCanAccess(any(), any(), any());
-      assertEquals("MessageEdited", objectMapper.readTree(json.getValue()).get("type").asText());
+      assertEquals("MessageEdited", objectMapper.valueToTree(json.getValue()).get("type").asText());
     }
 
     @Test
@@ -1688,9 +1689,9 @@ class ChatMessageServiceImplTest {
           chatMessageService.unpinMessage(ROOM_ID, MESSAGE_ID, USER_ID);
 
       assertTrue(unpinned.isPresent());
-      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher).sendRawToUserExchange(eq(members), payload.capture());
-      JsonNode event = objectMapper.readTree(payload.getValue());
+      ArgumentCaptor<WsEvent> payload = ArgumentCaptor.forClass(WsEvent.class);
+      verify(eventDispatcher).sendWsEvent(eq(members), payload.capture());
+      JsonNode event = objectMapper.valueToTree(payload.getValue());
       assertEquals("MessageUnpinned", event.get("type").asText());
       assertEquals(MESSAGE_ID, event.get("messageId").asText());
       assertEquals(USER_ID, event.get("unpinnedBy").asText());
@@ -1730,12 +1731,15 @@ class ChatMessageServiceImplTest {
       assertSame(systemEvent, result.systemEvent());
       assertSame(message, result.message());
       verify(pinRepository, never()).getPinnedMessages(anyString());
-      ArgumentCaptor<WsEvent> event = ArgumentCaptor.forClass(WsEvent.class);
+      ArgumentCaptor<Function<TimelineMessageDto, WsEvent>> eventFactory =
+          ArgumentCaptor.forClass(Function.class);
       ArgumentCaptor<TimelineMessageDto> broadcastMessage =
           ArgumentCaptor.forClass(TimelineMessageDto.class);
       verify(messageReceivedBroadcaster)
-          .broadcastWithReplyVisibility(eq(ROOM_ID), event.capture(), broadcastMessage.capture());
-      MessagePinned pinned = (MessagePinned) event.getValue();
+          .broadcastWithReplyVisibility(
+              eq(ROOM_ID), broadcastMessage.capture(), eventFactory.capture());
+      MessagePinned pinned =
+          (MessagePinned) eventFactory.getValue().apply(broadcastMessage.getValue());
       assertEquals(MESSAGE_ID, pinned.getMessageId());
       assertEquals(USER_ID, pinned.getPinnedBy());
       assertEquals("pin-event", pinned.getSystemEventId());
@@ -1765,18 +1769,16 @@ class ChatMessageServiceImplTest {
 
       chatMessageService.deleteMessage(ROOM_ID, MESSAGE_ID, user);
 
-      ArgumentCaptor<String> deletedPayload = ArgumentCaptor.forClass(String.class);
-      ArgumentCaptor<String> unpinnedPayload = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<WsEvent> deletedPayload = ArgumentCaptor.forClass(WsEvent.class);
+      ArgumentCaptor<WsEvent> unpinnedPayload = ArgumentCaptor.forClass(WsEvent.class);
       InOrder order = inOrder(messageReceivedBroadcaster, eventDispatcher);
       order
           .verify(messageReceivedBroadcaster)
           .broadcastToMembersWhoCanAccess(
               eq(ROOM_ID), eq(messageCreatedAt), deletedPayload.capture());
-      order
-          .verify(eventDispatcher, times(1))
-          .sendRawToUserExchange(eq(members), unpinnedPayload.capture());
-      JsonNode deleted = objectMapper.readTree(deletedPayload.getValue());
-      JsonNode unpinned = objectMapper.readTree(unpinnedPayload.getValue());
+      order.verify(eventDispatcher, times(1)).sendWsEvent(eq(members), unpinnedPayload.capture());
+      JsonNode deleted = objectMapper.valueToTree(deletedPayload.getValue());
+      JsonNode unpinned = objectMapper.valueToTree(unpinnedPayload.getValue());
       assertEquals("MessageDeleted", deleted.get("type").asText());
       assertEquals(MESSAGE_ID, deleted.get("messageId").asText());
       assertEquals(USER_ID, deleted.get("deletedBy").asText());
@@ -1811,12 +1813,12 @@ class ChatMessageServiceImplTest {
 
       chatMessageService.deleteMessage(ROOM_ID, MESSAGE_ID, user);
 
-      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<WsEvent> payload = ArgumentCaptor.forClass(WsEvent.class);
       verify(messageReceivedBroadcaster)
           .broadcastToMembersWhoCanAccess(eq(ROOM_ID), eq(messageCreatedAt), payload.capture());
       verifyNoInteractions(eventDispatcher);
       assertEquals(
-          "MessageDeleted", objectMapper.readTree(payload.getValue()).get("type").asText());
+          "MessageDeleted", objectMapper.valueToTree(payload.getValue()).get("type").asText());
     }
   }
 
@@ -1842,11 +1844,11 @@ class ChatMessageServiceImplTest {
     }
 
     private ReactionChanged captureReactionBroadcast() throws Exception {
-      ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<WsEvent> json = ArgumentCaptor.forClass(WsEvent.class);
       verify(messageReceivedBroadcaster)
           .broadcastToMembersWhoCanAccess(eq(ROOM_ID), eq(targetCreatedAt), json.capture());
       verifyNoInteractions(eventDispatcher);
-      return objectMapper.readValue(json.getValue(), ReactionChanged.class);
+      return (ReactionChanged) json.getValue();
     }
 
     @Test
@@ -2102,9 +2104,9 @@ class ChatMessageServiceImplTest {
 
       Message forwardedMessage = forward();
 
-      ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-      verify(eventDispatcher).sendRawToUserExchange(eq(members), payload.capture());
-      JsonNode event = objectMapper.readTree(payload.getValue());
+      ArgumentCaptor<WsEvent> payload = ArgumentCaptor.forClass(WsEvent.class);
+      verify(eventDispatcher).sendWsEvent(eq(members), payload.capture());
+      JsonNode event = objectMapper.valueToTree(payload.getValue());
       assertEquals("MessageForwarded", event.get("type").asText());
       assertEquals(forwardedMessage.getId(), event.get("message").get("id").asText());
     }

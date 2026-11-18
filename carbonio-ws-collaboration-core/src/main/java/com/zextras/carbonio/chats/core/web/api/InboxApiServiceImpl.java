@@ -24,7 +24,12 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.presence.PresenceService;
 import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.InboxEntryDto;
+import com.zextras.carbonio.chats.model.InboxMemberDto;
+import com.zextras.carbonio.chats.model.InboxResponseDto;
+import com.zextras.carbonio.chats.model.InboxRoomDto;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.ReadMarkerDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import io.ebean.annotation.Transactional;
@@ -34,11 +39,11 @@ import jakarta.ws.rs.core.SecurityContext;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -139,7 +144,7 @@ public class InboxApiServiceImpl implements InboxApiService {
             : presenceService.getBatchPresence(allMemberIds).stream()
                 .collect(Collectors.toMap(PresenceSummary::userId, p -> p, (a, b) -> a));
 
-    List<Map<String, Object>> conversations = new ArrayList<>();
+    List<InboxEntryDto> conversations = new ArrayList<>();
     for (RoomDto room : rooms) {
       String roomId = room.getId().toString();
       InboxLastItem lastItem = lastItemByRoom.get(roomId);
@@ -147,45 +152,46 @@ public class InboxApiServiceImpl implements InboxApiService {
       boolean muted =
           room.getUserSettings() != null && Boolean.TRUE.equals(room.getUserSettings().isMuted());
 
-      // Build members with presence enrichment
-      List<Map<String, Object>> enrichedMembers = new ArrayList<>();
+      List<InboxMemberDto> enrichedMembers = new ArrayList<>();
       if (room.getMembers() != null) {
         for (MemberDto member : room.getMembers()) {
           String memberId = member.getUserId().toString();
-          Map<String, Object> m = new LinkedHashMap<>();
-          m.put("userId", memberId);
-          m.put("owner", Boolean.TRUE.equals(member.isOwner()));
+          InboxMemberDto enriched =
+              InboxMemberDto.create()
+                  .userId(member.getUserId())
+                  .owner(Boolean.TRUE.equals(member.isOwner()));
           PresenceSummary presence = presenceById.get(memberId);
           if (presence != null) {
-            m.put("online", presence.online());
+            enriched.online(presence.online());
             if (presence.lastSeen() != null) {
-              m.put("lastActivity", presence.lastSeen().withOffsetSameInstant(ZoneOffset.UTC));
+              enriched.lastActivity(presence.lastSeen().withOffsetSameInstant(ZoneOffset.UTC));
             }
           } else {
-            m.put("online", false);
+            enriched.online(false);
           }
-          enrichedMembers.add(m);
+          enrichedMembers.add(enriched);
         }
       }
 
-      Map<String, Object> conversation = new LinkedHashMap<>();
-      conversation.put("roomId", roomId);
-      Map<String, Object> roomMap = new LinkedHashMap<>();
-      roomMap.put("id", roomId);
-      roomMap.put("name", room.getName());
-      roomMap.put("description", room.getDescription());
-      roomMap.put("type", room.getType());
-      roomMap.put("members", enrichedMembers);
-      if (room.getUserSettings() != null) roomMap.put("userSettings", room.getUserSettings());
-      if (room.getMeetingId() != null) roomMap.put("meetingId", room.getMeetingId());
-      if (room.getPictureUpdatedAt() != null)
-        roomMap.put("pictureUpdatedAt", room.getPictureUpdatedAt());
-      if (room.getCreatedAt() != null) roomMap.put("createdAt", room.getCreatedAt());
-      if (room.getUpdatedAt() != null) roomMap.put("updatedAt", room.getUpdatedAt());
-      conversation.put("room", roomMap);
+      InboxEntryDto conversation =
+          InboxEntryDto.create()
+              .roomId(room.getId())
+              .room(
+                  InboxRoomDto.create()
+                      .id(room.getId())
+                      .name(room.getName())
+                      .description(room.getDescription())
+                      .type(room.getType())
+                      .members(enrichedMembers)
+                      .userSettings(room.getUserSettings())
+                      .meetingId(room.getMeetingId())
+                      .pictureUpdatedAt(room.getPictureUpdatedAt())
+                      .createdAt(room.getCreatedAt())
+                      .updatedAt(room.getUpdatedAt()))
+              .unreadCount(unreadCountByRoom.getOrDefault(roomId, 0L).intValue())
+              .muted(muted);
       if (lastItem != null) {
-        conversation.put(
-            "lastItem",
+        conversation.lastItem(
             timelineItemMapper.toTimelineItem(
                 lastItem.lastItem(),
                 metadataByFileId,
@@ -193,26 +199,23 @@ public class InboxApiServiceImpl implements InboxApiService {
                     ? Map.of()
                     : Map.of(lastItem.repliedMessage().getId(), lastItem.repliedMessage())));
       }
-      conversation.put("unreadCount", unreadCountByRoom.getOrDefault(roomId, 0L).intValue());
-      conversation.put("muted", muted);
 
-      List<ReadMarker> roomMarkers = allMarkersByRoom.getOrDefault(roomId, List.of());
-      List<Map<String, Object>> markerList = new ArrayList<>();
       VisibilityFloor floor =
           new VisibilityFloor(
               room.getUserSettings() == null ? null : room.getUserSettings().getClearedAt());
-      for (ReadMarker marker : roomMarkers) {
-        Map<String, Object> entry = new HashMap<>();
-        entry.put("userId", marker.getUserId());
-        entry.put("itemCreatedAt", floor.clamp(marker.getItemCreatedAt()).toString());
-        markerList.add(entry);
+      List<ReadMarkerDto> markers = new ArrayList<>();
+      for (ReadMarker marker : allMarkersByRoom.getOrDefault(roomId, List.of())) {
+        markers.add(
+            ReadMarkerDto.create()
+                .userId(UUID.fromString(marker.getUserId()))
+                .itemCreatedAt(floor.clamp(marker.getItemCreatedAt())));
       }
-      conversation.put("markers", markerList);
+      conversation.markers(markers);
       conversations.add(conversation);
     }
 
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("conversations", conversations);
-    return Response.status(Status.OK).entity(response).build();
+    return Response.status(Status.OK)
+        .entity(InboxResponseDto.create().conversations(conversations))
+        .build();
   }
 }

@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.service.presence;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.PresenceChanged;
@@ -26,14 +25,11 @@ public class PresenceBroadcaster {
 
   private final PresenceService presenceService;
   private final EventDispatcher eventDispatcher;
-  private final ObjectMapper objectMapper;
 
   @Inject
-  public PresenceBroadcaster(
-      PresenceService presenceService, EventDispatcher eventDispatcher, ObjectMapper objectMapper) {
+  public PresenceBroadcaster(PresenceService presenceService, EventDispatcher eventDispatcher) {
     this.presenceService = presenceService;
     this.eventDispatcher = eventDispatcher;
-    this.objectMapper = objectMapper;
   }
 
   /**
@@ -49,15 +45,13 @@ public class PresenceBroadcaster {
     try {
       WsEvent event =
           PresenceChanged.create().userId(userId).online(online).lastActivity(lastActivity);
-      String json = objectMapper.writeValueAsString(event);
 
       // Notify all users who should receive presence updates for this user
-      List<String> subscribers = presenceService.getPresenceSubscribers(userId);
-      for (String subscriberId : subscribers) {
-        if (!subscriberId.equals(userId)) {
-          eventDispatcher.sendRawToUserExchange(subscriberId, json);
-        }
-      }
+      List<String> subscribers =
+          presenceService.getPresenceSubscribers(userId).stream()
+              .filter(subscriberId -> !subscriberId.equals(userId))
+              .toList();
+      eventDispatcher.sendWsEvent(subscribers, event);
     } catch (Exception e) {
       ChatsLogger.warn(
           String.format(

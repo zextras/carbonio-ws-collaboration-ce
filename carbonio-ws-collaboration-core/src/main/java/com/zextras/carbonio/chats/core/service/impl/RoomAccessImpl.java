@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import java.util.List;
 import java.util.UUID;
 
 @Singleton
@@ -58,6 +59,12 @@ public class RoomAccessImpl implements RoomAccess {
   @Override
   public VisibilityFloor getVisibilityFloor(String roomId, String userId) {
     return membership(roomId, userId, String.format("Room '%s' not found", roomId)).floor();
+  }
+
+  @Override
+  public List<String> getMemberIdsIfMember(String roomId, String userId) {
+    List<String> memberIds = subscriptionRepository.getUserIdsByRoomId(roomId);
+    return memberIds.contains(userId) ? memberIds : List.of();
   }
 
   private Room load(UUID roomId, UserPrincipal user, boolean mustBeOwner) {

@@ -324,11 +324,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
               .roomId(roomId)
               .text(edited.text())
               .editedAt(edited.updatedAt());
-      String json = objectMapper.writeValueAsString(event);
       if (edited.pinned()) {
-        broadcastToRoomMembers(roomId, json);
+        broadcastToRoomMembers(roomId, event);
       } else {
-        messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(roomId, edited.createdAt(), json);
+        messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
+            roomId, edited.createdAt(), event);
       }
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-edited event: " + e.getMessage());
@@ -363,8 +363,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
               .roomId(roomId)
               .deletedBy(deleter.getId())
               .deletedAt(deleted.deletedAt());
-      messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
-          roomId, deleted.createdAt(), objectMapper.writeValueAsString(event));
+      messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(roomId, deleted.createdAt(), event);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-deleted event: " + e.getMessage());
     }
@@ -472,7 +471,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       WsEvent event =
           MessageForwarded.create()
               .message(buildResolvedTimelineMessage(forwardedMessage, knownAttachments));
-      broadcastToRoomMembers(targetRoomId, objectMapper.writeValueAsString(event));
+      broadcastToRoomMembers(targetRoomId, event);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting message-forwarded event: " + e.getMessage());
     }
@@ -657,16 +656,16 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   /**
-   * Broadcasts a pre-serialized JSON event to all members of the given room.
+   * Broadcasts an event to all members of the given room.
    *
    * <p>Sender-side filtering of "self events" (e.g. avoiding double-processing on the actor's own
    * client) is handled by the frontend WS event handler, which has the full session context to
    * decide what to skip and what to keep (e.g. read-updated echoes are still needed by the sender
    * to clear their unread counter).
    */
-  private void broadcastToRoomMembers(String roomId, String json) {
+  private void broadcastToRoomMembers(String roomId, WsEvent event) {
     List<String> memberIds = subscriptionRepository.getUserIdsByRoomId(roomId);
-    eventDispatcher.sendRawToUserExchange(memberIds, json);
+    eventDispatcher.sendWsEvent(memberIds, event);
   }
 
   private void broadcastMessageUnpinned(
@@ -684,7 +683,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
               .systemEventId(systemEventId)
               .systemEventCreatedAt(systemEventCreatedAt)
               .timestamp(systemEventCreatedAt);
-      broadcastToRoomMembers(roomId, objectMapper.writeValueAsString(event));
+      broadcastToRoomMembers(roomId, event);
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting unpin event: " + e.getMessage());
     }
@@ -692,8 +691,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
   private void broadcastReactionChanged(
       String roomId, OffsetDateTime messageCreatedAt, ReactionChanged event) throws Exception {
-    messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
-        roomId, messageCreatedAt, objectMapper.writeValueAsString(event));
+    messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(roomId, messageCreatedAt, event);
   }
 
   private static ReactionChanged reactionEvent(
@@ -866,15 +864,16 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       TimelineMessageDto message = renderPinned(pinned.message(), roomId);
       messageReceivedBroadcaster.broadcastWithReplyVisibility(
           roomId,
-          MessagePinned.create()
-              .messageId(messageId)
-              .roomId(roomId)
-              .pinnedBy(systemEvent.getActorId())
-              .systemEventId(systemEvent.getId())
-              .systemEventCreatedAt(systemEvent.getCreatedAt())
-              .timestamp(systemEvent.getCreatedAt())
-              .message(message),
-          message);
+          message,
+          visible ->
+              MessagePinned.create()
+                  .messageId(messageId)
+                  .roomId(roomId)
+                  .pinnedBy(systemEvent.getActorId())
+                  .systemEventId(systemEvent.getId())
+                  .systemEventCreatedAt(systemEvent.getCreatedAt())
+                  .timestamp(systemEvent.getCreatedAt())
+                  .message(visible));
     } catch (Exception e) {
       ChatsLogger.warn("Error broadcasting pin event: " + e.getMessage());
     }
@@ -1015,8 +1014,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
           try {
             WsEvent event =
                 ReadUpdated.create().roomId(roomId).userId(userId).itemCreatedAt(movedTo);
-            messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(
-                roomId, movedTo, objectMapper.writeValueAsString(event));
+            messageReceivedBroadcaster.broadcastToMembersWhoCanAccess(roomId, movedTo, event);
           } catch (Exception e) {
             ChatsLogger.warn(
                 "Error broadcasting read-updated event after markRead: " + e.getMessage());

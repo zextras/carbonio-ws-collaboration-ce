@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.infrastructure.event;
 
 import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.util.List;
 
@@ -16,22 +17,22 @@ public interface EventDispatcher extends HealthIndicator {
   void sendToUserQueue(String userId, String queueId, DomainEvent event);
 
   /**
-   * Sends a raw JSON string to a user's RabbitMQ exchange. Used by the unified WebSocket protocol
-   * to deliver custom event payloads (messaging, presence, reactions) that are not DomainEvent
-   * subtypes.
+   * Serializes a unified WebSocket protocol event (messaging, presence, reactions, typing) once and
+   * delivers it to a user's RabbitMQ exchange.
    *
    * @param userId user identifier
-   * @param jsonPayload raw JSON string to deliver to the user's WebSocket
+   * @param event event to deliver to the user's WebSocket
    */
-  void sendRawToUserExchange(String userId, String jsonPayload);
+  void sendWsEvent(String userId, WsEvent event);
 
   /**
-   * Sends a raw JSON string to multiple users' RabbitMQ exchanges.
+   * Serializes a unified WebSocket protocol event once and delivers the same payload to the
+   * exchange of every given user.
    *
    * @param usersIds list of user identifiers
-   * @param jsonPayload raw JSON string to deliver
+   * @param event event to deliver
    */
-  void sendRawToUserExchange(List<String> usersIds, String jsonPayload);
+  void sendWsEvent(List<String> usersIds, WsEvent event);
 
   void stop();
 }

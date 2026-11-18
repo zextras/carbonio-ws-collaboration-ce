@@ -4,10 +4,6 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.MessageReceived;
@@ -21,6 +17,7 @@ import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 @Singleton
 public class MessageReceivedBroadcaster {
@@ -28,18 +25,15 @@ public class MessageReceivedBroadcaster {
   private final SubscriptionRepository subscriptionRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
-  private final ObjectMapper objectMapper;
 
   @Inject
   public MessageReceivedBroadcaster(
       SubscriptionRepository subscriptionRepository,
       RoomUserSettingsRepository roomUserSettingsRepository,
-      EventDispatcher eventDispatcher,
-      ObjectMapper objectMapper) {
+      EventDispatcher eventDispatcher) {
     this.subscriptionRepository = subscriptionRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.eventDispatcher = eventDispatcher;
-    this.objectMapper = objectMapper;
   }
 
   /**
@@ -47,28 +41,27 @@ public class MessageReceivedBroadcaster {
    * original (it is at or before their cleared-history instant) receive the same event without the
    * embedded repliedMessage and without replyToId.
    */
-  public void broadcast(String roomId, TimelineMessageDto message, @Nullable String tempId)
-      throws JsonProcessingException {
+  public void broadcast(String roomId, TimelineMessageDto message, @Nullable String tempId) {
     broadcastWithReplyVisibility(
-        roomId, MessageReceived.create().message(message).tempId(tempId), message);
+        roomId, message, visible -> MessageReceived.create().message(visible).tempId(tempId));
   }
 
   /**
-   * Broadcasts an event whose top-level "message" field is the given message, applying the same
-   * per-recipient reply visibility as {@link #broadcast}.
+   * Broadcasts an event built around the given message, applying the same per-recipient reply
+   * visibility as {@link #broadcast}. The factory is called with the message as is for the
+   * recipients who can see the quote, and with the message stripped of the quote for the others.
    */
-  public void broadcastWithReplyVisibility(String roomId, WsEvent event, TimelineMessageDto message)
-      throws JsonProcessingException {
+  public void broadcastWithReplyVisibility(
+      String roomId, TimelineMessageDto message, Function<TimelineMessageDto, WsEvent> event) {
     List<String> memberIds = subscriptionRepository.getUserIdsByRoomId(roomId);
-    String json = objectMapper.writeValueAsString(event);
     TimelineMessageDto replied = message.getRepliedMessage();
     if (replied == null) {
-      eventDispatcher.sendRawToUserExchange(
-          memberIds, message.getReplyToId() == null ? json : withoutQuote(json));
+      eventDispatcher.sendWsEvent(
+          memberIds, event.apply(message.getReplyToId() == null ? message : withoutQuote(message)));
       return;
     }
     if (replied.getCreatedAt() == null) {
-      eventDispatcher.sendRawToUserExchange(memberIds, withoutQuote(json));
+      eventDispatcher.sendWsEvent(memberIds, event.apply(withoutQuote(message)));
       return;
     }
 
@@ -76,25 +69,33 @@ public class MessageReceivedBroadcaster {
     List<String> withQuote = memberIds.stream().filter(id -> !denied.contains(id)).toList();
     List<String> withoutQuote = memberIds.stream().filter(denied::contains).toList();
     if (!withQuote.isEmpty()) {
-      eventDispatcher.sendRawToUserExchange(withQuote, json);
+      eventDispatcher.sendWsEvent(withQuote, event.apply(message));
     }
     if (!withoutQuote.isEmpty()) {
-      eventDispatcher.sendRawToUserExchange(withoutQuote, withoutQuote(json));
+      eventDispatcher.sendWsEvent(withoutQuote, event.apply(withoutQuote(message)));
     }
   }
 
-  private String withoutQuote(String json) throws JsonProcessingException {
-    JsonNode node = objectMapper.readTree(json);
-    ((ObjectNode) node.get("message")).remove(List.of("repliedMessage", "replyToId"));
-    return objectMapper.writeValueAsString(node);
+  private static TimelineMessageDto withoutQuote(TimelineMessageDto message) {
+    return TimelineMessageDto.create()
+        .id(message.getId())
+        .roomId(message.getRoomId())
+        .senderId(message.getSenderId())
+        .text(message.getText())
+        .createdAt(message.getCreatedAt())
+        .editedInfo(message.getEditedInfo())
+        .deletedInfo(message.getDeletedInfo())
+        .forwardedInfo(message.getForwardedInfo())
+        .attachment(message.getAttachment())
+        .reactions(message.getReactions());
   }
 
-  /** Sends a pre-serialized event only to the members who can see an item created at that time. */
+  /** Sends an event only to the members who can see an item created at that time. */
   public void broadcastToMembersWhoCanAccess(
-      String roomId, OffsetDateTime itemCreatedAt, String json) {
+      String roomId, OffsetDateTime itemCreatedAt, WsEvent event) {
     List<String> allowed = subscriptionRepository.getUserIdsWhoCanAccess(roomId, itemCreatedAt);
     if (!allowed.isEmpty()) {
-      eventDispatcher.sendRawToUserExchange(allowed, json);
+      eventDispatcher.sendWsEvent(allowed, event);
     }
   }
 

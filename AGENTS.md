@@ -50,6 +50,9 @@
   new text) and `setReaction(..., UserPrincipal, ...)` for every reaction set, including the same value again (text = emoji; `removeReaction` never calls it) after the
   change is stored and broadcast; downstream builds add listeners with
   `Multibinder.newSetBinder(binder(), MessageSentListener.class).addBinding()`.
+- `EventDispatcher` sends `WsEvent` objects (`sendWsEvent`) and `DomainEvent`s; both are serialized once for all
+  recipients and there is no raw `String` send. A per-recipient variant of an event (for example the message
+  without its quote) is built as an object, never by editing the JSON.
 - Services never import `core.web.*` except `core.web.security.UserPrincipal`: the payload mapper
   `TimelineItemMapper` lives in `core.infrastructure.event.mapper` and the WebSocket session registry
   (`EventWebSocketSessions`, `SessionPingManager`) in `core.infrastructure.websocket`.

@@ -18,7 +18,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.async.model.MessagePinned;
+import com.zextras.carbonio.async.model.Typing;
+import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -26,7 +29,10 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -41,8 +47,8 @@ class MessageReceivedBroadcasterTest {
       mock(RoomUserSettingsRepository.class);
   private final EventDispatcher eventDispatcher = mock(EventDispatcher.class);
   private final MessageReceivedBroadcaster broadcaster =
-      new MessageReceivedBroadcaster(
-          subscriptionRepository, settingsRepository, eventDispatcher, new JacksonConfig().get());
+      new MessageReceivedBroadcaster(subscriptionRepository, settingsRepository, eventDispatcher);
+  private final ObjectMapper objectMapper = new JacksonConfig().get();
 
   private TimelineMessageDto messageReplyingTo(OffsetDateTime originalAt) {
     return TimelineMessageDto.create()
@@ -62,6 +68,28 @@ class MessageReceivedBroadcasterTest {
   }
 
   @Test
+  void theQuoteFreeCopyKnowsEveryMessageProperty() {
+    assertEquals(
+        Set.of(
+            "id",
+            "roomId",
+            "senderId",
+            "text",
+            "createdAt",
+            "replyToId",
+            "editedInfo",
+            "deletedInfo",
+            "forwardedInfo",
+            "attachment",
+            "reactions",
+            "repliedMessage"),
+        Arrays.stream(TimelineMessageDto.class.getDeclaredFields())
+            .filter(field -> !java.lang.reflect.Modifier.isStatic(field.getModifiers()))
+            .map(java.lang.reflect.Field::getName)
+            .collect(Collectors.toSet()));
+  }
+
+  @Test
   void splitsRecipientsInTwoPayloadsWithoutMutatingTheMessage() throws Exception {
     when(subscriptionRepository.getUserIdsByRoomId(ROOM)).thenReturn(List.of("early", "cleared"));
     when(settingsRepository.getUserIdsClearedAtOrAfter(ROOM, T)).thenReturn(List.of("cleared"));
@@ -70,13 +98,13 @@ class MessageReceivedBroadcasterTest {
     broadcaster.broadcast(ROOM, message, "tmp");
 
     ArgumentCaptor<List<String>> users = ArgumentCaptor.forClass(List.class);
-    ArgumentCaptor<String> payloads = ArgumentCaptor.forClass(String.class);
-    verify(eventDispatcher, times(2)).sendRawToUserExchange(users.capture(), payloads.capture());
+    ArgumentCaptor<WsEvent> payloads = ArgumentCaptor.forClass(WsEvent.class);
+    verify(eventDispatcher, times(2)).sendWsEvent(users.capture(), payloads.capture());
     int withIdx = users.getAllValues().get(0).contains("early") ? 0 : 1;
     assertEquals(List.of("early"), users.getAllValues().get(withIdx));
     assertEquals(List.of("cleared"), users.getAllValues().get(1 - withIdx));
-    assertTrue(payloads.getAllValues().get(withIdx).contains("secret"));
-    String without = payloads.getAllValues().get(1 - withIdx);
+    assertTrue(json(payloads.getAllValues().get(withIdx)).contains("secret"));
+    String without = json(payloads.getAllValues().get(1 - withIdx));
     assertFalse(without.contains("secret"));
     assertFalse(without.contains("replyToId"));
     assertTrue(without.contains("\"tempId\":\"tmp\""));
@@ -91,20 +119,21 @@ class MessageReceivedBroadcasterTest {
 
     broadcaster.broadcastWithReplyVisibility(
         ROOM,
-        MessagePinned.create()
-            .messageId("m")
-            .roomId(ROOM)
-            .pinnedBy("a")
-            .timestamp(T)
-            .message(message),
-        message);
+        message,
+        visible ->
+            MessagePinned.create()
+                .messageId("m")
+                .roomId(ROOM)
+                .pinnedBy("a")
+                .timestamp(T)
+                .message(visible));
 
     ArgumentCaptor<List<String>> users = ArgumentCaptor.forClass(List.class);
-    ArgumentCaptor<String> payloads = ArgumentCaptor.forClass(String.class);
-    verify(eventDispatcher, times(2)).sendRawToUserExchange(users.capture(), payloads.capture());
+    ArgumentCaptor<WsEvent> payloads = ArgumentCaptor.forClass(WsEvent.class);
+    verify(eventDispatcher, times(2)).sendWsEvent(users.capture(), payloads.capture());
     int withIdx = users.getAllValues().get(0).contains("early") ? 0 : 1;
-    assertTrue(payloads.getAllValues().get(withIdx).contains("secret"));
-    String without = payloads.getAllValues().get(1 - withIdx);
+    assertTrue(json(payloads.getAllValues().get(withIdx)).contains("secret"));
+    String without = json(payloads.getAllValues().get(1 - withIdx));
     assertFalse(without.contains("secret"));
     assertFalse(without.contains("replyToId"));
     assertTrue(without.contains("\"type\":\"MessagePinned\""));
@@ -117,7 +146,7 @@ class MessageReceivedBroadcasterTest {
 
     broadcaster.broadcast(ROOM, messageReplyingTo(T), null);
 
-    verify(eventDispatcher, times(1)).sendRawToUserExchange(eq(List.of("a", "b")), anyString());
+    verify(eventDispatcher, times(1)).sendWsEvent(eq(List.of("a", "b")), any(WsEvent.class));
   }
 
   @Test
@@ -129,8 +158,14 @@ class MessageReceivedBroadcasterTest {
         TimelineMessageDto.create().id("m").roomId(ROOM).senderId("a").text("t").createdAt(T),
         null);
 
-    verify(eventDispatcher, times(1)).sendRawToUserExchange(eq(List.of("a", "b")), anyString());
+    verify(eventDispatcher, times(1)).sendWsEvent(eq(List.of("a", "b")), any(WsEvent.class));
     verify(settingsRepository, never()).getUserIdsClearedAtOrAfter(anyString(), any());
+  }
+
+  private final WsEvent event = Typing.create().roomId(ROOM).userId("a");
+
+  private String json(WsEvent event) throws Exception {
+    return objectMapper.writeValueAsString(event);
   }
 
   @Test
@@ -138,10 +173,9 @@ class MessageReceivedBroadcasterTest {
     when(subscriptionRepository.getUserIdsWhoCanAccess(ROOM, T))
         .thenReturn(List.of("early", "other"));
 
-    broadcaster.broadcastToMembersWhoCanAccess(ROOM, T, "{}");
+    broadcaster.broadcastToMembersWhoCanAccess(ROOM, T, event);
 
-    verify(eventDispatcher, times(1))
-        .sendRawToUserExchange(eq(List.of("early", "other")), eq("{}"));
+    verify(eventDispatcher, times(1)).sendWsEvent(eq(List.of("early", "other")), eq(event));
     verify(subscriptionRepository, never()).getUserIdsByRoomId(anyString());
     verify(settingsRepository, never()).getUserIdsClearedAtOrAfter(anyString(), any());
   }
@@ -150,9 +184,9 @@ class MessageReceivedBroadcasterTest {
   void accessEventWithNoAllowedMemberSendsNothing() {
     when(subscriptionRepository.getUserIdsWhoCanAccess(ROOM, T)).thenReturn(List.of());
 
-    broadcaster.broadcastToMembersWhoCanAccess(ROOM, T, "{}");
+    broadcaster.broadcastToMembersWhoCanAccess(ROOM, T, event);
 
-    verify(eventDispatcher, never()).sendRawToUserExchange(anyList(), anyString());
+    verify(eventDispatcher, never()).sendWsEvent(anyList(), any(WsEvent.class));
   }
 
   @Test
@@ -163,9 +197,8 @@ class MessageReceivedBroadcasterTest {
 
     broadcaster.broadcast(ROOM, message, null);
 
-    ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-    verify(eventDispatcher, times(1))
-        .sendRawToUserExchange(eq(List.of("a", "b")), payload.capture());
-    assertFalse(payload.getValue().contains("secret"));
+    ArgumentCaptor<WsEvent> payload = ArgumentCaptor.forClass(WsEvent.class);
+    verify(eventDispatcher, times(1)).sendWsEvent(eq(List.of("a", "b")), payload.capture());
+    assertFalse(json(payload.getValue()).contains("secret"));
   }
 }

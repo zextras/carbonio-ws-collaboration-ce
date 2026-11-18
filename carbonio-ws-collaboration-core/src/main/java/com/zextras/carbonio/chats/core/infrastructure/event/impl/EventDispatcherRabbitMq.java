@@ -10,9 +10,11 @@ import com.google.inject.Singleton;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 
 @Singleton
@@ -36,7 +38,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   @Override
   public void sendToUserExchange(String userId, DomainEvent event) {
-    sendToExchange(userId, event);
+    sendToExchange(Collections.singletonList(userId), event);
   }
 
   @Override
@@ -63,46 +65,38 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     }
   }
 
-  private void sendToExchange(String userId, DomainEvent event) {
+  @Override
+  public void sendWsEvent(String userId, WsEvent event) {
+    sendToExchange(Collections.singletonList(userId), event);
+  }
+
+  @Override
+  public void sendWsEvent(List<String> usersIds, WsEvent event) {
+    sendToExchange(usersIds, event);
+  }
+
+  private void sendToExchange(List<String> usersIds, Object event) {
+    byte[] payload;
+    try {
+      payload = objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      ChatsLogger.warn(String.format("Unable to serialize event '%s'", event.getClass()), e);
+      return;
+    }
+    usersIds.forEach(userId -> publishToExchange(userId, payload));
+  }
+
+  private void publishToExchange(String userId, byte[] payload) {
     if (channel == null || !channel.isOpen()) {
       ChatsLogger.error("Unable to send event to exchange: event dispatcher channel is not up!");
       return;
     }
     try {
       channel.exchangeDeclare(userId, BuiltinExchangeType.DIRECT, false, false, null);
-      channel.basicPublish(
-          userId,
-          USER_ROUTING_KEY,
-          null,
-          objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
+      channel.basicPublish(userId, USER_ROUTING_KEY, null, payload);
     } catch (Exception e) {
       ChatsLogger.warn(String.format("Unable to send message to user '%s'", userId), e);
     }
-  }
-
-  private void sendToExchange(List<String> usersIds, DomainEvent event) {
-    usersIds.forEach(userId -> sendToExchange(userId, event));
-  }
-
-  @Override
-  public void sendRawToUserExchange(String userId, String jsonPayload) {
-    if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error(
-          "Unable to send raw event to exchange: event dispatcher channel is not up!");
-      return;
-    }
-    try {
-      channel.exchangeDeclare(userId, BuiltinExchangeType.DIRECT, false, false, null);
-      channel.basicPublish(
-          userId, USER_ROUTING_KEY, null, jsonPayload.getBytes(StandardCharsets.UTF_8));
-    } catch (Exception e) {
-      ChatsLogger.warn(String.format("Unable to send raw message to user '%s'", userId), e);
-    }
-  }
-
-  @Override
-  public void sendRawToUserExchange(List<String> usersIds, String jsonPayload) {
-    usersIds.forEach(userId -> sendRawToUserExchange(userId, jsonPayload));
   }
 
   @Override

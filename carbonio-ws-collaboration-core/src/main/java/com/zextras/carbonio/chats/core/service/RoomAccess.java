@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -58,4 +59,10 @@ public interface RoomAccess {
    * @throws ForbiddenException if the user isn't a room member
    */
   VisibilityFloor getVisibilityFloor(String roomId, String userId);
+
+  /**
+   * Returns the identifiers of every member of the room when the user is one of them, otherwise an
+   * empty list; it never throws, also for a room that doesn't exist
+   */
+  List<String> getMemberIdsIfMember(String roomId, String userId);
 }

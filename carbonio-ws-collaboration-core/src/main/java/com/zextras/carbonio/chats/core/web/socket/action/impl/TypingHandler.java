@@ -10,9 +10,10 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.Typing;
 import com.zextras.carbonio.async.model.WsError;
+import com.zextras.carbonio.async.model.WsEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.web.socket.action.WsActionHandler;
 import jakarta.websocket.Session;
 import java.util.List;
@@ -32,16 +33,14 @@ import java.util.List;
 public class TypingHandler implements WsActionHandler {
 
   private final EventDispatcher eventDispatcher;
-  private final SubscriptionRepository subscriptionRepository;
+  private final RoomAccess roomAccess;
   private final ObjectMapper objectMapper;
 
   @Inject
   public TypingHandler(
-      EventDispatcher eventDispatcher,
-      SubscriptionRepository subscriptionRepository,
-      ObjectMapper objectMapper) {
+      EventDispatcher eventDispatcher, RoomAccess roomAccess, ObjectMapper objectMapper) {
     this.eventDispatcher = eventDispatcher;
-    this.subscriptionRepository = subscriptionRepository;
+    this.roomAccess = roomAccess;
     this.objectMapper = objectMapper;
   }
 
@@ -50,8 +49,8 @@ public class TypingHandler implements WsActionHandler {
     try {
       String roomId = getRequiredText(payload, "roomId");
 
-      List<String> memberIds = subscriptionRepository.getUserIdsByRoomId(roomId);
-      if (!memberIds.contains(userId)) {
+      List<String> memberIds = roomAccess.getMemberIdsIfMember(roomId, userId);
+      if (memberIds.isEmpty()) {
         sendError(session, getOptionalText(payload, "requestId"), "ERR_FORBIDDEN", "Not a member");
         return;
       }
@@ -63,22 +62,18 @@ public class TypingHandler implements WsActionHandler {
               ? Typing.StatusEnum.STOPPED
               : Typing.StatusEnum.STARTED;
 
-      String json =
-          objectMapper.writeValueAsString(
-              Typing.create().roomId(roomId).userId(userId).status(normalizedStatus));
+      WsEvent event = Typing.create().roomId(roomId).userId(userId).status(normalizedStatus);
 
       // Relay to all room members except the sender — stateless, best-effort
-      for (String memberId : memberIds) {
-        if (!memberId.equals(userId)) {
-          try {
-            eventDispatcher.sendRawToUserExchange(memberId, json);
-          } catch (Exception e) {
-            ChatsLogger.warn(
-                String.format(
-                    "TypingHandler: failed to relay typing:%s to user '%s': %s",
-                    normalizedStatus, memberId, e.getMessage()));
-          }
-        }
+      List<String> recipients =
+          memberIds.stream().filter(memberId -> !memberId.equals(userId)).toList();
+      try {
+        eventDispatcher.sendWsEvent(recipients, event);
+      } catch (Exception e) {
+        ChatsLogger.warn(
+            String.format(
+                "TypingHandler: failed to relay typing:%s to room '%s': %s",
+                normalizedStatus, roomId, e.getMessage()));
       }
     } catch (IllegalArgumentException e) {
       ChatsLogger.warn(
