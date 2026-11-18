@@ -16,7 +16,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -29,10 +28,7 @@ import com.zextras.carbonio.async.model.RoomMemberRemoved;
 import com.zextras.carbonio.async.model.RoomOwnerDemoted;
 import com.zextras.carbonio.async.model.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.InsertedMember;
@@ -45,10 +41,8 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -58,7 +52,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -70,34 +63,28 @@ import org.mockito.ArgumentCaptor;
 @UnitTest
 class MembersServiceImplTest {
 
-  private final RoomService roomService;
+  private final RoomAccess roomAccess;
   private final SubscriptionRepository subscriptionRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
   private final UserService userService;
   private final MembersService membersService;
-  private final MeetingService meetingService;
-  private final ParticipantService participantService;
   private final ChatMessageService chatMessageService;
 
   public MembersServiceImplTest() {
-    this.roomService = mock(RoomService.class);
+    this.roomAccess = mock(RoomAccess.class);
     this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.userService = mock(UserService.class);
-    this.meetingService = mock(MeetingService.class);
-    this.participantService = mock(ParticipantService.class);
     this.chatMessageService = mock(ChatMessageService.class);
     this.membersService =
         new MembersServiceImpl(
-            roomService,
+            roomAccess,
             subscriptionRepository,
             roomUserSettingsRepository,
             eventDispatcher,
             userService,
-            meetingService,
-            participantService,
             chatMessageService,
             new SystemEventContentFactory(new ObjectMapper()));
   }
@@ -122,13 +109,11 @@ class MembersServiceImplTest {
   @AfterEach
   void verifyAll() {
     verifyNoMoreInteractions(
-        roomService,
+        roomAccess,
         subscriptionRepository,
         roomUserSettingsRepository,
         eventDispatcher,
         userService,
-        meetingService,
-        participantService,
         chatMessageService);
   }
 
@@ -167,10 +152,10 @@ class MembersServiceImplTest {
               user2subscription,
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       membersService.promoteMemberToOwner(roomId, user2Id, principal);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(true));
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -187,14 +172,14 @@ class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
               ForbiddenException.class,
               () -> membersService.promoteMemberToOwner(roomId, user2Id, principal));
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -212,7 +197,7 @@ class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user2Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user2Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -240,10 +225,10 @@ class MembersServiceImplTest {
               user2subscription,
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       membersService.demoteOwnerToMember(roomId, user2Id, principal);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(false));
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -260,14 +245,14 @@ class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
               ForbiddenException.class,
               () -> membersService.demoteOwnerToMember(roomId, user2Id, principal));
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -285,7 +270,7 @@ class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user2Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user2Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -313,7 +298,7 @@ class MembersServiceImplTest {
                   Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()));
@@ -329,7 +314,7 @@ class MembersServiceImplTest {
       assertNotNull(memberInsertedDto);
       assertEquals(user2Id, memberInsertedDto.userId());
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
       verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
@@ -360,7 +345,7 @@ class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -373,7 +358,7 @@ class MembersServiceImplTest {
       assertEquals(
           String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
           exception.getMessage());
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
     }
 
     @Test
@@ -386,7 +371,7 @@ class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(false);
       ChatsHttpException exception =
           assertThrows(
@@ -400,7 +385,7 @@ class MembersServiceImplTest {
       assertEquals(
           String.format("Not Found - User with id '%s' not found", user2Id),
           exception.getMessage());
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(1)).userExists(user2Id, principal);
     }
 
@@ -416,7 +401,7 @@ class MembersServiceImplTest {
                   Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()));
@@ -435,7 +420,7 @@ class MembersServiceImplTest {
       assertEquals(user2Id, memberInsertedDto.userId());
       assertEquals(stored, memberInsertedDto.clearedAt());
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(1)).userExists(user2Id, principal);
 
       ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
@@ -474,7 +459,7 @@ class MembersServiceImplTest {
                   Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()).temporary(true));
@@ -490,7 +475,7 @@ class MembersServiceImplTest {
       assertNotNull(memberInsertedDto);
       assertEquals(user2Id, memberInsertedDto.userId());
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(1)).userExists(user2Id, principal);
 
       ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
@@ -527,7 +512,7 @@ class MembersServiceImplTest {
                   Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()).external(true));
@@ -543,7 +528,7 @@ class MembersServiceImplTest {
       assertNotNull(memberInsertedDto);
       assertEquals(user2Id, memberInsertedDto.userId());
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(1)).userExists(user2Id, principal);
 
       ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
@@ -575,7 +560,7 @@ class MembersServiceImplTest {
       room.subscriptions(
           new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(any(UUID.class), any(UserPrincipal.class))).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenAnswer(i -> i.getArgument(0));
@@ -587,7 +572,7 @@ class MembersServiceImplTest {
               MemberToInsertDto.create().userId(user3Id).historyCleared(false)),
           principal);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(2)).userExists(any(UUID.class), any(UserPrincipal.class));
       verify(subscriptionRepository, times(2)).insert(any(Subscription.class));
       ArgumentCaptor<SystemEvent> rows = ArgumentCaptor.forClass(SystemEvent.class);
@@ -619,7 +604,7 @@ class MembersServiceImplTest {
       room.subscriptions(
           new ArrayList<>(List.of(Subscription.create(room, user1Id.toString()).owner(true))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenAnswer(i -> i.getArgument(0));
@@ -635,7 +620,7 @@ class MembersServiceImplTest {
       assertEquals(1, inserted.size());
       assertEquals(user2Id, inserted.get(0).userId());
       assertEquals(Boolean.FALSE, inserted.get(0).owner());
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
       verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
@@ -666,7 +651,7 @@ class MembersServiceImplTest {
               user2subscription,
               user3subscription));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       membersService.updateRoomOwners(
           roomId,
           List.of(
@@ -674,7 +659,7 @@ class MembersServiceImplTest {
               MemberDto.create().userId(user3Id).owner(true)),
           principal);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(subscriptionRepository, times(1))
           .updateAll(List.of(user2subscription, user3subscription));
       verify(eventDispatcher, times(1))
@@ -699,7 +684,7 @@ class MembersServiceImplTest {
               user2subscription,
               user3subscription));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       membersService.updateRoomOwners(
           roomId,
@@ -708,7 +693,7 @@ class MembersServiceImplTest {
               MemberDto.create().userId(user3Id).owner(false)),
           principal);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(subscriptionRepository, times(1))
           .updateAll(List.of(user2subscription, user3subscription));
       ArgumentCaptor<DomainEvent> events = ArgumentCaptor.forClass(DomainEvent.class);
@@ -729,7 +714,7 @@ class MembersServiceImplTest {
               user2subscription,
               user3subscription));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
       membersService.updateRoomOwners(
           roomId,
           List.of(
@@ -737,7 +722,7 @@ class MembersServiceImplTest {
               MemberDto.create().userId(user3Id).owner(false)),
           principal);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
       verify(subscriptionRepository, times(1))
           .updateAll(List.of(user2subscription, user3subscription));
       verify(eventDispatcher, times(1))
@@ -758,7 +743,7 @@ class MembersServiceImplTest {
       room.subscriptions(
           List.of(Subscription.create(room, user1Id.toString()).owner(true), user3subscription));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ForbiddenException exception =
           assertThrows(
@@ -771,7 +756,7 @@ class MembersServiceImplTest {
                           MemberDto.create().userId(user3Id).owner(false)),
                       principal));
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, principal);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -789,7 +774,7 @@ class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user2Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user2Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, principal)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -808,168 +793,6 @@ class MembersServiceImplTest {
   @Nested
   @DisplayName("Removes a member from a room tests")
   class DeletesRoomMemberTests {
-
-    @Test
-    @DisplayName("Correctly removes a member of a group room")
-    void deleteRoomMember_groupTestOk() {
-      Room room = generateRoom(RoomType.GROUP);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-
-      membersService.deleteRoomMember(roomId, user2Id, principal);
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
-      SystemEvent removed = capturedSystemEvent();
-      assertEquals("MEMBER_REMOVED", removed.getType());
-      assertEquals(user1Id.toString(), removed.getActorId());
-      verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
-      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
-      String systemEventId = capturedSystemEvent().getId();
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create()
-                  .roomId(roomId)
-                  .userId(user2Id)
-                  .removedBy(user1Id)
-                  .systemEventId(systemEventId));
-    }
-
-    @Test
-    @DisplayName("Correctly removes a member of a group room during a meeting")
-    void deleteRoomMember_groupTestOkWithMeeting() {
-      Room room = generateRoom(RoomType.GROUP);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      room.meetingId(meetingId.toString());
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-      Meeting meeting =
-          Meeting.create()
-              .id(meetingId.toString())
-              .roomId(roomId.toString())
-              .participants(
-                  List.of(
-                      Participant.create().userId(user1Id.toString()),
-                      Participant.create().userId(user2Id.toString())));
-      when(meetingService.getMeetingEntity(meetingId)).thenReturn(Optional.of(meeting));
-
-      membersService.deleteRoomMember(roomId, user2Id, principal);
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-      verify(meetingService, times(1)).getMeetingEntity(meetingId);
-      verify(participantService, times(1)).removeMeetingParticipant(meeting, room, user2Id);
-      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
-      verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
-      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
-      String systemEventId = capturedSystemEvent().getId();
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create()
-                  .roomId(roomId)
-                  .userId(user2Id)
-                  .removedBy(user1Id)
-                  .systemEventId(systemEventId));
-    }
-
-    @Test
-    @DisplayName("When the last member leaves, the room is deleted and no member removal is done")
-    void deleteRoomMember_lastMemberLeaves_deletesRoom() {
-      Room room = generateRoom(RoomType.GROUP);
-      room.subscriptions(List.of(Subscription.create(room, user1Id.toString()).owner(true)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
-
-      membersService.deleteRoomMember(roomId, user1Id, principal);
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-      verify(roomService, times(1)).deleteRoom(room, principal);
-      verifyNoInteractions(subscriptionRepository, chatMessageService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("Correctly user removes itself of a group room")
-    void deleteRoomMember_userRemoveItselfTestOk() {
-      Room room = generateRoom(RoomType.GROUP);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(false),
-              Subscription.create(room, user2Id.toString()).owner(true),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
-
-      membersService.deleteRoomMember(roomId, user1Id, principal);
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
-      SystemEvent left = capturedSystemEvent();
-      assertEquals("MEMBER_REMOVED", left.getType());
-      assertEquals(user1Id.toString(), left.getActorId());
-      verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomId.toString(), user1Id.toString());
-      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
-      String systemEventId = capturedSystemEvent().getId();
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create()
-                  .roomId(roomId)
-                  .userId(user1Id)
-                  .removedBy(user1Id)
-                  .systemEventId(systemEventId));
-    }
-
-    @Test
-    @DisplayName("Correctly user removes itself of a group room muted and with history cleared")
-    void deleteRoomMember_userRemoveItselfTestOkWithMuteAndHistoryCleared() {
-      Room room = generateRoom(RoomType.GROUP);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(false),
-              Subscription.create(room, user2Id.toString()).owner(true),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      RoomUserSettings roomUserSettings =
-          RoomUserSettings.create()
-              .userId(user1Id.toString())
-              .mutedUntil(OffsetDateTime.parse("0001-01-01T00:00:00Z"))
-              .clearedAt(OffsetDateTime.now());
-      room.userSettings(List.of(roomUserSettings));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user1Id.toString()))
-          .thenReturn(Optional.of(roomUserSettings));
-
-      membersService.deleteRoomMember(roomId, user1Id, principal);
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-      verify(chatMessageService, times(1)).insertSystemEvent(any(SystemEvent.class));
-      verify(roomUserSettingsRepository, times(1))
-          .getByRoomIdAndUserId(roomId.toString(), user1Id.toString());
-      verify(roomUserSettingsRepository, times(1)).delete(roomUserSettings);
-      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
-      String systemEventId = capturedSystemEvent().getId();
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomMemberRemoved.create()
-                  .roomId(roomId)
-                  .userId(user1Id)
-                  .removedBy(user1Id)
-                  .systemEventId(systemEventId));
-    }
 
     @Test
     @DisplayName("Automatic removal persists MEMBER_REMOVED authored by the first room owner")
@@ -1040,29 +863,6 @@ class MembersServiceImplTest {
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
     }
-
-    @Test
-    @DisplayName("If user is the last room owner, it throws a 'bad request' exception")
-    void deleteRoomMember_userIsTheLastOwner() {
-      Room room = generateRoom(RoomType.GROUP);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
-
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () -> membersService.deleteRoomMember(roomId, user1Id, principal));
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Last owner can't leave the room", exception.getMessage());
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-    }
   }
 
   @Nested
@@ -1079,7 +879,7 @@ class MembersServiceImplTest {
               Subscription.create(room, user2Id.toString()).owner(false),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
+      when(roomAccess.loadForMember(roomId, principal)).thenReturn(room);
       List<Subscription> roomMembers = membersService.getRoomMembers(roomId, principal);
       assertNotNull(roomMembers);
       assertEquals(3, roomMembers.size());
@@ -1087,7 +887,7 @@ class MembersServiceImplTest {
       assertEquals(user2Id.toString(), roomMembers.get(1).getUserId());
       assertEquals(user3Id.toString(), roomMembers.get(2).getUserId());
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, principal);
     }
   }
 

@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.async.model.RoomCreated;
-import com.zextras.carbonio.async.model.RoomDeleted;
 import com.zextras.carbonio.async.model.RoomDescriptionChanged;
 import com.zextras.carbonio.async.model.RoomHistoryCleared;
 import com.zextras.carbonio.async.model.RoomMuted;
@@ -37,12 +36,12 @@ import com.zextras.carbonio.async.model.RoomUnmuted;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.Membership;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.data.type.RoomType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -57,6 +56,7 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
+import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
@@ -99,6 +99,7 @@ class RoomServiceImplTest {
   private final RoomService roomService;
   private final AttachmentService attachmentService;
   private final RoomRepository roomRepository;
+  private final SubscriptionRepository subscriptionRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
   private final UserService userService;
@@ -113,6 +114,7 @@ class RoomServiceImplTest {
 
   public RoomServiceImplTest() {
     this.roomRepository = mock(RoomRepository.class);
+    this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.messageRepository = mock(MessageRepository.class);
@@ -132,6 +134,7 @@ class RoomServiceImplTest {
             this.fileMetadataRepository,
             this.messageRepository,
             this.systemEventRepository,
+            new RoomAccessImpl(this.roomRepository, this.subscriptionRepository),
             this.userService,
             this.membersService,
             this.meetingService,
@@ -273,6 +276,7 @@ class RoomServiceImplTest {
   public void afterEach() {
     reset(
         roomRepository,
+        subscriptionRepository,
         roomUserSettingsRepository,
         userService,
         membersService,
@@ -366,44 +370,8 @@ class RoomServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Get room by id tests")
-  class GetRoomByIdTests {
-
-    @Test
-    @DisplayName("Returns the required group room with all members")
-    void getRoomById_groupTestOk() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-
-      Room room =
-          roomService.getRoomAndValidateUser(roomGroup2Id, UserPrincipal.create(user2Id), false);
-
-      assertEquals(roomGroup2Id.toString(), room.getId());
-      assertEquals(2, room.getSubscriptions().size());
-      assertTrue(
-          room.getSubscriptions().stream()
-              .anyMatch(member -> member.getUserId().equals(user2Id.toString())));
-      assertTrue(
-          room.getSubscriptions().stream()
-              .anyMatch(member -> member.getUserId().equals(user3Id.toString())));
-      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
-    }
-
-    @Test
-    @DisplayName("Returns the required room with no profile picture with all members")
-    void getRoomById_testOkWithoutPicture() {
-      when(roomRepository.getById(roomOneToOne1Id.toString()))
-          .thenReturn(Optional.of(roomOneToOne1));
-
-      Room room =
-          roomService.getRoomAndValidateUser(roomOneToOne1Id, UserPrincipal.create(user1Id), false);
-
-      assertEquals(roomOneToOne1Id.toString(), room.getId());
-      assertEquals(2, room.getSubscriptions().size());
-      assertTrue(
-          room.getSubscriptions().stream()
-              .anyMatch(member -> member.getUserId().equals(user1Id.toString())));
-      assertNull(room.getPictureUpdatedAt());
-    }
+  @DisplayName("Get room user settings tests")
+  class GetRoomUserSettingsTests {
 
     @Test
     @DisplayName("Returns the settings of the user for the required room")
@@ -428,41 +396,6 @@ class RoomServiceImplTest {
 
       assertTrue(
           roomService.getRoomUserSettings(roomGroup2Id, UserPrincipal.create(user2Id)).isEmpty());
-    }
-
-    @Test
-    @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
-    void getRoomById_testRoomNotExists() {
-      ChatsHttpException exception =
-          assertThrows(
-              NotFoundException.class,
-              () ->
-                  roomService.getRoomAndValidateUser(
-                      roomGroup2Id, UserPrincipal.create(user2Id), false));
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Not Found - Room '%s'", roomGroup2Id), exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
-    void getRoomById_testAuthenticatedUserIsNotARoomMember() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-
-      ChatsHttpException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () ->
-                  roomService.getRoomAndValidateUser(
-                      roomGroup2Id, UserPrincipal.create(user1Id), false));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format(
-              "Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
-          exception.getMessage());
     }
   }
 
@@ -1188,179 +1121,6 @@ class RoomServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Delete room tests")
-  class DeleteRoomTests {
-
-    @Test
-    @DisplayName("Deletes the required group room")
-    void deleteRoom_groupTestOk() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-
-      roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
-
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomDeleted.create().roomId(roomGroup1Id));
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("Deletes the required group room and the related room picture")
-    void deleteRoom_groupWithRoomPictureTestOk() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      FileMetadata pfpMetadata =
-          FileMetadata.create()
-              .type(FileMetadataType.ROOM_AVATAR)
-              .roomId(roomGroup2Id.toString())
-              .userId(user2Id.toString())
-              .mimeType("mime/type")
-              .id(UUID.randomUUID().toString())
-              .name("pfp")
-              .originalSize(123L);
-      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
-          .thenReturn(Optional.of(pfpMetadata));
-
-      roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user2Id));
-
-      verify(fileMetadataRepository, times(1))
-          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
-      verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user2Id.toString(), user3Id.toString()),
-              RoomDeleted.create().roomId(roomGroup2Id));
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("Deletes the required group room and the associated meeting")
-    void deleteRoom_groupWithMeetingTestOk() {
-      UUID meetingId = UUID.randomUUID();
-      when(roomRepository.getById(roomGroup1Id.toString()))
-          .thenReturn(Optional.of(roomGroup1.meetingId(meetingId.toString())));
-      Meeting meeting = Meeting.create().id(meetingId.toString()).roomId(roomGroup1Id.toString());
-      meeting.participants(
-          List.of(
-              ParticipantBuilder.create(meeting, "session1User1Id")
-                  .userId(user1Id)
-                  .audioStreamOn(true)
-                  .videoStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
-                  .build(),
-              ParticipantBuilder.create(meeting, "session1User3Id")
-                  .userId(user3Id)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:15:00Z"))
-                  .build()));
-      when(meetingService.getMeetingEntity(meetingId)).thenReturn(Optional.of(meeting));
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      roomService.deleteRoom(roomGroup1Id, currentUser);
-
-      verify(meetingService, times(1)).getMeetingEntity(meetingId);
-      verify(meetingService, times(1)).deleteMeeting(user1Id.toString(), meeting, roomGroup1);
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              RoomDeleted.create().roomId(roomGroup1Id));
-
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("Re throws an exception if storage service fails during deleting room picture")
-    void deleteRoom_testErrorStorageExceptionDuringDeletingRoomPicture() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      FileMetadata pfpMetadata =
-          FileMetadata.create()
-              .type(FileMetadataType.ROOM_AVATAR)
-              .roomId(roomGroup2Id.toString())
-              .userId(user2Id.toString())
-              .mimeType("mime/type")
-              .id(UUID.randomUUID().toString())
-              .name("pfp")
-              .originalSize(123L);
-      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
-          .thenReturn(Optional.of(pfpMetadata));
-      doThrow(StorageException.class)
-          .when(storagesService)
-          .deleteFile(pfpMetadata.getId(), user2Id.toString());
-
-      assertThrows(
-          StorageException.class,
-          () -> roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user2Id)));
-
-      verify(fileMetadataRepository, times(1))
-          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("If the room doesn't exist then throws a 'not found' exception")
-    void deleteRoom_testRoomNotExists() {
-      ChatsHttpException exception =
-          assertThrows(
-              NotFoundException.class,
-              () -> roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id)));
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
-
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName(
-        "If the authenticated user isn't a room member then throws a 'forbidden' exception")
-    void deleteRoom_testAuthenticatedUserIsNotARoomMember() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-
-      ChatsHttpException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () -> roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user1Id)));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format(
-              "Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
-          exception.getMessage());
-
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("If the authenticated user isn't a room owner then throws a 'forbidden' exception")
-    void deleteRoom_testAuthenticatedUserIsNotARoomOwner() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-
-      ChatsHttpException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () -> roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user2Id)));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format(
-              "Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
-          exception.getMessage());
-
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, meetingService, eventDispatcher);
-    }
-  }
-
-  @Nested
   @DisplayName("Mute room tests")
   class MuteRoomTests {
 
@@ -1475,14 +1235,16 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Correctly does nothing if user settings not exists")
     void unmuteRoom_testOkUserSettingNotExists() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(subscriptionRepository.getMembership(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(Optional.of(new Membership(false, null)));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(
               roomGroup1Id.toString(), user1Id.toString()))
           .thenReturn(Optional.empty());
 
       roomService.unmuteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(subscriptionRepository, times(1))
+          .getMembership(roomGroup1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
@@ -1492,7 +1254,8 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Unmute the current user in a specific room")
     void unmuteRoom_testOkUserSettingExists() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(subscriptionRepository.getMembership(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(Optional.of(new Membership(false, null)));
       RoomUserSettings roomUserSettings =
           RoomUserSettings.create(roomGroup1, user1Id.toString()).mutedUntil(OffsetDateTime.now());
       when(roomUserSettingsRepository.getByRoomIdAndUserId(
@@ -1500,7 +1263,8 @@ class RoomServiceImplTest {
           .thenReturn(Optional.of(roomUserSettings));
       roomService.unmuteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(subscriptionRepository, times(1))
+          .getMembership(roomGroup1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1)).save(roomUserSettings.mutedUntil(null));
@@ -1512,13 +1276,15 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Correctly does nothing if the user has already unmuted")
     void unmuteRoom_testOkUserAlreadyUnmuted() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(subscriptionRepository.getMembership(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(Optional.of(new Membership(false, null)));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(
               roomGroup1Id.toString(), user1Id.toString()))
           .thenReturn(Optional.of(RoomUserSettings.create(roomGroup1, user1Id.toString())));
       roomService.unmuteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(subscriptionRepository, times(1))
+          .getMembership(roomGroup1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
@@ -1760,63 +1526,6 @@ class RoomServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Get room and check user tests")
-  class GetRoomAndCheckUserTests {
-
-    @Test
-    @DisplayName("It returns the requested room")
-    void getRoomAndCheckUser_testOk() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      Room room =
-          roomService.getRoomAndValidateUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
-
-      assertEquals(roomGroup1, room);
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
-      verifyNoMoreInteractions(roomRepository);
-    }
-
-    @Test
-    @DisplayName("If the user isn't a room member throws 'forbidden' exception")
-    void getRoomAndCheckUser_testAuthenticatedUserIsNotARoomMember() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-
-      ChatsHttpException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () ->
-                  roomService.getRoomAndValidateUser(
-                      roomGroup2Id, UserPrincipal.create(user1Id), false));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format(
-              "Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
-          exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the user isn't a room owner throws 'forbidden' exception")
-    void getRoomAndCheckUser_testAuthenticatedUserIsNotARoomOwner() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-
-      ChatsHttpException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () ->
-                  roomService.getRoomAndValidateUser(
-                      roomGroup1Id, UserPrincipal.create(user2Id), true));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format(
-              "Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
-          exception.getMessage());
-    }
-  }
-
-  @Nested
   @DisplayName("Get room picture tests")
   class GetRoomPictureTests {
 
@@ -1832,7 +1541,8 @@ class RoomServiceImplTest {
               .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(subscriptionRepository.getMembership(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(Optional.of(new Membership(false, null)));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(pfpMetadata));
       InputStream fileStream = mock(InputStream.class);
@@ -1844,7 +1554,8 @@ class RoomServiceImplTest {
 
       assertEquals(fileStream, roomPicture.getFileStream());
       assertEquals(pfpMetadata.getId(), roomPicture.getMetadata().getId());
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(subscriptionRepository, times(1))
+          .getMembership(roomGroup1Id.toString(), user1Id.toString());
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).getFileStreamById(pfpMetadata.getId(), user2Id.toString());
@@ -1884,7 +1595,8 @@ class RoomServiceImplTest {
               .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(subscriptionRepository.getMembership(roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(Optional.of(new Membership(false, null)));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(pfpMetadata));
       doThrow(StorageException.class)
@@ -1895,7 +1607,8 @@ class RoomServiceImplTest {
           StorageException.class,
           () -> roomService.getRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id)));
 
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(subscriptionRepository, times(1))
+          .getMembership(roomGroup1Id.toString(), user1Id.toString());
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).getFileStreamById(pfpMetadata.getId(), user2Id.toString());

@@ -32,7 +32,7 @@ import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.MessageWriteRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.TimelineMessageDto;
@@ -58,7 +58,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService storagesService;
-  private final RoomService roomService;
+  private final RoomAccess roomAccess;
   private final ChatMessageService chatMessageService;
   private final AttachmentAccessValidator attachmentAccessValidator;
   private final MessageWriteRepository messageWriteRepository;
@@ -72,7 +72,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   public AttachmentServiceImpl(
       FileMetadataRepository fileMetadataRepository,
       StoragesService storagesService,
-      RoomService roomService,
+      RoomAccess roomAccess,
       ChatMessageService chatMessageService,
       MessageWriteRepository messageWriteRepository,
       MessageRepository messageRepository,
@@ -83,7 +83,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       AttachmentAccessValidator attachmentAccessValidator) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
-    this.roomService = roomService;
+    this.roomAccess = roomAccess;
     this.chatMessageService = chatMessageService;
     this.messageWriteRepository = messageWriteRepository;
     this.messageRepository = messageRepository;
@@ -201,7 +201,10 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String tempId,
       String messageId,
       UserPrincipal currentUser) {
-    roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    VisibilityFloor floor = roomAccess.getVisibilityFloor(roomId.toString(), currentUser.getId());
+    if (replyId != null) {
+      chatMessageService.validateReplyTarget(roomId.toString(), floor, replyId);
+    }
 
     UUID fileId = UUID.randomUUID();
     storagesService.saveFile(file, fileId.toString(), currentUser.getId(), contentLength);
@@ -238,7 +241,7 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    roomAccess.requireMember(UUID.fromString(metadata.getRoomId()), currentUser);
     if (!currentUser.getId().equals(metadata.getUserId())) {
       throw new ForbiddenException(
           String.format("User '%s' can not delete attachment '%s'", currentUser.getId(), fileId));
@@ -253,20 +256,12 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  public void deleteAttachmentsByRoomId(UUID roomId, UserPrincipal currentUser) {
+  public void deleteAttachmentsByIds(List<String> allIds, UserPrincipal currentUser) {
     try {
-      List<String> allIds =
-          fileMetadataRepository.getIdsByRoomIdAndType(
-              roomId.toString(), FileMetadataType.ATTACHMENT);
       List<String> failedIds = storagesService.deleteFileList(allIds, currentUser.getId());
       if (!failedIds.isEmpty()) {
         ChatsLogger.warn(
-            "Failed to delete "
-                + failedIds.size()
-                + " attachment(s) from storage for room "
-                + roomId
-                + ": "
-                + failedIds);
+            "Failed to delete " + failedIds.size() + " attachment(s) from storage: " + failedIds);
       }
       List<String> successIds = allIds.stream().filter(id -> !failedIds.contains(id)).toList();
       fileMetadataRepository.deleteByIds(successIds);
@@ -277,7 +272,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         deleteVideoPreviewSilently(id, currentUser.getId());
       }
     } catch (StorageException e) {
-      ChatsLogger.warn("Error while deleting attachments of room " + roomId, e);
+      ChatsLogger.warn("Error while deleting attachments " + allIds, e);
     }
   }
 
@@ -306,7 +301,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   public BulkDeleteResult bulkDeleteRoomAttachments(
       UUID roomId, List<UUID> fileIds, UserPrincipal currentUser) {
-    roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    roomAccess.requireMember(roomId, currentUser);
     List<String> fileIdStrings = fileIds.stream().map(UUID::toString).collect(Collectors.toList());
     List<String> accessibleIds =
         fileMetadataRepository.getIdsByIdsAndRoomIdAndUserId(

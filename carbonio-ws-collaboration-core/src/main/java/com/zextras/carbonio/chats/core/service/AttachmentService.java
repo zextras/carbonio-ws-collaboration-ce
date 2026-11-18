@@ -94,12 +94,14 @@ public interface AttachmentService {
   void deleteAttachment(UUID fileId, UserPrincipal currentUser);
 
   /**
-   * Deletes all room attachments
+   * Deletes the attachments with the given identifiers: the stored files first, then the metadata
+   * of the files that were really deleted from the storage, then their video previews. Failures are
+   * logged, not propagated.
    *
-   * @param roomId room identifier {@link UUID}
+   * @param attachmentIds attachment identifiers
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
-  void deleteAttachmentsByRoomId(UUID roomId, UserPrincipal currentUser);
+  void deleteAttachmentsByIds(List<String> attachmentIds, UserPrincipal currentUser);
 
   /**
    * Deletes the stored files of attachments whose metadata has already been deleted, and their

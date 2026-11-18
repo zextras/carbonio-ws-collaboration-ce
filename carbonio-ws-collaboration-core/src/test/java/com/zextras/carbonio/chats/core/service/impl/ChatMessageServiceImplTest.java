@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,8 +28,8 @@ import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
+import com.zextras.carbonio.chats.core.data.model.Membership;
 import com.zextras.carbonio.chats.core.data.model.PinResult;
-import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessagePinRepository;
@@ -77,8 +78,8 @@ class ChatMessageServiceImplTest {
     this.readRepository = mock(ReadMarkerRepository.class);
     this.roomRepository = mock(RoomRepository.class);
     this.subscriptionRepository = mock(SubscriptionRepository.class);
-    when(subscriptionRepository.getVisibilityFloor(anyString(), anyString()))
-        .thenReturn(Optional.of(new VisibilityFloor(null)));
+    when(subscriptionRepository.getMembership(anyString(), anyString()))
+        .thenReturn(Optional.of(new Membership(false, null)));
     ObjectMapper objectMapper =
         JsonMapper.builder()
             .addModule(new JavaTimeModule())
@@ -93,7 +94,7 @@ class ChatMessageServiceImplTest {
             systemEventRepository,
             mock(WsPresenceRepository.class),
             roomRepository,
-            subscriptionRepository,
+            new RoomAccessImpl(roomRepository, subscriptionRepository),
             objectMapper);
   }
 
@@ -239,8 +240,8 @@ class ChatMessageServiceImplTest {
     @DisplayName("Throws NotFound and removes nothing when the message is at or below the floor")
     void belowVisibilityFloor() {
       OffsetDateTime floor = OffsetDateTime.parse("2026-01-01T10:00:00Z");
-      when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
-          .thenReturn(Optional.of(new VisibilityFloor(floor)));
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID))
+          .thenReturn(Optional.of(new Membership(false, floor)));
       when(messageRepository.getById(MESSAGE_ID))
           .thenReturn(Optional.of(message(MESSAGE_ID, floor)));
 
@@ -361,6 +362,105 @@ class ChatMessageServiceImplTest {
   }
 
   @Nested
+  @DisplayName("membership checked by the service itself")
+  class MembershipChecks {
+
+    private void notAMember() {
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID)).thenReturn(Optional.empty());
+      when(roomRepository.getById(ROOM_ID)).thenReturn(Optional.of(room()));
+    }
+
+    private void missingRoom() {
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID)).thenReturn(Optional.empty());
+      when(roomRepository.getById(ROOM_ID)).thenReturn(Optional.empty());
+    }
+
+    @Test
+    @DisplayName("unpinMessage by a non-member is Forbidden and writes nothing")
+    void unpinNotMember() {
+      notAMember();
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> chatMessageService.unpinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
+      verifyNoInteractions(pinRepository, systemEventRepository);
+    }
+
+    @Test
+    @DisplayName("unpinMessage in a missing room is NotFound")
+    void unpinMissingRoom() {
+      missingRoom();
+
+      NotFoundException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> chatMessageService.unpinMessage(ROOM_ID, MESSAGE_ID, USER_ID));
+      assertEquals(
+          String.format("Not Found - Room '%s' not found", ROOM_ID), exception.getMessage());
+      verifyNoInteractions(pinRepository, systemEventRepository);
+    }
+
+    @Test
+    @DisplayName("getPinnedMessages by a non-member is Forbidden")
+    void pinsNotMember() {
+      notAMember();
+
+      assertThrows(
+          ForbiddenException.class, () -> chatMessageService.getPinnedMessages(ROOM_ID, USER_ID));
+      verifyNoInteractions(pinRepository);
+    }
+
+    @Test
+    @DisplayName("getPinnedMessages by a member returns the pins of the room")
+    void pinsMember() {
+      when(pinRepository.getPinnedMessages(ROOM_ID)).thenReturn(List.of());
+
+      assertEquals(List.of(), chatMessageService.getPinnedMessages(ROOM_ID, USER_ID));
+      verify(pinRepository).getPinnedMessages(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("getRoomReadMarkers by a non-member is Forbidden")
+    void markersNotMember() {
+      notAMember();
+
+      assertThrows(
+          ForbiddenException.class, () -> chatMessageService.getRoomReadMarkers(ROOM_ID, USER_ID));
+      verifyNoInteractions(readRepository);
+    }
+
+    @Test
+    @DisplayName("getRoomReadMarkers in a missing room is NotFound")
+    void markersMissingRoom() {
+      missingRoom();
+
+      assertThrows(
+          NotFoundException.class, () -> chatMessageService.getRoomReadMarkers(ROOM_ID, USER_ID));
+      verifyNoInteractions(readRepository);
+    }
+
+    @Test
+    @DisplayName("getRoomReadMarkers by a member returns the markers of the room")
+    void markersMember() {
+      when(readRepository.getByRoomId(ROOM_ID)).thenReturn(List.of());
+
+      assertEquals(List.of(), chatMessageService.getRoomReadMarkers(ROOM_ID, USER_ID));
+      verify(readRepository).getByRoomId(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("removeReaction by a non-member is Forbidden and removes nothing")
+    void removeReactionNotMember() {
+      notAMember();
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> chatMessageService.removeReaction(ROOM_ID, MESSAGE_ID, USER_ID));
+      verifyNoInteractions(reactionRepository);
+    }
+  }
+
+  @Nested
   @DisplayName("setReadMarker")
   class SetReadMarker {
 
@@ -452,8 +552,8 @@ class ChatMessageServiceImplTest {
     private final OffsetDateTime clearedAt = OffsetDateTime.parse("2026-01-01T10:00:00Z");
 
     private void clearedAt(OffsetDateTime at) {
-      when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
-          .thenReturn(Optional.of(new VisibilityFloor(at)));
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID))
+          .thenReturn(Optional.of(new Membership(false, at)));
     }
 
     @Test
@@ -504,8 +604,8 @@ class ChatMessageServiceImplTest {
     @DisplayName("Returns the floor of a member")
     void member() {
       OffsetDateTime clearedAt = OffsetDateTime.parse("2026-01-01T10:00:00Z");
-      when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
-          .thenReturn(Optional.of(new VisibilityFloor(clearedAt)));
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID))
+          .thenReturn(Optional.of(new Membership(false, clearedAt)));
 
       assertEquals(clearedAt, chatMessageService.getVisibilityFloor(ROOM_ID, USER_ID).clearedAt());
     }
@@ -513,8 +613,7 @@ class ChatMessageServiceImplTest {
     @Test
     @DisplayName("Throws NotFound when the room does not exist")
     void roomNotFound() {
-      when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
-          .thenReturn(Optional.empty());
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID)).thenReturn(Optional.empty());
       when(roomRepository.getById(ROOM_ID)).thenReturn(Optional.empty());
 
       assertThrows(
@@ -524,8 +623,7 @@ class ChatMessageServiceImplTest {
     @Test
     @DisplayName("Throws Forbidden when the user is not a member of an existing room")
     void notMember() {
-      when(subscriptionRepository.getVisibilityFloor(ROOM_ID, USER_ID))
-          .thenReturn(Optional.empty());
+      when(subscriptionRepository.getMembership(ROOM_ID, USER_ID)).thenReturn(Optional.empty());
       when(roomRepository.getById(ROOM_ID)).thenReturn(Optional.of(room()));
 
       assertThrows(

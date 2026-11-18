@@ -27,11 +27,12 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
+import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
 import io.ebean.annotation.Transactional;
@@ -49,9 +50,10 @@ import java.util.stream.Stream;
 public class MeetingServiceImpl implements MeetingService {
 
   private final MeetingRepository meetingRepository;
-  protected final RoomService roomService;
+  private final RoomAccess roomAccess;
+  protected final RoomRepository roomRepository;
   protected final MembersService membersService;
-  private final ParticipantService participantService;
+  private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
   protected final EventDispatcher eventDispatcher;
   private final ChatMessageService chatMessageService;
@@ -61,18 +63,20 @@ public class MeetingServiceImpl implements MeetingService {
   @Inject
   public MeetingServiceImpl(
       MeetingRepository meetingRepository,
-      RoomService roomService,
+      RoomAccess roomAccess,
+      RoomRepository roomRepository,
       MembersService membersService,
-      ParticipantService participantService,
+      ParticipantRepository participantRepository,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher,
       ChatMessageService chatMessageService,
       ObjectMapper objectMapper,
       Clock clock) {
     this.meetingRepository = meetingRepository;
-    this.roomService = roomService;
+    this.roomAccess = roomAccess;
+    this.roomRepository = roomRepository;
     this.membersService = membersService;
-    this.participantService = participantService;
+    this.participantRepository = participantRepository;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
     this.chatMessageService = chatMessageService;
@@ -87,11 +91,11 @@ public class MeetingServiceImpl implements MeetingService {
       MeetingTypeDto meetingTypeDto,
       UUID roomId,
       OffsetDateTime expiration) {
-    Room room = roomService.getRoomAndValidateUser(roomId, user, false);
+    Room room = roomAccess.loadForMember(roomId, user);
     validateRoomMeeting(room.getId(), room.getMeetingId());
 
     Meeting meeting = createNewMeeting(name, meetingTypeDto, roomId.toString());
-    roomService.setMeetingIntoRoom(room, meeting);
+    roomRepository.update(room.meetingId(meeting.getId()));
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingCreated.create()
@@ -123,8 +127,7 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public Meeting startMeeting(UserPrincipal user, UUID meetingId) {
     Meeting meeting = validateMeeting(meetingId);
-    Room room =
-        roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), user, false);
+    Room room = roomAccess.loadForMember(UUID.fromString(meeting.getRoomId()), user);
     if (Boolean.TRUE.equals(meeting.getActive())) {
       return meeting;
     }
@@ -144,8 +147,8 @@ public class MeetingServiceImpl implements MeetingService {
     Meeting updatedMeeting = deactivateMeeting(user.getId(), meeting);
     List<String> extraReceivers = meetingStoppedExtraReceivers(meeting);
 
-    roomService
-        .getRoom(UUID.fromString(updatedMeeting.getRoomId()))
+    roomRepository
+        .getById(updatedMeeting.getRoomId())
         .ifPresent(
             room -> {
               Optional<EndedLine> endedLine = Optional.empty();
@@ -164,9 +167,7 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public void declineMeeting(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
-    Room room =
-        roomService.getRoomAndValidateUser(
-            UUID.fromString(meeting.getRoomId()), currentUser, false);
+    Room room = roomAccess.loadForMember(UUID.fromString(meeting.getRoomId()), currentUser);
 
     Optional<SystemEvent> systemEvent = Optional.empty();
     if (RoomType.ONE_TO_ONE.equals(room.getType())) {
@@ -231,7 +232,7 @@ public class MeetingServiceImpl implements MeetingService {
   private Meeting deactivateMeeting(String userId, Meeting meeting) {
     beforeMeetingStopped(userId, meeting);
     videoServerService.stopMeeting(meeting.getId());
-    participantService.clear(UUID.fromString(meeting.getId()));
+    participantRepository.clear(meeting.getId());
     meeting.active(false).participants(List.of()).startedAt(null);
     return meetingRepository.update(meeting);
   }
@@ -344,8 +345,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public List<Meeting> getMeetings(UserPrincipal currentUser) {
-    List<String> roomsIds =
-        roomService.getRoomsIds(currentUser).stream().map(UUID::toString).toList();
+    List<String> roomsIds = roomRepository.getIdsByUserId(currentUser.getId());
     List<Meeting> meetings = meetingRepository.getByRoomsIds(roomsIds);
     return meetings;
   }
@@ -376,7 +376,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public Meeting getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
-    roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    roomAccess.requireMember(roomId, currentUser);
     return getMeetingEntityByRoomId(roomId)
         .orElseThrow(
             () ->
@@ -387,16 +387,19 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public void deleteMeetingById(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
-    Room room =
-        roomService.getRoomAndValidateUser(
-            UUID.fromString(meeting.getRoomId()), currentUser, false);
+    Room room = roomAccess.loadForMember(UUID.fromString(meeting.getRoomId()), currentUser);
     deleteMeeting(currentUser.getId(), meeting, room);
   }
 
   @Override
-  public void deleteMeeting(String userId, Meeting meeting, Room room) {
+  public void releaseMeetingResources(String userId, Meeting meeting) {
     beforeMeetingStopped(userId, meeting);
     videoServerService.stopMeeting(meeting.getId());
+  }
+
+  @Override
+  public void deleteMeeting(String userId, Meeting meeting, Room room) {
+    releaseMeetingResources(userId, meeting);
     meetingRepository.delete(meeting);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),

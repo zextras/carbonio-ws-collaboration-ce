@@ -34,7 +34,6 @@ import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentAccessValidator;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
@@ -57,7 +56,6 @@ import org.mockito.ArgumentCaptor;
 @UnitTest
 class PreviewServiceImplTest {
 
-  private final RoomService roomService;
   private final ChatMessageService chatMessageService;
   private final FileMetadataRepository fileMetadataRepository;
   private final PreviewClient previewClient;
@@ -68,7 +66,6 @@ class PreviewServiceImplTest {
   private static UUID user2Id;
 
   public PreviewServiceImplTest() {
-    this.roomService = mock(RoomService.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.previewClient = mock(PreviewClient.class);
     this.appConfig = mock(AppConfig.class);
@@ -119,8 +116,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     PreviewResponse mockPreviewResponse =
         new PreviewResponse(new ByteArrayInputStream("image".getBytes()), 5L, "image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
@@ -165,8 +160,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     PreviewResponse mockPreviewResponse =
         new PreviewResponse(new ByteArrayInputStream("image".getBytes()), 5L, "image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
@@ -211,8 +204,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     PreviewResponse mockPreviewResponse =
         new PreviewResponse(new ByteArrayInputStream("pdf".getBytes()), 3L, "application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
@@ -248,8 +239,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     PreviewResponse mockPreviewResponse =
         new PreviewResponse(new ByteArrayInputStream("pdf".getBytes()), 3L, "application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
@@ -295,8 +284,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     PreviewResponse mockPreviewResponse =
         new PreviewResponse(new ByteArrayInputStream("frame".getBytes()), 5L, "image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
@@ -340,8 +327,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     when(previewClient.getPreviewOfVideo(any(Query.class)))
         .thenThrow(new com.zextras.carbonio.preview.sdk.PreviewException(202, "Accepted"));
 
@@ -374,8 +359,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     when(previewClient.getPreviewOfVideo(any(Query.class)))
         .thenThrow(
             new com.zextras.carbonio.preview.sdk.PreviewException(415, "Unsupported Media Type"));
@@ -409,8 +392,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     when(previewClient.getPreviewOfVideo(any(Query.class)))
         .thenThrow(
             new com.zextras.carbonio.preview.sdk.PreviewException(422, "Unprocessable Content"));
@@ -444,8 +425,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     when(previewClient.getPreviewOfVideo(any(Query.class)))
         .thenThrow(new com.zextras.carbonio.preview.sdk.PreviewException(424, "Failed Dependency"));
 
@@ -478,8 +457,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     PreviewResponse mockPreviewResponse =
         new PreviewResponse(new ByteArrayInputStream("frame".getBytes()), 5L, "image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
@@ -523,8 +500,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     when(appConfig.get(Long.class, ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB))
         .thenReturn(Optional.of(0L));
 
@@ -588,8 +563,6 @@ class PreviewServiceImplTest {
             .build();
     when(fileMetadataRepository.getById(fileId.toString()))
         .thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
-        .thenReturn(room1);
     when(previewClient.getPreviewOfImage(any(Query.class)))
         .thenThrow(new com.zextras.carbonio.preview.sdk.PreviewException(500, "server error"));
     assertThrows(

@@ -24,10 +24,8 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
-import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -43,34 +41,28 @@ import java.util.UUID;
 @Singleton
 public class MembersServiceImpl implements MembersService {
 
-  private final RoomService roomService;
+  private final RoomAccess roomAccess;
   private final SubscriptionRepository subscriptionRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher eventDispatcher;
   private final UserService userService;
-  private final MeetingService meetingService;
-  private final ParticipantService participantService;
   private final ChatMessageService chatMessageService;
   private final SystemEventContentFactory systemEventContentFactory;
 
   @Inject
   public MembersServiceImpl(
-      RoomService roomService,
+      RoomAccess roomAccess,
       SubscriptionRepository subscriptionRepository,
       RoomUserSettingsRepository roomUserSettingsRepository,
       EventDispatcher eventDispatcher,
       UserService userService,
-      MeetingService meetingService,
-      ParticipantService participantService,
       ChatMessageService chatMessageService,
       SystemEventContentFactory systemEventContentFactory) {
-    this.roomService = roomService;
+    this.roomAccess = roomAccess;
     this.subscriptionRepository = subscriptionRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.eventDispatcher = eventDispatcher;
     this.userService = userService;
-    this.meetingService = meetingService;
-    this.participantService = participantService;
     this.chatMessageService = chatMessageService;
     this.systemEventContentFactory = systemEventContentFactory;
   }
@@ -80,7 +72,7 @@ public class MembersServiceImpl implements MembersService {
       UUID roomId, List<MemberToInsertDto> membersToInsert, UserPrincipal currentUser) {
     List<MemberToInsertDto> uniqueMembers = deduplicate(membersToInsert);
     List<UUID> memberIds = uniqueMembers.stream().map(MemberToInsertDto::getUserId).toList();
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
 
     validateMemberPresence(memberIds, room);
     validateUserExistence(memberIds, currentUser);
@@ -182,35 +174,6 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
-    Room room =
-        roomService.getRoomAndValidateUser(
-            roomId, currentUser, !currentUser.getUUID().equals(userId));
-    validateUserMemberShip(userId, currentUser, room);
-    if (room.getSubscriptions().size() == 1) {
-      roomService.deleteRoom(room, currentUser);
-      return;
-    }
-    if (room.getMeetingId() != null) {
-      meetingService
-          .getMeetingEntity(UUID.fromString(room.getMeetingId()))
-          .ifPresent(meeting -> participantService.removeMeetingParticipant(meeting, room, userId));
-    }
-    validateLastRoomOwner(userId.toString(), room);
-    List<String> receivers = room.getSubscriptions().stream().map(Subscription::getUserId).toList();
-    removeMemberData(userId.toString(), room);
-    persistAndDispatchMemberRemoved(receivers, room, userId.toString(), currentUser.getId());
-  }
-
-  private static void validateUserMemberShip(UUID userId, UserPrincipal currentUser, Room room) {
-    if (!currentUser.getUUID().equals(userId)
-        && room.getSubscriptions().stream()
-            .noneMatch(s -> s.getUserId().equals(userId.toString()))) {
-      throw new NotFoundException("The user is not a room member");
-    }
-  }
-
-  @Override
   public void deleteRoomMember(String userId, Room room) {
     String firstOwnerId =
         room.getSubscriptions().stream()
@@ -261,28 +224,15 @@ public class MembersServiceImpl implements MembersService {
             .type(EventType.ROOM_MEMBER_REMOVED));
   }
 
-  private void validateLastRoomOwner(String userId, Room room) {
-    List<String> owners =
-        room.getSubscriptions().stream()
-            .filter(Subscription::isOwner)
-            .map(Subscription::getUserId)
-            .toList();
-    if (owners.size() == 1
-        && owners.getFirst().equals(userId)
-        && room.getSubscriptions().size() > 1) {
-      throw new BadRequestException("Last owner can't leave the room");
-    }
-  }
-
   @Override
   public List<Subscription> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
-    return roomService.getRoomAndValidateUser(roomId, currentUser, false).getSubscriptions();
+    return roomAccess.loadForMember(roomId, currentUser).getSubscriptions();
   }
 
   @Override
   public void promoteMemberToOwner(UUID roomId, UUID userId, UserPrincipal currentUser) {
     validateUserRequest(userId, currentUser);
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
     Subscription subscription = getSubscriptionFromRoom(userId, room);
     subscription.owner(true);
     subscriptionRepository.update(subscription);
@@ -297,7 +247,7 @@ public class MembersServiceImpl implements MembersService {
   @Override
   public void demoteOwnerToMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     validateUserRequest(userId, currentUser);
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
     Subscription subscription = getSubscriptionFromRoom(userId, room);
     subscription.owner(false);
     subscriptionRepository.update(subscription);
@@ -326,7 +276,7 @@ public class MembersServiceImpl implements MembersService {
   public List<Subscription> updateRoomOwners(
       UUID roomId, List<MemberDto> members, UserPrincipal currentUser) {
     validateUserRequest(members, currentUser);
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
 
     List<Subscription> subscriptionsToUpdate = new ArrayList<>();
     for (MemberDto member : members) {

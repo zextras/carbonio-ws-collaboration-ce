@@ -46,6 +46,7 @@ import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.service.*;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
@@ -77,7 +78,8 @@ class ParticipantServiceImplTest {
 
   private final ParticipantService participantService;
   private final MeetingService meetingService;
-  private final RoomService roomService;
+  private final RoomAccess roomAccess;
+  private final RoomRepository roomRepository;
   private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
@@ -86,7 +88,8 @@ class ParticipantServiceImplTest {
 
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
-    this.roomService = mock(RoomService.class);
+    this.roomAccess = mock(RoomAccess.class);
+    this.roomRepository = mock(RoomRepository.class);
     this.membersService = mock(MembersService.class);
     this.participantRepository = mock(ParticipantRepository.class);
     this.videoServerService = mock(VideoServerService.class);
@@ -95,7 +98,8 @@ class ParticipantServiceImplTest {
     this.participantService =
         new ParticipantServiceImpl(
             meetingService,
-            roomService,
+            roomAccess,
+            roomRepository,
             membersService,
             participantRepository,
             videoServerService,
@@ -227,7 +231,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(roomRepository.getById(roomId.toString())).thenReturn(Optional.of(room));
       when(participantRepository.insert(any(Participant.class)))
           .thenReturn(
               ParticipantBuilder.create(permanentMeeting, user3Id.toString())
@@ -241,7 +245,7 @@ class ParticipantServiceImplTest {
           currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoom(roomId);
+      verify(roomRepository, times(1)).getById(roomId.toString());
       verify(participantRepository, times(1))
           .getById(permanentMeetingId.toString(), user3Id.toString());
       verify(participantRepository, times(1))
@@ -268,7 +272,12 @@ class ParticipantServiceImplTest {
           .verify(eventDispatcher)
           .sendToUserExchange(anyList(), any(MeetingParticipantJoined.class));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomAccess,
+          roomRepository,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
@@ -278,7 +287,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(roomRepository.getById(roomId.toString())).thenReturn(Optional.of(room));
 
       participantService.insertMeetingParticipant(
           permanentMeetingId,
@@ -287,7 +296,7 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
 
-      verify(roomService, times(1)).getRoom(roomId);
+      verify(roomRepository, times(1)).getById(roomId.toString());
       verify(videoServerService, times(1))
           .destroyMeetingParticipant(user2Id.toString(), permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -325,7 +334,12 @@ class ParticipantServiceImplTest {
           .verify(eventDispatcher)
           .sendToUserExchange(anyList(), any(MeetingParticipantJoined.class));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomAccess,
+          roomRepository,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
@@ -335,7 +349,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(roomRepository.getById(roomId.toString())).thenReturn(Optional.of(room));
       ChatsHttpException exception =
           assertThrows(
               ConflictException.class,
@@ -350,8 +364,8 @@ class ParticipantServiceImplTest {
       assertEquals("Conflict - User is already inserted into the meeting", exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoom(roomId);
-      verifyNoMoreInteractions(roomService, meetingService);
+      verify(roomRepository, times(1)).getById(roomId.toString());
+      verifyNoMoreInteractions(roomAccess, roomRepository, meetingService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -363,7 +377,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user5Id).queueId(user5Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(roomRepository.getById(roomId.toString())).thenReturn(Optional.of(room));
       ChatsHttpException exception =
           assertThrows(
               ForbiddenException.class,
@@ -378,8 +392,8 @@ class ParticipantServiceImplTest {
       assertEquals("Forbidden - User cannot join the meeting", exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoom(roomId);
-      verifyNoMoreInteractions(roomService, meetingService);
+      verify(roomRepository, times(1)).getById(roomId.toString());
+      verifyNoMoreInteractions(roomAccess, roomRepository, meetingService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
   }
@@ -394,7 +408,8 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
-      when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
+      when(roomRepository.getById(scheduledRoomId.toString()))
+          .thenReturn(Optional.of(scheduledRoom));
       when(participantRepository.insert(any(Participant.class)))
           .thenReturn(
               ParticipantBuilder.create(scheduledMeeting, user1Id.toString())
@@ -410,7 +425,7 @@ class ParticipantServiceImplTest {
 
       assertEquals(JoinStatus.ACCEPTED, meetingJoinStatus);
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
-      verify(roomService, times(1)).getRoom(scheduledRoomId);
+      verify(roomRepository, times(1)).getById(scheduledRoomId.toString());
       verify(participantRepository, times(1))
           .getById(scheduledMeetingId.toString(), user1Id.toString());
       verify(participantRepository, times(1))
@@ -437,7 +452,12 @@ class ParticipantServiceImplTest {
           .verify(eventDispatcher)
           .sendToUserExchange(anyList(), any(MeetingParticipantJoined.class));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomAccess,
+          roomRepository,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
@@ -448,7 +468,8 @@ class ParticipantServiceImplTest {
       scheduledMeeting.participants(List.of(participant1Session1));
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
-      when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
+      when(roomRepository.getById(scheduledRoomId.toString()))
+          .thenReturn(Optional.of(scheduledRoom));
 
       JoinStatus meetingJoinStatus =
           participantService.insertMeetingParticipant(
@@ -459,7 +480,7 @@ class ParticipantServiceImplTest {
       assertEquals(JoinStatus.ACCEPTED, meetingJoinStatus);
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
 
-      verify(roomService, times(1)).getRoom(scheduledRoomId);
+      verify(roomRepository, times(1)).getById(scheduledRoomId.toString());
       verify(videoServerService, times(1))
           .destroyMeetingParticipant(user1Id.toString(), scheduledMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -497,7 +518,12 @@ class ParticipantServiceImplTest {
           .verify(eventDispatcher)
           .sendToUserExchange(anyList(), any(MeetingParticipantJoined.class));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomAccess,
+          roomRepository,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
   }
 
@@ -511,14 +537,14 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user4Id).queueId(user4Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomAccess.loadForMember(roomId, currentUser)).thenReturn(room);
       when(participantRepository.getByMeetingId(permanentMeetingId.toString()))
           .thenReturn(List.of(participant2Session1));
 
       participantService.removeMeetingParticipant(permanentMeetingId, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, currentUser);
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(permanentMeetingId.toString());
       verify(videoServerService, times(1))
@@ -532,7 +558,8 @@ class ParticipantServiceImplTest {
                   .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -546,13 +573,13 @@ class ParticipantServiceImplTest {
     void removeMeetingParticipant_testOkLastParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomAccess.loadForMember(roomId, currentUser)).thenReturn(room);
       when(participantRepository.getByMeetingId(meeting2Id.toString())).thenReturn(List.of());
 
       participantService.removeMeetingParticipant(meeting2Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, currentUser);
       verify(participantRepository, times(1)).remove(participant2Session1);
       verify(participantRepository, times(1)).getByMeetingId(meeting2Id.toString());
       verify(videoServerService, times(1))
@@ -567,7 +594,8 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -585,15 +613,14 @@ class ParticipantServiceImplTest {
           List.of(
               Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
               Subscription.create(scheduledRoom, user4Id.toString()).external(true)));
-      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
-          .thenReturn(scheduledRoom);
+      when(roomAccess.loadForMember(scheduledRoomId, currentUser)).thenReturn(scheduledRoom);
       when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
           .thenReturn(List.of(participant4Session1));
 
       participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, false);
+      verify(roomAccess, times(1)).loadForMember(scheduledRoomId, currentUser);
       verify(participantRepository, times(1)).remove(participant1Session1);
       verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
       verify(videoServerService, times(1))
@@ -607,7 +634,8 @@ class ParticipantServiceImplTest {
                   .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -626,15 +654,14 @@ class ParticipantServiceImplTest {
           List.of(
               Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
               Subscription.create(scheduledRoom, user4Id.toString()).external(true)));
-      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
-          .thenReturn(scheduledRoom);
+      when(roomAccess.loadForMember(scheduledRoomId, currentUser)).thenReturn(scheduledRoom);
       when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
           .thenReturn(List.of(participant1Session1));
 
       participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, false);
+      verify(roomAccess, times(1)).loadForMember(scheduledRoomId, currentUser);
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
       verify(videoServerService, times(1))
@@ -648,7 +675,8 @@ class ParticipantServiceImplTest {
                   .reason(MeetingParticipantLeftReason.LEFT));
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -667,15 +695,14 @@ class ParticipantServiceImplTest {
           List.of(
               Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
               Subscription.create(scheduledRoom, user4Id.toString()).temporary(true)));
-      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
-          .thenReturn(scheduledRoom);
+      when(roomAccess.loadForMember(scheduledRoomId, currentUser)).thenReturn(scheduledRoom);
       when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
           .thenReturn(List.of(participant1Session1));
 
       participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, false);
+      verify(roomAccess, times(1)).loadForMember(scheduledRoomId, currentUser);
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
       verify(videoServerService, times(1))
@@ -690,7 +717,8 @@ class ParticipantServiceImplTest {
       verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -707,8 +735,8 @@ class ParticipantServiceImplTest {
       participantService.removeMeetingParticipant(permanentMeetingId, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(meetingService, roomService, membersService);
+      verify(roomAccess, times(1)).loadForMember(roomId, currentUser);
+      verifyNoMoreInteractions(meetingService, roomAccess, roomRepository, membersService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
   }
@@ -723,14 +751,14 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, currentUser)).thenReturn(room);
       when(participantRepository.getByMeetingId(permanentMeetingId.toString()))
           .thenReturn(List.of(participant1Session1, participant2Session1));
 
       participantService.kickMeetingParticipant(permanentMeetingId, user4Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verify(roomAccess, times(1)).loadForOwner(roomId, currentUser);
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(permanentMeetingId.toString());
       verify(videoServerService, times(1))
@@ -744,7 +772,8 @@ class ParticipantServiceImplTest {
                   .reason(MeetingParticipantLeftReason.KICKED));
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -756,7 +785,7 @@ class ParticipantServiceImplTest {
     void kickMeetingParticipant_testErrorModeratorIsNotMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, currentUser)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -779,15 +808,14 @@ class ParticipantServiceImplTest {
           List.of(
               Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
               Subscription.create(scheduledRoom, user4Id.toString()).temporary(true)));
-      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, true))
-          .thenReturn(scheduledRoom);
+      when(roomAccess.loadForOwner(scheduledRoomId, currentUser)).thenReturn(scheduledRoom);
       when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
           .thenReturn(List.of(participant1Session1));
 
       participantService.kickMeetingParticipant(scheduledMeetingId, user4Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, true);
+      verify(roomAccess, times(1)).loadForOwner(scheduledRoomId, currentUser);
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
       verify(videoServerService, times(1))
@@ -803,7 +831,8 @@ class ParticipantServiceImplTest {
           .deleteRoomMember(user4Id.toString(), scheduledRoom, user1Id.toString());
       verifyNoMoreInteractions(
           meetingService,
-          roomService,
+          roomAccess,
+          roomRepository,
           membersService,
           participantRepository,
           videoServerService,
@@ -816,7 +845,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true))
+      when(roomAccess.loadForOwner(roomId, currentUser))
           .thenThrow(
               new ForbiddenException(
                   String.format(
@@ -831,8 +860,8 @@ class ParticipantServiceImplTest {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
-      verifyNoMoreInteractions(meetingService, roomService);
+      verify(roomAccess, times(1)).loadForOwner(roomId, currentUser);
+      verifyNoMoreInteractions(meetingService, roomAccess, roomRepository);
       verifyNoInteractions(
           membersService, participantRepository, videoServerService, eventDispatcher);
     }
@@ -843,7 +872,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, currentUser)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -863,7 +892,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, currentUser)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -883,7 +912,7 @@ class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(room);
+      when(roomAccess.loadForOwner(roomId, currentUser)).thenReturn(room);
       doThrow(new VideoServerException("destroy failed"))
           .when(videoServerService)
           .destroyMeetingParticipant(user4Id.toString(), permanentMeetingId.toString());
@@ -911,7 +940,7 @@ class ParticipantServiceImplTest {
               List.of(
                   Subscription.create(oneToOneRoom, user1Id.toString()).owner(true),
                   Subscription.create(oneToOneRoom, user4Id.toString()).owner(true)));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true)).thenReturn(oneToOneRoom);
+      when(roomAccess.loadForOwner(roomId, currentUser)).thenReturn(oneToOneRoom);
 
       ChatsHttpException exception =
           assertThrows(
@@ -940,7 +969,12 @@ class ParticipantServiceImplTest {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       verifyNoInteractions(
-          roomService, membersService, participantRepository, videoServerService, eventDispatcher);
+          roomAccess,
+          roomRepository,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
   }
 
@@ -977,7 +1011,7 @@ class ParticipantServiceImplTest {
               MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"));
 
       verifyNoMoreInteractions(meetingService, participantRepository, videoServerService);
-      verifyNoInteractions(eventDispatcher, roomService);
+      verifyNoInteractions(eventDispatcher, roomAccess, roomRepository);
     }
 
     @Test
@@ -993,7 +1027,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1018,7 +1053,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -1063,7 +1099,7 @@ class ParticipantServiceImplTest {
                   .active(false));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1080,7 +1116,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1109,7 +1146,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1134,7 +1172,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -1176,7 +1215,7 @@ class ParticipantServiceImplTest {
 
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1192,7 +1231,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1222,7 +1262,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1253,7 +1294,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1280,7 +1322,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -1323,7 +1366,7 @@ class ParticipantServiceImplTest {
           .updateAudioStream(user4Id.toString(), permanentMeetingId.toString(), false);
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1339,7 +1382,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1357,7 +1401,7 @@ class ParticipantServiceImplTest {
           currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verify(roomAccess, times(1)).requireOwner(roomId, currentUser);
       verify(participantRepository, times(1))
           .update(
               ParticipantBuilder.create(Meeting.create(), user4Id.toString())
@@ -1379,7 +1423,12 @@ class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
           .updateAudioStream(user4Id.toString(), permanentMeetingId.toString(), false);
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
+          meetingService,
+          roomAccess,
+          roomRepository,
+          participantRepository,
+          eventDispatcher,
+          videoServerService);
     }
 
     @Test
@@ -1397,8 +1446,8 @@ class ParticipantServiceImplTest {
           currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
-      verifyNoMoreInteractions(meetingService, roomService);
+      verify(roomAccess, times(1)).requireOwner(roomId, currentUser);
+      verifyNoMoreInteractions(meetingService, roomAccess, roomRepository);
       verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
     }
 
@@ -1430,7 +1479,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1457,7 +1507,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1467,10 +1518,11 @@ class ParticipantServiceImplTest {
       UserPrincipal user = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoomAndValidateUser(roomId, user, true))
-          .thenThrow(
+      doThrow(
               new ForbiddenException(
-                  String.format("User '%s' is not an owner of room '%s'", user.getId(), roomId)));
+                  String.format("User '%s' is not an owner of room '%s'", user.getId(), roomId)))
+          .when(roomAccess)
+          .requireOwner(roomId, user);
 
       ChatsHttpException exception =
           assertThrows(
@@ -1491,7 +1543,7 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user, true);
+      verify(roomAccess, times(1)).requireOwner(roomId, user);
       verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
     }
   }
@@ -1527,7 +1579,7 @@ class ParticipantServiceImplTest {
               MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"));
 
       verifyNoMoreInteractions(meetingService, participantRepository, videoServerService);
-      verifyNoInteractions(eventDispatcher, roomService);
+      verifyNoInteractions(eventDispatcher, roomAccess, roomRepository);
     }
 
     @Test
@@ -1543,7 +1595,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1575,7 +1628,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1603,7 +1657,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -1648,7 +1703,7 @@ class ParticipantServiceImplTest {
                   .active(false));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1664,7 +1719,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1693,7 +1749,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -1718,7 +1775,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -1764,7 +1822,7 @@ class ParticipantServiceImplTest {
                   .participants(List.of(user1Id)));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1787,7 +1845,7 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1836,7 +1894,7 @@ class ParticipantServiceImplTest {
                   .participants(List.of(user1Id, user2Id)));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1877,7 +1935,7 @@ class ParticipantServiceImplTest {
                   .participants(List.of()));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1923,7 +1981,7 @@ class ParticipantServiceImplTest {
                   .participants(List.of(user1Id, user2Id)));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1941,7 +1999,7 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -1965,7 +2023,7 @@ class ParticipantServiceImplTest {
           currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verify(roomAccess, times(1)).requireOwner(roomId, currentUser);
       verify(participantRepository, times(1)).setHandRaised(participant4Session1, false);
       verify(participantRepository, times(1))
           .getHandRaisedByMeetingId(permanentMeetingId.toString());
@@ -1985,7 +2043,7 @@ class ParticipantServiceImplTest {
                   .participants(List.of()));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoMoreInteractions(roomService);
+      verifyNoMoreInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -2020,7 +2078,7 @@ class ParticipantServiceImplTest {
 
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoMoreInteractions(roomService);
+      verifyNoMoreInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -2036,11 +2094,12 @@ class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, true))
-          .thenThrow(
+      doThrow(
               new ForbiddenException(
                   String.format(
-                      "User '%s' is not an owner of room '%s'", currentUser.getId(), roomId)));
+                      "User '%s' is not an owner of room '%s'", currentUser.getId(), roomId)))
+          .when(roomAccess)
+          .requireOwner(roomId, currentUser);
 
       ChatsHttpException exception =
           assertThrows(
@@ -2058,11 +2117,11 @@ class ParticipantServiceImplTest {
           exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verify(roomAccess, times(1)).requireOwner(roomId, currentUser);
 
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoMoreInteractions(roomService);
+      verifyNoMoreInteractions(roomAccess, roomRepository);
     }
 
     @Test
@@ -2089,7 +2148,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -2114,7 +2174,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          roomAccess, roomRepository, participantRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -2138,7 +2199,7 @@ class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
           .iceRestartAudio(user1Id.toString(), permanentMeetingId.toString(), "sdp");
       verifyNoMoreInteractions(meetingService, videoServerService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+      verifyNoInteractions(roomAccess, roomRepository, participantRepository, eventDispatcher);
     }
 
     @Test
@@ -2163,7 +2224,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, videoServerService, participantRepository, eventDispatcher);
+      verifyNoInteractions(
+          roomAccess, roomRepository, videoServerService, participantRepository, eventDispatcher);
     }
 
     @Test
@@ -2191,7 +2253,8 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(
-          roomService,
+          roomAccess,
+          roomRepository,
           videoServerService,
           participantRepository,
           eventDispatcher,
@@ -2219,7 +2282,7 @@ class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
           .iceRestartVideo(user1Id.toString(), permanentMeetingId.toString(), "sdp");
       verifyNoMoreInteractions(meetingService, videoServerService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+      verifyNoInteractions(roomAccess, roomRepository, participantRepository, eventDispatcher);
     }
 
     @Test
@@ -2244,7 +2307,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, videoServerService, participantRepository, eventDispatcher);
+      verifyNoInteractions(
+          roomAccess, roomRepository, videoServerService, participantRepository, eventDispatcher);
     }
 
     @Test
@@ -2272,7 +2336,8 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(
-          roomService,
+          roomAccess,
+          roomRepository,
           videoServerService,
           participantRepository,
           eventDispatcher,
@@ -2300,7 +2365,7 @@ class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
           .iceRestartScreen(user1Id.toString(), permanentMeetingId.toString(), "sdp");
       verifyNoMoreInteractions(meetingService, videoServerService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+      verifyNoInteractions(roomAccess, roomRepository, participantRepository, eventDispatcher);
     }
 
     @Test
@@ -2325,7 +2390,8 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, videoServerService, participantRepository, eventDispatcher);
+      verifyNoInteractions(
+          roomAccess, roomRepository, videoServerService, participantRepository, eventDispatcher);
     }
 
     @Test
@@ -2353,7 +2419,8 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(
-          roomService,
+          roomAccess,
+          roomRepository,
           videoServerService,
           participantRepository,
           eventDispatcher,
@@ -2378,7 +2445,8 @@ class ParticipantServiceImplTest {
 
       verify(participantRepository, times(1)).getByQueueId(user1Queue1.toString());
       verifyNoMoreInteractions(participantRepository);
-      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          meetingService, roomAccess, roomRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -2392,7 +2460,8 @@ class ParticipantServiceImplTest {
 
       verify(participantRepository, times(1)).getByQueueId(user3Queue1.toString());
       verifyNoMoreInteractions(participantRepository);
-      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          meetingService, roomAccess, roomRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -2413,7 +2482,8 @@ class ParticipantServiceImplTest {
       verify(participantRepository, times(1))
           .update(participant1Session1.queueId(user2Queue1.toString()));
       verifyNoMoreInteractions(participantRepository);
-      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          meetingService, roomAccess, roomRepository, eventDispatcher, videoServerService);
     }
 
     @Test
@@ -2437,7 +2507,8 @@ class ParticipantServiceImplTest {
       verify(participantRepository, times(1))
           .getById(permanentMeetingId.toString(), user3Id.toString());
       verifyNoMoreInteractions(participantRepository);
-      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+      verifyNoInteractions(
+          meetingService, roomAccess, roomRepository, eventDispatcher, videoServerService);
     }
   }
 
@@ -2465,7 +2536,7 @@ class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
           .configureSubscribedStream(user1Id.toString(), permanentMeetingId.toString(), "0", 1, 2);
       verifyNoMoreInteractions(meetingService, videoServerService);
-      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+      verifyNoInteractions(roomAccess, roomRepository, participantRepository, eventDispatcher);
     }
   }
 

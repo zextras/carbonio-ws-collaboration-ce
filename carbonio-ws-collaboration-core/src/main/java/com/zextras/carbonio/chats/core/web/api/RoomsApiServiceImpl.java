@@ -66,6 +66,8 @@ import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.MessageSentListener;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
+import com.zextras.carbonio.chats.core.service.RoomLifecycleService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.api.mapper.AttachmentMapper;
@@ -134,6 +136,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public static final String MIME_TYPE_NOT_FOUND = "Mime type not found";
   public static final String FILE_NAME_NOT_FOUND = "File name not found";
   private final RoomService roomService;
+  private final RoomAccess roomAccess;
+  private final RoomLifecycleService roomLifecycleService;
   private final MembersService membersService;
   private final AttachmentService attachmentService;
   private final MeetingService meetingService;
@@ -159,6 +163,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Inject
   public RoomsApiServiceImpl(
       RoomService roomService,
+      RoomAccess roomAccess,
+      RoomLifecycleService roomLifecycleService,
       MembersService membersService,
       AttachmentService attachmentService,
       MeetingService meetingService,
@@ -181,6 +187,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       AttachmentMapper attachmentMapper,
       MeetingMapper meetingMapper) {
     this.roomService = roomService;
+    this.roomAccess = roomAccess;
+    this.roomLifecycleService = roomLifecycleService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
     this.meetingService = meetingService;
@@ -228,7 +236,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response getRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
     RoomUserSettings settings = roomService.getRoomUserSettings(roomId, currentUser).orElse(null);
     return Response.status(Status.OK)
         .entity(roomMapper.ent2dto(room, settings, true, true))
@@ -295,14 +303,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.FORBIDDEN).build();
               } else {
-                roomService.deleteRoom(roomId, currentUser);
+                roomLifecycleService.deleteRoom(roomId, currentUser);
                 return Response.status(Status.NO_CONTENT).build();
               }
             })
@@ -317,8 +324,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
@@ -349,8 +355,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
@@ -493,8 +498,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (memberToInsertDto.isEmpty()) {
       return Response.status(Status.BAD_REQUEST).build();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
@@ -528,14 +532,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
               }
-              membersService.deleteRoomMember(roomId, userId, currentUser);
+              roomLifecycleService.removeMember(roomId, userId, currentUser);
               return Response.status(Status.NO_CONTENT).build();
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
@@ -548,8 +551,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
@@ -568,8 +570,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
-    Optional<Room> room =
-        Optional.ofNullable(roomService.getRoomAndValidateUser(roomId, currentUser, false));
+    Optional<Room> room = Optional.ofNullable(roomAccess.loadForMember(roomId, currentUser));
     return room.map(
             r -> {
               if (RoomType.ONE_TO_ONE.equals(room.get().getType())) {
@@ -728,15 +729,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       return Response.status(Status.BAD_REQUEST).entity("Invalid area format").build();
     }
 
-    if (normalizeStringValue(replyToId) != null) {
-      chatMessageService.validateReplyTarget(
-          roomId.toString(), currentUser.getId(), normalizeStringValue(replyToId));
-    }
-
     String dedupTempId = sendTempId(tempId);
     String messageId = UUID.randomUUID().toString();
     if (dedupTempId != null) {
-      chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
+      chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
       MessageSendDedupRepository.Claim claim =
           messageSendDedupRepository.claim(
               roomId.toString(), currentUser.getId(), dedupTempId, messageId);
@@ -863,7 +859,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response unpinMessage(UUID roomId, UUID messageId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
     // unpinMessage now atomically inserts unpin record + system event in ChatMessageServiceImpl
     chatMessageService
         .unpinMessage(roomId.toString(), messageId.toString(), currentUser.getId())
@@ -936,7 +931,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response removeReaction(UUID roomId, UUID messageId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    chatMessageService.validateRoomMembership(roomId.toString(), currentUser.getId());
     Optional<Removed> removed =
         chatMessageService.removeReaction(
             roomId.toString(), messageId.toString(), currentUser.getId());
@@ -1098,7 +1092,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
     VisibilityFloor sourceFloor =
         chatMessageService.getVisibilityFloor(sourceRoomId.toString(), currentUser.getId());
-    chatMessageService.validateRoomMembership(toRoomIdStr, currentUser.getId());
+    chatMessageService.getVisibilityFloor(toRoomIdStr, currentUser.getId());
 
     // Copy blob if the original message has an attachment (must happen before CTE)
     String newAttachmentId = null;
@@ -1438,7 +1432,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     boolean hasMoreAfter = page.hasMoreAfter();
 
     // Read markers for this room
-    List<ReadMarker> readMarkers = chatMessageService.getRoomReadMarkers(roomId.toString());
+    List<ReadMarker> readMarkers =
+        chatMessageService.getRoomReadMarkers(roomId.toString(), principal.getId());
     List<ReadMarkerDto> markers =
         readMarkers.stream()
             .map(
@@ -1463,7 +1458,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     VisibilityFloor floor =
         chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
-    List<ReadMarker> markers = chatMessageService.getRoomReadMarkers(roomId.toString());
+    List<ReadMarker> markers =
+        chatMessageService.getRoomReadMarkers(roomId.toString(), currentUser.getId());
     List<ReadMarkerDto> result =
         markers.stream()
             .map(
@@ -1480,7 +1476,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     VisibilityFloor floor =
         chatMessageService.getVisibilityFloor(roomId.toString(), currentUser.getId());
-    List<MessagePin> pins = chatMessageService.getPinnedMessages(roomId.toString());
+    List<MessagePin> pins =
+        chatMessageService.getPinnedMessages(roomId.toString(), currentUser.getId());
     List<TimelineMessageDto> messages =
         toTimelineMessages(
             pins.stream().map(MessagePin::getMessage).toList(), roomId.toString(), floor);

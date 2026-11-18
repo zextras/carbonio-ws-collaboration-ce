@@ -40,6 +40,15 @@ public interface MeetingService {
 
   void deleteMeeting(String userId, Meeting meeting, Room room);
 
+  /**
+   * Runs the I/O that must happen before a meeting row is deleted: the stop hooks of the edition
+   * and the video-server stop. It touches no database row of the meeting.
+   *
+   * @param userId identifier of the user on whose behalf the meeting is released
+   * @param meeting the meeting to release
+   */
+  void releaseMeetingResources(String userId, Meeting meeting);
+
   void updateMeeting(Meeting updatedMeeting);
 
   void declineMeeting(UUID meetingId, UserPrincipal currentUser);

@@ -8,8 +8,6 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.exception.ForbiddenException;
-import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -33,20 +31,6 @@ public interface RoomService {
   List<UUID> getRoomsIds(UserPrincipal currentUser);
 
   /**
-   * Get room by identifier and check if the current user is subscribed. This method returns an
-   * entity because it's intended to be used only to be called by services.
-   *
-   * @param roomId room identifier {@link UUID}
-   * @param currentUser current authenticate user {@link UserPrincipal}
-   * @param mustBeOwner if true, the user must be a room owner
-   * @return The requested room {@link Room}
-   * @throws NotFoundException if the indicated room doesn't exist
-   * @throws ForbiddenException if the user isn't a room member
-   * @throws ForbiddenException if the user isn't a room owner and mustBeOwner is true
-   */
-  Room getRoomAndValidateUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
-
-  /**
    * Gets the room entity for internal usage
    *
    * @param roomId room identifier
@@ -62,22 +46,6 @@ public interface RoomService {
    * @return The newly created room {@link Room }
    */
   Room createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
-
-  /**
-   * Deletes the specified room
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param currentUser current authenticate user {@link UserPrincipal}
-   */
-  void deleteRoom(UUID roomId, UserPrincipal currentUser);
-
-  /**
-   * Deletes the room without checking that the user is a member or an owner
-   *
-   * @param room room to delete {@link Room }
-   * @param currentUser user on whose behalf the room is deleted {@link UserPrincipal}
-   */
-  void deleteRoom(Room room, UserPrincipal currentUser);
 
   /**
    * Retrieves the settings of the user for the requested room, without checking membership

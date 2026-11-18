@@ -171,9 +171,12 @@ public interface ChatMessageService {
    *
    * @param roomId room identifier
    * @param messageId message identifier
-   * @param userId user identifier of the user unpinning the message
+   * @param userId user identifier of the user unpinning the message, who must be a room member
    * @return the persisted MESSAGE_UNPINNED {@link SystemEvent}, or empty when the message is not
    *     the room pin (nothing is written)
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the room does not exist
+   * @throws com.zextras.carbonio.chats.core.exception.ForbiddenException if the user is not a
+   *     member of the room
    */
   Optional<SystemEvent> unpinMessage(String roomId, String messageId, String userId);
 
@@ -181,9 +184,13 @@ public interface ChatMessageService {
    * Gets all pinned messages for a room
    *
    * @param roomId room identifier
+   * @param userId user identifier of the requester, who must be a room member
    * @return list of {@link MessagePin}
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the room does not exist
+   * @throws com.zextras.carbonio.chats.core.exception.ForbiddenException if the user is not a
+   *     member of the room
    */
-  List<MessagePin> getPinnedMessages(String roomId);
+  List<MessagePin> getPinnedMessages(String roomId, String userId);
 
   // ==================== READ MARKER OPERATIONS (Smart Markers) ====================
 
@@ -211,9 +218,13 @@ public interface ChatMessageService {
    * Gets all read markers for a room (Smart Markers)
    *
    * @param roomId room identifier
+   * @param userId user identifier of the requester, who must be a room member
    * @return list of {@link ReadMarker}
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the room does not exist
+   * @throws com.zextras.carbonio.chats.core.exception.ForbiddenException if the user is not a
+   *     member of the room
    */
-  List<ReadMarker> getRoomReadMarkers(String roomId);
+  List<ReadMarker> getRoomReadMarkers(String roomId, String userId);
 
   // ==================== PRESENCE OPERATIONS ====================
 
@@ -237,17 +248,6 @@ public interface ChatMessageService {
   // ==================== MEMBERSHIP VALIDATION ====================
 
   /**
-   * Validates that the given user is a member (subscriber) of the given room.
-   *
-   * @param roomId room identifier
-   * @param userId user identifier
-   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the room does not exist
-   * @throws com.zextras.carbonio.chats.core.exception.ForbiddenException if the user is not a
-   *     member of the room
-   */
-  void validateRoomMembership(String roomId, String userId);
-
-  /**
    * Gets the visibility floor of a room member and, in the same query, checks the membership.
    *
    * @param roomId room identifier
@@ -261,10 +261,21 @@ public interface ChatMessageService {
 
   /**
    * Validates that a reply target is in the room and visible to the user (created after the user's
-   * cleared-history instant).
+   * cleared-history instant), checking the membership first.
    *
-   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the target is missing,
-   *     in another room or hidden by the user's cleared history
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the room does not exist
+   *     or the target is missing, in another room or hidden by the user's cleared history
+   * @throws com.zextras.carbonio.chats.core.exception.ForbiddenException if the user is not a
+   *     member of the room
    */
   void validateReplyTarget(String roomId, String userId, String replyToId);
+
+  /**
+   * Validates that a reply target is in the room and visible to a member with the given floor
+   * (created after the cleared-history instant).
+   *
+   * @throws com.zextras.carbonio.chats.core.exception.NotFoundException if the target is missing,
+   *     in another room or hidden by the cleared history
+   */
+  void validateReplyTarget(String roomId, VisibilityFloor floor, String replyToId);
 }

@@ -32,6 +32,7 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.service.*;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
@@ -51,7 +52,8 @@ import java.util.UUID;
 public class ParticipantServiceImpl implements ParticipantService {
 
   private final MeetingService meetingService;
-  private final RoomService roomService;
+  private final RoomAccess roomAccess;
+  private final RoomRepository roomRepository;
   private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
@@ -60,13 +62,15 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Inject
   public ParticipantServiceImpl(
       MeetingService meetingService,
-      RoomService roomService,
+      RoomAccess roomAccess,
+      RoomRepository roomRepository,
       MembersService membersService,
       ParticipantRepository participantRepository,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher) {
     this.meetingService = meetingService;
-    this.roomService = roomService;
+    this.roomAccess = roomAccess;
+    this.roomRepository = roomRepository;
     this.membersService = membersService;
     this.participantRepository = participantRepository;
     this.videoServerService = videoServerService;
@@ -99,8 +103,8 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   // Validates and retrieves the associated room
   protected Room validateMeetingRoom(Meeting meeting) {
-    return roomService
-        .getRoom(UUID.fromString(meeting.getRoomId()))
+    return roomRepository
+        .getById(meeting.getRoomId())
         .orElseThrow(
             () -> new NotFoundException(String.format("Room '%s' not found", meeting.getRoomId())));
   }
@@ -229,9 +233,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
-    Room room =
-        roomService.getRoomAndValidateUser(
-            UUID.fromString(meeting.getRoomId()), currentUser, false);
+    Room room = roomAccess.loadForMember(UUID.fromString(meeting.getRoomId()), currentUser);
     removeMeetingParticipant(meeting, room, currentUser.getUUID());
   }
 
@@ -259,8 +261,8 @@ public class ParticipantServiceImpl implements ParticipantService {
         .getByQueueId(queueId.toString())
         .ifPresent(
             participant ->
-                roomService
-                    .getRoom(UUID.fromString(participant.getMeeting().getRoomId()))
+                roomRepository
+                    .getById(participant.getMeeting().getRoomId())
                     .ifPresent(
                         room ->
                             removeMeetingParticipant(
@@ -281,8 +283,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public void kickMeetingParticipant(UUID meetingId, UUID userId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
-    Room room =
-        roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    Room room = roomAccess.loadForOwner(UUID.fromString(meeting.getRoomId()), currentUser);
     if (RoomType.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException("Cannot kick a participant from a one-to-one meeting");
     }
@@ -453,7 +454,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             String.format(
                 "User '%s' cannot perform this action for user '%s'", currentUser.getId(), userId));
       }
-      roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+      roomAccess.requireOwner(UUID.fromString(meeting.getRoomId()), currentUser);
       validateMeetingParticipant(currentUser.getId(), meeting);
     }
   }

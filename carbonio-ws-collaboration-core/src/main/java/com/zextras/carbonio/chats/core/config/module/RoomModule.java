@@ -14,8 +14,12 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
+import com.zextras.carbonio.chats.core.service.RoomLifecycleService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.RoomAccessImpl;
+import com.zextras.carbonio.chats.core.service.impl.RoomLifecycleServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.mapper.RoomMapper;
@@ -29,7 +33,9 @@ public class RoomModule extends AbstractModule {
   protected void configure() {
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
+    bind(RoomAccess.class).to(RoomAccessImpl.class);
     bind(RoomService.class).to(RoomServiceImpl.class);
+    bind(RoomLifecycleService.class).to(RoomLifecycleServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
     bind(RoomMapper.class).to(RoomMapperImpl.class);
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);

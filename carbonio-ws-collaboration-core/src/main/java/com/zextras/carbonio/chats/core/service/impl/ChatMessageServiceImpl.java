@@ -11,7 +11,6 @@ import com.zextras.carbonio.chats.core.data.entity.Message;
 import com.zextras.carbonio.chats.core.data.entity.MessagePin;
 import com.zextras.carbonio.chats.core.data.entity.MessageReaction;
 import com.zextras.carbonio.chats.core.data.entity.ReadMarker;
-import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItem;
 import com.zextras.carbonio.chats.core.data.model.InboxLastItemRefs;
@@ -19,7 +18,6 @@ import com.zextras.carbonio.chats.core.data.model.PinResult;
 import com.zextras.carbonio.chats.core.data.model.PresenceSummary;
 import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
-import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.MessagePinRepository;
 import com.zextras.carbonio.chats.core.repository.MessageReactionRepository;
@@ -28,10 +26,10 @@ import com.zextras.carbonio.chats.core.repository.MessageReactionRepository.SetR
 import com.zextras.carbonio.chats.core.repository.MessageRepository;
 import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
-import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.utils.SearchTextUtils;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
@@ -54,7 +52,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   private final SystemEventRepository systemEventRepository;
   private final WsPresenceRepository wsPresenceRepository;
   private final RoomRepository roomRepository;
-  private final SubscriptionRepository subscriptionRepository;
+  private final RoomAccess roomAccess;
   private final ObjectMapper objectMapper;
 
   @Inject
@@ -66,7 +64,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
       SystemEventRepository systemEventRepository,
       WsPresenceRepository wsPresenceRepository,
       RoomRepository roomRepository,
-      SubscriptionRepository subscriptionRepository,
+      RoomAccess roomAccess,
       ObjectMapper objectMapper) {
     this.messageRepository = messageRepository;
     this.reactionRepository = reactionRepository;
@@ -75,7 +73,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     this.systemEventRepository = systemEventRepository;
     this.wsPresenceRepository = wsPresenceRepository;
     this.roomRepository = roomRepository;
-    this.subscriptionRepository = subscriptionRepository;
+    this.roomAccess = roomAccess;
     this.objectMapper = objectMapper;
   }
 
@@ -290,6 +288,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   @Transactional
   @Override
   public Optional<SystemEvent> unpinMessage(String roomId, String messageId, String userId) {
+    getVisibilityFloor(roomId, userId);
     // Both DB writes are atomic: unpin record + system event in the same operation.
     // Any exception from either step rolls back both via the surrounding @Transactional.
     if (pinRepository.unpin(roomId, messageId) == 0) {
@@ -315,7 +314,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
-  public List<MessagePin> getPinnedMessages(String roomId) {
+  public List<MessagePin> getPinnedMessages(String roomId, String userId) {
+    getVisibilityFloor(roomId, userId);
     return pinRepository.getPinnedMessages(roomId);
   }
 
@@ -353,7 +353,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
-  public List<ReadMarker> getRoomReadMarkers(String roomId) {
+  public List<ReadMarker> getRoomReadMarkers(String roomId, String userId) {
+    getVisibilityFloor(roomId, userId);
     return readRepository.getByRoomId(roomId);
   }
 
@@ -374,7 +375,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
   @Override
   public void validateReplyTarget(String roomId, String userId, String replyToId) {
-    VisibilityFloor floor = getVisibilityFloor(roomId, userId);
+    validateReplyTarget(roomId, getVisibilityFloor(roomId, userId), replyToId);
+  }
+
+  @Override
+  public void validateReplyTarget(String roomId, VisibilityFloor floor, String replyToId) {
     messageRepository
         .getById(replyToId)
         .filter(m -> roomId.equals(m.getRoomId()))
@@ -385,26 +390,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
   @Override
   public VisibilityFloor getVisibilityFloor(String roomId, String userId) {
-    return subscriptionRepository
-        .getVisibilityFloor(roomId, userId)
-        .orElseThrow(
-            () ->
-                roomRepository.getById(roomId).isEmpty()
-                    ? new NotFoundException(String.format("Room '%s' not found", roomId))
-                    : new ForbiddenException(
-                        String.format("User '%s' is not a member of room '%s'", userId, roomId)));
-  }
-
-  @Override
-  public void validateRoomMembership(String roomId, String userId) {
-    Room room =
-        roomRepository
-            .getById(roomId)
-            .orElseThrow(() -> new NotFoundException(String.format("Room '%s' not found", roomId)));
-    boolean isMember = room.getSubscriptions().stream().anyMatch(s -> userId.equals(s.getUserId()));
-    if (!isMember) {
-      throw new ForbiddenException(
-          String.format("User '%s' is not a member of room '%s'", userId, roomId));
-    }
+    return roomAccess.getVisibilityFloor(roomId, userId);
   }
 }

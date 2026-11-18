@@ -31,16 +31,6 @@ public interface MembersService {
       UUID roomId, List<MemberToInsertDto> memberToInsertDto, UserPrincipal currentUser);
 
   /**
-   * Removes a member from the specified room. If the specified user is different from the
-   * requester, this action is considered as a kick
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param userId user identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser);
-
-  /**
    * Removes a member from the specified room. This is used by ParticipantService to remove a member
    * which has not to be in the room anymore after a meeting has ended
    *

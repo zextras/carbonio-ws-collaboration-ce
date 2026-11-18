@@ -83,7 +83,8 @@ class PinReactionSingleIT {
       chatMessageService.pinMessage(roomId.toString(), messageA, userId.toString());
       chatMessageService.pinMessage(roomId.toString(), messageB, userId.toString());
 
-      List<MessagePin> pins = chatMessageService.getPinnedMessages(roomId.toString());
+      List<MessagePin> pins =
+          chatMessageService.getPinnedMessages(roomId.toString(), userId.toString());
       assertEquals(1, pins.size());
       assertEquals(messageB, pins.get(0).getMessageId());
     }
@@ -97,7 +98,8 @@ class PinReactionSingleIT {
       chatMessageService.pinMessage(roomId.toString(), messageA, userId.toString());
       chatMessageService.unpinMessage(roomId.toString(), messageA, userId.toString());
 
-      assertTrue(chatMessageService.getPinnedMessages(roomId.toString()).isEmpty());
+      assertTrue(
+          chatMessageService.getPinnedMessages(roomId.toString(), userId.toString()).isEmpty());
     }
 
     @Test
@@ -131,7 +133,8 @@ class PinReactionSingleIT {
         executor.shutdownNow();
       }
 
-      List<MessagePin> pins = chatMessageService.getPinnedMessages(roomId.toString());
+      List<MessagePin> pins =
+          chatMessageService.getPinnedMessages(roomId.toString(), userId.toString());
       assertEquals(1, pins.size());
       assertTrue(messages.contains(pins.get(0).getMessageId()));
     }

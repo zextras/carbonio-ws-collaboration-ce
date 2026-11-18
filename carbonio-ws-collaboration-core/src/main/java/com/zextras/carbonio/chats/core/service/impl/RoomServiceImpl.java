@@ -33,6 +33,7 @@ import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -63,6 +64,7 @@ public class RoomServiceImpl implements RoomService {
   private final FileMetadataRepository fileMetadataRepository;
   private final MessageRepository messageRepository;
   private final SystemEventRepository systemEventRepository;
+  private final RoomAccess roomAccess;
   private final UserService userService;
   private final MembersService membersService;
   private final MeetingService meetingService;
@@ -80,6 +82,7 @@ public class RoomServiceImpl implements RoomService {
       FileMetadataRepository fileMetadataRepository,
       MessageRepository messageRepository,
       SystemEventRepository systemEventRepository,
+      RoomAccess roomAccess,
       UserService userService,
       MembersService membersService,
       MeetingService meetingService,
@@ -94,6 +97,7 @@ public class RoomServiceImpl implements RoomService {
     this.fileMetadataRepository = fileMetadataRepository;
     this.messageRepository = messageRepository;
     this.systemEventRepository = systemEventRepository;
+    this.roomAccess = roomAccess;
     this.userService = userService;
     this.membersService = membersService;
     this.meetingService = meetingService;
@@ -248,7 +252,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   public Room updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
     boolean nameChanged = isNameChanged(room, updateRoomRequestDto);
     boolean descriptionChanged = isDescriptionChanged(room, updateRoomRequestDto);
     boolean isRoomUpdated = updateRoomDetails(room, updateRoomRequestDto);
@@ -362,37 +366,8 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
-    deleteRoom(getRoomAndValidateUser(roomId, currentUser, true), currentUser);
-  }
-
-  @Override
-  public void deleteRoom(Room room, UserPrincipal currentUser) {
-    UUID roomId = UUID.fromString(room.getId());
-    if (room.getMeetingId() != null) {
-      meetingService
-          .getMeetingEntity(UUID.fromString(room.getMeetingId()))
-          .ifPresent(meeting -> meetingService.deleteMeeting(currentUser.getId(), meeting, room));
-    }
-    attachmentService.deleteAttachmentsByRoomId(roomId, currentUser);
-    if (room.getPictureUpdatedAt() != null) {
-      fileMetadataRepository
-          .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
-          .ifPresent(
-              metadata -> {
-                storagesService.deleteFile(metadata.getId(), metadata.getUserId());
-                fileMetadataRepository.delete(metadata);
-              });
-    }
-    roomRepository.delete(roomId.toString());
-    eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomDeleted.create().roomId(roomId).type(EventType.ROOM_DELETED));
-  }
-
-  @Override
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, false);
+    Room room = roomAccess.loadForMember(roomId, currentUser);
     RoomUserSettings settings =
         roomUserSettingsRepository
             .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
@@ -406,7 +381,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
-    getRoomAndValidateUser(roomId, currentUser, false);
+    roomAccess.requireMember(roomId, currentUser);
     roomUserSettingsRepository
         .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
         .ifPresent(
@@ -519,38 +494,13 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public Room getRoomAndValidateUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
-    Room room =
-        roomRepository
-            .getById(roomId.toString())
-            .orElseThrow(() -> new NotFoundException(String.format("Room '%s'", roomId)));
-    List<Subscription> subscriptions = room.getSubscriptions();
-
-    Subscription member =
-        subscriptions.stream()
-            .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
-            .findAny()
-            .orElseThrow(
-                () ->
-                    new ForbiddenException(
-                        String.format(
-                            "User '%s' is not a member of room '%s'",
-                            currentUser.getId(), roomId)));
-    if (mustBeOwner && !member.isOwner()) {
-      throw new ForbiddenException(
-          String.format("User '%s' is not an owner of room '%s'", currentUser.getId(), roomId));
-    }
-    return room;
-  }
-
-  @Override
   public Optional<Room> getRoom(UUID roomId) {
     return roomRepository.getById(roomId.toString());
   }
 
   @Override
   public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
-    getRoomAndValidateUser(roomId, currentUser, false);
+    roomAccess.requireMember(roomId, currentUser);
     FileMetadata metadata =
         fileMetadataRepository
             .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
@@ -568,7 +518,7 @@ public class RoomServiceImpl implements RoomService {
       Long contentLength,
       String fileName,
       UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
     if (!RoomType.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set for groups");
     }
@@ -612,7 +562,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public void deleteRoomPicture(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, true);
+    Room room = roomAccess.loadForOwner(roomId, currentUser);
     FileMetadata metadata =
         fileMetadataRepository
             .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)

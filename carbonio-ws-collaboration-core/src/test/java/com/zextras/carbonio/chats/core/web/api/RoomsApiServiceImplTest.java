@@ -79,6 +79,8 @@ import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.MessageSentListener;
+import com.zextras.carbonio.chats.core.service.RoomAccess;
+import com.zextras.carbonio.chats.core.service.RoomLifecycleService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.api.mapper.TimelineItemMapper;
@@ -140,6 +142,8 @@ class RoomsApiServiceImplTest {
 
   private final RoomsApiService roomsApiService;
   private final RoomService roomService;
+  private final RoomAccess roomAccess;
+  private final RoomLifecycleService roomLifecycleService;
   private final MembersService membersService;
   private final AttachmentService attachmentService;
   private final MeetingService meetingService;
@@ -160,6 +164,8 @@ class RoomsApiServiceImplTest {
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
     this.roomService = mock(RoomService.class);
+    this.roomAccess = mock(RoomAccess.class);
+    this.roomLifecycleService = mock(RoomLifecycleService.class);
     this.membersService = mock(MembersService.class);
     this.attachmentService = mock(AttachmentService.class);
     this.meetingService = mock(MeetingService.class);
@@ -185,6 +191,8 @@ class RoomsApiServiceImplTest {
     this.roomsApiService =
         new RoomsApiServiceImpl(
             roomService,
+            roomAccess,
+            roomLifecycleService,
             membersService,
             attachmentService,
             meetingService,
@@ -254,9 +262,17 @@ class RoomsApiServiceImplTest {
 
   @AfterEach
   void afterEach() {
-    verifyNoMoreInteractions(roomService, membersService, attachmentService, meetingService);
+    verifyNoMoreInteractions(
+        roomService,
+        roomAccess,
+        roomLifecycleService,
+        membersService,
+        attachmentService,
+        meetingService);
     reset(
         roomService,
+        roomAccess,
+        roomLifecycleService,
         membersService,
         attachmentService,
         meetingService,
@@ -287,8 +303,7 @@ class RoomsApiServiceImplTest {
     @DisplayName("Get room answers the room with its members and the muted flag of the user")
     void getRoom_mapsMembersAndSettings() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(groupRoom(user1Id, user2Id));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(groupRoom(user1Id, user2Id));
       OffsetDateTime clearedAt = OffsetDateTime.parse("2022-01-02T00:00:00Z");
       when(roomService.getRoomUserSettings(roomId, user1))
           .thenReturn(
@@ -299,7 +314,7 @@ class RoomsApiServiceImplTest {
 
       Response response = roomsApiService.getRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(roomService, times(1)).getRoomUserSettings(roomId, user1);
       RoomDto room = (RoomDto) response.getEntity();
       assertEquals(roomId, room.getId());
@@ -318,13 +333,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Get room answers default user settings when the user never changed them")
     void getRoom_mapsDefaultSettings() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(groupRoom(user1Id, user2Id));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(groupRoom(user1Id, user2Id));
       when(roomService.getRoomUserSettings(roomId, user1)).thenReturn(Optional.empty());
 
       Response response = roomsApiService.getRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(roomService, times(1)).getRoomUserSettings(roomId, user1);
       RoomDto room = (RoomDto) response.getEntity();
       assertEquals(2, room.getMembers().size());
@@ -413,15 +427,14 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room answers the updated room without members nor user settings")
     void updateRoom_mapsUpdatedRoom() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
       RoomEditableFieldsDto fields = RoomEditableFieldsDto.create().name("changed");
       Room updated = groupRoom(user1Id, user2Id).name("changed");
       when(roomService.updateRoom(roomId, fields, user1)).thenReturn(updated);
 
       Response response = roomsApiService.updateRoom(roomId, fields, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(roomService, times(1)).updateRoom(roomId, fields, user1);
       RoomDto room = (RoomDto) response.getEntity();
       assertEquals(roomId, room.getId());
@@ -451,15 +464,14 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room owners answers the updated members")
     void updateRoomOwners_mapsSubscriptions() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
       List<MemberDto> requested = List.of(MemberDto.create().userId(user2Id).owner(true));
       when(membersService.updateRoomOwners(roomId, requested, user1))
           .thenReturn(List.of(Subscription.create().userId(user2Id.toString()).owner(true)));
 
       Response response = roomsApiService.updateRoomOwners(roomId, requested, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).updateRoomOwners(roomId, requested, user1);
       assertEquals(requested, response.getEntity());
     }
@@ -468,7 +480,7 @@ class RoomsApiServiceImplTest {
     @DisplayName("Insert room members answers every inserted member with its cleared history")
     void insertRoomMembers_mapsInsertedMembers() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(groupRoom(user1Id, UUID.randomUUID()));
       OffsetDateTime clearedAt = OffsetDateTime.parse("2022-01-02T00:00:00Z");
       UUID user3Id = UUID.randomUUID();
@@ -484,7 +496,7 @@ class RoomsApiServiceImplTest {
 
       Response response = roomsApiService.insertRoomMembers(roomId, toInsert, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).insertRoomMembers(roomId, toInsert, user1);
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       assertEquals(
@@ -632,7 +644,7 @@ class RoomsApiServiceImplTest {
 
       Response response = roomsApiService.getRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(roomService, times(1)).getRoomUserSettings(roomId, user1);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
@@ -645,7 +657,7 @@ class RoomsApiServiceImplTest {
 
       Response response = roomsApiService.getRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, guest, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, guest);
       verify(roomService, times(1)).getRoomUserSettings(roomId, guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
@@ -920,13 +932,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete room with with an authenticated user")
     void deleteRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       Response response = roomsApiService.deleteRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
-      verify(roomService, times(1)).deleteRoom(roomId, user1);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
+      verify(roomLifecycleService, times(1)).deleteRoom(roomId, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     }
@@ -935,12 +946,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete room with with an authenticated user for one to one")
     void deleteRoom_testAuthenticatedUser_oneToOne() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       Response response = roomsApiService.deleteRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
     }
@@ -949,11 +960,11 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete room with with an authenticated user but it's not found")
     void deleteRoom_testAuthenticatedUser_notFound() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false)).thenReturn(null);
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(null);
 
       Response response = roomsApiService.deleteRoom(roomId, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
     }
@@ -985,14 +996,13 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room with with an authenticated user")
     void updateRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create().name("test123");
       Response response =
           roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(roomService, times(1)).updateRoom(roomId, roomEditableFieldsDto, user1);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
@@ -1002,14 +1012,14 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room with with an authenticated user for one to one")
     void updateRoom_testAuthenticatedUser_oneToOne() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create().name("test123");
       Response response =
           roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1018,14 +1028,13 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room with with an authenticated user without name and description")
     void updateRoom_testAuthenticatedUser_withoutNameAndDescription() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create();
       Response response =
           roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1034,13 +1043,13 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room with with an authenticated user but it's not found")
     void updateRoom_testAuthenticatedUser_notFound() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false)).thenReturn(null);
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(null);
 
       RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create().name("test123");
       Response response =
           roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
     }
@@ -1078,13 +1087,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room owners with with an authenticated user")
     void updateRoomOwners_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       List<MemberDto> memberDtos = List.of(MemberDto.create().userId(user2Id).owner(true));
       Response response = roomsApiService.updateRoomOwners(roomId, memberDtos, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).updateRoomOwners(roomId, memberDtos, user1);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
@@ -1094,13 +1102,13 @@ class RoomsApiServiceImplTest {
     @DisplayName("Update room owners on one to one room with with an authenticated user")
     void updateRoomOwnersOnOneToOneRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       List<MemberDto> memberDtos = List.of(MemberDto.create().userId(user2Id).owner(true));
       Response response = roomsApiService.updateRoomOwners(roomId, memberDtos, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1518,15 +1526,14 @@ class RoomsApiServiceImplTest {
     @DisplayName("Insert room members with an authenticated user")
     void insertRoomMembers_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       List<MemberToInsertDto> memberToInsertDtos =
           List.of(MemberToInsertDto.create().userId(user2Id));
       Response response =
           roomsApiService.insertRoomMembers(roomId, memberToInsertDtos, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).insertRoomMembers(roomId, memberToInsertDtos, user1);
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
@@ -1536,7 +1543,7 @@ class RoomsApiServiceImplTest {
     @DisplayName("Insert room members on a one to one room with an authenticated user")
     void insertRoomMembersOnOneToOneRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       List<MemberToInsertDto> memberToInsertDtos =
@@ -1544,7 +1551,7 @@ class RoomsApiServiceImplTest {
       Response response =
           roomsApiService.insertRoomMembers(roomId, memberToInsertDtos, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1556,7 +1563,7 @@ class RoomsApiServiceImplTest {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
       UUID user3Id = UUID.randomUUID();
       UUID user4Id = UUID.randomUUID();
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(
               Room.create()
                   .type(RoomType.GROUP)
@@ -1571,7 +1578,7 @@ class RoomsApiServiceImplTest {
       Response response =
           roomsApiService.insertRoomMembers(roomId, memberToInsertDtos, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1592,7 +1599,7 @@ class RoomsApiServiceImplTest {
     void insertRoomMembers_duplicatesCountOnce() throws Exception {
       user1.carbonioAttributes(Map.of(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS.getValue(), "3"));
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(
               Room.create()
                   .type(RoomType.GROUP)
@@ -1608,7 +1615,7 @@ class RoomsApiServiceImplTest {
       Response response =
           roomsApiService.insertRoomMembers(roomId, memberToInsertDtos, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).insertRoomMembers(roomId, memberToInsertDtos, user1);
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
     }
@@ -1648,13 +1655,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete room member with an authenticated user")
     void deleteRoomMember_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       Response response = roomsApiService.deleteRoomMember(roomId, user2Id, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
-      verify(membersService, times(1)).deleteRoomMember(roomId, user2Id, user1);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
+      verify(roomLifecycleService, times(1)).removeMember(roomId, user2Id, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     }
@@ -1663,12 +1669,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete room member on one to one room with an authenticated user")
     void deleteRoomMemberOnOneToOneRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       Response response = roomsApiService.deleteRoomMember(roomId, user2Id, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1702,12 +1708,11 @@ class RoomsApiServiceImplTest {
     @DisplayName("Insert owner with an authenticated user")
     void insertOwner_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       Response response = roomsApiService.insertOwner(roomId, user2Id, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).promoteMemberToOwner(roomId, user2Id, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
@@ -1717,12 +1722,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Insert owner on one to one room with an authenticated user")
     void insertOwnerOnOneToOneRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       Response response = roomsApiService.insertOwner(roomId, user2Id, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -1756,12 +1761,11 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete owner with an authenticated user")
     void deleteOwner_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
-          .thenReturn(Room.create().type(RoomType.GROUP));
+      when(roomAccess.loadForMember(roomId, user1)).thenReturn(Room.create().type(RoomType.GROUP));
 
       Response response = roomsApiService.deleteOwner(roomId, user2Id, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
       verify(membersService, times(1)).demoteOwnerToMember(roomId, user2Id, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
@@ -1771,12 +1775,12 @@ class RoomsApiServiceImplTest {
     @DisplayName("Delete owner on one to one room with an authenticated user")
     void deleteOwnerOnOneToOneRoom_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(roomService.getRoomAndValidateUser(roomId, user1, false))
+      when(roomAccess.loadForMember(roomId, user1))
           .thenReturn(Room.create().type(RoomType.ONE_TO_ONE));
 
       Response response = roomsApiService.deleteOwner(roomId, user2Id, securityContext);
 
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, user1, false);
+      verify(roomAccess, times(1)).loadForMember(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
@@ -3003,9 +3007,7 @@ class RoomsApiServiceImplTest {
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
       ArgumentCaptor<String> claimed = ArgumentCaptor.forClass(String.class);
       InOrder order = inOrder(chatMessageService, messageSendDedupRepository, attachmentService);
-      order
-          .verify(chatMessageService)
-          .validateRoomMembership(roomId.toString(), user1Id.toString());
+      order.verify(chatMessageService).getVisibilityFloor(roomId.toString(), user1Id.toString());
       order
           .verify(messageSendDedupRepository)
           .claim(eq(roomId.toString()), eq(user1Id.toString()), eq("t-1"), claimed.capture());
@@ -3455,7 +3457,6 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.unpinMessage(roomId, messageId, securityContext);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      verify(chatMessageService).validateRoomMembership(roomId.toString(), user1Id.toString());
       verifyNoInteractions(eventDispatcher);
     }
 
@@ -3519,7 +3520,7 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.pinMessage(roomId, messageId, securityContext);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      verify(chatMessageService, never()).getPinnedMessages(anyString());
+      verify(chatMessageService, never()).getPinnedMessages(anyString(), anyString());
       ArgumentCaptor<WsEvent> event = ArgumentCaptor.forClass(WsEvent.class);
       ArgumentCaptor<TimelineMessageDto> broadcastMessage =
           ArgumentCaptor.forClass(TimelineMessageDto.class);
@@ -3741,7 +3742,8 @@ class RoomsApiServiceImplTest {
               eq(roomId.toString()), isNull(), isNull(), anyInt()))
           .thenReturn(List.of(roomCreated));
 
-      when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()))).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()), anyString()))
+          .thenReturn(List.of());
 
       Response response =
           roomsApiService.getTimeline(
@@ -3777,7 +3779,7 @@ class RoomsApiServiceImplTest {
       OffsetDateTime t5 = anchor.plusSeconds(5);
 
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       when(systemEventRepository.findByRoomIdBounded(
               eq(roomId.toString()), isNull(), eq(anchor), eq(3)))
@@ -3807,7 +3809,7 @@ class RoomsApiServiceImplTest {
       OffsetDateTime t1 = anchor.plusSeconds(1);
 
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       Message msg =
           Message.create()
@@ -3854,7 +3856,7 @@ class RoomsApiServiceImplTest {
       OffsetDateTime t8 = OffsetDateTime.parse("2026-01-01T12:00:08Z");
 
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       when(systemEventRepository.findByRoomIdBounded(
               eq(roomId.toString()), isNull(), isNull(), anyInt()))
@@ -3907,7 +3909,8 @@ class RoomsApiServiceImplTest {
               eq(roomId.toString()), isNull(), isNull(), anyInt()))
           .thenReturn(List.of(roomCreated));
 
-      when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()))).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(eq(roomId.toString()), anyString()))
+          .thenReturn(List.of());
 
       Response response =
           roomsApiService.getTimeline(
@@ -3923,7 +3926,7 @@ class RoomsApiServiceImplTest {
     @DisplayName("Attachments are batch-fetched via getByIds once, never per-message getById")
     void attachments_batchedNotPerMessage() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       OffsetDateTime t = OffsetDateTime.parse("2026-01-01T12:00:00Z");
       Message m1 =
@@ -3973,7 +3976,7 @@ class RoomsApiServiceImplTest {
     @DisplayName("Reply is exploded: original embedded depth-1, batch-fetched once")
     void reply_isExplodedDepth1() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       OffsetDateTime t = OffsetDateTime.parse("2026-01-01T12:00:00Z");
       Message original =
@@ -4023,7 +4026,7 @@ class RoomsApiServiceImplTest {
       OffsetDateTime clearedAt = t.plusSeconds(3);
       when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
           .thenReturn(new VisibilityFloor(clearedAt));
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       Message original = original(t);
       Message reply = reply(t.plusSeconds(10));
@@ -4053,7 +4056,7 @@ class RoomsApiServiceImplTest {
       OffsetDateTime clearedAt = t.minusSeconds(3);
       when(chatMessageService.getVisibilityFloor(anyString(), anyString()))
           .thenReturn(new VisibilityFloor(clearedAt));
-      when(chatMessageService.getRoomReadMarkers(anyString())).thenReturn(List.of());
+      when(chatMessageService.getRoomReadMarkers(anyString(), anyString())).thenReturn(List.of());
 
       Message original = original(t);
       Message reply = reply(t.plusSeconds(10));

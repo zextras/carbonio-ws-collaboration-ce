@@ -8,7 +8,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
-import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
+import com.zextras.carbonio.chats.core.data.model.Membership;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
@@ -20,9 +20,9 @@ import java.util.Optional;
 @Singleton
 public class EbeanSubscriptionRepository implements SubscriptionRepository {
 
-  private static final String VISIBILITY_FLOOR_SQL =
+  private static final String MEMBERSHIP_SQL =
       """
-      SELECT rus.cleared_at
+      SELECT s.owner, rus.cleared_at
       FROM chats.subscription s
       LEFT JOIN chats.room_user_settings rus ON rus.room_id = s.room_id AND rus.user_id = s.user_id
       WHERE s.room_id = :roomId AND s.user_id = :userId
@@ -40,14 +40,15 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   }
 
   @Override
-  public Optional<VisibilityFloor> getVisibilityFloor(String roomId, String userId) {
-    return db.sqlQuery(VISIBILITY_FLOOR_SQL)
+  public Optional<Membership> getMembership(String roomId, String userId) {
+    return db.sqlQuery(MEMBERSHIP_SQL)
         .setParameter("roomId", roomId)
         .setParameter("userId", userId)
         .findOneOrEmpty()
         .map(
             row ->
-                new VisibilityFloor(
+                new Membership(
+                    Boolean.TRUE.equals(row.getBoolean("owner")),
                     Optional.ofNullable(row.getTimestamp("cleared_at"))
                         .map(ts -> ts.toInstant().atOffset(ZoneOffset.UTC))
                         .orElse(null)));

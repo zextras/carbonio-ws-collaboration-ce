@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
+import com.zextras.carbonio.chats.core.data.model.Membership;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -22,13 +22,13 @@ public interface SubscriptionRepository {
   Optional<Subscription> getById(String roomId, String userId);
 
   /**
-   * Gets, in one query, the visibility floor of a room member
+   * Gets, in one query, the ownership and the cleared-history instant of a room member
    *
    * @param roomId room identifier
    * @param userId user identifier
-   * @return the {@link VisibilityFloor}, empty when the user is not a member of the room
+   * @return the {@link Membership}, empty when the user is not a member of the room
    */
-  Optional<VisibilityFloor> getVisibilityFloor(String roomId, String userId);
+  Optional<Membership> getMembership(String roomId, String userId);
 
   /**
    * Updates a subscription
