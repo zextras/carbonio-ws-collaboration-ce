@@ -769,6 +769,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
   }
 
   @Override
+  public Map<String, List<ReadMarker>> getReadMarkersByRoomIds(List<String> roomIds) {
+    if (roomIds.isEmpty()) {
+      return Map.of();
+    }
+    return readRepository.getByRoomIds(roomIds).stream()
+        .collect(Collectors.groupingBy(m -> m.getId().getRoomId()));
+  }
+
+  @Override
   public Map<String, ReadMarker> getReadMarkersByUserId(String userId) {
     List<ReadMarker> markers = readRepository.getByUserId(userId);
     Map<String, ReadMarker> result = new java.util.HashMap<>();

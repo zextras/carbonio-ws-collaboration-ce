@@ -173,6 +173,11 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
+  public List<FileMetadata> getAttachmentsInfoByIds(List<String> fileIds) {
+    return fileMetadataRepository.getByIds(fileIds);
+  }
+
+  @Override
   public FileMetadata getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata =
         fileMetadataRepository

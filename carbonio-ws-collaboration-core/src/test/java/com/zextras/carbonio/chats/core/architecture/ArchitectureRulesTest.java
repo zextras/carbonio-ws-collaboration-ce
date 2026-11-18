@@ -12,6 +12,7 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyP
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.codeUnits;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -77,6 +78,22 @@ class ArchitectureRulesTest {
           .should()
           .dependOnClassesThat(
               resideInAnyPackage(SERVICE_PACKAGE, "com.zextras.carbonio.chats.core.web.."));
+
+  @ArchTest
+  static final ArchRule webDoesNotDependOnRepository =
+      noClasses()
+          .that()
+          .resideInAPackage("com.zextras.carbonio.chats.core.web..")
+          .should()
+          .dependOnClassesThat(resideInAPackage("com.zextras.carbonio.chats.core.repository.."));
+
+  @ArchTest
+  static final ArchRule webHasNoTransactionalMethods =
+      noMethods()
+          .that()
+          .areDeclaredInClassesThat(resideInAPackage("com.zextras.carbonio.chats.core.web.."))
+          .should()
+          .beAnnotatedWith(io.ebean.annotation.Transactional.class);
 
   @ArchTest
   static final ArchRule serviceInterfacesDoNotReturnGeneratedDtos =

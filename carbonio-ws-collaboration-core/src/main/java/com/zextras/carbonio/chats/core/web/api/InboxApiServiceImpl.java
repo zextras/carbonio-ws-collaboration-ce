@@ -17,8 +17,7 @@ import com.zextras.carbonio.chats.core.data.model.TimelineItem;
 import com.zextras.carbonio.chats.core.data.model.VisibilityFloor;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.event.mapper.TimelineItemMapper;
-import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
+import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.presence.PresenceService;
@@ -32,13 +31,11 @@ import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.ReadMarkerDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import io.ebean.annotation.Transactional;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,9 +48,8 @@ import java.util.stream.Stream;
 public class InboxApiServiceImpl implements InboxApiService {
 
   private final ChatMessageService chatMessageService;
+  private final AttachmentService attachmentService;
   private final RoomService roomService;
-  private final FileMetadataRepository fileMetadataRepository;
-  private final ReadMarkerRepository readMarkerRepository;
   private final PresenceService presenceService;
   private final TimelineItemMapper timelineItemMapper;
   private final RoomMapper roomMapper;
@@ -61,16 +57,14 @@ public class InboxApiServiceImpl implements InboxApiService {
   @Inject
   public InboxApiServiceImpl(
       ChatMessageService chatMessageService,
+      AttachmentService attachmentService,
       RoomService roomService,
-      FileMetadataRepository fileMetadataRepository,
-      ReadMarkerRepository readMarkerRepository,
       PresenceService presenceService,
       TimelineItemMapper timelineItemMapper,
       RoomMapper roomMapper) {
     this.chatMessageService = chatMessageService;
+    this.attachmentService = attachmentService;
     this.roomService = roomService;
-    this.fileMetadataRepository = fileMetadataRepository;
-    this.readMarkerRepository = readMarkerRepository;
     this.presenceService = presenceService;
     this.timelineItemMapper = timelineItemMapper;
     this.roomMapper = roomMapper;
@@ -82,7 +76,6 @@ public class InboxApiServiceImpl implements InboxApiService {
   }
 
   @Override
-  @Transactional(readOnly = true)
   public Response getInbox(SecurityContext securityContext) throws NotFoundException {
     UserPrincipal currentUser = getCurrentUser(securityContext);
 
@@ -101,12 +94,8 @@ public class InboxApiServiceImpl implements InboxApiService {
         chatMessageService.getInboxLastItems(currentUser.getId());
 
     // 3. All read markers for all rooms (1 query) — needed for blue-tick computation on sender side
-    Map<String, List<ReadMarker>> allMarkersByRoom = new HashMap<>();
-    if (!roomIds.isEmpty()) {
-      for (ReadMarker mr : readMarkerRepository.getByRoomIds(roomIds)) {
-        allMarkersByRoom.computeIfAbsent(mr.getId().getRoomId(), k -> new ArrayList<>()).add(mr);
-      }
-    }
+    Map<String, List<ReadMarker>> allMarkersByRoom =
+        chatMessageService.getReadMarkersByRoomIds(roomIds);
 
     // 4. Capped unread counts per room (1 query)
     Map<String, Long> unreadCountByRoom = chatMessageService.getUnreadCounts(currentUser.getId());
@@ -127,7 +116,7 @@ public class InboxApiServiceImpl implements InboxApiService {
     Map<String, FileMetadata> metadataByFileId =
         attachmentIds.isEmpty()
             ? Map.of()
-            : fileMetadataRepository.getByIds(attachmentIds).stream()
+            : attachmentService.getAttachmentsInfoByIds(attachmentIds).stream()
                 .collect(Collectors.toMap(FileMetadata::getId, f -> f, (a, b) -> a));
 
     // 6. Batch fetch presence for all members (1 SQL query)

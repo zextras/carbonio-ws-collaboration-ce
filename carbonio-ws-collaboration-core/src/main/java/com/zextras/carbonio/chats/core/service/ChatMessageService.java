@@ -243,6 +243,16 @@ public interface ChatMessageService {
    */
   Map<String, ReadMarker> getReadMarkersByUserId(String userId);
 
+  /**
+   * Returns the read markers of all the given rooms in a single query. No membership check is
+   * performed: the caller derives the rooms from the user's own room list.
+   *
+   * @param roomIds room identifiers
+   * @return map of roomId to the {@link ReadMarker} list of that room (rooms without markers are
+   *     absent)
+   */
+  Map<String, List<ReadMarker>> getReadMarkersByRoomIds(List<String> roomIds);
+
   // ==================== REACTION OPERATIONS ====================
 
   /**

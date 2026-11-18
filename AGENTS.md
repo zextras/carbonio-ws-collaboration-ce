@@ -62,8 +62,8 @@
 - Layering is enforced by `ArchitectureRulesTest` (core module, ArchUnit, no frozen baseline): `core.service..` does
   not depend on `core.web..` except `core.web.security.UserPrincipal` (so the payload mapper `TimelineItemMapper`
   lives in `core.infrastructure.event.mapper` and the WebSocket session registry in
-  `core.infrastructure.websocket`); `core.repository..` depends on neither service nor web; public methods of
-  `core.service..` interfaces never return `com.zextras.carbonio.chats.model..` DTOs, also inside generics, except
+  `core.infrastructure.websocket`); `core.repository..` depends on neither service nor web; `core.web..` does not depend on
+  `core.repository..` and has no `io.ebean.annotation.Transactional` method; public methods of `core.service..` interfaces never return `com.zextras.carbonio.chats.model..` DTOs, also inside generics, except
   `HealthcheckService`, `CapabilityService` and `UserService`; a service interface and its implementation form one
   unit and the units have no dependency cycle; `@io.ebean.annotation.Transactional` code does not call
   `EventDispatcher`, storage, user-management/preview/video-server/HTTP clients or Consul. A new violation is fixed

@@ -56,6 +56,15 @@ public interface AttachmentService {
   FileMetadata getAttachmentInfoById(UUID fileId, UserPrincipal currentUser);
 
   /**
+   * Retrieves the metadata of the given files in a single query. No membership check is performed:
+   * the caller derives the ids from items the user can already see.
+   *
+   * @param fileIds file identifiers
+   * @return the {@link FileMetadata} found
+   */
+  List<FileMetadata> getAttachmentsInfoByIds(List<String> fileIds);
+
+  /**
    * Saves a room's attachment file. The caller has already verified that the user is a member of
    * the room and that the reply target, if any, is visible to the user; no membership or reply
    * check is made here.
