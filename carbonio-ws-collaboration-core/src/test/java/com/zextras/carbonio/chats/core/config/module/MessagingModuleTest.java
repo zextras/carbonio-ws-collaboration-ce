@@ -47,11 +47,10 @@ class MessagingModuleTest {
   }
 
   @Test
-  void withoutValuesInConsul_everyConnectionRecoversItselfAndWhatItDeclared() {
+  void everyConnectionRecoversItselfAndWhatItDeclared() {
     AppConfig appConfig = mock(AppConfig.class);
     when(appConfig.get(eq(String.class), any(ConfigName.class))).thenReturn(Optional.of("value"));
     when(appConfig.get(eq(Integer.class), any(ConfigName.class))).thenReturn(Optional.of(1));
-    when(appConfig.get(eq(Boolean.class), any(ConfigName.class))).thenReturn(Optional.empty());
 
     ConnectionFactory configured = module.getRabbitMqConnectionFactory(appConfig);
 

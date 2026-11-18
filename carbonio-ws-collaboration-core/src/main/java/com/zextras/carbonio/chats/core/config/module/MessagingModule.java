@@ -91,10 +91,8 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(10000));
     factory.setConnectionTimeout(
         appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
-    factory.setAutomaticRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
-    factory.setTopologyRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(true));
+    factory.setAutomaticRecoveryEnabled(true);
+    factory.setTopologyRecoveryEnabled(true);
     return factory;
   }
 

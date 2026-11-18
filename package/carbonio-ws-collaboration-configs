@@ -23,8 +23,6 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/broker/virtual-host:/"
   "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:10"
   "$MAIN_SERVICE_NAME/broker/connection-timeout-in-milli:60000"
-  "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
-  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:true"
   "$MAIN_SERVICE_NAME/broker/network-recovery-interval-in-milli:10000"
   "$MAIN_SERVICE_NAME/hikari/min-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/max-pool-size:10"
@@ -59,7 +57,6 @@ done
 PREVIOUS_DEFAULTS_MIGRATED="$MAIN_SERVICE_NAME/broker/previous-defaults-migrated"
 PREVIOUS_DEFAULTS=(
   "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15 60"
-  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
 )
 
 current_default() {
