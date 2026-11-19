@@ -1,3 +1,9 @@
+## [1.15.6](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.5...v1.15.6) (2026-11-19)
+
+### Bug Fixes
+
+* **events:** deliver user events through one broker queue per instance ([#323](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/323)) ([233fc89](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/233fc898fbdea885fcc55314d5435a429a619c1c))
+
 ## [1.15.5](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.4...v1.15.5) (2026-11-17)
 
 ## [1.15.4](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.3...v1.15.4) (2026-11-10)
