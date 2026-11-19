@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
@@ -34,19 +35,25 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Rtc
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.UserFeed;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.validation.constraints.NotNull;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 @Singleton
 public class VideoServerEventListener {
 
+  private static final String EXCHANGE = "videoserver.events";
   private static final String JANUS_EXCHANGE = "janus-exchange";
-  private static final String JANUS_QUEUE = "janus-queue";
   private static final String JANUS_ROUTING_KEY = "janus-events";
+  private static final String LEGACY_QUEUE = "janus-queue";
+  private static final String QUEUE = "wsc.videoserver-events";
+  private static final int QUEUE_MESSAGE_TTL_MILLIS = 60_000;
 
   private static final String LOCAL = "local";
   private static final String TALKING = "talking";
@@ -65,20 +72,17 @@ public class VideoServerEventListener {
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
-  private final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
 
   @Inject
   public VideoServerEventListener(
-      Channel channel,
+      @Named("videoserver") Channel channel,
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
-      VideoServerService videoServerService,
-      MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor) {
+      VideoServerService videoServerService) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
-    this.messageBrokerVideoserverHealthMonitor = messageBrokerVideoserverHealthMonitor;
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
@@ -90,9 +94,8 @@ public class VideoServerEventListener {
           new RecoveryListener() {
             @Override
             public void handleRecovery(Recoverable recoverable) {
-              ChatsLogger.warn(
+              ChatsLogger.info(
                   "Videoserver event listener channel recovery completed successfully");
-              start();
             }
 
             @Override
@@ -109,11 +112,19 @@ public class VideoServerEventListener {
       throw new EventDispatcherException("Video server event listener channel is not up!");
     }
     try {
+      channel.exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, false);
       channel.exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
-      channel.queueDeclare(JANUS_QUEUE, false, false, false, null);
-      channel.queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
+      channel.queueDeclare(
+          QUEUE,
+          true,
+          false,
+          false,
+          Map.of("x-queue-type", "quorum", "x-message-ttl", QUEUE_MESSAGE_TTL_MILLIS));
+      channel.queueBind(QUEUE, EXCHANGE, "");
+      channel.queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
+      channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, tag -> {});
+      consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, this::resubscribe);
     } catch (Exception e) {
       ChatsLogger.error("Error starting video server events processing", e);
     }
@@ -126,28 +137,47 @@ public class VideoServerEventListener {
           channel.basicCancel(consumerTag);
           ChatsLogger.info("Video server event listener consumer canceled successfully.");
         }
-        channel.close();
-        ChatsLogger.info("Video server event listener channel closed successfully.");
+        channel.getConnection().close();
+        ChatsLogger.info("Video server event listener connection closed successfully.");
       }
     } catch (Exception e) {
       ChatsLogger.error("Error during stopping video server event listener", e);
     }
   }
 
+  private void resubscribe(String cancelledTag) {
+    ChatsLogger.warn("Video server event listener lost its queue, subscribing again");
+    try {
+      // the broker already cancelled it: this only drops it from the client's recovery records
+      channel.basicCancel(cancelledTag);
+    } catch (IOException alreadyCancelled) {
+      ChatsLogger.debug("Video server event listener dropped its cancelled consumer");
+    }
+    start();
+  }
+
   private @NotNull DeliverCallback createDeliveryCallBack() {
     return (tag, delivery) -> {
       String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-      VideoServerEvent event = objectMapper.readValue(message, VideoServerEvent.class);
-
-      switch (event.getType()) {
-        case JSEP_TYPE -> handleJsepTypeEvent(event);
-        case PLUGIN_TYPE -> handlePluginTypeEvent(event);
-        case HEARTBEAT_TYPE -> messageBrokerVideoserverHealthMonitor.notifyVideoServerReady();
-        default -> {
-          /* just ignore other events */
-        }
+      try {
+        handle(objectMapper.readValue(message, VideoServerEvent.class));
+      } catch (Exception e) {
+        ChatsLogger.warn("Video server event listener skipped an event it could not handle", e);
       }
     };
+  }
+
+  private void handle(VideoServerEvent event) {
+    switch (event.getType()) {
+      case JSEP_TYPE -> handleJsepTypeEvent(event);
+      case PLUGIN_TYPE -> handlePluginTypeEvent(event);
+      case HEARTBEAT_TYPE ->
+          eventDispatcher.sendVideoServerHeartbeat(
+              Objects.requireNonNullElse(event.getEmitter(), ""));
+      default -> {
+        /* just ignore other events */
+      }
+    }
   }
 
   private void handlePluginTypeEvent(VideoServerEvent event) {

@@ -15,5 +15,7 @@ public interface EventDispatcher extends HealthIndicator {
 
   void sendToUserQueue(String userId, String queueId, DomainEvent event);
 
+  void sendVideoServerHeartbeat(String emitter);
+
   void stop();
 }

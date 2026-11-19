@@ -63,6 +63,7 @@ systemctl daemon-reload
 consul reload
 
 carbonio-ws-collaboration-configs
+carbonio-ws-collaboration-configs-cleanup
 
 systemctl restart carbonio-ws-collaboration.service
 systemctl restart carbonio-ws-collaboration-sidecar.service

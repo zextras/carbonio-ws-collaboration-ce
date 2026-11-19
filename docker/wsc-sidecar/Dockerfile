@@ -15,6 +15,7 @@ COPY package/policies.json         /etc/carbonio/ws-collaboration/service-discov
 COPY --chmod=755 package/carbonio-ws-collaboration-setup /usr/local/bin/carbonio-ws-collaboration-setup
 
 COPY --chmod=755 package/carbonio-ws-collaboration-configs /usr/local/bin/carbonio-ws-collaboration-configs
+COPY --chmod=755 package/carbonio-ws-collaboration-configs-cleanup /usr/local/bin/carbonio-ws-collaboration-configs-cleanup
 
 ENV SERVICE_NAME=carbonio-ws-collaboration
 ENV SETUP_SCRIPT="carbonio-ws-collaboration-setup"

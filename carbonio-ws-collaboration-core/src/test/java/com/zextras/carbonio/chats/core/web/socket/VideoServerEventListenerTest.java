@@ -12,10 +12,12 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.MediaType;
@@ -39,22 +41,28 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 class VideoServerEventListenerTest {
 
+  private static final String EXCHANGE = "videoserver.events";
   private static final String JANUS_EXCHANGE = "janus-exchange";
-  private static final String JANUS_QUEUE = "janus-queue";
   private static final String JANUS_ROUTING_KEY = "janus-events";
+  private static final String LEGACY_QUEUE = "janus-queue";
+  private static final String QUEUE = "wsc.videoserver-events";
+  private static final Map<String, Object> QUEUE_ARGUMENTS =
+      Map.of("x-queue-type", "quorum", "x-message-ttl", 60_000);
   private static final String CONSUMER_TAG = "consumer-tag-123";
 
   private Channel channel;
+  private Connection connection;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
-  private MessageBrokerVideoserverHealthMonitor healthMonitor;
   private ArgumentCaptor<DeliverCallback> deliverCallbackCaptor;
   private ObjectMapper objectMapper;
   private VideoServerEventListener listener;
@@ -64,30 +72,74 @@ class VideoServerEventListenerTest {
     channel = mock(Channel.class, withSettings().extraInterfaces(Recoverable.class));
     eventDispatcher = mock(EventDispatcher.class);
     videoServerService = mock(VideoServerService.class);
-    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
     deliverCallbackCaptor = ArgumentCaptor.forClass(DeliverCallback.class);
     objectMapper = new ObjectMapper();
 
     when(channel.isOpen()).thenReturn(true);
+    connection = mock(Connection.class);
+    when(channel.getConnection()).thenReturn(connection);
     when(channel.basicConsume(
             anyString(), anyBoolean(), any(DeliverCallback.class), any(CancelCallback.class)))
         .thenReturn(CONSUMER_TAG);
 
     listener =
-        new VideoServerEventListener(
-            channel, eventDispatcher, objectMapper, videoServerService, healthMonitor);
+        new VideoServerEventListener(channel, eventDispatcher, objectMapper, videoServerService);
   }
 
   @Test
-  void testStartSuccessfully() throws Exception {
+  void start_consumesADurableQuorumQueueSharedByEveryInstance() throws Exception {
+    listener.start();
+
+    verify(channel).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
+    verify(channel)
+        .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void start_letsTheBrokerDropEventsNoInstanceConsumedWithinAMinute() throws Exception {
+    listener.start();
+
+    verify(channel)
+        .queueDeclare(
+            eq(QUEUE),
+            eq(true),
+            eq(false),
+            eq(false),
+            argThat(arguments -> Integer.valueOf(60_000).equals(arguments.get("x-message-ttl"))));
+  }
+
+  @Test
+  void stop_cancelsTheConsumerThenClosesTheConnection() throws Exception {
+    listener.start();
+
+    listener.stop();
+
+    InOrder order = inOrder(channel, connection);
+    order.verify(channel).basicCancel(CONSUMER_TAG);
+    order.verify(connection).close();
+  }
+
+  @Test
+  void start_bindsTheQueueToTheExchangeJanusPublishesTo() throws Exception {
+    listener.start();
+
+    verify(channel).exchangeDeclare(EXCHANGE, BuiltinExchangeType.FANOUT, false);
+    verify(channel).queueBind(QUEUE, EXCHANGE, "");
+  }
+
+  @Test
+  void start_keepsReceivingFromTheExchangeOfVideoServersNotUpgradedYet() throws Exception {
     listener.start();
 
     verify(channel).exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
-    verify(channel).queueDeclare(JANUS_QUEUE, false, false, false, null);
-    verify(channel).queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
-    verify(channel)
-        .basicConsume(
-            eq(JANUS_QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+    verify(channel).queueBind(QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
+  }
+
+  @Test
+  void start_deletesTheTransientQueueOfPreviousVersions() throws Exception {
+    listener.start();
+
+    verify(channel).queueDelete(LEGACY_QUEUE);
   }
 
   @Test
@@ -99,27 +151,60 @@ class VideoServerEventListenerTest {
   @Test
   void testStartWithNullChannel() {
     VideoServerEventListener listenerWithNullChannel =
-        new VideoServerEventListener(
-            null, eventDispatcher, objectMapper, videoServerService, healthMonitor);
+        new VideoServerEventListener(null, eventDispatcher, objectMapper, videoServerService);
     assertThrows(EventDispatcherException.class, listenerWithNullChannel::start);
   }
 
   @Test
-  void heartbeat_notifiesVideoServerReady() throws Exception {
-    VideoServerEvent event = new VideoServerEvent().type(256);
+  void heartbeat_isRelayedToEveryInstance_namingTheVideoServer() throws Exception {
+    handleEvent(new VideoServerEvent().type(256).emitter("videoserver-1"));
 
-    handleEvent(event);
-
-    verify(healthMonitor).notifyVideoServerReady();
+    verify(eventDispatcher).sendVideoServerHeartbeat("videoserver-1");
   }
 
   @Test
-  void testStopSuccessfully() throws Exception {
+  void heartbeatOfAVideoServerWithoutAName_isRelayedWithAnEmptyName() throws Exception {
+    handleEvent(new VideoServerEvent().type(256));
+
+    verify(eventDispatcher).sendVideoServerHeartbeat("");
+  }
+
+  @Test
+  void anUnreadableEvent_isSkippedInsteadOfClosingTheChannel() throws Exception {
     listener.start();
-    listener.stop();
+    verify(channel)
+        .basicConsume(
+            anyString(), anyBoolean(), deliverCallbackCaptor.capture(), any(CancelCallback.class));
+
+    assertDoesNotThrow(
+        () -> deliverCallbackCaptor.getValue().handle(CONSUMER_TAG, createDelivery("not json")));
+  }
+
+  @Test
+  void connectionRecovered_leavesTheConsumerToTheClientsTopologyRecovery() throws Exception {
+    ArgumentCaptor<RecoveryListener> recovery = ArgumentCaptor.forClass(RecoveryListener.class);
+    verify((Recoverable) channel).addRecoveryListener(recovery.capture());
+    listener.start();
+
+    recovery.getValue().handleRecovery((Recoverable) channel);
+
+    verify(channel, times(1))
+        .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void queueDeletedByTheBroker_forgetsTheCancelledConsumerAndConsumesAgain() throws Exception {
+    ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
+    listener.start();
+    verify(channel)
+        .basicConsume(anyString(), anyBoolean(), any(DeliverCallback.class), cancel.capture());
+
+    cancel.getValue().handle(CONSUMER_TAG);
 
     verify(channel).basicCancel(CONSUMER_TAG);
-    verify(channel).close();
+    verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
+    verify(channel, times(2))
+        .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
   }
 
   @Test

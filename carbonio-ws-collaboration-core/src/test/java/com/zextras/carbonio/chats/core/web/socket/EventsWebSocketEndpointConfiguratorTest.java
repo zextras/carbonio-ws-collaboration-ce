@@ -11,7 +11,6 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -24,12 +23,12 @@ class EventsWebSocketEndpointConfiguratorTest {
   void acceptsAManagerAnnotatedAsServerEndpoint() {
     EventsWebSocketManager manager =
         new EventsWebSocketManagerImpl(
-            mock(RabbitConnectionPoolService.class),
             mock(ObjectMapper.class),
             mock(WebsocketVersionMigrator.class),
             mock(CacheVideoServerSession.class),
             mock(ParticipantService.class),
-            mock(EventWebSocketSessions.class));
+            mock(EventWebSocketSessions.class),
+            mock(MessageBrokerVideoserverHealthMonitor.class));
 
     assertDoesNotThrow(() -> new EventsWebSocketEndpointConfigurator(manager));
   }

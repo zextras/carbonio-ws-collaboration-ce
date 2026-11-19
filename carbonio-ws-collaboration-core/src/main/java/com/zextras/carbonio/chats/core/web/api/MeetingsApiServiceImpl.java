@@ -179,13 +179,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Kicks the specified user out of the meeting. Only a moderator can kick a
-   * participant.
+   * Kicks the specified user out of the meeting. Only a moderator can kick a participant.
    *
-   * @param meetingId       meeting identifier {@link UUID}
+   * @param meetingId meeting identifier {@link UUID}
    * @param kickParticipantDto the participant to kick {@link KickParticipantDto}
-   * @param securityContext security context created by the authentication filter
-   *                        {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter {@link
+   *     SecurityContext}
    * @return a response {@link Response} with status 204
    */
   @Override
