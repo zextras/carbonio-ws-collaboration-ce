@@ -26,7 +26,12 @@ public class Chats {
       loadLoggingConfigurations();
     }
     printBanner();
-    Guice.createInjector(new BootModule()).getInstance(Boot.class).boot();
+    try {
+      Guice.createInjector(new BootModule()).getInstance(Boot.class).boot();
+    } catch (Exception e) {
+      ChatsLogger.error(Chats.class, "ws-collaboration failed to start", e);
+      System.exit(1);
+    }
   }
 
   private static void printBanner() {

@@ -37,7 +37,9 @@ public class HttpClientProvider {
     connectionManager.setMaxTotal(MAX_TOTAL_CONNECTIONS);
     connectionManager.setDefaultMaxPerRoute(MAX_CONNECTIONS_PER_ROUTE);
 
-    executor = Executors.newSingleThreadScheduledExecutor();
+    executor =
+        Executors.newSingleThreadScheduledExecutor(
+            Thread.ofPlatform().name("Http client connection evictor").daemon().factory());
     executor.scheduleAtFixedRate(
         () -> {
           connectionManager.closeExpiredConnections();
