@@ -147,11 +147,13 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   protected void afterMeetingStarted(String meetingId, VideoServerClient client) {}
 
+  // refuse media calls at once instead of waiting for the HTTP timeout
   protected boolean isVideoServerDown(VideoServerMeeting videoServerMeeting) {
     return healthMonitor.isDown();
   }
 
-  // Janus said it shut down, so its rooms and sessions are already gone
+  // forget the meeting's Janus records without calling Janus, only once Janus confirmed they are
+  // gone
   protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
     return healthMonitor.isShutDown();
   }

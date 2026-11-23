@@ -126,16 +126,18 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
+  // down: shut down, or no heartbeat for 60 s, so it may still be running
   public boolean isDown() {
     return every(status -> !isUp(status));
   }
 
-  public boolean isShutDown() {
-    return every(status -> !status.running());
-  }
-
   public boolean isDown(String emitter) {
     return matches(emitter, status -> !isUp(status));
+  }
+
+  // shut down: Janus reported it, so its rooms and sessions are gone
+  public boolean isShutDown() {
+    return every(status -> !status.running());
   }
 
   public boolean isShutDown(String emitter) {
