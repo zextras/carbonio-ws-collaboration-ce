@@ -348,9 +348,12 @@ class MessageBrokerVideoserverHealthMonitorTest {
   }
 
   @Test
-  void aVideoServerSilentForOverAMinute_isDown_butNotShutDown() {
+  void aVideoServerSilentForOverAMinute_isDownAtTheNextCheck_butNotShutDown() {
     monitor.notifyVideoServerReady("vs-1");
     elapse(Duration.ofSeconds(61));
+    assertFalse(monitor.isDown("vs-1"));
+
+    runHeartbeatCheck();
 
     assertTrue(monitor.isDown("vs-1"));
     assertFalse(monitor.isShutDown("vs-1"));
