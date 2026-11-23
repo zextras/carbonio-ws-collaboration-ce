@@ -74,15 +74,11 @@ public class MessageBrokerVideoserverHealthMonitor {
         TimeUnit.MILLISECONDS);
   }
 
-  public void notifyVideoServerReady(String emitter) {
-    notifyVideoServerReady(emitter, 0);
-  }
-
-  public void notifyVideoServerReady(String emitter, long sentAt) {
+  public void onHeartbeat(String emitter, long sentAt) {
     track(emitter, sentAt, State.UP);
   }
 
-  public void notifyVideoServerDown(String emitter, long sentAt) {
+  public void onShutdown(String emitter, long sentAt) {
     track(emitter, sentAt, State.SHUT_DOWN);
   }
 
@@ -97,7 +93,7 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
-  public void notifyBrokerDown() {
+  public void onBrokerLost() {
     synchronized (lock) {
       brokerConnected = false;
       videoServers.clear();
@@ -105,14 +101,14 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
-  public void notifyBrokerRecovered() {
+  public void onBrokerRecovered() {
     synchronized (lock) {
       brokerConnected = true;
       update();
     }
   }
 
-  public void checkStatus() {
+  public void checkAvailable() {
     synchronized (lock) {
       if (!available) {
         throw new VideoServerException("Video server events are not reaching this instance");

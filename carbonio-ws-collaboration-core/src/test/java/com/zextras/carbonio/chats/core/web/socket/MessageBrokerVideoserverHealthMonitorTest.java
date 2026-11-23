@@ -88,52 +88,52 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void beforeTheFirstHeartbeat_meetingMediaIsRefused() {
-    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
     assertEquals(List.of(), broadcastTypes());
   }
 
   @Test
   void firstHeartbeat_allowsMeetingMedia_andBroadcastsRestored() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
 
-    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertDoesNotThrow(() -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED), broadcastTypes());
   }
 
   @Test
   void furtherHeartbeats_broadcastNothingMore() {
-    monitor.notifyVideoServerReady("janus");
-    monitor.notifyVideoServerReady("janus");
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
+    monitor.onHeartbeat("janus", 0);
+    monitor.onHeartbeat("janus", 0);
 
     assertEquals(List.of(RESTORED), broadcastTypes());
   }
 
   @Test
   void heartbeatWithinTheLastMinute_keepsMeetingMediaAllowed() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
     elapse(Duration.ofSeconds(60));
 
     runHeartbeatCheck();
 
-    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertDoesNotThrow(() -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED), broadcastTypes());
   }
 
   @Test
   void noHeartbeatForOverAMinute_broadcastsDisconnected_andRefusesMeetingMedia() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
     elapse(Duration.ofSeconds(61));
 
     runHeartbeatCheck();
 
-    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
   @Test
   void staleHeartbeatCheckedAgain_broadcastsDisconnectedOnce() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
     elapse(Duration.ofSeconds(61));
 
     runHeartbeatCheck();
@@ -144,71 +144,71 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void heartbeatAfterItWentStale_allowsMeetingMediaAgain_andBroadcastsRestored() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
     elapse(Duration.ofSeconds(61));
     runHeartbeatCheck();
 
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
     runHeartbeatCheck();
 
-    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertDoesNotThrow(() -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
   }
 
   @Test
   void brokerDown_broadcastsDisconnectedAtOnce_andRefusesMeetingMedia() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
 
-    monitor.notifyBrokerDown();
+    monitor.onBrokerLost();
 
-    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
   @Test
   void brokerDownWhileMeetingMediaIsAlreadyRefused_broadcastsNothing() {
-    monitor.notifyBrokerDown();
-    monitor.notifyBrokerDown();
+    monitor.onBrokerLost();
+    monitor.onBrokerLost();
 
     assertEquals(List.of(), broadcastTypes());
   }
 
   @Test
   void heartbeatWhileTheBrokerConnectionIsDown_keepsMeetingMediaRefused() {
-    monitor.notifyVideoServerReady("janus");
-    monitor.notifyBrokerDown();
+    monitor.onHeartbeat("janus", 0);
+    monitor.onBrokerLost();
 
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
 
-    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
   @Test
   void brokerRecovered_afterAHeartbeatSinceTheDrop_allowsMeetingMedia_andBroadcastsRestored() {
-    monitor.notifyVideoServerReady("janus");
-    monitor.notifyBrokerDown();
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
+    monitor.onBrokerLost();
+    monitor.onHeartbeat("janus", 0);
 
-    monitor.notifyBrokerRecovered();
+    monitor.onBrokerRecovered();
 
-    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertDoesNotThrow(() -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
   }
 
   @Test
   void brokerRecovered_withoutAHeartbeatSinceTheDrop_waitsForTheNextHeartbeat() {
-    monitor.notifyVideoServerReady("janus");
-    monitor.notifyBrokerDown();
+    monitor.onHeartbeat("janus", 0);
+    monitor.onBrokerLost();
 
-    monitor.notifyBrokerRecovered();
+    monitor.onBrokerRecovered();
 
-    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
 
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
 
-    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertDoesNotThrow(() -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
   }
 
@@ -216,8 +216,8 @@ class MessageBrokerVideoserverHealthMonitorTest {
   void broadcastEvents_carryTheCurrentSentDate() {
     OffsetDateTime before = OffsetDateTime.now().minusSeconds(1);
 
-    monitor.notifyVideoServerReady("janus");
-    monitor.notifyBrokerDown();
+    monitor.onHeartbeat("janus", 0);
+    monitor.onBrokerLost();
 
     broadcastEvents()
         .forEach(
@@ -245,7 +245,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void sessionOpenedWhileMeetingMediaIsAllowed_isToldNothing() {
-    monitor.notifyVideoServerReady("janus");
+    monitor.onHeartbeat("janus", 0);
 
     RemoteEndpoint.Async remote = openedSession();
 
@@ -254,14 +254,14 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void oneVideoServerStillSendingHeartbeats_keepsMeetingMediaAllowed() {
-    monitor.notifyVideoServerReady("vs-1");
-    monitor.notifyVideoServerReady("vs-2");
+    monitor.onHeartbeat("vs-1", 0);
+    monitor.onHeartbeat("vs-2", 0);
     elapse(Duration.ofSeconds(45));
-    monitor.notifyVideoServerReady("vs-2");
+    monitor.onHeartbeat("vs-2", 0);
     elapse(Duration.ofSeconds(30));
     runHeartbeatCheck();
 
-    assertDoesNotThrow(() -> monitor.checkStatus());
+    assertDoesNotThrow(() -> monitor.checkAvailable());
     assertFalse(monitor.isAvailable("vs-1"));
     assertTrue(monitor.isAvailable("vs-2"));
   }
@@ -270,38 +270,38 @@ class MessageBrokerVideoserverHealthMonitorTest {
   void aVideoServerThatNeverNamedItself_isAvailableWhileAnyHeartbeatArrives() {
     assertFalse(monitor.isAvailable("vs-1"));
 
-    monitor.notifyVideoServerReady("");
+    monitor.onHeartbeat("", 0);
 
     assertTrue(monitor.isAvailable("vs-1"));
   }
 
   @Test
   void brokerDown_makesEveryVideoServerUnavailable() {
-    monitor.notifyVideoServerReady("vs-1");
+    monitor.onHeartbeat("vs-1", 0);
 
-    monitor.notifyBrokerDown();
-    monitor.notifyBrokerRecovered();
+    monitor.onBrokerLost();
+    monitor.onBrokerRecovered();
 
     assertFalse(monitor.isAvailable("vs-1"));
   }
 
   @Test
   void shutdownOfTheOnlyVideoServer_refusesMeetingMediaAtOnce_andBroadcastsDisconnected() {
-    monitor.notifyVideoServerReady("vs-1", 100);
+    monitor.onHeartbeat("vs-1", 100);
 
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onShutdown("vs-1", 200);
 
     assertFalse(monitor.isAvailable("vs-1"));
-    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
   @Test
   void heartbeatAfterAShutdown_makesTheVideoServerAvailableAgain() {
-    monitor.notifyVideoServerReady("vs-1", 100);
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onHeartbeat("vs-1", 100);
+    monitor.onShutdown("vs-1", 200);
 
-    monitor.notifyVideoServerReady("vs-1", 300);
+    monitor.onHeartbeat("vs-1", 300);
 
     assertTrue(monitor.isAvailable("vs-1"));
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
@@ -309,18 +309,18 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void shutdownRelayedAfterANewerHeartbeat_isIgnored() {
-    monitor.notifyVideoServerReady("vs-1", 300);
+    monitor.onHeartbeat("vs-1", 300);
 
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onShutdown("vs-1", 200);
 
     assertTrue(monitor.isAvailable("vs-1"));
   }
 
   @Test
   void heartbeatRelayedWithoutATimestampByAnOlderInstance_isStillApplied() {
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onShutdown("vs-1", 200);
 
-    monitor.notifyVideoServerReady("vs-1");
+    monitor.onHeartbeat("vs-1", 0);
 
     assertTrue(monitor.isAvailable("vs-1"));
   }
@@ -335,13 +335,13 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void aShutDownVideoServer_isDownAndShutDown_untilItsNextHeartbeat() {
-    monitor.notifyVideoServerReady("vs-1", 100);
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onHeartbeat("vs-1", 100);
+    monitor.onShutdown("vs-1", 200);
 
     assertTrue(monitor.isDown("vs-1"));
     assertTrue(monitor.isShutDown("vs-1"));
 
-    monitor.notifyVideoServerReady("vs-1", 300);
+    monitor.onHeartbeat("vs-1", 300);
 
     assertFalse(monitor.isDown("vs-1"));
     assertFalse(monitor.isShutDown("vs-1"));
@@ -349,7 +349,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void aVideoServerSilentForOverAMinute_isDownAtTheNextCheck_butNotShutDown() {
-    monitor.notifyVideoServerReady("vs-1");
+    monitor.onHeartbeat("vs-1", 0);
     elapse(Duration.ofSeconds(61));
     assertFalse(monitor.isDown("vs-1"));
 
@@ -361,20 +361,20 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
   @Test
   void theVideoServer_isDownAndShutDown_withoutNamingIt() {
-    monitor.notifyVideoServerReady("vs-1", 100);
+    monitor.onHeartbeat("vs-1", 100);
     assertFalse(monitor.isDown());
     assertFalse(monitor.isShutDown());
 
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onShutdown("vs-1", 200);
     assertTrue(monitor.isDown());
     assertTrue(monitor.isShutDown());
   }
 
   @Test
   void brokerDown_forgetsWhichVideoServersAreDown() {
-    monitor.notifyVideoServerDown("vs-1", 200);
+    monitor.onShutdown("vs-1", 200);
 
-    monitor.notifyBrokerDown();
+    monitor.onBrokerLost();
 
     assertFalse(monitor.isDown("vs-1"));
     assertFalse(monitor.isDown());

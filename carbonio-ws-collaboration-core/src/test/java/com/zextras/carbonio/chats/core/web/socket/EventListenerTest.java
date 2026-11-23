@@ -160,7 +160,7 @@ class EventListenerTest {
     consumerCallback()
         .handle("tag", delivery(Map.of("videoserver", LongStringHelper.asLongString("vs-1"))));
 
-    verify(healthMonitor).notifyVideoServerReady("vs-1");
+    verify(healthMonitor).onHeartbeat("vs-1", 0);
     verify(a1.getAsyncRemote(), never()).sendText(anyString());
   }
 
@@ -176,7 +176,7 @@ class EventListenerTest {
                     "videoserver-sent-at",
                     1_700L)));
 
-    verify(healthMonitor).notifyVideoServerReady("vs-1", 1_700L);
+    verify(healthMonitor).onHeartbeat("vs-1", 1_700L);
   }
 
   @Test
@@ -193,8 +193,8 @@ class EventListenerTest {
                     "videoserver-shutdown",
                     true)));
 
-    verify(healthMonitor).notifyVideoServerDown("vs-1", 1_700L);
-    verify(healthMonitor, never()).notifyVideoServerReady(anyString(), anyLong());
+    verify(healthMonitor).onShutdown("vs-1", 1_700L);
+    verify(healthMonitor, never()).onHeartbeat(anyString(), anyLong());
   }
 
   @Test
@@ -334,7 +334,7 @@ class EventListenerTest {
 
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, false, null, null));
 
-    verify(healthMonitor).notifyBrokerDown();
+    verify(healthMonitor).onBrokerLost();
   }
 
   @Test
@@ -344,7 +344,7 @@ class EventListenerTest {
 
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, true, null, null));
 
-    verify(healthMonitor, never()).notifyBrokerDown();
+    verify(healthMonitor, never()).onBrokerLost();
   }
 
   @Test
@@ -354,6 +354,6 @@ class EventListenerTest {
 
     recovery.getValue().handleRecovery((Recoverable) connection);
 
-    verify(healthMonitor).notifyBrokerRecovered();
+    verify(healthMonitor).onBrokerRecovered();
   }
 }

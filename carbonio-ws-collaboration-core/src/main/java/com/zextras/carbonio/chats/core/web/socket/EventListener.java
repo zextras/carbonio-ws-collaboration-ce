@@ -117,9 +117,9 @@ public class EventListener {
   private void notifyVideoServerStatus(String videoServer, Map<String, Object> headers) {
     switch (headers.get(VIDEO_SERVER_SENT_AT_HEADER)) {
       case Long sentAt when Boolean.TRUE.equals(headers.get(VIDEO_SERVER_SHUTDOWN_HEADER)) ->
-          healthMonitor.notifyVideoServerDown(videoServer, sentAt);
-      case Long sentAt -> healthMonitor.notifyVideoServerReady(videoServer, sentAt);
-      case null, default -> healthMonitor.notifyVideoServerReady(videoServer);
+          healthMonitor.onShutdown(videoServer, sentAt);
+      case Long sentAt -> healthMonitor.onHeartbeat(videoServer, sentAt);
+      case null, default -> healthMonitor.onHeartbeat(videoServer, 0);
     }
   }
 
@@ -164,7 +164,7 @@ public class EventListener {
         cause -> {
           if (!cause.isInitiatedByApplication()) {
             ChatsLogger.warn("Event listener lost the message broker connection");
-            healthMonitor.notifyBrokerDown();
+            healthMonitor.onBrokerLost();
           }
         });
     if (!(connection instanceof Recoverable recoverable)) return;
@@ -173,7 +173,7 @@ public class EventListener {
           @Override
           public void handleRecovery(Recoverable recoverable) {
             ChatsLogger.info("Event listener recovered the message broker connection");
-            healthMonitor.notifyBrokerRecovered();
+            healthMonitor.onBrokerRecovered();
           }
 
           @Override

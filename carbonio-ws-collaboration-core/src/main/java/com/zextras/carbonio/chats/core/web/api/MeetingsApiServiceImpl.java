@@ -155,7 +155,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
-    messageBrokerVideoserverHealthMonitor.checkStatus();
+    messageBrokerVideoserverHealthMonitor.checkAvailable();
     cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.OK)
@@ -219,7 +219,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
-    messageBrokerVideoserverHealthMonitor.checkStatus();
+    messageBrokerVideoserverHealthMonitor.checkAvailable();
     return Response.status(Status.OK)
         .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
@@ -269,7 +269,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
               "User '%s' cannot enable the media stream without sending an rtc offer",
               currentUser.getId()));
     }
-    messageBrokerVideoserverHealthMonitor.checkStatus();
+    messageBrokerVideoserverHealthMonitor.checkAvailable();
     participantService.updateMediaStream(meetingId, mediaStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -290,7 +290,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       AudioStreamSettingsDto audioStreamSettingsDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    messageBrokerVideoserverHealthMonitor.checkStatus();
+    messageBrokerVideoserverHealthMonitor.checkAvailable();
     participantService.updateAudioStream(meetingId, audioStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -411,7 +411,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response updateHandStatus(
       UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    messageBrokerVideoserverHealthMonitor.checkStatus();
+    messageBrokerVideoserverHealthMonitor.checkAvailable();
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

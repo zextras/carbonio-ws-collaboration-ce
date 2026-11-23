@@ -103,8 +103,8 @@ class EventListenerRecoveryIT {
 
   private void reconnectEverything() throws Exception {
     broker.rabbitmqctl("close_all_connections", "test");
-    verify(healthMonitor, timeout(5000)).notifyBrokerDown();
-    verify(healthMonitor, timeout(10000)).notifyBrokerRecovered();
+    verify(healthMonitor, timeout(5000)).onBrokerLost();
+    verify(healthMonitor, timeout(10000)).onBrokerRecovered();
     await().atMost(Duration.ofSeconds(10)).until(dispatcher::isAlive);
   }
 

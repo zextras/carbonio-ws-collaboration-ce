@@ -121,7 +121,7 @@ class EventsWebSocketIT {
   @BeforeEach
   void setUp() throws Exception {
     await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
-    healthMonitor.notifyVideoServerReady("janus");
+    healthMonitor.onHeartbeat("janus", 0);
     eventListener =
         new EventListener(
             connectionFactory.newConnection(), sessions, websocketVersionMigrator, healthMonitor);
@@ -149,7 +149,7 @@ class EventsWebSocketIT {
 
     @Test
     void sessionOpenedWhileMeetingMediaIsRefused_isToldTheBrokerIsDisconnected() {
-      healthMonitor.notifyBrokerDown();
+      healthMonitor.onBrokerLost();
       var clientContext = new ClientContextWithoutVersion();
       var client = clientContext.client();
       try (Session ignored = createSession(clientContext)) {
