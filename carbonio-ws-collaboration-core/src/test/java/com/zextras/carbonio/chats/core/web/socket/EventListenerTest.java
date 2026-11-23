@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -161,6 +162,39 @@ class EventListenerTest {
 
     verify(healthMonitor).notifyVideoServerReady("vs-1");
     verify(a1.getAsyncRemote(), never()).sendText(anyString());
+  }
+
+  @Test
+  void videoServerHeartbeatWithItsJanusTimestamp_reachesTheHealthMonitorWithIt() throws Exception {
+    consumerCallback()
+        .handle(
+            "tag",
+            delivery(
+                Map.of(
+                    "videoserver",
+                    LongStringHelper.asLongString("vs-1"),
+                    "videoserver-sent-at",
+                    1_700L)));
+
+    verify(healthMonitor).notifyVideoServerReady("vs-1", 1_700L);
+  }
+
+  @Test
+  void videoServerShutdown_marksItDownInTheHealthMonitor() throws Exception {
+    consumerCallback()
+        .handle(
+            "tag",
+            delivery(
+                Map.of(
+                    "videoserver",
+                    LongStringHelper.asLongString("vs-1"),
+                    "videoserver-sent-at",
+                    1_700L,
+                    "videoserver-shutdown",
+                    true)));
+
+    verify(healthMonitor).notifyVideoServerDown("vs-1", 1_700L);
+    verify(healthMonitor, never()).notifyVideoServerReady(anyString(), anyLong());
   }
 
   @Test

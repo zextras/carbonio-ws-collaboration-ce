@@ -126,10 +126,22 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
-  void sendVideoServerHeartbeat_publishesOneMessageNamingTheVideoServer() throws Exception {
-    dispatcher.sendVideoServerHeartbeat("vs-1");
+  void sendVideoServerHeartbeat_publishesOneMessageNamingTheVideoServerAndItsJanusTimestamp()
+      throws Exception {
+    dispatcher.sendVideoServerHeartbeat("vs-1", 1_700L);
 
-    assertEquals(Map.of("videoserver", "vs-1"), published(1).getFirst().getHeaders());
+    assertEquals(
+        Map.of("videoserver", "vs-1", "videoserver-sent-at", 1_700L),
+        published(1).getFirst().getHeaders());
+  }
+
+  @Test
+  void sendVideoServerShutdown_publishesOneMessageMarkingTheVideoServerShutDown() throws Exception {
+    dispatcher.sendVideoServerShutdown("vs-1", 1_700L);
+
+    assertEquals(
+        Map.of("videoserver", "vs-1", "videoserver-sent-at", 1_700L, "videoserver-shutdown", true),
+        published(1).getFirst().getHeaders());
   }
 
   @Test

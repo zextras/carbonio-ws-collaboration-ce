@@ -122,10 +122,18 @@ class UserEventRoutingIT {
 
   @Test
   void aVideoServerHeartbeat_reachesTheHealthMonitorOfEveryInstance() {
-    dispatcher.sendVideoServerHeartbeat("vs-1");
+    dispatcher.sendVideoServerHeartbeat("vs-1", 1_700L);
 
-    verify(first.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1");
-    verify(second.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1");
+    verify(first.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1", 1_700L);
+    verify(second.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1", 1_700L);
+  }
+
+  @Test
+  void aVideoServerShutdown_reachesTheHealthMonitorOfEveryInstance() {
+    dispatcher.sendVideoServerShutdown("vs-1", 1_700L);
+
+    verify(first.healthMonitor(), timeout(2000)).notifyVideoServerDown("vs-1", 1_700L);
+    verify(second.healthMonitor(), timeout(2000)).notifyVideoServerDown("vs-1", 1_700L);
   }
 
   @Test

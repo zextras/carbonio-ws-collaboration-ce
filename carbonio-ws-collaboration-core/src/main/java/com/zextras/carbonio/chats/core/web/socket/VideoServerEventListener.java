@@ -61,6 +61,7 @@ public class VideoServerEventListener {
   private static final String SUBSCRIBING = "subscribing";
   private static final String UPDATED = "updated";
   private static final String PUBLISHED = "published";
+  private static final String SHUTDOWN = "shutdown";
 
   private static final int JSEP_TYPE = 8;
   private static final int PLUGIN_TYPE = 64;
@@ -175,13 +176,19 @@ public class VideoServerEventListener {
     switch (event.getType()) {
       case JSEP_TYPE -> handleJsepTypeEvent(event);
       case PLUGIN_TYPE -> handlePluginTypeEvent(event);
-      case HEARTBEAT_TYPE ->
-          eventDispatcher.sendVideoServerHeartbeat(
-              Objects.requireNonNullElse(event.getEmitter(), ""));
+      case HEARTBEAT_TYPE -> relayStatus(event);
       default -> {
         /* just ignore other events */
       }
     }
+  }
+
+  private void relayStatus(VideoServerEvent event) {
+    String emitter = Objects.requireNonNullElse(event.getEmitter(), "");
+    long sentAt = Objects.requireNonNullElse(event.getTimestamp(), 0L);
+    String status = event.getEventInfo() == null ? null : event.getEventInfo().getStatus();
+    if (SHUTDOWN.equals(status)) eventDispatcher.sendVideoServerShutdown(emitter, sentAt);
+    else eventDispatcher.sendVideoServerHeartbeat(emitter, sentAt);
   }
 
   private void handlePluginTypeEvent(VideoServerEvent event) {

@@ -37,8 +37,10 @@ public class MessageBrokerVideoserverHealthMonitor {
   private final Clock clock;
   private final Object lock = new Object();
   private boolean brokerConnected = true;
-  private final Map<String, Instant> heartbeats = new HashMap<>();
+  private final Map<String, VideoServerStatus> videoServers = new HashMap<>();
   private boolean available;
+
+  private record VideoServerStatus(Instant seenAt, long sentAt, boolean running) {}
 
   @Inject
   public MessageBrokerVideoserverHealthMonitor(
@@ -67,8 +69,26 @@ public class MessageBrokerVideoserverHealthMonitor {
   }
 
   public void notifyVideoServerReady(String emitter) {
+    notifyVideoServerReady(emitter, 0);
+  }
+
+  public void notifyVideoServerReady(String emitter, long sentAt) {
+    track(emitter, sentAt, true);
+  }
+
+  public void notifyVideoServerDown(String emitter, long sentAt) {
+    track(emitter, sentAt, false);
+  }
+
+  private void track(String emitter, long sentAt, boolean running) {
     synchronized (lock) {
-      heartbeats.put(emitter, clock.instant());
+      VideoServerStatus last = videoServers.get(emitter);
+      if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
+      if (last == null || last.running() != running) {
+        ChatsLogger.info("Video server '" + emitter + "' is " + (running ? "up" : "shut down"));
+      }
+      long latest = last == null ? sentAt : Math.max(sentAt, last.sentAt());
+      videoServers.put(emitter, new VideoServerStatus(clock.instant(), latest, running));
       update();
     }
   }
@@ -76,7 +96,7 @@ public class MessageBrokerVideoserverHealthMonitor {
   public void notifyBrokerDown() {
     synchronized (lock) {
       brokerConnected = false;
-      heartbeats.clear();
+      videoServers.clear();
       update();
     }
   }
@@ -99,8 +119,8 @@ public class MessageBrokerVideoserverHealthMonitor {
   // a server that never named itself in a heartbeat is covered by the others
   public boolean isAvailable(String serverId) {
     synchronized (lock) {
-      Instant heartbeat = heartbeats.get(serverId);
-      return available && (heartbeat == null || isFresh(heartbeat));
+      VideoServerStatus status = videoServers.get(serverId);
+      return available && (status == null || isUp(status));
     }
   }
 
@@ -117,10 +137,14 @@ public class MessageBrokerVideoserverHealthMonitor {
   }
 
   private void update() {
-    boolean nowAvailable = brokerConnected && heartbeats.values().stream().anyMatch(this::isFresh);
+    boolean nowAvailable = brokerConnected && videoServers.values().stream().anyMatch(this::isUp);
     if (available == nowAvailable) return;
     available = nowAvailable;
     send(available ? restored() : disconnected(), sessions::broadcast);
+  }
+
+  private boolean isUp(VideoServerStatus status) {
+    return status.running() && isFresh(status.seenAt());
   }
 
   private boolean isFresh(Instant heartbeat) {

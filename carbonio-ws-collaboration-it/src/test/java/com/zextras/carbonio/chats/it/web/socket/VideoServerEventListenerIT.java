@@ -6,6 +6,8 @@ package com.zextras.carbonio.chats.it.web.socket;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -81,7 +83,7 @@ class VideoServerEventListenerIT {
       throws Exception {
     publishHeartbeat("janus-exchange", "janus-events");
 
-    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat(eq("vs-1"), anyLong());
   }
 
   @Test
@@ -92,7 +94,7 @@ class VideoServerEventListenerIT {
       channel.basicPublish("videoserver.events", "janus-events", null, HEARTBEAT);
     }
 
-    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat(eq("vs-1"), anyLong());
   }
 
   @Test
@@ -102,7 +104,7 @@ class VideoServerEventListenerIT {
 
     publishHeartbeat("janus-exchange", "janus-events");
 
-    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1");
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat(eq("vs-1"), anyLong());
     assertEquals(1, consumers());
   }
 }

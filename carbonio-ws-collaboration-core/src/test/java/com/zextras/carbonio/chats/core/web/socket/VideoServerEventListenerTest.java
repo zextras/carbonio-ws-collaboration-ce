@@ -157,17 +157,36 @@ class VideoServerEventListenerTest {
   }
 
   @Test
-  void heartbeat_isRelayedToEveryInstance_namingTheVideoServer() throws Exception {
-    handleEvent(new VideoServerEvent().type(256).emitter("videoserver-1"));
+  void heartbeat_isRelayedToEveryInstance_namingTheVideoServerAndWhenJanusSentIt()
+      throws Exception {
+    handleEvent(
+        new VideoServerEvent()
+            .type(256)
+            .emitter("videoserver-1")
+            .timestamp(1_700L)
+            .eventInfo(new EventInfo().status("update")));
 
-    verify(eventDispatcher).sendVideoServerHeartbeat("videoserver-1");
+    verify(eventDispatcher).sendVideoServerHeartbeat("videoserver-1", 1_700L);
   }
 
   @Test
   void heartbeatOfAVideoServerWithoutAName_isRelayedWithAnEmptyName() throws Exception {
     handleEvent(new VideoServerEvent().type(256));
 
-    verify(eventDispatcher).sendVideoServerHeartbeat("");
+    verify(eventDispatcher).sendVideoServerHeartbeat("", 0L);
+  }
+
+  @Test
+  void shutdown_isRelayedToEveryInstance_asTheVideoServerGoingDown() throws Exception {
+    handleEvent(
+        new VideoServerEvent()
+            .type(256)
+            .emitter("videoserver-1")
+            .timestamp(1_700L)
+            .eventInfo(new EventInfo().status("shutdown")));
+
+    verify(eventDispatcher).sendVideoServerShutdown("videoserver-1", 1_700L);
+    verify(eventDispatcher, never()).sendVideoServerHeartbeat(anyString(), anyLong());
   }
 
   @Test

@@ -284,4 +284,56 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
     assertFalse(monitor.isAvailable("vs-1"));
   }
+
+  @Test
+  void shutdownOfTheOnlyVideoServer_refusesMeetingMediaAtOnce_andBroadcastsDisconnected() {
+    monitor.notifyVideoServerReady("vs-1", 100);
+
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    assertFalse(monitor.isAvailable("vs-1"));
+    assertThrows(VideoServerException.class, () -> monitor.checkStatus());
+    assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
+  }
+
+  @Test
+  void shutdownOfOneVideoServer_leavesTheOthersAvailable() {
+    monitor.notifyVideoServerReady("vs-1", 100);
+    monitor.notifyVideoServerReady("vs-2", 100);
+
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    assertFalse(monitor.isAvailable("vs-1"));
+    assertTrue(monitor.isAvailable("vs-2"));
+    assertDoesNotThrow(() -> monitor.checkStatus());
+  }
+
+  @Test
+  void heartbeatAfterAShutdown_makesTheVideoServerAvailableAgain() {
+    monitor.notifyVideoServerReady("vs-1", 100);
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    monitor.notifyVideoServerReady("vs-1", 300);
+
+    assertTrue(monitor.isAvailable("vs-1"));
+    assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
+  }
+
+  @Test
+  void shutdownRelayedAfterANewerHeartbeat_isIgnored() {
+    monitor.notifyVideoServerReady("vs-1", 300);
+
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    assertTrue(monitor.isAvailable("vs-1"));
+  }
+
+  @Test
+  void heartbeatRelayedWithoutATimestampByAnOlderInstance_isStillApplied() {
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    monitor.notifyVideoServerReady("vs-1");
+
+    assertTrue(monitor.isAvailable("vs-1"));
+  }
 }

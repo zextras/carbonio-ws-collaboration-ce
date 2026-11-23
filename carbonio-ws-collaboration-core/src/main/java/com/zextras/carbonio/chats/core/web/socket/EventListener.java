@@ -36,6 +36,8 @@ public class EventListener {
   private static final String USERS_HEADER = "users";
   private static final String QUEUE_ID_HEADER = "queueId";
   private static final String VIDEO_SERVER_HEADER = "videoserver";
+  private static final String VIDEO_SERVER_SENT_AT_HEADER = "videoserver-sent-at";
+  private static final String VIDEO_SERVER_SHUTDOWN_HEADER = "videoserver-shutdown";
   private static final int MAX_QUEUE_LENGTH = 10_000;
 
   private final Connection connection;
@@ -105,10 +107,20 @@ public class EventListener {
     try {
       Map<String, Object> headers = delivery.getProperties().getHeaders();
       Object videoServer = headers == null ? null : headers.get(VIDEO_SERVER_HEADER);
-      if (videoServer != null) healthMonitor.notifyVideoServerReady(videoServer.toString());
+      if (videoServer != null) notifyVideoServerStatus(videoServer.toString(), headers);
       else send(recipientsOf(headers), delivery.getBody());
     } catch (RuntimeException e) {
       ChatsLogger.warn("Event listener skipped an event it could not read", e);
+    }
+  }
+
+  private void notifyVideoServerStatus(String videoServer, Map<String, Object> headers) {
+    if (!(headers.get(VIDEO_SERVER_SENT_AT_HEADER) instanceof Long sentAt)) {
+      healthMonitor.notifyVideoServerReady(videoServer);
+    } else if (Boolean.TRUE.equals(headers.get(VIDEO_SERVER_SHUTDOWN_HEADER))) {
+      healthMonitor.notifyVideoServerDown(videoServer, sentAt);
+    } else {
+      healthMonitor.notifyVideoServerReady(videoServer, sentAt);
     }
   }
 

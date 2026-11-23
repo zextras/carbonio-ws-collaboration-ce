@@ -35,6 +35,8 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   private static final String USERS_HEADER = "users";
   private static final String QUEUE_ID_HEADER = "queueId";
   private static final String VIDEO_SERVER_HEADER = "videoserver";
+  private static final String VIDEO_SERVER_SENT_AT_HEADER = "videoserver-sent-at";
+  private static final String VIDEO_SERVER_SHUTDOWN_HEADER = "videoserver-shutdown";
   private static final int MAX_PENDING_EVENTS = 10_000;
   private static final int MAX_USERS_PER_MESSAGE = 1_000;
 
@@ -123,8 +125,21 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   }
 
   @Override
-  public void sendVideoServerHeartbeat(String emitter) {
-    publish(Map.of(VIDEO_SERVER_HEADER, emitter), new byte[0]);
+  public void sendVideoServerHeartbeat(String emitter, long sentAt) {
+    publish(Map.of(VIDEO_SERVER_HEADER, emitter, VIDEO_SERVER_SENT_AT_HEADER, sentAt), new byte[0]);
+  }
+
+  @Override
+  public void sendVideoServerShutdown(String emitter, long sentAt) {
+    publish(
+        Map.of(
+            VIDEO_SERVER_HEADER,
+            emitter,
+            VIDEO_SERVER_SENT_AT_HEADER,
+            sentAt,
+            VIDEO_SERVER_SHUTDOWN_HEADER,
+            true),
+        new byte[0]);
   }
 
   private Optional<byte[]> serialize(DomainEvent event) {
