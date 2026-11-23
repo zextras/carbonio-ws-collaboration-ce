@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 @Singleton
 public class MessageBrokerVideoserverHealthMonitor {
@@ -128,32 +127,30 @@ public class MessageBrokerVideoserverHealthMonitor {
 
   // down: shut down, or no heartbeat for 60 s, so it may still be running
   public boolean isDown() {
-    return every(status -> !isUp(status));
+    synchronized (lock) {
+      return !videoServers.isEmpty() && videoServers.values().stream().noneMatch(this::isUp);
+    }
   }
 
   public boolean isDown(String emitter) {
-    return matches(emitter, status -> !isUp(status));
+    synchronized (lock) {
+      VideoServerStatus status = videoServers.get(emitter);
+      return status != null && !isUp(status);
+    }
   }
 
   // shut down: Janus reported it, so its rooms and sessions are gone
   public boolean isShutDown() {
-    return every(status -> !status.running());
-  }
-
-  public boolean isShutDown(String emitter) {
-    return matches(emitter, status -> !status.running());
-  }
-
-  private boolean every(Predicate<VideoServerStatus> state) {
     synchronized (lock) {
-      return !videoServers.isEmpty() && videoServers.values().stream().allMatch(state);
+      return !videoServers.isEmpty()
+          && videoServers.values().stream().noneMatch(VideoServerStatus::running);
     }
   }
 
-  private boolean matches(String emitter, Predicate<VideoServerStatus> state) {
+  public boolean isShutDown(String emitter) {
     synchronized (lock) {
       VideoServerStatus status = videoServers.get(emitter);
-      return status != null && state.test(status);
+      return status != null && !status.running();
     }
   }
 

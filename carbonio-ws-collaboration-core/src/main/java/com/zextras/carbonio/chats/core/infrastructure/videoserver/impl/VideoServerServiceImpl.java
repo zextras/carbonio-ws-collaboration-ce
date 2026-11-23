@@ -152,8 +152,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     return healthMonitor.isDown();
   }
 
-  // forget the meeting's Janus records without calling Janus, only once Janus confirmed they are
-  // gone
+  // skip Janus on leave and stop only once it confirmed its rooms and sessions are gone
   protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
     return healthMonitor.isShutDown();
   }
@@ -254,41 +253,36 @@ public class VideoServerServiceImpl implements VideoServerService {
         .ifPresent(
             videoServerMeeting -> {
               if (!isVideoServerShutDown(videoServerMeeting)) {
-                destroyMeetingOnVideoServer(videoServerMeeting);
+                VideoServerClient client = clientFor(videoServerMeeting);
+
+                destroyAudioBridgeRoom(
+                    client,
+                    meetingId,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getAudioHandleId(),
+                    videoServerMeeting.getAudioRoomId());
+                destroyVideoRoom(
+                    client,
+                    meetingId,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getVideoHandleId(),
+                    videoServerMeeting.getVideoRoomId());
+
+                destroyPluginHandle(
+                    client,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getAudioHandleId(),
+                    meetingId);
+                destroyPluginHandle(
+                    client,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getVideoHandleId(),
+                    meetingId);
+
+                destroyConnection(client, videoServerMeeting.getConnectionId(), meetingId);
               }
               videoServerMeetingRepository.deleteById(meetingId);
             });
-  }
-
-  private void destroyMeetingOnVideoServer(VideoServerMeeting videoServerMeeting) {
-    String meetingId = videoServerMeeting.getMeetingId();
-    VideoServerClient client = clientFor(videoServerMeeting);
-
-    destroyAudioBridgeRoom(
-        client,
-        meetingId,
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        videoServerMeeting.getAudioRoomId());
-    destroyVideoRoom(
-        client,
-        meetingId,
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        videoServerMeeting.getVideoRoomId());
-
-    destroyPluginHandle(
-        client,
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        meetingId);
-    destroyPluginHandle(
-        client,
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        meetingId);
-
-    destroyConnection(client, videoServerMeeting.getConnectionId(), meetingId);
   }
 
   private void destroyPluginHandle(
