@@ -115,12 +115,11 @@ public class EventListener {
   }
 
   private void notifyVideoServerStatus(String videoServer, Map<String, Object> headers) {
-    if (!(headers.get(VIDEO_SERVER_SENT_AT_HEADER) instanceof Long sentAt)) {
-      healthMonitor.notifyVideoServerReady(videoServer);
-    } else if (Boolean.TRUE.equals(headers.get(VIDEO_SERVER_SHUTDOWN_HEADER))) {
-      healthMonitor.notifyVideoServerDown(videoServer, sentAt);
-    } else {
-      healthMonitor.notifyVideoServerReady(videoServer, sentAt);
+    switch (headers.get(VIDEO_SERVER_SENT_AT_HEADER)) {
+      case Long sentAt when Boolean.TRUE.equals(headers.get(VIDEO_SERVER_SHUTDOWN_HEADER)) ->
+          healthMonitor.notifyVideoServerDown(videoServer, sentAt);
+      case Long sentAt -> healthMonitor.notifyVideoServerReady(videoServer, sentAt);
+      case null, default -> healthMonitor.notifyVideoServerReady(videoServer);
     }
   }
 

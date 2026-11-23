@@ -187,8 +187,10 @@ public class VideoServerEventListener {
     String emitter = Objects.requireNonNullElse(event.getEmitter(), "");
     long sentAt = Objects.requireNonNullElse(event.getTimestamp(), 0L);
     String status = event.getEventInfo() == null ? null : event.getEventInfo().getStatus();
-    if (SHUTDOWN.equals(status)) eventDispatcher.sendVideoServerShutdown(emitter, sentAt);
-    else eventDispatcher.sendVideoServerHeartbeat(emitter, sentAt);
+    switch (status) {
+      case SHUTDOWN -> eventDispatcher.sendVideoServerShutdown(emitter, sentAt);
+      case null, default -> eventDispatcher.sendVideoServerHeartbeat(emitter, sentAt);
+    }
   }
 
   private void handlePluginTypeEvent(VideoServerEvent event) {
