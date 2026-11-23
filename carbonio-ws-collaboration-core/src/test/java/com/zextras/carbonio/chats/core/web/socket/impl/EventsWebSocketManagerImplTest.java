@@ -16,9 +16,9 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
@@ -40,7 +40,7 @@ class EventsWebSocketManagerImplTest {
   private ObjectMapper objectMapper;
   private EventWebSocketSessions sessions;
   private CacheVideoServerSession cacheVideoServerSession;
-  private MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private VideoServerHealth videoServerHealth;
   private RemoteEndpoint.Async remote;
   private UUID sessionId;
 
@@ -56,7 +56,7 @@ class EventsWebSocketManagerImplTest {
     cacheVideoServerSession = mock(CacheVideoServerSession.class);
     participantService = mock(ParticipantService.class);
     sessions = mock(EventWebSocketSessions.class);
-    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
+    videoServerHealth = mock(VideoServerHealth.class);
 
     manager =
         new EventsWebSocketManagerImpl(
@@ -65,7 +65,7 @@ class EventsWebSocketManagerImplTest {
             cacheVideoServerSession,
             participantService,
             sessions,
-            healthMonitor);
+            videoServerHealth);
 
     session = mock(Session.class);
     HttpSession httpSession = mock(HttpSession.class);
@@ -94,9 +94,9 @@ class EventsWebSocketManagerImplTest {
   void onOpen_afterAnnouncingTheSession_tellsItIfMeetingMediaIsUnavailable() throws Exception {
     manager.onOpen(session);
 
-    InOrder order = inOrder(remote, healthMonitor);
+    InOrder order = inOrder(remote, videoServerHealth);
     order.verify(remote).sendObject(any());
-    order.verify(healthMonitor).notifyIfUnavailable(session);
+    order.verify(videoServerHealth).notifyIfUnavailable(session);
   }
 
   @Test

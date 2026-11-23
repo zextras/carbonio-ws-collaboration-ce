@@ -34,6 +34,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.impl.LongStringHelper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
@@ -59,7 +60,7 @@ class EventListenerTest {
   private Channel channel;
   private EventWebSocketSessions sessions;
   private WebsocketVersionMigrator migrator;
-  private MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private VideoServerHealth videoServerHealth;
   private EventListener listener;
 
   @BeforeEach
@@ -73,8 +74,8 @@ class EventListenerTest {
     migrator = mock(WebsocketVersionMigrator.class);
     when(migrator.downgradeIfNeeded(anyString(), anyString()))
         .thenAnswer(invocation -> invocation.getArgument(0));
-    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
-    listener = new EventListener(connection, sessions, migrator, healthMonitor);
+    videoServerHealth = mock(VideoServerHealth.class);
+    listener = new EventListener(connection, sessions, migrator, videoServerHealth);
     listener.start();
   }
 
@@ -128,7 +129,7 @@ class EventListenerTest {
   void construction_subscribesNothing_untilStarted() throws Exception {
     Connection idle = mock(Connection.class);
 
-    new EventListener(idle, sessions, migrator, healthMonitor);
+    new EventListener(idle, sessions, migrator, videoServerHealth);
 
     verify(idle, never()).createChannel();
   }
@@ -160,7 +161,7 @@ class EventListenerTest {
     consumerCallback()
         .handle("tag", delivery(Map.of("videoserver", LongStringHelper.asLongString("vs-1"))));
 
-    verify(healthMonitor).onHeartbeat("vs-1", 0);
+    verify(videoServerHealth).onHeartbeat("vs-1", 0);
     verify(a1.getAsyncRemote(), never()).sendText(anyString());
   }
 
@@ -176,7 +177,7 @@ class EventListenerTest {
                     "videoserver-sent-at",
                     1_700L)));
 
-    verify(healthMonitor).onHeartbeat("vs-1", 1_700L);
+    verify(videoServerHealth).onHeartbeat("vs-1", 1_700L);
   }
 
   @Test
@@ -193,8 +194,8 @@ class EventListenerTest {
                     "videoserver-shutdown",
                     true)));
 
-    verify(healthMonitor).onShutdown("vs-1", 1_700L);
-    verify(healthMonitor, never()).onHeartbeat(anyString(), anyLong());
+    verify(videoServerHealth).onShutdown("vs-1", 1_700L);
+    verify(videoServerHealth, never()).onHeartbeat(anyString(), anyLong());
   }
 
   @Test
@@ -320,7 +321,7 @@ class EventListenerTest {
     when(connection.createChannel()).thenReturn(failing);
     when(failing.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
         .thenThrow(new IOException("broker gone"));
-    EventListener starting = new EventListener(connection, sessions, migrator, healthMonitor);
+    EventListener starting = new EventListener(connection, sessions, migrator, videoServerHealth);
 
     assertThrows(EventDispatcherException.class, starting::start);
 
@@ -334,7 +335,7 @@ class EventListenerTest {
 
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, false, null, null));
 
-    verify(healthMonitor).onBrokerLost();
+    verify(videoServerHealth).onBrokerLost();
   }
 
   @Test
@@ -344,7 +345,7 @@ class EventListenerTest {
 
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, true, null, null));
 
-    verify(healthMonitor, never()).onBrokerLost();
+    verify(videoServerHealth, never()).onBrokerLost();
   }
 
   @Test
@@ -354,6 +355,6 @@ class EventListenerTest {
 
     recovery.getValue().handleRecovery((Recoverable) connection);
 
-    verify(healthMonitor).onBrokerRecovered();
+    verify(videoServerHealth).onBrokerRecovered();
   }
 }

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +14,7 @@ import com.zextras.carbonio.async.model.MessageBrokerDisconnected;
 import com.zextras.carbonio.async.model.MessageBrokerRestored;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import jakarta.websocket.Session;
 import java.time.Clock;
 import java.time.Duration;
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 @Singleton
-public class MessageBrokerVideoserverHealthMonitor {
+public class VideoServerHealth {
 
   private static final Duration HEARTBEAT_TIMEOUT = Duration.ofSeconds(60);
   private static final Duration CHECK_INTERVAL = Duration.ofSeconds(5);
@@ -49,7 +50,7 @@ public class MessageBrokerVideoserverHealthMonitor {
   private record VideoServer(State state, long sentAt, Instant seenAt) {}
 
   @Inject
-  public MessageBrokerVideoserverHealthMonitor(
+  public VideoServerHealth(
       EventWebSocketSessions sessions, ObjectMapper objectMapper, Clock clock) {
     this(
         sessions,
@@ -59,7 +60,7 @@ public class MessageBrokerVideoserverHealthMonitor {
             Thread.ofPlatform().name("Video server heartbeat check").daemon().factory()));
   }
 
-  MessageBrokerVideoserverHealthMonitor(
+  VideoServerHealth(
       EventWebSocketSessions sessions,
       ObjectMapper objectMapper,
       Clock clock,

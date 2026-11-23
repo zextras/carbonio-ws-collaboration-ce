@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.codec.VideoCodec;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
@@ -29,7 +30,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.MediaStreamDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
@@ -69,7 +69,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   private final VideoServerClient videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
-  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final VideoServerHealth videoServerHealth;
   private final Clock clock;
 
   private final VideoServerConfig videoServerConfig;
@@ -80,12 +80,12 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerClient videoServerClient,
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository,
-      MessageBrokerVideoserverHealthMonitor healthMonitor,
+      VideoServerHealth videoServerHealth,
       Clock clock) {
     this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
-    this.healthMonitor = healthMonitor;
+    this.videoServerHealth = videoServerHealth;
     this.clock = clock;
     this.videoServerConfig = videoServerConfig;
   }
@@ -149,12 +149,12 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   // refuse media calls at once instead of waiting for the HTTP timeout
   protected boolean isVideoServerDown(VideoServerMeeting videoServerMeeting) {
-    return healthMonitor.isDown();
+    return videoServerHealth.isDown();
   }
 
   // skip Janus on leave and stop only once it confirmed its rooms and sessions are gone
   protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
-    return healthMonitor.isShutDown();
+    return videoServerHealth.isShutDown();
   }
 
   private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {
