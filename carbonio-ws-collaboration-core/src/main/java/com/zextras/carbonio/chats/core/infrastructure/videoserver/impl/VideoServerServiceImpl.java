@@ -147,29 +147,21 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   protected void afterMeetingStarted(String meetingId, VideoServerClient client) {}
 
-  protected Optional<String> getMeetingServerId(String meetingId) {
-    return Optional.empty();
+  protected boolean isVideoServerDown(VideoServerMeeting videoServerMeeting) {
+    return healthMonitor.isDown();
+  }
+
+  // Janus said it shut down, so its rooms and sessions are already gone
+  protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
+    return healthMonitor.isShutDown();
   }
 
   private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {
-    if (isDown(videoServerMeeting)) {
+    if (isVideoServerDown(videoServerMeeting)) {
       throw new VideoServerException(
           "The video server of the meeting " + videoServerMeeting.getMeetingId() + " is down");
     }
     return clientFor(videoServerMeeting);
-  }
-
-  private boolean isDown(VideoServerMeeting videoServerMeeting) {
-    return healthMonitor.isDown(serverIdOf(videoServerMeeting));
-  }
-
-  // Janus said it shut down, so its rooms and sessions are already gone
-  private boolean isShutDown(VideoServerMeeting videoServerMeeting) {
-    return healthMonitor.isShutDown(serverIdOf(videoServerMeeting));
-  }
-
-  private String serverIdOf(VideoServerMeeting videoServerMeeting) {
-    return getMeetingServerId(videoServerMeeting.getMeetingId()).orElse(null);
   }
 
   private VideoServerResponse createMeetingConnection(VideoServerClient client) {
@@ -259,7 +251,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         .getById(meetingId)
         .ifPresent(
             videoServerMeeting -> {
-              if (!isShutDown(videoServerMeeting)) {
+              if (!isVideoServerShutDown(videoServerMeeting)) {
                 destroyMeetingOnVideoServer(videoServerMeeting);
               }
               videoServerMeetingRepository.deleteById(meetingId);
@@ -506,7 +498,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                     .findFirst()
                     .ifPresent(
                         videoServerSession -> {
-                          if (!isShutDown(videoServerMeeting)) {
+                          if (!isVideoServerShutDown(videoServerMeeting)) {
                             destroyParticipantSession(
                                 clientFor(videoServerMeeting), meetingId, videoServerSession);
                           }

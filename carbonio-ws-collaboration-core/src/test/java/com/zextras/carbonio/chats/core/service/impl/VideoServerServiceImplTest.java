@@ -72,7 +72,6 @@ class VideoServerServiceImplTest {
   private final VideoServerService videoServerService;
   private final VideoServerConfig videoServerConfig;
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
-  private String routedServerId;
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
@@ -104,11 +103,6 @@ class VideoServerServiceImplTest {
           @Override
           protected VideoServerClient clientForNewMeeting(String meetingId) {
             return videoServerClient;
-          }
-
-          @Override
-          protected Optional<String> getMeetingServerId(String meetingId) {
-            return Optional.ofNullable(routedServerId);
           }
         };
   }
@@ -3042,7 +3036,7 @@ class VideoServerServiceImplTest {
     @Test
     void everyMediaCall_isRefusedWithoutCallingTheVideoServer() {
       joinUser1(createVideoServerMeeting(meeting1Id));
-      when(healthMonitor.isDown(null)).thenReturn(true);
+      when(healthMonitor.isDown()).thenReturn(true);
       String user = user1Id.toString();
       String meeting = meeting1Id.toString();
       Map<String, Executable> calls =
@@ -3098,23 +3092,9 @@ class VideoServerServiceImplTest {
     }
 
     @Test
-    void theMeetingsOwnVideoServer_decidesWhetherCallsAreRefused() {
-      routedServerId = "vs-1";
-      joinUser1(createVideoServerMeeting(meeting1Id));
-      when(healthMonitor.isDown("vs-1")).thenReturn(true);
-
-      assertThrows(
-          VideoServerException.class,
-          () ->
-              videoServerService.iceRestartAudio(user1Id.toString(), meeting1Id.toString(), "sdp"));
-
-      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
-    }
-
-    @Test
     void leave_afterTheVideoServerShutDown_forgetsTheSessionWithoutCallingTheVideoServer() {
       VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
-      when(healthMonitor.isShutDown(null)).thenReturn(true);
+      when(healthMonitor.isShutDown()).thenReturn(true);
 
       videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
@@ -3125,7 +3105,7 @@ class VideoServerServiceImplTest {
     @Test
     void leave_fromASilentVideoServer_stillDestroysTheSessionOnIt() {
       VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
-      when(healthMonitor.isDown(null)).thenReturn(true);
+      when(healthMonitor.isDown()).thenReturn(true);
       VideoServerResponse destroyed = VideoServerResponse.create().status("success");
       when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
           .thenReturn(destroyed);
@@ -3144,7 +3124,7 @@ class VideoServerServiceImplTest {
     @Test
     void stop_afterTheVideoServerShutDown_forgetsTheMeetingWithoutCallingTheVideoServer() {
       createVideoServerMeeting(meeting1Id);
-      when(healthMonitor.isShutDown(null)).thenReturn(true);
+      when(healthMonitor.isShutDown()).thenReturn(true);
 
       videoServerService.stopMeeting(meeting1Id.toString());
 

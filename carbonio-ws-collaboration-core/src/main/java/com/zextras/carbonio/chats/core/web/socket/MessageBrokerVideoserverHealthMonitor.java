@@ -126,21 +126,31 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
-  public boolean isDown(String serverId) {
-    return matches(serverId, status -> !isUp(status));
+  public boolean isDown() {
+    return every(status -> !isUp(status));
   }
 
-  public boolean isShutDown(String serverId) {
-    return matches(serverId, status -> !status.running());
+  public boolean isShutDown() {
+    return every(status -> !status.running());
   }
 
-  // no server id: the meeting's video server is unknown, so every known one must match
-  private boolean matches(String serverId, Predicate<VideoServerStatus> state) {
+  public boolean isDown(String emitter) {
+    return matches(emitter, status -> !isUp(status));
+  }
+
+  public boolean isShutDown(String emitter) {
+    return matches(emitter, status -> !status.running());
+  }
+
+  private boolean every(Predicate<VideoServerStatus> state) {
     synchronized (lock) {
-      if (serverId == null) {
-        return !videoServers.isEmpty() && videoServers.values().stream().allMatch(state);
-      }
-      VideoServerStatus status = videoServers.get(serverId);
+      return !videoServers.isEmpty() && videoServers.values().stream().allMatch(state);
+    }
+  }
+
+  private boolean matches(String emitter, Predicate<VideoServerStatus> state) {
+    synchronized (lock) {
+      VideoServerStatus status = videoServers.get(emitter);
       return status != null && state.test(status);
     }
   }

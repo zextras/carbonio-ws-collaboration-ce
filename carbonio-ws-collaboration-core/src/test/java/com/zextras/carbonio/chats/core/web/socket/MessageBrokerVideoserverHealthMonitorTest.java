@@ -297,18 +297,6 @@ class MessageBrokerVideoserverHealthMonitorTest {
   }
 
   @Test
-  void shutdownOfOneVideoServer_leavesTheOthersAvailable() {
-    monitor.notifyVideoServerReady("vs-1", 100);
-    monitor.notifyVideoServerReady("vs-2", 100);
-
-    monitor.notifyVideoServerDown("vs-1", 200);
-
-    assertFalse(monitor.isAvailable("vs-1"));
-    assertTrue(monitor.isAvailable("vs-2"));
-    assertDoesNotThrow(() -> monitor.checkStatus());
-  }
-
-  @Test
   void heartbeatAfterAShutdown_makesTheVideoServerAvailableAgain() {
     monitor.notifyVideoServerReady("vs-1", 100);
     monitor.notifyVideoServerDown("vs-1", 200);
@@ -340,9 +328,9 @@ class MessageBrokerVideoserverHealthMonitorTest {
   @Test
   void aVideoServerNeverHeardFrom_isNotDown() {
     assertFalse(monitor.isDown("vs-1"));
-    assertFalse(monitor.isDown(null));
+    assertFalse(monitor.isDown());
     assertFalse(monitor.isShutDown("vs-1"));
-    assertFalse(monitor.isShutDown(null));
+    assertFalse(monitor.isShutDown());
   }
 
   @Test
@@ -369,17 +357,14 @@ class MessageBrokerVideoserverHealthMonitorTest {
   }
 
   @Test
-  void aMeetingWithNoKnownVideoServer_isDownOnlyWhenEveryVideoServerIs() {
+  void theVideoServer_isDownAndShutDown_withoutNamingIt() {
     monitor.notifyVideoServerReady("vs-1", 100);
-    monitor.notifyVideoServerReady("vs-2", 100);
+    assertFalse(monitor.isDown());
+    assertFalse(monitor.isShutDown());
 
     monitor.notifyVideoServerDown("vs-1", 200);
-    assertFalse(monitor.isDown(null));
-    assertFalse(monitor.isShutDown(null));
-
-    monitor.notifyVideoServerDown("vs-2", 200);
-    assertTrue(monitor.isDown(null));
-    assertTrue(monitor.isShutDown(null));
+    assertTrue(monitor.isDown());
+    assertTrue(monitor.isShutDown());
   }
 
   @Test
@@ -389,6 +374,6 @@ class MessageBrokerVideoserverHealthMonitorTest {
     monitor.notifyBrokerDown();
 
     assertFalse(monitor.isDown("vs-1"));
-    assertFalse(monitor.isDown(null));
+    assertFalse(monitor.isDown());
   }
 }
