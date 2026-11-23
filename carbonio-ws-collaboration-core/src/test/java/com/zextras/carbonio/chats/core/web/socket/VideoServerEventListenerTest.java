@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.Str
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcType;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -205,6 +206,26 @@ class VideoServerEventListenerTest {
     verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel, times(2))
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+  }
+
+  @Test
+  void start_failsWhenTheBrokerRefusesTheQueue_soAFailedBootIsRetried() throws Exception {
+    when(channel.queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS))
+        .thenThrow(new IOException("ACCESS_REFUSED"));
+
+    assertThrows(EventDispatcherException.class, () -> listener.start());
+  }
+
+  @Test
+  void queueDeletedThenRefused_isLoggedInsteadOfThrownIntoTheBrokerClient() throws Exception {
+    ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
+    listener.start();
+    verify(channel)
+        .basicConsume(anyString(), anyBoolean(), any(DeliverCallback.class), cancel.capture());
+    when(channel.queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS))
+        .thenThrow(new IOException("ACCESS_REFUSED"));
+
+    assertDoesNotThrow(() -> cancel.getValue().handle(CONSUMER_TAG));
   }
 
   @Test

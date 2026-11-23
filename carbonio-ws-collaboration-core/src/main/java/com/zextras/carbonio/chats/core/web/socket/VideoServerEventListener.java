@@ -125,8 +125,8 @@ public class VideoServerEventListener {
       channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
       consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, this::resubscribe);
-    } catch (Exception e) {
-      ChatsLogger.error("Error starting video server events processing", e);
+    } catch (IOException e) {
+      throw new EventDispatcherException("Could not start the video server event listener", e);
     }
   }
 
@@ -153,7 +153,11 @@ public class VideoServerEventListener {
     } catch (IOException alreadyCancelled) {
       ChatsLogger.debug("Video server event listener dropped its cancelled consumer");
     }
-    start();
+    try {
+      start();
+    } catch (RuntimeException e) {
+      ChatsLogger.error("Video server event listener could not consume again", e);
+    }
   }
 
   private @NotNull DeliverCallback createDeliveryCallBack() {
