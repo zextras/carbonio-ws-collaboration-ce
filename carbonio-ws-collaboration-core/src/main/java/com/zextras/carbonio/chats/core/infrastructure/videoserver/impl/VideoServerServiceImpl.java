@@ -160,7 +160,16 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private boolean isDown(VideoServerMeeting videoServerMeeting) {
-    return healthMonitor.isDown(getMeetingServerId(videoServerMeeting.getMeetingId()).orElse(null));
+    return healthMonitor.isDown(serverIdOf(videoServerMeeting));
+  }
+
+  // Janus said it shut down, so its rooms and sessions are already gone
+  private boolean isShutDown(VideoServerMeeting videoServerMeeting) {
+    return healthMonitor.isShutDown(serverIdOf(videoServerMeeting));
+  }
+
+  private String serverIdOf(VideoServerMeeting videoServerMeeting) {
+    return getMeetingServerId(videoServerMeeting.getMeetingId()).orElse(null);
   }
 
   private VideoServerResponse createMeetingConnection(VideoServerClient client) {
@@ -250,7 +259,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         .getById(meetingId)
         .ifPresent(
             videoServerMeeting -> {
-              if (!isDown(videoServerMeeting)) {
+              if (!isShutDown(videoServerMeeting)) {
                 destroyMeetingOnVideoServer(videoServerMeeting);
               }
               videoServerMeetingRepository.deleteById(meetingId);
@@ -497,7 +506,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                     .findFirst()
                     .ifPresent(
                         videoServerSession -> {
-                          if (!isDown(videoServerMeeting)) {
+                          if (!isShutDown(videoServerMeeting)) {
                             destroyParticipantSession(
                                 clientFor(videoServerMeeting), meetingId, videoServerSession);
                           }

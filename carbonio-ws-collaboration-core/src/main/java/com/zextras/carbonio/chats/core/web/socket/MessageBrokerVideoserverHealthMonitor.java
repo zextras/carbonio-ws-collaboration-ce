@@ -25,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @Singleton
 public class MessageBrokerVideoserverHealthMonitor {
@@ -124,14 +125,22 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
-  // no server id: the meeting is on the only video server, as in CE
   public boolean isDown(String serverId) {
+    return matches(serverId, status -> !isUp(status));
+  }
+
+  public boolean isShutDown(String serverId) {
+    return matches(serverId, status -> !status.running());
+  }
+
+  // no server id: the meeting's video server is unknown, so every known one must match
+  private boolean matches(String serverId, Predicate<VideoServerStatus> state) {
     synchronized (lock) {
       if (serverId == null) {
-        return !videoServers.isEmpty() && videoServers.values().stream().noneMatch(this::isUp);
+        return !videoServers.isEmpty() && videoServers.values().stream().allMatch(state);
       }
       VideoServerStatus status = videoServers.get(serverId);
-      return status != null && !isUp(status);
+      return status != null && state.test(status);
     }
   }
 

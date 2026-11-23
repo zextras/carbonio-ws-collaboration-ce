@@ -341,26 +341,31 @@ class MessageBrokerVideoserverHealthMonitorTest {
   void aVideoServerNeverHeardFrom_isNotDown() {
     assertFalse(monitor.isDown("vs-1"));
     assertFalse(monitor.isDown(null));
+    assertFalse(monitor.isShutDown("vs-1"));
+    assertFalse(monitor.isShutDown(null));
   }
 
   @Test
-  void aShutDownVideoServer_isDown_untilItsNextHeartbeat() {
+  void aShutDownVideoServer_isDownAndShutDown_untilItsNextHeartbeat() {
     monitor.notifyVideoServerReady("vs-1", 100);
     monitor.notifyVideoServerDown("vs-1", 200);
 
     assertTrue(monitor.isDown("vs-1"));
+    assertTrue(monitor.isShutDown("vs-1"));
 
     monitor.notifyVideoServerReady("vs-1", 300);
 
     assertFalse(monitor.isDown("vs-1"));
+    assertFalse(monitor.isShutDown("vs-1"));
   }
 
   @Test
-  void aVideoServerSilentForOverAMinute_isDown() {
+  void aVideoServerSilentForOverAMinute_isDown_butNotShutDown() {
     monitor.notifyVideoServerReady("vs-1");
     elapse(Duration.ofSeconds(61));
 
     assertTrue(monitor.isDown("vs-1"));
+    assertFalse(monitor.isShutDown("vs-1"));
   }
 
   @Test
@@ -370,9 +375,11 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
     monitor.notifyVideoServerDown("vs-1", 200);
     assertFalse(monitor.isDown(null));
+    assertFalse(monitor.isShutDown(null));
 
     monitor.notifyVideoServerDown("vs-2", 200);
     assertTrue(monitor.isDown(null));
+    assertTrue(monitor.isShutDown(null));
   }
 
   @Test
