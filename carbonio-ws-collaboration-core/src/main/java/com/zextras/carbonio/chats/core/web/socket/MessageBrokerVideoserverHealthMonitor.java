@@ -40,7 +40,7 @@ public class MessageBrokerVideoserverHealthMonitor {
   private final Map<String, VideoServerStatus> videoServers = new HashMap<>();
   private boolean available;
 
-  private record VideoServerStatus(Instant seenAt, long sentAt, boolean running) {}
+  private record VideoServerStatus(Instant seenAt, long sentAt, boolean running, boolean silent) {}
 
   @Inject
   public MessageBrokerVideoserverHealthMonitor(
@@ -84,11 +84,11 @@ public class MessageBrokerVideoserverHealthMonitor {
     synchronized (lock) {
       VideoServerStatus last = videoServers.get(emitter);
       if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
-      if (last == null || last.running() != running) {
+      if (last == null || last.running() != running || last.silent()) {
         ChatsLogger.info("Video server '" + emitter + "' is " + (running ? "up" : "shut down"));
       }
       long latest = last == null ? sentAt : Math.max(sentAt, last.sentAt());
-      videoServers.put(emitter, new VideoServerStatus(clock.instant(), latest, running));
+      videoServers.put(emitter, new VideoServerStatus(clock.instant(), latest, running, false));
       update();
     }
   }
@@ -132,6 +132,17 @@ public class MessageBrokerVideoserverHealthMonitor {
 
   private void expireStaleHeartbeat() {
     synchronized (lock) {
+      videoServers.replaceAll(
+          (emitter, status) -> {
+            if (!status.running() || status.silent() || isFresh(status.seenAt())) return status;
+            ChatsLogger.warn(
+                "Video server '"
+                    + emitter
+                    + "' sent no heartbeat for "
+                    + HEARTBEAT_TIMEOUT.toSeconds()
+                    + " seconds");
+            return new VideoServerStatus(status.seenAt(), status.sentAt(), true, true);
+          });
       update();
     }
   }
