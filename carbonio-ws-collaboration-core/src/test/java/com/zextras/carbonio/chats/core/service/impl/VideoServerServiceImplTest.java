@@ -3122,6 +3122,37 @@ class VideoServerServiceImplTest {
     }
 
     @Test
+    void leave_fromASilentVideoServerThatDoesNotAnswer_keepsTheSession() {
+      joinUser1(createVideoServerMeeting(meeting1Id));
+      when(healthMonitor.isDown()).thenReturn(true);
+      when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
+          .thenThrow(new VideoServerException("Something went wrong executing request"));
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.destroyMeetingParticipant(
+                  user1Id.toString(), meeting1Id.toString()));
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerClient).sendHandleVideoServerRequest(any(), any(), any());
+    }
+
+    @Test
+    void stop_onASilentVideoServerThatDoesNotAnswer_keepsTheMeeting() {
+      createVideoServerMeeting(meeting1Id);
+      when(healthMonitor.isDown()).thenReturn(true);
+      when(videoServerClient.sendAudioBridgeRequest(any(), any(), any()))
+          .thenThrow(new VideoServerException("Something went wrong executing request"));
+
+      assertThrows(
+          VideoServerException.class, () -> videoServerService.stopMeeting(meeting1Id.toString()));
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerClient).sendAudioBridgeRequest(any(), any(), any());
+    }
+
+    @Test
     void stop_afterTheVideoServerShutDown_forgetsTheMeetingWithoutCallingTheVideoServer() {
       createVideoServerMeeting(meeting1Id);
       when(healthMonitor.isShutDown()).thenReturn(true);
