@@ -85,7 +85,8 @@ public class MessageBrokerVideoserverHealthMonitor {
     synchronized (lock) {
       VideoServerStatus last = videoServers.get(emitter);
       if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
-      if (last == null || last.running() != running || last.silent()) {
+      boolean changed = last == null ? !running : last.running() != running || last.silent();
+      if (changed) {
         ChatsLogger.info("Video server '" + emitter + "' is " + (running ? "up" : "shut down"));
       }
       long latest = last == null ? sentAt : Math.max(sentAt, last.sentAt());

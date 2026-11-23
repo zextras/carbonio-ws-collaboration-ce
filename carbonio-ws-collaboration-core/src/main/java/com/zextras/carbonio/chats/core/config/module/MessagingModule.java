@@ -14,6 +14,7 @@ import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
@@ -94,6 +95,19 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
     factory.setAutomaticRecoveryEnabled(true);
     factory.setTopologyRecoveryEnabled(true);
+    // the listeners already log when the broker connection is lost and when it is back
+    factory.setExceptionHandler(
+        new DefaultExceptionHandler() {
+          @Override
+          public void handleUnexpectedConnectionDriverException(Connection conn, Throwable e) {
+            ChatsLogger.debug("Message broker connection error: " + e);
+          }
+
+          @Override
+          public void handleConnectionRecoveryException(Connection conn, Throwable e) {
+            ChatsLogger.debug("Message broker connection not recovered yet: " + e);
+          }
+        });
     return factory;
   }
 
@@ -119,11 +133,17 @@ public class MessagingModule extends AbstractModule {
   }
 
   private static Connection connect(ConnectionFactory factory, String role) {
+    boolean waiting = false;
     while (true) {
       try {
-        return factory.newConnection(connectionName(role));
+        Connection connection = factory.newConnection(connectionName(role));
+        if (waiting) ChatsLogger.info("Connected to the message broker as " + role);
+        return connection;
       } catch (IOException | TimeoutException e) {
-        ChatsLogger.warn("Waiting for the message broker to connect as " + role, e);
+        if (!waiting) {
+          ChatsLogger.warn("Waiting for the message broker to connect as " + role + ": " + e);
+        }
+        waiting = true;
         sleep(factory.getNetworkRecoveryInterval());
       }
     }
