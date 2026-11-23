@@ -124,6 +124,17 @@ public class MessageBrokerVideoserverHealthMonitor {
     }
   }
 
+  // no server id: the meeting is on the only video server, as in CE
+  public boolean isDown(String serverId) {
+    synchronized (lock) {
+      if (serverId == null) {
+        return !videoServers.isEmpty() && videoServers.values().stream().noneMatch(this::isUp);
+      }
+      VideoServerStatus status = videoServers.get(serverId);
+      return status != null && !isUp(status);
+    }
+  }
+
   public void notifyIfUnavailable(Session session) {
     synchronized (lock) {
       if (!available) send(disconnected(), session.getAsyncRemote()::sendText);

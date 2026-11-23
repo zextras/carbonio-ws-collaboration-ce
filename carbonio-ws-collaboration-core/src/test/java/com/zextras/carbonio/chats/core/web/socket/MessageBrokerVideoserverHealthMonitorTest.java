@@ -336,4 +336,52 @@ class MessageBrokerVideoserverHealthMonitorTest {
 
     assertTrue(monitor.isAvailable("vs-1"));
   }
+
+  @Test
+  void aVideoServerNeverHeardFrom_isNotDown() {
+    assertFalse(monitor.isDown("vs-1"));
+    assertFalse(monitor.isDown(null));
+  }
+
+  @Test
+  void aShutDownVideoServer_isDown_untilItsNextHeartbeat() {
+    monitor.notifyVideoServerReady("vs-1", 100);
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    assertTrue(monitor.isDown("vs-1"));
+
+    monitor.notifyVideoServerReady("vs-1", 300);
+
+    assertFalse(monitor.isDown("vs-1"));
+  }
+
+  @Test
+  void aVideoServerSilentForOverAMinute_isDown() {
+    monitor.notifyVideoServerReady("vs-1");
+    elapse(Duration.ofSeconds(61));
+
+    assertTrue(monitor.isDown("vs-1"));
+  }
+
+  @Test
+  void aMeetingWithNoKnownVideoServer_isDownOnlyWhenEveryVideoServerIs() {
+    monitor.notifyVideoServerReady("vs-1", 100);
+    monitor.notifyVideoServerReady("vs-2", 100);
+
+    monitor.notifyVideoServerDown("vs-1", 200);
+    assertFalse(monitor.isDown(null));
+
+    monitor.notifyVideoServerDown("vs-2", 200);
+    assertTrue(monitor.isDown(null));
+  }
+
+  @Test
+  void brokerDown_forgetsWhichVideoServersAreDown() {
+    monitor.notifyVideoServerDown("vs-1", 200);
+
+    monitor.notifyBrokerDown();
+
+    assertFalse(monitor.isDown("vs-1"));
+    assertFalse(monitor.isDown(null));
+  }
 }

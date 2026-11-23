@@ -41,6 +41,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.MediaStreamDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
@@ -68,6 +69,7 @@ class VideoServerServiceImplTest {
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final VideoServerService videoServerService;
   private final VideoServerConfig videoServerConfig;
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
@@ -81,6 +83,7 @@ class VideoServerServiceImplTest {
     when(videoServerConfig.getApiSecret()).thenReturn("token");
     when(videoServerConfig.getBitrate()).thenReturn(8000000);
     when(videoServerConfig.getBitrateCap()).thenReturn(true);
+    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
 
     this.videoServerService =
         new VideoServerServiceImpl(
@@ -88,6 +91,7 @@ class VideoServerServiceImplTest {
             injectedVideoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
+            healthMonitor,
             clock) {
           @Override
           protected VideoServerClient clientFor(VideoServerMeeting videoServerMeeting) {
@@ -3012,6 +3016,72 @@ class VideoServerServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Video server down tests")
+  class VideoServerDownTests {
+
+    private VideoServerSession joinUser1(VideoServerMeeting videoServerMeeting) {
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .audioHandleId(user1AudioHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+      return videoServerSession;
+    }
+
+    @Test
+    void iceRestart_isRefusedWithoutCallingTheVideoServer() {
+      joinUser1(createVideoServerMeeting(meeting1Id));
+      when(healthMonitor.isDown(null)).thenReturn(true);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartAudio(user1Id.toString(), meeting1Id.toString(), "sdp"));
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+    }
+
+    @Test
+    void join_isRefusedWithoutCallingTheVideoServer() {
+      createVideoServerMeeting(meeting1Id);
+      when(healthMonitor.isDown(null)).thenReturn(true);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.addMeetingParticipant(
+                  user1Id.toString(), queue1Id.toString(), meeting1Id.toString(), false, true));
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+    }
+
+    @Test
+    void leave_forgetsTheParticipantSessionWithoutCallingTheVideoServer() {
+      VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
+      when(healthMonitor.isDown(null)).thenReturn(true);
+
+      videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerSessionRepository).remove(videoServerSession);
+    }
+
+    @Test
+    void stop_forgetsTheMeetingWithoutCallingTheVideoServer() {
+      createVideoServerMeeting(meeting1Id);
+      when(healthMonitor.isDown(null)).thenReturn(true);
+
+      videoServerService.stopMeeting(meeting1Id.toString());
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerMeetingRepository).deleteById(meeting1Id.toString());
+    }
+  }
+
+  @Nested
   @DisplayName("Health check tests")
   class HealthCheckTests {
 
@@ -3021,6 +3091,7 @@ class VideoServerServiceImplTest {
             videoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
+            healthMonitor,
             clock);
 
     @Test
