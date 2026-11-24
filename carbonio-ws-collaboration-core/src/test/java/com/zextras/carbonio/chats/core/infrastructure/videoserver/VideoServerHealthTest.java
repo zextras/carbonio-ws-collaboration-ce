@@ -214,16 +214,15 @@ class VideoServerHealthTest {
   }
 
   @Test
-  void broadcastEvents_carryTheCurrentSentDate() {
-    OffsetDateTime before = OffsetDateTime.now().minusSeconds(1);
-
+  void broadcastEvents_carryTheClockTimeAsSentDate() {
     health.onHeartbeat("janus", 0);
     health.onBrokerLost();
 
     broadcastEvents()
         .forEach(
             event ->
-                assertTrue(OffsetDateTime.parse(event.get("sentDate").asText()).isAfter(before)));
+                assertEquals(
+                    now, OffsetDateTime.parse(event.get("sentDate").asText()).toInstant()));
   }
 
   private RemoteEndpoint.Async openedSession() {

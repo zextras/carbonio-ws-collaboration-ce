@@ -3128,13 +3128,14 @@ class VideoServerServiceImplTest {
       when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
           .thenThrow(new VideoServerException("Something went wrong executing request"));
 
+      String user = user1Id.toString();
+      String meeting = meeting1Id.toString();
+
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.destroyMeetingParticipant(
-                  user1Id.toString(), meeting1Id.toString()));
+          () -> videoServerService.destroyMeetingParticipant(user, meeting));
 
-      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerMeetingRepository).getById(meeting);
       verify(videoServerClient).sendHandleVideoServerRequest(any(), any(), any());
     }
 
@@ -3145,10 +3146,11 @@ class VideoServerServiceImplTest {
       when(videoServerClient.sendAudioBridgeRequest(any(), any(), any()))
           .thenThrow(new VideoServerException("Something went wrong executing request"));
 
-      assertThrows(
-          VideoServerException.class, () -> videoServerService.stopMeeting(meeting1Id.toString()));
+      String meeting = meeting1Id.toString();
 
-      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      assertThrows(VideoServerException.class, () -> videoServerService.stopMeeting(meeting));
+
+      verify(videoServerMeetingRepository).getById(meeting);
       verify(videoServerClient).sendAudioBridgeRequest(any(), any(), any());
     }
 

@@ -20,6 +20,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -187,29 +188,26 @@ public class VideoServerHealth {
   }
 
   private static void log(String emitter, State state) {
+    String videoServer = "Video server '" + emitter + "' ";
     switch (state) {
-      case UP -> ChatsLogger.info("Video server '" + emitter + "' is up");
-      case SHUT_DOWN -> ChatsLogger.info("Video server '" + emitter + "' is shut down");
+      case UP -> ChatsLogger.info(videoServer + "is up");
+      case SHUT_DOWN -> ChatsLogger.info(videoServer + "is shut down");
       case SILENT ->
           ChatsLogger.warn(
-              "Video server '"
-                  + emitter
-                  + "' sent no heartbeat for "
-                  + HEARTBEAT_TIMEOUT.toSeconds()
-                  + " seconds");
+              videoServer + "sent no heartbeat for " + HEARTBEAT_TIMEOUT.toSeconds() + " seconds");
     }
   }
 
   private DomainEvent disconnected() {
     return MessageBrokerDisconnected.create()
         .type(EventType.MESSAGE_BROKER_DISCONNECTED)
-        .sentDate(OffsetDateTime.now());
+        .sentDate(OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
   }
 
   private DomainEvent restored() {
     return MessageBrokerRestored.create()
         .type(EventType.MESSAGE_BROKER_RESTORED)
-        .sentDate(OffsetDateTime.now());
+        .sentDate(OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
   }
 
   private void send(DomainEvent event, Consumer<String> recipients) {
