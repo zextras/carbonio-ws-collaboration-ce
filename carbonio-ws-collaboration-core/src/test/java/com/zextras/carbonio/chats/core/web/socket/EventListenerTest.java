@@ -61,6 +61,7 @@ class EventListenerTest {
   private EventWebSocketSessions sessions;
   private WebsocketVersionMigrator migrator;
   private VideoServerMonitor videoServerMonitor;
+  private final Runnable exit = mock(Runnable.class);
   private EventListener listener;
 
   @BeforeEach
@@ -75,7 +76,7 @@ class EventListenerTest {
     when(migrator.downgradeIfNeeded(anyString(), anyString()))
         .thenAnswer(invocation -> invocation.getArgument(0));
     videoServerMonitor = mock(VideoServerMonitor.class);
-    listener = new EventListener(connection, sessions, migrator, videoServerMonitor);
+    listener = new EventListener(connection, sessions, migrator, videoServerMonitor, exit);
     listener.start();
   }
 
@@ -300,10 +301,12 @@ class EventListenerTest {
     verify(fresh)
         .basicConsume(
             eq("amq.gen-2"), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+    verify(exit, never()).run();
   }
 
   @Test
-  void subscribingAgainFailsHalfway_abortsTheFreshChannelWithoutThrowing() throws Exception {
+  void subscribingAgainFails_abortsTheFreshChannelAndExitsSoTheServiceManagerRestartsIt()
+      throws Exception {
     when(connection.isOpen()).thenReturn(true);
     Channel fresh = mock(Channel.class);
     when(connection.createChannel()).thenReturn(fresh);
@@ -313,6 +316,7 @@ class EventListenerTest {
     assertDoesNotThrow(() -> cancelCallback().handle("tag"));
 
     verify(fresh).abort();
+    verify(exit).run();
   }
 
   @Test

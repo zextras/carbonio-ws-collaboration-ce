@@ -64,6 +64,7 @@ class VideoServerEventListenerTest {
   private Connection connection;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
+  private final Runnable exit = mock(Runnable.class);
   private ArgumentCaptor<DeliverCallback> deliverCallbackCaptor;
   private ObjectMapper objectMapper;
   private VideoServerEventListener listener;
@@ -84,7 +85,8 @@ class VideoServerEventListenerTest {
         .thenReturn(CONSUMER_TAG);
 
     listener =
-        new VideoServerEventListener(channel, eventDispatcher, objectMapper, videoServerService);
+        new VideoServerEventListener(
+            channel, eventDispatcher, objectMapper, videoServerService, exit);
   }
 
   @Test
@@ -225,6 +227,7 @@ class VideoServerEventListenerTest {
     verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel, times(2))
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+    verify(exit, never()).run();
   }
 
   @Test
@@ -236,7 +239,7 @@ class VideoServerEventListenerTest {
   }
 
   @Test
-  void queueDeletedThenRefused_isLoggedInsteadOfThrownIntoTheBrokerClient() throws Exception {
+  void queueDeletedThenRefused_exitsSoTheServiceManagerRestartsTheInstance() throws Exception {
     ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
     listener.start();
     verify(channel)
@@ -245,6 +248,7 @@ class VideoServerEventListenerTest {
         .thenThrow(new IOException("ACCESS_REFUSED"));
 
     assertDoesNotThrow(() -> cancel.getValue().handle(CONSUMER_TAG));
+    verify(exit).run();
   }
 
   @Test

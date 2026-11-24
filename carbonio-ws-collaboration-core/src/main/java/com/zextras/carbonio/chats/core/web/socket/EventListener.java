@@ -45,6 +45,7 @@ public class EventListener {
   private final EventWebSocketSessions sessions;
   private final WebsocketVersionMigrator migrator;
   private final VideoServerMonitor videoServerMonitor;
+  private final Runnable exit;
 
   @Inject
   public EventListener(
@@ -52,10 +53,29 @@ public class EventListener {
       EventWebSocketSessions sessions,
       WebsocketVersionMigrator migrator,
       VideoServerMonitor videoServerMonitor) {
+    // on another thread: System.exit waits for the shutdown that closes this consumer's channel
+    this(
+        connection,
+        sessions,
+        migrator,
+        videoServerMonitor,
+        () ->
+            Thread.ofPlatform()
+                .name("Exit after losing the event queue")
+                .start(() -> System.exit(1)));
+  }
+
+  EventListener(
+      Connection connection,
+      EventWebSocketSessions sessions,
+      WebsocketVersionMigrator migrator,
+      VideoServerMonitor videoServerMonitor,
+      Runnable exit) {
     this.connection = connection;
     this.sessions = sessions;
     this.migrator = migrator;
     this.videoServerMonitor = videoServerMonitor;
+    this.exit = exit;
   }
 
   public void start() {
@@ -92,7 +112,8 @@ public class EventListener {
       cancelled.close();
       subscribe(connection.createChannel());
     } catch (IOException | TimeoutException | RuntimeException e) {
-      ChatsLogger.error("Event listener could not subscribe again", e);
+      ChatsLogger.error("Event listener could not subscribe again, exiting", e);
+      exit.run();
     }
   }
 

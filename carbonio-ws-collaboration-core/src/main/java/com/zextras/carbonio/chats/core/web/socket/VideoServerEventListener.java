@@ -73,6 +73,7 @@ public class VideoServerEventListener {
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
+  private final Runnable exit;
 
   @Inject
   public VideoServerEventListener(
@@ -80,10 +81,29 @@ public class VideoServerEventListener {
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
       VideoServerService videoServerService) {
+    // on another thread: System.exit waits for the shutdown hook that closes this channel
+    this(
+        channel,
+        eventDispatcher,
+        objectMapper,
+        videoServerService,
+        () ->
+            Thread.ofPlatform()
+                .name("Exit after losing the event queue")
+                .start(() -> System.exit(1)));
+  }
+
+  VideoServerEventListener(
+      Channel channel,
+      EventDispatcher eventDispatcher,
+      ObjectMapper objectMapper,
+      VideoServerService videoServerService,
+      Runnable exit) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
+    this.exit = exit;
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
@@ -157,7 +177,8 @@ public class VideoServerEventListener {
     try {
       start();
     } catch (RuntimeException e) {
-      ChatsLogger.error("Video server event listener could not consume again", e);
+      ChatsLogger.error("Video server event listener could not consume again, exiting", e);
+      exit.run();
     }
   }
 
