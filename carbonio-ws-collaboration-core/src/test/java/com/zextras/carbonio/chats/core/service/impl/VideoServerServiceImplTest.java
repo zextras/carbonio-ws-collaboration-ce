@@ -21,7 +21,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerGate;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
@@ -71,7 +71,7 @@ class VideoServerServiceImplTest {
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final VideoServerService videoServerService;
   private final VideoServerConfig videoServerConfig;
-  private final VideoServerMonitor videoServerMonitor;
+  private final VideoServerGate videoServerGate;
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
@@ -85,7 +85,7 @@ class VideoServerServiceImplTest {
     when(videoServerConfig.getApiSecret()).thenReturn("token");
     when(videoServerConfig.getBitrate()).thenReturn(8000000);
     when(videoServerConfig.getBitrateCap()).thenReturn(true);
-    videoServerMonitor = mock(VideoServerMonitor.class);
+    videoServerGate = mock(VideoServerGate.class);
 
     this.videoServerService =
         new VideoServerServiceImpl(
@@ -93,7 +93,7 @@ class VideoServerServiceImplTest {
             injectedVideoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
-            videoServerMonitor,
+            videoServerGate,
             clock) {
           @Override
           protected VideoServerClient clientFor(VideoServerMeeting videoServerMeeting) {
@@ -3036,7 +3036,7 @@ class VideoServerServiceImplTest {
     @Test
     void everyMediaCall_isRefusedWithoutCallingTheVideoServer() {
       joinUser1(createVideoServerMeeting(meeting1Id));
-      when(videoServerMonitor.isDown()).thenReturn(true);
+      when(videoServerGate.isDown(any())).thenReturn(true);
       String user = user1Id.toString();
       String meeting = meeting1Id.toString();
       Map<String, Executable> calls =
@@ -3094,7 +3094,7 @@ class VideoServerServiceImplTest {
     @Test
     void leave_afterTheVideoServerShutDown_forgetsTheSessionWithoutCallingTheVideoServer() {
       VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
-      when(videoServerMonitor.isShutDown()).thenReturn(true);
+      when(videoServerGate.isShutDown(any())).thenReturn(true);
 
       videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
@@ -3105,7 +3105,7 @@ class VideoServerServiceImplTest {
     @Test
     void leave_fromASilentVideoServer_stillDestroysTheSessionOnIt() {
       VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
-      when(videoServerMonitor.isDown()).thenReturn(true);
+      when(videoServerGate.isDown(any())).thenReturn(true);
       VideoServerResponse destroyed = VideoServerResponse.create().status("success");
       when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
           .thenReturn(destroyed);
@@ -3124,7 +3124,7 @@ class VideoServerServiceImplTest {
     @Test
     void leave_fromASilentVideoServerThatDoesNotAnswer_keepsTheSession() {
       joinUser1(createVideoServerMeeting(meeting1Id));
-      when(videoServerMonitor.isDown()).thenReturn(true);
+      when(videoServerGate.isDown(any())).thenReturn(true);
       when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
           .thenThrow(new VideoServerException("Something went wrong executing request"));
 
@@ -3142,7 +3142,7 @@ class VideoServerServiceImplTest {
     @Test
     void stop_onASilentVideoServerThatDoesNotAnswer_keepsTheMeeting() {
       createVideoServerMeeting(meeting1Id);
-      when(videoServerMonitor.isDown()).thenReturn(true);
+      when(videoServerGate.isDown(any())).thenReturn(true);
       when(videoServerClient.sendAudioBridgeRequest(any(), any(), any()))
           .thenThrow(new VideoServerException("Something went wrong executing request"));
 
@@ -3157,7 +3157,7 @@ class VideoServerServiceImplTest {
     @Test
     void stop_afterTheVideoServerShutDown_forgetsTheMeetingWithoutCallingTheVideoServer() {
       createVideoServerMeeting(meeting1Id);
-      when(videoServerMonitor.isShutDown()).thenReturn(true);
+      when(videoServerGate.isShutDown(any())).thenReturn(true);
 
       videoServerService.stopMeeting(meeting1Id.toString());
 
@@ -3176,7 +3176,7 @@ class VideoServerServiceImplTest {
             videoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
-            videoServerMonitor,
+            videoServerGate,
             clock);
 
     @Test

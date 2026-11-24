@@ -11,7 +11,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerGate;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.codec.VideoCodec;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
@@ -69,7 +69,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   private final VideoServerClient videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
-  private final VideoServerMonitor videoServerMonitor;
+  private final VideoServerGate videoServerGate;
   private final Clock clock;
 
   private final VideoServerConfig videoServerConfig;
@@ -80,12 +80,12 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerClient videoServerClient,
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository,
-      VideoServerMonitor videoServerMonitor,
+      VideoServerGate videoServerGate,
       Clock clock) {
     this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
-    this.videoServerMonitor = videoServerMonitor;
+    this.videoServerGate = videoServerGate;
     this.clock = clock;
     this.videoServerConfig = videoServerConfig;
   }
@@ -147,18 +147,8 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   protected void afterMeetingStarted(String meetingId, VideoServerClient client) {}
 
-  // refuse media calls at once instead of waiting for the HTTP timeout
-  protected boolean isVideoServerDown(VideoServerMeeting videoServerMeeting) {
-    return videoServerMonitor.isDown();
-  }
-
-  // skip Janus on leave and stop only once it confirmed its rooms and sessions are gone
-  protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
-    return videoServerMonitor.isShutDown();
-  }
-
   private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {
-    if (isVideoServerDown(videoServerMeeting)) {
+    if (videoServerGate.isDown(videoServerMeeting)) {
       throw new VideoServerException(
           "The video server of the meeting " + videoServerMeeting.getMeetingId() + " is down");
     }
@@ -252,7 +242,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         .getById(meetingId)
         .ifPresent(
             videoServerMeeting -> {
-              if (!isVideoServerShutDown(videoServerMeeting)) {
+              if (!videoServerGate.isShutDown(videoServerMeeting)) {
                 VideoServerClient client = clientFor(videoServerMeeting);
 
                 destroyAudioBridgeRoom(
@@ -494,7 +484,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                     .findFirst()
                     .ifPresent(
                         videoServerSession -> {
-                          if (!isVideoServerShutDown(videoServerMeeting)) {
+                          if (!videoServerGate.isShutDown(videoServerMeeting)) {
                             destroyParticipantSession(
                                 clientFor(videoServerMeeting), meetingId, videoServerSession);
                           }
