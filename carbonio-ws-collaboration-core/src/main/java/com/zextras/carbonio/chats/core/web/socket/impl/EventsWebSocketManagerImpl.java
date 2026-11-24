@@ -17,7 +17,7 @@ import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
@@ -44,7 +44,7 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
   private final WebsocketVersionMigrator migrator;
   private final CacheVideoServerSession cacheVideoServerSession;
   private final ParticipantService participantService;
-  private final VideoServerHealth videoServerHealth;
+  private final VideoServerMonitor videoServerMonitor;
 
   @Inject
   public EventsWebSocketManagerImpl(
@@ -53,13 +53,13 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
       CacheVideoServerSession cacheVideoServerSession,
       ParticipantService participantService,
       EventWebSocketSessions sessions,
-      VideoServerHealth videoServerHealth) {
+      VideoServerMonitor videoServerMonitor) {
     this.objectMapper = objectMapper;
     this.migrator = migrator;
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.participantService = participantService;
     this.sessions = sessions;
-    this.videoServerHealth = videoServerHealth;
+    this.videoServerMonitor = videoServerMonitor;
   }
 
   @Override
@@ -74,7 +74,7 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
     session
         .getAsyncRemote()
         .sendObject(migrator.downgradeIfNeeded(wsConnected, versionOf(session)));
-    videoServerHealth.notifyIfUnavailable(session);
+    videoServerMonitor.notifyIfUnavailable(session);
   }
 
   @Override

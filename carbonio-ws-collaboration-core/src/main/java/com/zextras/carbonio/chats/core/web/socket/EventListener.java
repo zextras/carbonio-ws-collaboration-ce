@@ -18,7 +18,7 @@ import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.websocket.Session;
@@ -44,18 +44,18 @@ public class EventListener {
   private final Connection connection;
   private final EventWebSocketSessions sessions;
   private final WebsocketVersionMigrator migrator;
-  private final VideoServerHealth videoServerHealth;
+  private final VideoServerMonitor videoServerMonitor;
 
   @Inject
   public EventListener(
       @Named("consumer") Connection connection,
       EventWebSocketSessions sessions,
       WebsocketVersionMigrator migrator,
-      VideoServerHealth videoServerHealth) {
+      VideoServerMonitor videoServerMonitor) {
     this.connection = connection;
     this.sessions = sessions;
     this.migrator = migrator;
-    this.videoServerHealth = videoServerHealth;
+    this.videoServerMonitor = videoServerMonitor;
   }
 
   public void start() {
@@ -118,9 +118,9 @@ public class EventListener {
   private void notifyVideoServerStatus(String videoServer, Map<String, Object> headers) {
     switch (headers.get(VIDEO_SERVER_SENT_AT_HEADER)) {
       case Long sentAt when Boolean.TRUE.equals(headers.get(VIDEO_SERVER_SHUTDOWN_HEADER)) ->
-          videoServerHealth.onShutdown(videoServer, sentAt);
-      case Long sentAt -> videoServerHealth.onHeartbeat(videoServer, sentAt);
-      case null, default -> videoServerHealth.onHeartbeat(videoServer, 0);
+          videoServerMonitor.onShutdown(videoServer, sentAt);
+      case Long sentAt -> videoServerMonitor.onHeartbeat(videoServer, sentAt);
+      case null, default -> videoServerMonitor.onHeartbeat(videoServer, 0);
     }
   }
 
@@ -165,7 +165,7 @@ public class EventListener {
         cause -> {
           if (!cause.isInitiatedByApplication()) {
             ChatsLogger.warn("Event listener lost the message broker connection");
-            videoServerHealth.onBrokerLost();
+            videoServerMonitor.onBrokerLost();
           }
         });
     if (!(connection instanceof Recoverable recoverable)) return;
@@ -174,7 +174,7 @@ public class EventListener {
           @Override
           public void handleRecovery(Recoverable recoverable) {
             ChatsLogger.info("Event listener recovered the message broker connection");
-            videoServerHealth.onBrokerRecovered();
+            videoServerMonitor.onBrokerRecovered();
           }
 
           @Override

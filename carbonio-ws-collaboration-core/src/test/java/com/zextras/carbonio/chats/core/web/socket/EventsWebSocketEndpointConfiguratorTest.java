@@ -11,7 +11,7 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -29,7 +29,7 @@ class EventsWebSocketEndpointConfiguratorTest {
             mock(CacheVideoServerSession.class),
             mock(ParticipantService.class),
             mock(EventWebSocketSessions.class),
-            mock(VideoServerHealth.class));
+            mock(VideoServerMonitor.class));
 
     assertDoesNotThrow(() -> new EventsWebSocketEndpointConfigurator(manager));
   }

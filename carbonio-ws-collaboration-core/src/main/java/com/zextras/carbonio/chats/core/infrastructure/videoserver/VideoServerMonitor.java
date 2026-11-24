@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 @Singleton
-public class VideoServerHealth {
+public class VideoServerMonitor {
 
   private static final Duration HEARTBEAT_TIMEOUT = Duration.ofSeconds(60);
   private static final Duration CHECK_INTERVAL = Duration.ofSeconds(5);
@@ -51,7 +51,7 @@ public class VideoServerHealth {
   private record VideoServer(State state, long sentAt, Instant seenAt) {}
 
   @Inject
-  public VideoServerHealth(
+  public VideoServerMonitor(
       EventWebSocketSessions sessions, ObjectMapper objectMapper, Clock clock) {
     this(
         sessions,
@@ -61,7 +61,7 @@ public class VideoServerHealth {
             Thread.ofPlatform().name("Video server heartbeat check").daemon().factory()));
   }
 
-  VideoServerHealth(
+  VideoServerMonitor(
       EventWebSocketSessions sessions,
       ObjectMapper objectMapper,
       Clock clock,

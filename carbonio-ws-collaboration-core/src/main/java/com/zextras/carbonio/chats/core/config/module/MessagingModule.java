@@ -24,7 +24,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
@@ -41,7 +41,7 @@ public class MessagingModule extends AbstractModule {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(EventListener.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
-    bind(VideoServerHealth.class);
+    bind(VideoServerMonitor.class);
   }
 
   @Singleton

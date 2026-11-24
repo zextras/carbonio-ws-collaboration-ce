@@ -19,7 +19,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
@@ -46,7 +46,7 @@ class EventListenerRecoveryIT {
   private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final VideoServerHealth videoServerHealth = mock(VideoServerHealth.class);
+  private final VideoServerMonitor videoServerMonitor = mock(VideoServerMonitor.class);
   private final RabbitMqBroker broker;
   private final ConnectionFactory factory;
   private String json;
@@ -89,7 +89,7 @@ class EventListenerRecoveryIT {
             factory.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),
-            videoServerHealth);
+            videoServerMonitor);
     listener.start();
     dispatcher = new EventDispatcherRabbitMq(factory.newConnection(), objectMapper);
   }
@@ -102,8 +102,8 @@ class EventListenerRecoveryIT {
 
   private void reconnectEverything() throws Exception {
     broker.rabbitmqctl("close_all_connections", "test");
-    verify(videoServerHealth, timeout(5000)).onBrokerLost();
-    verify(videoServerHealth, timeout(10000)).onBrokerRecovered();
+    verify(videoServerMonitor, timeout(5000)).onBrokerLost();
+    verify(videoServerMonitor, timeout(10000)).onBrokerRecovered();
     await().atMost(Duration.ofSeconds(10)).until(dispatcher::isAlive);
   }
 

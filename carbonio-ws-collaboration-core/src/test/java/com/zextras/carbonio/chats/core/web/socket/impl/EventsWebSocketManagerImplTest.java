@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -40,7 +40,7 @@ class EventsWebSocketManagerImplTest {
   private ObjectMapper objectMapper;
   private EventWebSocketSessions sessions;
   private CacheVideoServerSession cacheVideoServerSession;
-  private VideoServerHealth videoServerHealth;
+  private VideoServerMonitor videoServerMonitor;
   private RemoteEndpoint.Async remote;
   private UUID sessionId;
 
@@ -56,7 +56,7 @@ class EventsWebSocketManagerImplTest {
     cacheVideoServerSession = mock(CacheVideoServerSession.class);
     participantService = mock(ParticipantService.class);
     sessions = mock(EventWebSocketSessions.class);
-    videoServerHealth = mock(VideoServerHealth.class);
+    videoServerMonitor = mock(VideoServerMonitor.class);
 
     manager =
         new EventsWebSocketManagerImpl(
@@ -65,7 +65,7 @@ class EventsWebSocketManagerImplTest {
             cacheVideoServerSession,
             participantService,
             sessions,
-            videoServerHealth);
+            videoServerMonitor);
 
     session = mock(Session.class);
     HttpSession httpSession = mock(HttpSession.class);
@@ -94,9 +94,9 @@ class EventsWebSocketManagerImplTest {
   void onOpen_afterAnnouncingTheSession_tellsItIfMeetingMediaIsUnavailable() throws Exception {
     manager.onOpen(session);
 
-    InOrder order = inOrder(remote, videoServerHealth);
+    InOrder order = inOrder(remote, videoServerMonitor);
     order.verify(remote).sendObject(any());
-    order.verify(videoServerHealth).notifyIfUnavailable(session);
+    order.verify(videoServerMonitor).notifyIfUnavailable(session);
   }
 
   @Test

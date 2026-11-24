@@ -26,7 +26,7 @@ import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
@@ -93,7 +93,7 @@ class EventsWebSocketIT {
   private final CacheVideoServerSession cacheVideoServerSession;
   private final SessionPingManager pingManager =
       new SessionPingManager(mock(ScheduledExecutorService.class));
-  private final VideoServerHealth videoServerHealth;
+  private final VideoServerMonitor videoServerMonitor;
   private final ConnectionFactory connectionFactory;
   private EventListener eventListener;
 
@@ -114,19 +114,19 @@ class EventsWebSocketIT {
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.connectionFactory = connectionFactory;
-    this.videoServerHealth = new VideoServerHealth(sessions, objectMapper, Clock.systemUTC());
+    this.videoServerMonitor = new VideoServerMonitor(sessions, objectMapper, Clock.systemUTC());
   }
 
   @BeforeEach
   void setUp() throws Exception {
     await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
-    videoServerHealth.onHeartbeat("janus", 0);
+    videoServerMonitor.onHeartbeat("janus", 0);
     eventListener =
         new EventListener(
             connectionFactory.newConnection(),
             sessions,
             websocketVersionMigrator,
-            videoServerHealth);
+            videoServerMonitor);
     eventListener.start();
   }
 
@@ -151,7 +151,7 @@ class EventsWebSocketIT {
 
     @Test
     void sessionOpenedWhileMeetingMediaIsRefused_isToldTheBrokerIsDisconnected() {
-      videoServerHealth.onBrokerLost();
+      videoServerMonitor.onBrokerLost();
       var clientContext = new ClientContextWithoutVersion();
       var client = clientContext.client();
       try (Session ignored = createSession(clientContext)) {
@@ -599,7 +599,7 @@ class EventsWebSocketIT {
             cacheVideoServerSession,
             participantService,
             serverSessions,
-            videoServerHealth);
+            videoServerMonitor);
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");

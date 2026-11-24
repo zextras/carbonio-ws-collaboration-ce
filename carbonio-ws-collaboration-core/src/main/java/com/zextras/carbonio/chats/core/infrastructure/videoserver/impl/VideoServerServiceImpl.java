@@ -11,7 +11,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.codec.VideoCodec;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
@@ -69,7 +69,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   private final VideoServerClient videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
-  private final VideoServerHealth videoServerHealth;
+  private final VideoServerMonitor videoServerMonitor;
   private final Clock clock;
 
   private final VideoServerConfig videoServerConfig;
@@ -80,12 +80,12 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerClient videoServerClient,
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository,
-      VideoServerHealth videoServerHealth,
+      VideoServerMonitor videoServerMonitor,
       Clock clock) {
     this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
-    this.videoServerHealth = videoServerHealth;
+    this.videoServerMonitor = videoServerMonitor;
     this.clock = clock;
     this.videoServerConfig = videoServerConfig;
   }
@@ -150,13 +150,13 @@ public class VideoServerServiceImpl implements VideoServerService {
   // refuse media calls at once instead of waiting for the HTTP timeout
   @SuppressWarnings("java:S1172")
   protected boolean isVideoServerDown(VideoServerMeeting videoServerMeeting) {
-    return videoServerHealth.isDown();
+    return videoServerMonitor.isDown();
   }
 
   // skip Janus on leave and stop only once it confirmed its rooms and sessions are gone
   @SuppressWarnings("java:S1172")
   protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
-    return videoServerHealth.isShutDown();
+    return videoServerMonitor.isShutDown();
   }
 
   private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {

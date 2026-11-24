@@ -13,7 +13,7 @@ import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerHealth;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -40,18 +40,18 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   private final MeetingService meetingService;
   protected final ParticipantService participantService;
   protected final CacheVideoServerSession cacheVideoServerSession;
-  protected final VideoServerHealth videoServerHealth;
+  protected final VideoServerMonitor videoServerMonitor;
 
   @Inject
   public MeetingsApiServiceImpl(
       MeetingService meetingService,
       ParticipantService participantService,
       CacheVideoServerSession cacheVideoServerSession,
-      VideoServerHealth videoServerHealth) {
+      VideoServerMonitor videoServerMonitor) {
     this.meetingService = meetingService;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
-    this.videoServerHealth = videoServerHealth;
+    this.videoServerMonitor = videoServerMonitor;
   }
 
   protected static UserPrincipal getCurrentUser(SecurityContext securityContext) {
@@ -155,7 +155,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
-    videoServerHealth.checkAvailable();
+    videoServerMonitor.checkAvailable();
     cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.OK)
@@ -219,7 +219,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
-    videoServerHealth.checkAvailable();
+    videoServerMonitor.checkAvailable();
     return Response.status(Status.OK)
         .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
@@ -269,7 +269,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
               "User '%s' cannot enable the media stream without sending an rtc offer",
               currentUser.getId()));
     }
-    videoServerHealth.checkAvailable();
+    videoServerMonitor.checkAvailable();
     participantService.updateMediaStream(meetingId, mediaStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -290,7 +290,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       AudioStreamSettingsDto audioStreamSettingsDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    videoServerHealth.checkAvailable();
+    videoServerMonitor.checkAvailable();
     participantService.updateAudioStream(meetingId, audioStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -411,7 +411,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response updateHandStatus(
       UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    videoServerHealth.checkAvailable();
+    videoServerMonitor.checkAvailable();
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
