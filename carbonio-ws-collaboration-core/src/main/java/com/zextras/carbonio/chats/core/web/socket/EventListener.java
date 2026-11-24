@@ -195,7 +195,6 @@ public class EventListener {
           @Override
           public void handleRecovery(Recoverable recoverable) {
             ChatsLogger.info("Event listener recovered the message broker connection");
-            videoServerMonitor.onBrokerRecovered();
           }
 
           @Override

@@ -37,8 +37,6 @@ public class VideoServerMonitor {
   private final EventWebSocketSessions sessions;
   private final ObjectMapper objectMapper;
   private final Clock clock;
-  private final Object lock = new Object();
-  private boolean brokerConnected = true;
   private final Map<String, VideoServer> videoServers = new HashMap<>();
   private boolean available;
 
@@ -84,107 +82,76 @@ public class VideoServerMonitor {
     track(emitter, sentAt, State.SHUT_DOWN);
   }
 
-  private void track(String emitter, long sentAt, State state) {
-    synchronized (lock) {
-      VideoServer last = videoServers.get(emitter);
-      if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
-      if (last == null ? state == State.SHUT_DOWN : last.state() != state) log(emitter, state);
-      long latest = last == null ? sentAt : Math.max(sentAt, last.sentAt());
-      videoServers.put(emitter, new VideoServer(state, latest, clock.instant()));
-      update();
-    }
+  private synchronized void track(String emitter, long sentAt, State state) {
+    VideoServer last = videoServers.get(emitter);
+    if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
+    if (last == null ? state == State.SHUT_DOWN : last.state() != state) log(emitter, state);
+    long latest = last == null ? sentAt : Math.max(sentAt, last.sentAt());
+    videoServers.put(emitter, new VideoServer(state, latest, clock.instant()));
+    update();
   }
 
-  public void onBrokerLost() {
-    synchronized (lock) {
-      brokerConnected = false;
-      videoServers.clear();
-      update();
-    }
+  // heartbeats arrive through the broker, so the first one after it is back marks the server up
+  public synchronized void onBrokerLost() {
+    videoServers.clear();
+    update();
   }
 
-  public void onBrokerRecovered() {
-    synchronized (lock) {
-      brokerConnected = true;
-      update();
-    }
-  }
-
-  public void checkAvailability() {
-    synchronized (lock) {
-      if (!available) {
-        throw new VideoServerException("Video server events are not reaching this instance");
-      }
+  public synchronized void checkAvailability() {
+    if (!available) {
+      throw new VideoServerException("Video server events are not reaching this instance");
     }
   }
 
   // a server that never named itself in a heartbeat is covered by the others
-  public boolean isAvailable(String serverId) {
-    synchronized (lock) {
-      VideoServer server = videoServers.get(serverId);
-      return available && (server == null || server.state() == State.UP);
-    }
+  public synchronized boolean isAvailable(String serverId) {
+    VideoServer server = videoServers.get(serverId);
+    return available && (server == null || server.state() == State.UP);
   }
 
   // down: shut down, or no heartbeat for 60 s, so it may still be running
-  public boolean isDown() {
-    synchronized (lock) {
-      return !videoServers.isEmpty()
-          && videoServers.values().stream().noneMatch(server -> server.state() == State.UP);
-    }
+  public synchronized boolean isDown() {
+    return !videoServers.isEmpty()
+        && videoServers.values().stream().noneMatch(server -> server.state() == State.UP);
   }
 
-  public boolean isDown(String emitter) {
-    synchronized (lock) {
-      VideoServer server = videoServers.get(emitter);
-      return server != null && server.state() != State.UP;
-    }
+  public synchronized boolean isDown(String emitter) {
+    VideoServer server = videoServers.get(emitter);
+    return server != null && server.state() != State.UP;
   }
 
   // shut down: Janus reported it, so its rooms and sessions are gone
-  public boolean isShutDown() {
-    synchronized (lock) {
-      return !videoServers.isEmpty()
-          && videoServers.values().stream().allMatch(server -> server.state() == State.SHUT_DOWN);
-    }
+  public synchronized boolean isShutDown() {
+    return !videoServers.isEmpty()
+        && videoServers.values().stream().allMatch(server -> server.state() == State.SHUT_DOWN);
   }
 
-  public boolean isShutDown(String emitter) {
-    synchronized (lock) {
-      VideoServer server = videoServers.get(emitter);
-      return server != null && server.state() == State.SHUT_DOWN;
-    }
+  public synchronized boolean isShutDown(String emitter) {
+    VideoServer server = videoServers.get(emitter);
+    return server != null && server.state() == State.SHUT_DOWN;
   }
 
-  public void notifyIfUnavailable(Session session) {
-    synchronized (lock) {
-      if (!available) send(disconnected(), session.getAsyncRemote()::sendText);
-    }
+  public synchronized void notifyIfUnavailable(Session session) {
+    if (!available) send(availabilityEvent(), session.getAsyncRemote()::sendText);
   }
 
-  private void expireStaleHeartbeat() {
-    synchronized (lock) {
-      videoServers.replaceAll(
-          (emitter, server) -> {
-            if (server.state() != State.UP || isFresh(server.seenAt())) return server;
-            log(emitter, State.SILENT);
-            return new VideoServer(State.SILENT, server.sentAt(), server.seenAt());
-          });
-      update();
-    }
+  private synchronized void expireStaleHeartbeat() {
+    Instant staleBefore = clock.instant().minus(HEARTBEAT_TIMEOUT);
+    videoServers.replaceAll(
+        (emitter, server) -> {
+          if (server.state() != State.UP || !server.seenAt().isBefore(staleBefore)) return server;
+          log(emitter, State.SILENT);
+          return new VideoServer(State.SILENT, server.sentAt(), server.seenAt());
+        });
+    update();
   }
 
   private void update() {
     boolean nowAvailable =
-        brokerConnected
-            && videoServers.values().stream().anyMatch(server -> server.state() == State.UP);
+        videoServers.values().stream().anyMatch(server -> server.state() == State.UP);
     if (available == nowAvailable) return;
     available = nowAvailable;
-    send(available ? restored() : disconnected(), sessions::broadcast);
-  }
-
-  private boolean isFresh(Instant heartbeat) {
-    return !clock.instant().isAfter(heartbeat.plus(HEARTBEAT_TIMEOUT));
+    send(availabilityEvent(), sessions::broadcast);
   }
 
   private static void log(String emitter, State state) {
@@ -198,16 +165,13 @@ public class VideoServerMonitor {
     }
   }
 
-  private DomainEvent disconnected() {
-    return MessageBrokerDisconnected.create()
-        .type(EventType.MESSAGE_BROKER_DISCONNECTED)
-        .sentDate(OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
-  }
-
-  private DomainEvent restored() {
-    return MessageBrokerRestored.create()
-        .type(EventType.MESSAGE_BROKER_RESTORED)
-        .sentDate(OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
+  private DomainEvent availabilityEvent() {
+    OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+    return available
+        ? MessageBrokerRestored.create().type(EventType.MESSAGE_BROKER_RESTORED).sentDate(now)
+        : MessageBrokerDisconnected.create()
+            .type(EventType.MESSAGE_BROKER_DISCONNECTED)
+            .sentDate(now);
   }
 
   private void send(DomainEvent event, Consumer<String> recipients) {

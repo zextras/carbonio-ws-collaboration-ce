@@ -28,7 +28,6 @@ import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.Recoverable;
-import com.rabbitmq.client.RecoveryListener;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.impl.LongStringHelper;
@@ -350,15 +349,5 @@ class EventListenerTest {
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, true, null, null));
 
     verify(videoServerMonitor, never()).onBrokerLost();
-  }
-
-  @Test
-  void connectionRecovered_notifiesBrokerRecovered() {
-    ArgumentCaptor<RecoveryListener> recovery = ArgumentCaptor.forClass(RecoveryListener.class);
-    verify((Recoverable) connection).addRecoveryListener(recovery.capture());
-
-    recovery.getValue().handleRecovery((Recoverable) connection);
-
-    verify(videoServerMonitor).onBrokerRecovered();
   }
 }
