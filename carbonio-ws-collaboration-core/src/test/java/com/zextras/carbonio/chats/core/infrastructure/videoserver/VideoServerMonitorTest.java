@@ -89,7 +89,7 @@ class VideoServerMonitorTest {
 
   @Test
   void beforeTheFirstHeartbeat_meetingMediaIsRefused() {
-    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
     assertEquals(List.of(), broadcastTypes());
   }
 
@@ -97,7 +97,7 @@ class VideoServerMonitorTest {
   void firstHeartbeat_allowsMeetingMedia_andBroadcastsRestored() {
     monitor.onHeartbeat("janus", 0);
 
-    assertDoesNotThrow(() -> monitor.checkAvailable());
+    assertDoesNotThrow(() -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED), broadcastTypes());
   }
 
@@ -117,7 +117,7 @@ class VideoServerMonitorTest {
 
     runHeartbeatCheck();
 
-    assertDoesNotThrow(() -> monitor.checkAvailable());
+    assertDoesNotThrow(() -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED), broadcastTypes());
   }
 
@@ -128,7 +128,7 @@ class VideoServerMonitorTest {
 
     runHeartbeatCheck();
 
-    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
@@ -152,7 +152,7 @@ class VideoServerMonitorTest {
     monitor.onHeartbeat("janus", 0);
     runHeartbeatCheck();
 
-    assertDoesNotThrow(() -> monitor.checkAvailable());
+    assertDoesNotThrow(() -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
   }
 
@@ -162,7 +162,7 @@ class VideoServerMonitorTest {
 
     monitor.onBrokerLost();
 
-    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
@@ -181,7 +181,7 @@ class VideoServerMonitorTest {
 
     monitor.onHeartbeat("janus", 0);
 
-    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 
@@ -193,7 +193,7 @@ class VideoServerMonitorTest {
 
     monitor.onBrokerRecovered();
 
-    assertDoesNotThrow(() -> monitor.checkAvailable());
+    assertDoesNotThrow(() -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
   }
 
@@ -204,12 +204,12 @@ class VideoServerMonitorTest {
 
     monitor.onBrokerRecovered();
 
-    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
 
     monitor.onHeartbeat("janus", 0);
 
-    assertDoesNotThrow(() -> monitor.checkAvailable());
+    assertDoesNotThrow(() -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
   }
 
@@ -261,7 +261,7 @@ class VideoServerMonitorTest {
     elapse(Duration.ofSeconds(30));
     runHeartbeatCheck();
 
-    assertDoesNotThrow(() -> monitor.checkAvailable());
+    assertDoesNotThrow(() -> monitor.checkAvailability());
     assertFalse(monitor.isAvailable("vs-1"));
     assertTrue(monitor.isAvailable("vs-2"));
   }
@@ -292,7 +292,7 @@ class VideoServerMonitorTest {
     monitor.onShutdown("vs-1", 200);
 
     assertFalse(monitor.isAvailable("vs-1"));
-    assertThrows(VideoServerException.class, () -> monitor.checkAvailable());
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
   }
 

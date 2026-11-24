@@ -168,7 +168,7 @@ class MeetingsApiServiceImplTest {
   void messageBrokerDownBlocksJoinMeeting() {
     doThrow(new EventDispatcherException("Message broker is down"))
         .when(videoServerMonitor)
-        .checkAvailable();
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -180,7 +180,7 @@ class MeetingsApiServiceImplTest {
   void messageBrokerDownBlocksStartMeeting() {
     doThrow(new EventDispatcherException("Message broker is down"))
         .when(videoServerMonitor)
-        .checkAvailable();
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -192,7 +192,7 @@ class MeetingsApiServiceImplTest {
   void messageBrokerDownBlocksUpdateMediaStream() {
     doThrow(new EventDispatcherException("Message broker is down"))
         .when(videoServerMonitor)
-        .checkAvailable();
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -210,7 +210,7 @@ class MeetingsApiServiceImplTest {
   void messageBrokerDownBlocksUpdateAudioStream() {
     doThrow(new EventDispatcherException("Message broker is down"))
         .when(videoServerMonitor)
-        .checkAvailable();
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -226,7 +226,7 @@ class MeetingsApiServiceImplTest {
   void messageBrokerDownBlocksUpdateHandStatus() {
     doThrow(new EventDispatcherException("Message broker is down"))
         .when(videoServerMonitor)
-        .checkAvailable();
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(

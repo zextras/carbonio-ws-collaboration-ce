@@ -110,7 +110,7 @@ public class VideoServerMonitor {
     }
   }
 
-  public void checkAvailable() {
+  public void checkAvailability() {
     synchronized (lock) {
       if (!available) {
         throw new VideoServerException("Video server events are not reaching this instance");
