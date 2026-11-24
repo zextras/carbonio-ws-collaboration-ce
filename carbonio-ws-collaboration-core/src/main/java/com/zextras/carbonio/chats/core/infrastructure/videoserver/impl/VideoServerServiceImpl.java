@@ -145,6 +145,14 @@ public class VideoServerServiceImpl implements VideoServerService {
     return videoServerClient;
   }
 
+  private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {
+    if (isVideoServerDown(videoServerMeeting)) {
+      throw new VideoServerException(
+          "The video server of the meeting " + videoServerMeeting.getMeetingId() + " is down");
+    }
+    return clientFor(videoServerMeeting);
+  }
+
   protected void afterMeetingStarted(String meetingId, VideoServerClient client) {}
 
   // refuse media calls at once instead of waiting for the HTTP timeout
@@ -155,14 +163,6 @@ public class VideoServerServiceImpl implements VideoServerService {
   // skip Janus on leave and stop only once it confirmed its rooms and sessions are gone
   protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
     return videoServerMonitor.isShutDown();
-  }
-
-  private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {
-    if (isVideoServerDown(videoServerMeeting)) {
-      throw new VideoServerException(
-          "The video server of the meeting " + videoServerMeeting.getMeetingId() + " is down");
-    }
-    return clientFor(videoServerMeeting);
   }
 
   private VideoServerResponse createMeetingConnection(VideoServerClient client) {
