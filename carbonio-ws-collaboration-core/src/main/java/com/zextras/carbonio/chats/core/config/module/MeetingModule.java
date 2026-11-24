@@ -17,10 +17,8 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerGate;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerConfigImpl;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerGateImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
@@ -58,7 +56,6 @@ public class MeetingModule extends AbstractModule {
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(VideoServerService.class).to(videoServerService());
-    bind(VideoServerGate.class).to(videoServerGate());
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
     bind(VideoServerEventListener.class);
@@ -83,10 +80,6 @@ public class MeetingModule extends AbstractModule {
 
   protected Class<? extends VideoServerService> videoServerService() {
     return VideoServerServiceImpl.class;
-  }
-
-  protected Class<? extends VideoServerGate> videoServerGate() {
-    return VideoServerGateImpl.class;
   }
 
   @Singleton

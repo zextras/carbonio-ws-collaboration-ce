@@ -21,8 +21,6 @@
   hooks and extend `ExtensionModule`. Keep public classes, protected hooks and extension modules backward compatible.
 - Meeting-scoped Janus calls in `VideoServerServiceImpl` must go through `clientFor` / `clientForNewMeeting`,
   never the injected client field directly (only `isAlive()` may); `VideoServerServiceImplTest` enforces this.
-- Whether `VideoServerServiceImpl` may call the video server (media calls refused while down, leave and stop
-  skipping Janus once shut down) is decided by `VideoServerGate`, bound through `MeetingModule.videoServerGate()`.
 
 ## Framework
 
