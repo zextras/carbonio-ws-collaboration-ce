@@ -3086,7 +3086,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-      required: [ id, type, members ]
+      required: [ id, type, members, updatedAt ]
     InboxMember:
       type: object
       description: A room member, enriched with presence state
