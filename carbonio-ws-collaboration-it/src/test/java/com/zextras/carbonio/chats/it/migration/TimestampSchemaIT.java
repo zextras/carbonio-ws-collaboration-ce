@@ -31,6 +31,29 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DisplayName("Every stored time is a timestamptz written by the database clock")
 class TimestampSchemaIT {
 
+  private static final List<String> COLUMNS_KEPT_FOR_ROLLBACK =
+      List.of(
+          "chats_user.created_at_v1",
+          "chats_user.updated_at_v1",
+          "file_metadata.created_at_v1",
+          "file_metadata.updated_at_v1",
+          "meeting.created_at_v1",
+          "meeting.expiration_v1",
+          "meeting.started_at_v1",
+          "participant.created_at_v1",
+          "participant.hand_raised_at_v1",
+          "participant.updated_at_v1",
+          "room.created_at_v1",
+          "room.picture_updated_at_v1",
+          "room.updated_at_v1",
+          "room_user_settings.cleared_at_v1",
+          "room_user_settings.created_at_v1",
+          "room_user_settings.muted_until_v1",
+          "room_user_settings.updated_at_v1",
+          "subscription.created_at_v1",
+          "subscription.joined_at_v1",
+          "subscription.updated_at_v1");
+
   @Container
   private static final PostgreSQLContainer<?> db =
       new PostgreSQLContainer<>("postgres:16")
@@ -75,15 +98,26 @@ class TimestampSchemaIT {
   }
 
   @Test
-  @DisplayName("The chats schema has no timestamp without time zone column")
-  void noNaiveTimestampColumns() throws SQLException {
+  @DisplayName("The only timestamp without time zone columns are the 1.x ones kept as _v1")
+  void naiveTimestampColumnsAreOnlyThe1xOnes() throws SQLException {
     assertEquals(
-        List.of(),
+        COLUMNS_KEPT_FOR_ROLLBACK,
         query(
             "SELECT table_name || '.' || column_name FROM information_schema.columns"
                 + " WHERE table_schema = 'chats' AND table_name <> 'flyway_schema_history'"
                 + " AND data_type = 'timestamp without time zone'"
-                + " ORDER BY 1"));
+                + " ORDER BY table_name || '.' || column_name COLLATE \"C\""));
+  }
+
+  @Test
+  @DisplayName("The 1.x columns kept as _v1 accept rows written by 2.x: nullable, no default")
+  void columnsKeptForRollbackAreNullableWithoutDefault() throws SQLException {
+    assertEquals(
+        List.of(),
+        query(
+            "SELECT table_name || '.' || column_name FROM information_schema.columns"
+                + " WHERE table_schema = 'chats' AND column_name LIKE '%\\_v1'"
+                + " AND (is_nullable = 'NO' OR column_default IS NOT NULL)"));
   }
 
   @Test

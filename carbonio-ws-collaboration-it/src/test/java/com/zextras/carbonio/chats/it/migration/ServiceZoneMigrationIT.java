@@ -30,7 +30,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-@DisplayName("The 1.x naive times are converted with the service zone by the real migration")
+@DisplayName(
+    "The 1.x naive times are converted with the service zone and kept untouched as <column>_v1")
 class ServiceZoneMigrationIT {
 
   private static final String SUMMER = "2026-07-01 12:00:00";
@@ -38,7 +39,8 @@ class ServiceZoneMigrationIT {
   private static final Instant SUMMER_INSTANT = Instant.parse("2026-07-01T10:00:00Z");
   private static final Instant WINTER_INSTANT = Instant.parse("2026-01-15T11:00:00Z");
 
-  private record Check(String table, String where, String column, Instant expected) {}
+  private record Check(
+      String table, String where, String column, Instant expected, String original) {}
 
   @Container
   private static final PostgreSQLContainer<?> db =
@@ -116,31 +118,38 @@ class ServiceZoneMigrationIT {
             id, ts(value), ts(value), ts(nullableValue)));
   }
 
-  private static List<Check> checks(String kind, Instant instant, boolean nullable) {
+  private static List<Check> checks(
+      String kind, Instant instant, String original, boolean nullable) {
     Instant optional = nullable ? null : instant;
+    String originalOptional = nullable ? null : original;
     String id = "id = '" + kind + "'";
     String room = "room_id = '" + kind + "'";
     return List.of(
-        new Check("chats_user", id, "created_at", instant),
-        new Check("chats_user", id, "updated_at", instant),
-        new Check("room", id, "picture_updated_at", optional),
-        new Check("room", id, "created_at", instant),
-        new Check("room", id, "updated_at", instant),
-        new Check("subscription", room, "joined_at", optional),
-        new Check("subscription", room, "created_at", instant),
-        new Check("subscription", room, "updated_at", instant),
-        new Check("room_user_settings", room, "muted_until", optional),
-        new Check("room_user_settings", room, "cleared_at", optional),
-        new Check("room_user_settings", room, "created_at", instant),
-        new Check("room_user_settings", room, "updated_at", instant),
-        new Check("file_metadata", id, "created_at", instant),
-        new Check("file_metadata", id, "updated_at", instant),
-        new Check("meeting", id, "created_at", instant),
-        new Check("meeting", id, "started_at", optional),
-        new Check("meeting", id, "expiration", optional),
-        new Check("participant", "meeting_id = '" + kind + "'", "created_at", instant),
-        new Check("participant", "meeting_id = '" + kind + "'", "updated_at", instant),
-        new Check("participant", "meeting_id = '" + kind + "'", "hand_raised_at", optional));
+        new Check("chats_user", id, "created_at", instant, original),
+        new Check("chats_user", id, "updated_at", instant, original),
+        new Check("room", id, "picture_updated_at", optional, originalOptional),
+        new Check("room", id, "created_at", instant, original),
+        new Check("room", id, "updated_at", instant, original),
+        new Check("subscription", room, "joined_at", optional, originalOptional),
+        new Check("subscription", room, "created_at", instant, original),
+        new Check("subscription", room, "updated_at", instant, original),
+        new Check("room_user_settings", room, "muted_until", optional, originalOptional),
+        new Check("room_user_settings", room, "cleared_at", optional, originalOptional),
+        new Check("room_user_settings", room, "created_at", instant, original),
+        new Check("room_user_settings", room, "updated_at", instant, original),
+        new Check("file_metadata", id, "created_at", instant, original),
+        new Check("file_metadata", id, "updated_at", instant, original),
+        new Check("meeting", id, "created_at", instant, original),
+        new Check("meeting", id, "started_at", optional, originalOptional),
+        new Check("meeting", id, "expiration", optional, originalOptional),
+        new Check("participant", "meeting_id = '" + kind + "'", "created_at", instant, original),
+        new Check("participant", "meeting_id = '" + kind + "'", "updated_at", instant, original),
+        new Check(
+            "participant",
+            "meeting_id = '" + kind + "'",
+            "hand_raised_at",
+            optional,
+            originalOptional));
   }
 
   @Test
@@ -217,9 +226,9 @@ class ServiceZoneMigrationIT {
     flyway("2.0.0", zone).migrate();
 
     List<Check> all = new java.util.ArrayList<>();
-    all.addAll(checks("summer", summerInstant, false));
-    all.addAll(checks("winter", winterInstant, false));
-    all.addAll(checks("nulls", summerInstant, true));
+    all.addAll(checks("summer", summerInstant, SUMMER, false));
+    all.addAll(checks("winter", winterInstant, WINTER, false));
+    all.addAll(checks("nulls", summerInstant, SUMMER, true));
     try (Connection connection = dataSource.getConnection();
         Statement statement = connection.createStatement()) {
       for (Check check : all) {
@@ -239,6 +248,20 @@ class ServiceZoneMigrationIT {
           } else {
             assertEquals(check.expected(), value.toInstant(), label);
           }
+        }
+        try (ResultSet resultSet =
+            statement.executeQuery(
+                "SELECT "
+                    + check.column()
+                    + "_v1::text FROM chats."
+                    + check.table()
+                    + " WHERE "
+                    + check.where())) {
+          resultSet.next();
+          assertEquals(
+              check.original(),
+              resultSet.getString(1),
+              check.table() + "." + check.column() + "_v1 " + check.where());
         }
       }
     }

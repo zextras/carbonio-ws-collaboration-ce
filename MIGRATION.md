@@ -499,8 +499,9 @@ Upgrade procedure (administrators):
    check this line before going live.
    Imported times are the exact MAM microsecond instants (UTC); ties are repaired by adding 1 µs. Data
    already in 1.x columns is converted once, by the Flyway migration, with the zone of the service JVM (region id, UTC
-   or fixed offset: the startup log shows the expression used). After the upgrade the service has no zone
-   dependency: every API time is a UTC instant.
+   or fixed offset: the startup log shows the expression used), into new `timestamptz` columns with the same names.
+   The 1.x columns stay untouched as `<column>_v1`: 2.x never reads or writes them, they exist for the rollback.
+   After the upgrade the service has no zone dependency: every API time is a UTC instant.
 4. Check the WSC log for `MongooseIM import completed: rooms=… messages=…`. The warning
    `other sessions are connected to the MongooseIM database` means MongooseIM was still running during the
    import.
@@ -522,3 +523,8 @@ Upgrade procedure (administrators):
     `systemctl status`. If nothing progresses for 10 minutes the extension stops and systemd kills and restarts the
     service. Override the window and the stall limit with `WSC_MIGRATION_EXTEND_SECONDS` and
     `WSC_MIGRATION_STALL_SECONDS` (environment of the unit).
+11. Rollback to 1.x: stop the service on every node, run `docs/migration/rollback-2.0-to-1.x.sql` as `postgres`
+    on the WSC database with the zone expression of the upgrade log (see the header of the script), reinstall the
+    1.x package and start `carbonio-message-dispatcher` and `carbonio-push-connector` again. The script drops what
+    2.x created, puts the `<column>_v1` values back and removes the 2.x Flyway history: rows that existed before the
+    upgrade get their 1.x values back exactly. Messages and other items written on 2.x are not visible to 1.x.
