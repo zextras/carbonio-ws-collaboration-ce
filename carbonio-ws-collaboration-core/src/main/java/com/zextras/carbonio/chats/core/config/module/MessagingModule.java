@@ -25,7 +25,6 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
@@ -119,22 +118,10 @@ public class MessagingModule extends AbstractModule {
   }
 
   private static Connection connect(ConnectionFactory factory, String role) {
-    while (true) {
-      try {
-        return factory.newConnection(connectionName(role));
-      } catch (IOException | TimeoutException e) {
-        ChatsLogger.warn("Waiting for the message broker to connect as " + role, e);
-        sleep(factory.getNetworkRecoveryInterval());
-      }
-    }
-  }
-
-  private static void sleep(long millis) {
     try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new EventDispatcherException("Interrupted while waiting for the message broker", e);
+      return factory.newConnection(connectionName(role));
+    } catch (IOException | TimeoutException e) {
+      throw new EventDispatcherException("Could not connect to the message broker as " + role, e);
     }
   }
 
