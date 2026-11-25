@@ -85,7 +85,11 @@ class SourceAvailabilityIT {
       "SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r.id), '')) FROM (SELECT id, name,"
           + " original_size, mime_type, type, user_id, room_id, extract(epoch FROM created_at AT"
           + " TIME ZONE 'UTC') AS created_at, extract(epoch FROM updated_at AT TIME ZONE 'UTC') AS"
-          + " updated_at, message_id FROM chats.file_metadata) r";
+          + " updated_at FROM chats.file_metadata) r";
+
+  private static final String LEGACY_FILE_FINGERPRINT =
+      "SELECT md5(coalesce(string_agg(id || '=' || coalesce(message_id, '') || '|' ||"
+          + " coalesce(stanza_id, ''), ',' ORDER BY id), '')) FROM %s.file_metadata";
 
   private static List<String> dumpTexts;
   private static ImportRun pinlessRun;
@@ -97,7 +101,8 @@ class SourceAvailabilityIT {
       String roomFingerprint,
       String subscriptionFingerprint,
       String settingsFingerprint,
-      String fileFingerprint) {}
+      String fileFingerprint,
+      String legacyFileFingerprint) {}
 
   private static MongooseImportDatabase database() {
     return MongooseImportDatabase.get();
@@ -112,7 +117,15 @@ class SourceAvailabilityIT {
         chats.query(ROOM_FINGERPRINT, rs -> rs.getString(1)).get(0),
         chats.query(SUBSCRIPTION_FINGERPRINT, rs -> rs.getString(1)).get(0),
         chats.query(SETTINGS_FINGERPRINT, rs -> rs.getString(1)).get(0),
-        chats.query(FILE_FINGERPRINT, rs -> rs.getString(1)).get(0));
+        chats.query(FILE_FINGERPRINT, rs -> rs.getString(1)).get(0),
+        chats
+            .query(
+                LEGACY_FILE_FINGERPRINT.formatted(
+                    chats.count("SELECT count(*) FROM pg_namespace WHERE nspname = 'chats_v1'") > 0
+                        ? "chats_v1"
+                        : "chats"),
+                rs -> rs.getString(1))
+            .get(0));
   }
 
   private static long sourceCount(String sourceDatabase, String sql) {
@@ -195,7 +208,12 @@ class SourceAvailabilityIT {
                 before.settingsFingerprint(), after.settingsFingerprint(), "settings content"),
         () ->
             assertEquals(
-                before.fileFingerprint(), after.fileFingerprint(), "file_metadata content"));
+                before.fileFingerprint(), after.fileFingerprint(), "file_metadata content"),
+        () ->
+            assertEquals(
+                before.legacyFileFingerprint(),
+                after.legacyFileFingerprint(),
+                "legacy file_metadata message_id and stanza_id"));
   }
 
   private static void assertFailedAtomically(ImportRun run, TargetState before) {

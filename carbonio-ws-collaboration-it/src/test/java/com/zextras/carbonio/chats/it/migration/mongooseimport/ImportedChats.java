@@ -151,8 +151,9 @@ public final class ImportedChats {
 
   public Optional<File> file(String fileId) {
     return query(
-            "SELECT id, room_id, user_id, chat_message_id, message_id, name, area"
-                + " FROM chats.file_metadata WHERE id = ?",
+            "SELECT f.id, f.room_id, f.user_id, f.chat_message_id, v.message_id, f.name, f.area"
+                + " FROM chats.file_metadata f LEFT JOIN chats_v1.file_metadata v ON v.id = f.id"
+                + " WHERE f.id = ?",
             rs ->
                 new File(
                     rs.getString(1),

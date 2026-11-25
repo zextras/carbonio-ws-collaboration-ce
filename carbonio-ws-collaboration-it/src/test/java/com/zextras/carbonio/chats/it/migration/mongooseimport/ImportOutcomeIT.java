@@ -74,7 +74,9 @@ class ImportOutcomeIT {
   }
 
   @Test
-  @DisplayName("The legacy FILE_METADATA message_id and stanza_id values survive the upgrade")
+  @DisplayName(
+      "The legacy FILE_METADATA message_id and stanza_id values survive the upgrade in chats_v1"
+          + " only")
   void legacyFileColumnsSurviveForRollback() {
     MongooseImportDatabase database = MongooseImportDatabase.get();
     String target = database.newTargetDatabase();
@@ -90,7 +92,29 @@ class ImportOutcomeIT {
 
     assertAll(
         () -> assertTrue(upgraded.succeeded(), upgraded::failureText),
-        () -> assertEquals(before, upgraded.chats().query(legacy, rs -> rs.getString(1))));
+        () ->
+            assertEquals(
+                before,
+                upgraded
+                    .chats()
+                    .query(legacy.replace("chats.file", "chats_v1.file"), rs -> rs.getString(1))),
+        () ->
+            assertEquals(
+                0,
+                upgraded
+                    .chats()
+                    .count(
+                        "SELECT count(*) FROM information_schema.columns WHERE table_schema ="
+                            + " 'chats' AND table_name = 'file_metadata' AND column_name IN"
+                            + " ('message_id', 'stanza_id')")),
+        () ->
+            assertEquals(
+                0,
+                upgraded
+                    .chats()
+                    .count(
+                        "SELECT count(*) FROM pg_indexes WHERE schemaname = 'chats' AND"
+                            + " indexname = 'file_metadata_message_id'")));
   }
 
   @Test

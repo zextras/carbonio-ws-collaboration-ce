@@ -20,6 +20,5 @@ CREATE INDEX IF NOT EXISTS READ_MARKER_ROOM_ID_IDX         ON CHATS.READ_MARKER 
 CREATE INDEX IF NOT EXISTS MESSAGE_PIN_MESSAGE_IDX          ON CHATS.MESSAGE_PIN  (MESSAGE_ID);
 CREATE INDEX IF NOT EXISTS SYSTEM_EVENT_ROOM_CREATED_ID_IDX ON CHATS.SYSTEM_EVENT (ROOM_ID, CREATED_AT, ID);
 
--- FILE_METADATA.MESSAGE_ID and STANZA_ID are legacy (MongooseIM ids): never written, read or returned since 2.0 (the
--- message link is CHAT_MESSAGE_ID). They stay only because the V2_0_1 import reads STANZA_ID (FileLinker); drop them
--- in a later release.
+-- The 1.x FILE_METADATA.MESSAGE_ID and STANZA_ID (MongooseIM ids) are not in the 2.0 table: they stay in
+-- CHATS_V1.FILE_METADATA, where the V2_0_1 import reads STANZA_ID (FileLinker) and a rollback finds them.

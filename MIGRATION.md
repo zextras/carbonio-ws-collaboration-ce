@@ -524,9 +524,15 @@ Upgrade procedure (administrators):
     `systemctl status`. If nothing progresses for 10 minutes the extension stops and systemd kills and restarts the
     service. Override the window and the stall limit with `WSC_MIGRATION_EXTEND_SECONDS` and
     `WSC_MIGRATION_STALL_SECONDS` (environment of the unit).
-11. Rollback to 1.x: stop the service on every node, run `docs/migration/rollback-2.0-to-1.x.sql` as `postgres`
-    on the WSC database, reinstall the 1.x package and start `carbonio-message-dispatcher` and
-    `carbonio-push-connector` again. The script refuses to run (and changes nothing) if `chats_v1` is missing; it
+11. Rollback to 1.x: stop the service on every node, then run the installed script
+    `/usr/share/carbonio/carbonio-ws-collaboration/rollback-2.0-to-1.x.sql` on the WSC database BEFORE reinstalling
+    the 1.x package (the downgrade removes the file). From root's shell:
+    `su - postgres -c "psql -d carbonio-ws-collaboration-db -v ON_ERROR_STOP=1" < /usr/share/carbonio/carbonio-ws-collaboration/rollback-2.0-to-1.x.sql`
+    (`-f` with the same path also works: `postgres` can read `/usr/share`, not `/root`). Then reinstall the 1.x
+    package and start `carbonio-message-dispatcher` and `carbonio-push-connector` again. On RHEL move
+    `/etc/zextras/service-discover/carbonio-ws-collaboration.hcl` away before `dnf downgrade`, so the 1.x package
+    installs its own (otherwise RPM keeps the 2.0 file and writes the 1.x one as `.rpmnew`); on Ubuntu install the
+    1.x deb with `-o Dpkg::Options::=--force-confask -o Dpkg::Options::=--force-confnew`. The script refuses to run (and changes nothing) if `chats_v1` is missing; it
     drops every 2.x table, moves the 1.x tables back from `chats_v1` to `chats`, drops `chats_v1` and removes the 2.x
     Flyway history: the 1.x tables are exactly as they were before the upgrade, so anything changed on 2.x (rooms,
     members, settings, messages) is lost. Messages and other items written on 2.x are not visible to 1.x.

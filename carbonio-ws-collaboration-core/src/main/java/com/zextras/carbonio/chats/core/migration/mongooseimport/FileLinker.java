@@ -25,7 +25,8 @@ public final class FileLinker {
   private static final Pattern AREA_FORMAT = Pattern.compile("\\d{1,6}x\\d{1,6}");
 
   private static final String SELECT_FILES =
-      "SELECT id, stanza_id FROM chats.file_metadata WHERE room_id = ? AND type = 'ATTACHMENT'";
+      "SELECT f.id, v.stanza_id FROM chats.file_metadata f LEFT JOIN chats_v1.file_metadata v"
+          + " ON v.id = f.id WHERE f.room_id = ? AND f.type = 'ATTACHMENT'";
   private static final String UPDATE_LINK =
       "UPDATE chats.file_metadata SET chat_message_id = ?, area = ? WHERE id = ?";
 

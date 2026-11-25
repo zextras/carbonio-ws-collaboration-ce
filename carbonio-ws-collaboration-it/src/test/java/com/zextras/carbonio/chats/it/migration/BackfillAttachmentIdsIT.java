@@ -67,6 +67,7 @@ class BackfillAttachmentIdsIT {
         .schemas("chats")
         .dataSource(wscDataSource)
         .validateMigrationNaming(true)
+        .target("1.4.1")
         .load()
         .migrate();
 

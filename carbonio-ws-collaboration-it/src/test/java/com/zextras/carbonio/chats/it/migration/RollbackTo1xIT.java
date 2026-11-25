@@ -225,6 +225,11 @@ class RollbackTo1xIT {
               ? column[0] + " AT TIME ZONE " + DatabaseModule.migrationZone(ZONE)
               : column[0]);
     }
+    List<String> dropped = List.of("message_id", "stanza_id");
+    if (table.equals("file_metadata")) {
+      plain.removeIf(dropped::contains);
+      converted.removeIf(c -> dropped.stream().anyMatch(c::startsWith));
+    }
     String columns = String.join(", ", plain);
     String convertedColumns = String.join(", ", converted);
     return query(
@@ -335,6 +340,22 @@ class RollbackTo1xIT {
           query("SELECT count(*)::text FROM chats." + table),
           table);
     }
+    assertEquals(
+        List.of("0"),
+        query(
+            "SELECT count(*)::text FROM information_schema.columns WHERE table_schema = 'chats'"
+                + " AND table_name = 'file_metadata' AND column_name IN ('message_id',"
+                + " 'stanza_id')"));
+    assertEquals(
+        List.of("0"),
+        query(
+            "SELECT count(*)::text FROM pg_indexes WHERE schemaname = 'chats' AND indexname ="
+                + " 'file_metadata_message_id'"));
+    assertEquals(
+        List.of("f1=mid|sid"),
+        query(
+            "SELECT id || '=' || message_id || '|' || stanza_id FROM chats_v1.file_metadata WHERE"
+                + " id = 'f1'"));
   }
 
   @Test
