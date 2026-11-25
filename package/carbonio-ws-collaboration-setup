@@ -82,9 +82,9 @@ consul reload
 
 carbonio-ws-collaboration-configs
 
-# Service first, through the sidecar already running: with Type=notify the restart returns after the migration.
-systemctl restart carbonio-ws-collaboration.service || service_failed=true
 systemctl restart carbonio-ws-collaboration-sidecar.service
+# Do not wait for the boot migration: systemd follows the start and restarts the service if it fails.
+systemctl restart --no-block carbonio-ws-collaboration.service
 
 # Remove the tokens leaked by previous setups (needs the bootstrap token)
 service-discover service-token prune-legacy --service carbonio-ws-collaboration --policy "${POLICY_NAME}"
@@ -92,8 +92,3 @@ service-discover service-token prune-legacy --service carbonio-ws-collaboration 
 # Limit token visibility as much as possible
 export -n CONSUL_HTTP_TOKEN
 trap - EXIT
-
-if [[ "${service_failed:-}" == true ]]; then
-  echo "Workstream Collaboration did not start: run pending-setups again"
-  exit 1
-fi
