@@ -19,6 +19,7 @@ List of third-party dependencies grouped by their license type.
 
     Apache License 2.0:
 
+        * Bean Validation API (javax.validation:validation-api:2.0.1.Final - http://beanvalidation.org)
         * CDI APIs (jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0 - http://cdi-spec.org)
         * CDI Language Model (jakarta.enterprise:jakarta.enterprise.lang-model:4.1.0 - https://projects.eclipse.org/projects/ee4j/jakarta.enterprise.cdi-parent/jakarta.enterprise.lang-model)
         * Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.3.Final - https://hibernate.org/validator)
@@ -40,11 +41,11 @@ List of third-party dependencies grouped by their license type.
         * RESTEasy Multipart Provider (org.jboss.resteasy:resteasy-multipart-provider:7.0.2.Final - https://resteasy.dev)
         * RESTEasy Servlet Container Initializer (org.jboss.resteasy:resteasy-servlet-initializer:7.0.2.Final - https://resteasy.dev)
         * RESTEasy Validator Provider (org.jboss.resteasy:resteasy-validator-provider:7.0.2.Final - https://resteasy.dev)
-        * swagger-annotations (io.swagger:swagger-annotations:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-annotations)
+        * swagger-annotations (io.swagger:swagger-annotations:1.6.17 - https://github.com/swagger-api/swagger-core/modules/swagger-annotations)
         * swagger-annotations-jakarta (io.swagger.core.v3:swagger-annotations-jakarta:2.2.52 - https://github.com/swagger-api/swagger-core/modules/swagger-annotations-jakarta)
-        * swagger-core (io.swagger:swagger-core:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-core)
-        * swagger-jaxrs (io.swagger:swagger-jaxrs:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-jaxrs)
-        * swagger-models (io.swagger:swagger-models:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-models)
+        * swagger-core (io.swagger:swagger-core:1.6.17 - https://github.com/swagger-api/swagger-core/modules/swagger-core)
+        * swagger-jaxrs (io.swagger:swagger-jaxrs:1.6.17 - https://github.com/swagger-api/swagger-core/modules/swagger-jaxrs)
+        * swagger-models (io.swagger:swagger-models:1.6.17 - https://github.com/swagger-api/swagger-core/modules/swagger-models)
 
     Apache License, Version 2.0:
 
@@ -291,7 +292,6 @@ List of third-party dependencies grouped by their license type.
         * avaje-applog-slf4j (io.avaje:avaje-applog-slf4j:1.0 - https://avaje.io/avaje-applog-slf4j)
         * avaje-config (io.avaje:avaje-config:4.0 - https://avaje.io/avaje-config)
         * avaje-lang (io.avaje:avaje-lang:1.1 - https://avaje.io/avaje-lang)
-        * Bean Validation API (javax.validation:validation-api:1.1.0.Final - http://beanvalidation.org)
         * classpath-scanner (io.avaje:classpath-scanner:7.1 - http://www.avaje.org/classpath-scanner)
         * classpath-scanner-api (io.avaje:classpath-scanner-api:7.1 - http://www.avaje.org/classpath-scanner-api)
         * consul-client (com.orbitz.consul:consul-client:1.5.3 - http://maven.apache.org)
@@ -327,7 +327,7 @@ List of third-party dependencies grouped by their license type.
         * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.22.0 - https://github.com/FasterXML/jackson-core)
         * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.22.0 - https://github.com/FasterXML/jackson)
         * Jackson-dataformat-TOML (com.fasterxml.jackson.dataformat:jackson-dataformat-toml:2.15.2 - https://github.com/FasterXML/jackson-dataformats-text)
-        * Jackson-dataformat-YAML (com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.19.0 - https://github.com/FasterXML/jackson-dataformats-text)
+        * Jackson-dataformat-YAML (com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.23.0 - https://github.com/FasterXML/jackson-dataformats-text)
         * Jakarta Dependency Injection (jakarta.inject:jakarta.inject-api:2.0.1 - https://github.com/eclipse-ee4j/injection-api)
         * jakarta-persistence-api (io.ebean:jakarta-persistence-api:3.0 - https://avaje.io/jakarta-persistence-api)
         * JetBrains Java Annotations (org.jetbrains:annotations:17.0.0 - https://github.com/JetBrains/java-annotations)
