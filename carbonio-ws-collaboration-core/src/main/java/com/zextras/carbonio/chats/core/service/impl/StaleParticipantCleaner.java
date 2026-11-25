@@ -51,12 +51,12 @@ public class StaleParticipantCleaner {
         this::run, FIRST_RUN_DELAY.toMillis(), RUN_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
   }
 
-  // An escaping throwable would cancel every later run.
+  // An escaping exception would cancel every later run.
   void run() {
     try {
       participantRepository.claimStale(STALE_AFTER).forEach(this::remove);
-    } catch (Throwable t) {
-      ChatsLogger.error("Stale meeting participant cleanup failed", t);
+    } catch (Exception e) {
+      ChatsLogger.error("Stale meeting participant cleanup failed", e);
     }
   }
 

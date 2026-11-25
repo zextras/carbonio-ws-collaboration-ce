@@ -9,7 +9,6 @@ import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantId;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.repository.ParticipantRepository.StaleParticipant;
 import io.ebean.Database;
 import io.ebean.Transaction;
 import java.time.Duration;
