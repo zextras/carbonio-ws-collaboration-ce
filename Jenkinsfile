@@ -26,6 +26,7 @@ dt3_pipeline(
         buildFlags: '-ds',
         preBuildScript: '''
             cp -a carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
+            cp -a docs/migration/rollback-2.0-to-1.x.sql package/rollback-2.0-to-1.x.sql
         ''',
     ],
     docker: [

@@ -31,6 +31,7 @@ source=(
   "intentions.json"
   "policies.json"
   "service-protocol.json"
+  "rollback-2.0-to-1.x.sql"
 )
 sha256sums=(
   'e9f6604fd073a5cf3cf9b448d6f9f372a64e23f84fc26d7a0fac6d55b11f0c6a'
@@ -45,6 +46,7 @@ sha256sums=(
   '67ced69e3193d27cc2ff95b8ebbcbc092c297fccea95b9bccc8b720fba88dec7'
   '734bd847a05d07018bbd04ba8615e6726f00f8b74387da76b4a3083099878bbe'
   'a805fcb27d94d7d935fed0e335850137d38e74b43dab06f478acf3308c25f089'
+  'SKIP'
 )
 
 _package_common() {
@@ -68,6 +70,8 @@ _package_common() {
     "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/policies.json"
   install -Dm644 "${srcdir}/service-protocol.json" \
     "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/service-protocol.json"
+  install -Dm644 "${srcdir}/rollback-2.0-to-1.x.sql" \
+    "${pkgdir}/usr/share/carbonio/carbonio-ws-collaboration/rollback-2.0-to-1.x.sql"
 }
 
 _package_systemd() {

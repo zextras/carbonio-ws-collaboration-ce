@@ -93,6 +93,7 @@ elif [[ ${#jars[@]} -gt 1 ]]; then
   exit 1
 fi
 cp "${jars[0]}" package/carbonio-ws-collaboration-ce.jar
+cp docs/migration/rollback-2.0-to-1.x.sql package/rollback-2.0-to-1.x.sql
 
 # --- Build helpers ----------------------------------------------------------
 # Always refresh the pinned image so the local copy is the published one.
