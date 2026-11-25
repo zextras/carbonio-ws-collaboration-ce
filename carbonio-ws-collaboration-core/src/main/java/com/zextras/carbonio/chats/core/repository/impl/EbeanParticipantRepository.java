@@ -9,7 +9,10 @@ import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantId;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.ParticipantRepository.StaleParticipant;
 import io.ebean.Database;
+import io.ebean.Transaction;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,5 +76,25 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   @Override
   public void clear(String meetingId) {
     db.find(Participant.class).where().eq("id.meetingId", meetingId).delete();
+  }
+
+  // Refreshing the claimed rows keeps concurrent instances from claiming them too.
+  @Override
+  public List<StaleParticipant> claimStale(Duration staleAfter) {
+    try (Transaction transaction = db.beginTransaction()) {
+      List<StaleParticipant> participants =
+          db.sqlQuery(
+                  "UPDATE CHATS.PARTICIPANT SET UPDATED_AT = now()"
+                      + " WHERE UPDATED_AT < now() - :seconds * interval '1 second'"
+                      + " RETURNING MEETING_ID, USER_ID, QUEUE_ID")
+              .setParameter("seconds", staleAfter.toSeconds())
+              .usingTransaction(transaction)
+              .mapTo(
+                  (row, rowNumber) ->
+                      new StaleParticipant(row.getString(1), row.getString(2), row.getString(3)))
+              .findList();
+      transaction.commit();
+      return participants;
+    }
   }
 }
