@@ -31,7 +31,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
 @DisplayName(
-    "The 1.x naive times are converted with the service zone and kept untouched as <column>_v1")
+    "The 1.x naive times are converted with the service zone and the 1.x tables are kept untouched"
+        + " in chats_v1")
 class ServiceZoneMigrationIT {
 
   private static final String SUMMER = "2026-07-01 12:00:00";
@@ -213,7 +214,8 @@ class ServiceZoneMigrationIT {
       throws SQLException {
     try (Connection connection = dataSource.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("DROP SCHEMA IF EXISTS chats CASCADE");
+      statement.execute(
+          "DROP SCHEMA IF EXISTS chats CASCADE; DROP SCHEMA IF EXISTS chats_v1 CASCADE");
     }
     flyway("1.4.1", zone).migrate();
     try (Connection connection = dataSource.getConnection();
@@ -251,9 +253,16 @@ class ServiceZoneMigrationIT {
         }
         try (ResultSet resultSet =
             statement.executeQuery(
+                "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'chats'"
+                    + " AND column_name LIKE '%\\_v1'")) {
+          resultSet.next();
+          assertEquals(0, resultSet.getInt(1), "no _v1 column in chats");
+        }
+        try (ResultSet resultSet =
+            statement.executeQuery(
                 "SELECT "
                     + check.column()
-                    + "_v1::text FROM chats."
+                    + "::text FROM chats_v1."
                     + check.table()
                     + " WHERE "
                     + check.where())) {
@@ -261,7 +270,7 @@ class ServiceZoneMigrationIT {
           assertEquals(
               check.original(),
               resultSet.getString(1),
-              check.table() + "." + check.column() + "_v1 " + check.where());
+              "chats_v1." + check.table() + "." + check.column() + " " + check.where());
         }
       }
     }

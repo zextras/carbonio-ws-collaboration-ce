@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.CloseablePostgreSQLContainer;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.ZoneId;
 import java.util.Map;
 import java.util.Optional;
@@ -126,6 +127,16 @@ public class DatabaseExtension implements BeforeAllCallback, BeforeEachCallback,
             flyway -> {
               ChatsLogger.debug("Cleaning up test DB...");
               flyway.clean();
+              dropV1Schema(flyway);
             });
+  }
+
+  private static void dropV1Schema(Flyway flyway) {
+    try (Connection connection = flyway.getConfiguration().getDataSource().getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("DROP SCHEMA IF EXISTS chats_v1 CASCADE");
+    } catch (SQLException e) {
+      throw new IllegalStateException("Failed to drop schema chats_v1", e);
+    }
   }
 }
