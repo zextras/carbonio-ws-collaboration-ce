@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.StaleParticipantCleaner;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
@@ -60,6 +61,7 @@ public class MeetingModule extends AbstractModule {
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
     bind(VideoServerEventListener.class);
     bind(CacheVideoServerSession.class);
+    bind(StaleParticipantCleaner.class);
   }
 
   protected Class<? extends MeetingsApiService> meetingsApiService() {

@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.service.impl.StaleParticipantCleaner;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
@@ -46,6 +47,7 @@ public class Boot {
   private final EventsWebSocketManager eventsWebSocketManager;
   private final EventListener eventListener;
   private final VideoServerEventListener videoServerEventListener;
+  private final StaleParticipantCleaner staleParticipantCleaner;
   private final AppConfig appConfig;
 
   @Inject
@@ -58,6 +60,7 @@ public class Boot {
       EventsWebSocketManager eventsWebSocketManager,
       EventListener eventListener,
       VideoServerEventListener videoServerEventListener,
+      StaleParticipantCleaner staleParticipantCleaner,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
@@ -67,6 +70,7 @@ public class Boot {
     this.eventsWebSocketManager = eventsWebSocketManager;
     this.eventListener = eventListener;
     this.videoServerEventListener = videoServerEventListener;
+    this.staleParticipantCleaner = staleParticipantCleaner;
     this.appConfig = appConfig;
   }
 
@@ -114,6 +118,7 @@ public class Boot {
 
     eventListener.start();
     videoServerEventListener.start();
+    staleParticipantCleaner.start();
 
     server.start();
     SystemdNotify.ready("ws-collaboration ready");
