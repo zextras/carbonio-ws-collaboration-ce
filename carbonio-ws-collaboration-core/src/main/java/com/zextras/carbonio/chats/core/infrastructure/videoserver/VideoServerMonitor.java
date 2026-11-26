@@ -38,6 +38,7 @@ public class VideoServerMonitor {
   private final ObjectMapper objectMapper;
   private final Clock clock;
   private final Map<String, VideoServer> videoServers = new HashMap<>();
+  private boolean brokerConnected = true;
   private boolean available;
 
   private enum State {
@@ -83,6 +84,8 @@ public class VideoServerMonitor {
   }
 
   private synchronized void track(String emitter, long sentAt, State state) {
+    // deliveries still queued when the connection dropped run after onBrokerLost
+    if (state == State.UP && !brokerConnected) return;
     VideoServer last = videoServers.get(emitter);
     if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
     if (last == null ? state == State.SHUT_DOWN : last.state() != state) log(emitter, state);
@@ -93,8 +96,13 @@ public class VideoServerMonitor {
 
   // heartbeats arrive through the broker, so the first one after it is back marks the server up
   public synchronized void onBrokerLost() {
+    brokerConnected = false;
     videoServers.clear();
     update();
+  }
+
+  public synchronized void onBrokerRecovered() {
+    brokerConnected = true;
   }
 
   public synchronized void checkAvailability() {

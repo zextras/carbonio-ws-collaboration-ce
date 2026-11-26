@@ -181,10 +181,43 @@ class VideoServerMonitorTest {
 
     assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
 
+    monitor.onBrokerRecovered();
     monitor.onHeartbeat("janus", 0);
 
     assertDoesNotThrow(() -> monitor.checkAvailability());
     assertEquals(List.of(RESTORED, DISCONNECTED, RESTORED), broadcastTypes());
+  }
+
+  @Test
+  void heartbeatHandledAfterTheBrokerWasLost_isIgnored() {
+    monitor.onHeartbeat("janus", 0);
+    monitor.onBrokerLost();
+
+    monitor.onHeartbeat("janus", 0);
+
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
+    assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
+  }
+
+  @Test
+  void brokerBack_keepsMeetingMediaRefused_untilTheNextHeartbeat() {
+    monitor.onHeartbeat("janus", 0);
+    monitor.onBrokerLost();
+
+    monitor.onBrokerRecovered();
+
+    assertThrows(VideoServerException.class, () -> monitor.checkAvailability());
+    assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
+  }
+
+  @Test
+  void shutdownHandledAfterTheBrokerWasLost_isStillApplied() {
+    monitor.onHeartbeat("vs-1", 100);
+    monitor.onBrokerLost();
+
+    monitor.onShutdown("vs-1", 200);
+
+    assertTrue(monitor.isShutDown("vs-1"));
   }
 
   @Test
