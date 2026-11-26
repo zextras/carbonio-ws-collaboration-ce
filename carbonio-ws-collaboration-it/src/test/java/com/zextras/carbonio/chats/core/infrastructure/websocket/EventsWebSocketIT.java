@@ -28,6 +28,7 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.Authenticat
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.presence.WsPresenceManager;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
@@ -59,6 +60,8 @@ import java.net.Socket;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +102,7 @@ class EventsWebSocketIT {
   private final CacheVideoServerSession cacheVideoServerSession;
   private final WsActionRouter wsActionRouter;
   private final WsPresenceManager wsPresenceManager;
+  private final WsPresenceRepository wsPresenceRepository;
   private final SessionPingManager pingManager =
       new SessionPingManager(mock(ScheduledExecutorService.class));
   private final MessageBrokerVideoserverHealthMonitor healthMonitor;
@@ -115,6 +119,7 @@ class EventsWebSocketIT {
       CacheVideoServerSession cacheVideoServerSession,
       WsActionRouter wsActionRouter,
       WsPresenceManager wsPresenceManager,
+      WsPresenceRepository wsPresenceRepository,
       ConnectionFactory connectionFactory) {
     this.authenticationService = authenticationService;
     this.eventDispatcher = eventDispatcher;
@@ -125,9 +130,11 @@ class EventsWebSocketIT {
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.wsActionRouter = wsActionRouter;
     this.wsPresenceManager = wsPresenceManager;
+    this.wsPresenceRepository = wsPresenceRepository;
     this.connectionFactory = connectionFactory;
     this.healthMonitor =
-        new MessageBrokerVideoserverHealthMonitor(sessions, objectMapper, Clock.systemUTC());
+        new MessageBrokerVideoserverHealthMonitor(
+            sessions, objectMapper, Clock.fixed(Instant.now(), ZoneOffset.UTC));
   }
 
   @BeforeAll
@@ -404,12 +411,18 @@ class EventsWebSocketIT {
         DataInputStream in = new DataInputStream(socket.getInputStream());
         String queueId = upgradeWithoutAnsweringPings(socket, in);
         await().atMost(5, SECONDS).until(() -> liveSessions.get(queueId).isPresent());
+        await()
+            .atMost(5, SECONDS)
+            .until(() -> wsPresenceRepository.countOnlineByUserId(DEFAULT_USER_ID) == 1);
 
         for (int i = 0; i <= SessionPingManager.MAX_MISSED_PONGS; i++) pingManager.tick();
 
         socket.setSoTimeout(5_000);
         in.readAllBytes();
         await().atMost(5, SECONDS).until(() -> liveSessions.get(queueId).isEmpty());
+        await()
+            .atMost(5, SECONDS)
+            .until(() -> wsPresenceRepository.countOnlineByUserId(DEFAULT_USER_ID) == 0);
       }
     }
 

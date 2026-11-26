@@ -217,6 +217,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
     monitor.notifyVideoServerReady("janus");
     monitor.notifyBrokerDown();
 
+    assertEquals(List.of(RESTORED, DISCONNECTED), broadcastTypes());
     broadcastEvents().forEach(event -> assertFalse(event.has("sentDate")));
   }
 
@@ -235,6 +236,7 @@ class MessageBrokerVideoserverHealthMonitorTest {
     ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
     verify(remote).sendText(json.capture());
     assertEquals(DISCONNECTED, parse(json.getValue()).get("type").asText());
+    assertFalse(parse(json.getValue()).has("sentDate"));
     assertEquals(List.of(), broadcastTypes());
   }
 

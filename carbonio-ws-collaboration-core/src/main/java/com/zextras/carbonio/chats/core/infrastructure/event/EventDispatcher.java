@@ -20,7 +20,7 @@ public interface EventDispatcher extends HealthIndicator {
 
   /**
    * Serializes a unified WebSocket protocol event (messaging, presence, reactions, typing) once and
-   * delivers it to a user's RabbitMQ exchange.
+   * publishes it on the events exchange addressed to the user's open sessions.
    *
    * @param userId user identifier
    * @param event event to deliver to the user's WebSocket
@@ -28,8 +28,8 @@ public interface EventDispatcher extends HealthIndicator {
   void sendWsEvent(String userId, WsEvent event);
 
   /**
-   * Serializes a unified WebSocket protocol event once and delivers the same payload to the
-   * exchange of every given user.
+   * Serializes a unified WebSocket protocol event once and publishes the same payload on the events
+   * exchange addressed to every given user, in messages of at most 1000 recipients each.
    *
    * @param usersIds list of user identifiers
    * @param event event to deliver
