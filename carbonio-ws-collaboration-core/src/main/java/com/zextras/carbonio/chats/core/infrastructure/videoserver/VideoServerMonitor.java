@@ -33,6 +33,8 @@ public class VideoServerMonitor {
 
   private static final Duration HEARTBEAT_TIMEOUT = Duration.ofSeconds(60);
   private static final Duration CHECK_INTERVAL = Duration.ofSeconds(5);
+  // relays swap events by far less; an older event arriving later means the Janus clock went back
+  private static final Duration REORDER_WINDOW = Duration.ofSeconds(10);
 
   private final EventWebSocketSessions sessions;
   private final ObjectMapper objectMapper;
@@ -91,11 +93,17 @@ public class VideoServerMonitor {
     // deliveries still queued when the connection dropped run after onBrokerLost
     if (state == State.UP && !brokerConnected) return;
     VideoServer last = videoServers.get(emitter);
-    if (last != null && sentAt > 0 && sentAt < last.sentAt()) return;
+    if (last != null && isRelayedOutOfOrder(last, sentAt)) return;
     if (last == null ? state == State.SHUT_DOWN : last.state() != state) log(emitter, state);
-    long latest = last == null ? sentAt : Math.max(sentAt, last.sentAt());
+    long latest = sentAt == 0 && last != null ? last.sentAt() : sentAt;
     videoServers.put(emitter, new VideoServer(state, latest, clock.instant()));
     update();
+  }
+
+  private boolean isRelayedOutOfOrder(VideoServer last, long sentAt) {
+    return sentAt > 0
+        && sentAt < last.sentAt()
+        && clock.instant().isBefore(last.seenAt().plus(REORDER_WINDOW));
   }
 
   // heartbeats arrive through the broker, so the first one after it is back marks the server up

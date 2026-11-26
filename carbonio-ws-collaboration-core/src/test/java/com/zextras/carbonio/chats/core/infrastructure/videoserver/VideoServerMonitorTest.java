@@ -323,6 +323,39 @@ class VideoServerMonitorTest {
   }
 
   @Test
+  void olderEventLongAfterTheLastOne_meansTheJanusClockWentBack_andIsApplied() {
+    monitor.onShutdown("vs-1", 300);
+    elapse(Duration.ofSeconds(15));
+
+    monitor.onHeartbeat("vs-1", 100);
+
+    assertTrue(monitor.isAvailable("vs-1"));
+    assertFalse(monitor.isShutDown("vs-1"));
+  }
+
+  @Test
+  void afterTheJanusClockWentBack_itsNewerEventsApply() {
+    monitor.onHeartbeat("vs-1", 300);
+    elapse(Duration.ofSeconds(15));
+    monitor.onHeartbeat("vs-1", 100);
+
+    monitor.onShutdown("vs-1", 150);
+
+    assertTrue(monitor.isShutDown("vs-1"));
+  }
+
+  @Test
+  void afterTheJanusClockWentBack_anEventRelayedOutOfOrderIsStillIgnored() {
+    monitor.onHeartbeat("vs-1", 300);
+    elapse(Duration.ofSeconds(15));
+    monitor.onShutdown("vs-1", 100);
+
+    monitor.onHeartbeat("vs-1", 50);
+
+    assertTrue(monitor.isShutDown("vs-1"));
+  }
+
+  @Test
   void heartbeatRelayedWithoutATimestampByAnOlderInstance_isStillApplied() {
     monitor.onShutdown("vs-1", 200);
 
