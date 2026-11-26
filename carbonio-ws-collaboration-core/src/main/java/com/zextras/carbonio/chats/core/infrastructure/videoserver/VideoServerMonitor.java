@@ -47,7 +47,11 @@ public class VideoServerMonitor {
     SHUT_DOWN
   }
 
-  private record VideoServer(State state, long sentAt, Instant seenAt) {}
+  private record VideoServer(State state, long sentAt, Instant seenAt) {
+    VideoServer silenced() {
+      return state == State.UP ? new VideoServer(State.SILENT, sentAt, seenAt) : this;
+    }
+  }
 
   @Inject
   public VideoServerMonitor(
@@ -97,7 +101,7 @@ public class VideoServerMonitor {
   // heartbeats arrive through the broker, so the first one after it is back marks the server up
   public synchronized void onBrokerLost() {
     brokerConnected = false;
-    videoServers.clear();
+    videoServers.replaceAll((emitter, server) -> server.silenced());
     update();
   }
 
@@ -149,7 +153,7 @@ public class VideoServerMonitor {
         (emitter, server) -> {
           if (server.state() != State.UP || !server.seenAt().isBefore(staleBefore)) return server;
           log(emitter, State.SILENT);
-          return new VideoServer(State.SILENT, server.sentAt(), server.seenAt());
+          return server.silenced();
         });
     update();
   }

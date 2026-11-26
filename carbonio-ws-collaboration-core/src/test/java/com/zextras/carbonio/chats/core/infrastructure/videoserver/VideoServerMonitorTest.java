@@ -377,12 +377,30 @@ class VideoServerMonitorTest {
   }
 
   @Test
-  void brokerDown_forgetsWhichVideoServersAreDown() {
+  void brokerDown_keepsAShutDownVideoServerShutDown_afterTheBrokerIsBack() {
     monitor.onShutdown("vs-1", 200);
 
     monitor.onBrokerLost();
+    monitor.onBrokerRecovered();
+    runHeartbeatCheck();
+
+    assertTrue(monitor.isShutDown("vs-1"));
+    assertTrue(monitor.isShutDown());
+  }
+
+  @Test
+  void brokerDown_makesAnUpVideoServerDown_butNotShutDown_untilItsNextHeartbeat() {
+    monitor.onHeartbeat("vs-1", 100);
+
+    monitor.onBrokerLost();
+
+    assertTrue(monitor.isDown("vs-1"));
+    assertTrue(monitor.isDown());
+    assertFalse(monitor.isShutDown("vs-1"));
+
+    monitor.onBrokerRecovered();
+    monitor.onHeartbeat("vs-1", 200);
 
     assertFalse(monitor.isDown("vs-1"));
-    assertFalse(monitor.isDown());
   }
 }
