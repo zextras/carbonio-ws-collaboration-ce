@@ -6,8 +6,6 @@ package com.zextras.carbonio.chats.it.web.socket;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -31,8 +29,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(RabbitMqExtension.class)
 class VideoServerEventListenerIT {
 
+  private static final long SENT_AT = 1_795_700_000_000_000L;
   private static final byte[] HEARTBEAT =
-      "{\"type\":256,\"emitter\":\"vs-1\"}".getBytes(StandardCharsets.UTF_8);
+      ("{\"type\":256,\"emitter\":\"vs-1\",\"timestamp\":" + SENT_AT + "}")
+          .getBytes(StandardCharsets.UTF_8);
 
   private final EventDispatcher eventDispatcher = mock(EventDispatcher.class);
   private final RabbitMqBroker rabbit;
@@ -83,7 +83,7 @@ class VideoServerEventListenerIT {
       throws Exception {
     publishHeartbeat("janus-exchange", "janus-events");
 
-    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat(eq("vs-1"), anyLong());
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1", SENT_AT);
   }
 
   @Test
@@ -94,7 +94,7 @@ class VideoServerEventListenerIT {
       channel.basicPublish("videoserver.events", "janus-events", null, HEARTBEAT);
     }
 
-    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat(eq("vs-1"), anyLong());
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1", SENT_AT);
   }
 
   @Test
@@ -104,7 +104,7 @@ class VideoServerEventListenerIT {
 
     publishHeartbeat("janus-exchange", "janus-events");
 
-    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat(eq("vs-1"), anyLong());
+    verify(eventDispatcher, timeout(5000)).sendVideoServerHeartbeat("vs-1", SENT_AT);
     assertEquals(1, consumers());
   }
 }
