@@ -150,8 +150,8 @@ Typing, by contrast, is WebSocket in both directions.
   offers only unsupported versions is rejected with `400`.
 - **Authentication:** the HTTP session must be authenticated before the WebSocket handshake;
   unauthenticated connections are rejected.
-- **Keep-alive:** the server sends a native WebSocket PING frame every 30 seconds;
-  standard libraries handle PONG automatically.
+- **Keep-alive:** the server sends a native WebSocket PING frame every 15 seconds and closes a
+  session that leaves 3 PINGs in a row unanswered; standard libraries answer with PONG automatically.
 
 On connect the server sends `WebsocketConnected` as soon as the socket is subscribed to events,
 carrying the `queueId` the client must pass as the `queue-id` HTTP header in all meeting REST calls.
@@ -175,11 +175,11 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | Event | Emitted when | Audience |
 |---|---|---|
 | `WebsocketConnected` | Connection is established and subscribed to events | The connecting client only |
-| `MessageBrokerDisconnected` | Server loses its RabbitMQ connection; `startMeeting`, `joinMeeting`, `updateMediaStream`, `updateAudioStream` and `updateHandStatus` answer `424` while this persists (they also answer `424` while the video server is not ready) | All connected clients |
-| `MessageBrokerRestored` | RabbitMQ connection is restored and the video server is ready; those meeting calls stop answering `424` | All connected clients |
+| `MessageBrokerDisconnected` | Meeting media becomes unavailable: the server loses its RabbitMQ connection, or no video server heartbeat arrives for 60 seconds. Also sent right after `WebsocketConnected` when a client connects while media is unavailable. `startMeeting`, `joinMeeting`, `updateMediaStream`, `updateAudioStream` and `updateHandStatus` answer `424` while this persists | All connected clients; on connect, the connecting client only |
+| `MessageBrokerRestored` | Meeting media is available again: the RabbitMQ connection is up and a video server heartbeat arrived within 60 seconds; those meeting calls stop answering `424` | All connected clients |
 | `Pong` | Client sends a legacy `ping` message (prefer native WS PING frames) | The requesting client only |
 
-**Room events** (delivered via message broker to each member's personal queue):
+**Room events** (published once to the message broker, which hands them to every WSC instance; each instance sends them to the open sessions of the recipients):
 
 | Event | Emitted when | Audience |
 |---|---|---|
@@ -197,7 +197,7 @@ source of truth for both the `DomainEvent` and `WsEvent` hierarchies. Do not rel
 | `RoomPictureChanged` | Room avatar is updated (use `updatedAt` to invalidate caches) | All room members |
 | `RoomPictureDeleted` | Room avatar is removed | All room members |
 
-**Meeting events** (delivered via message broker to each participant's personal queue):
+**Meeting events** (delivered like room events, through the message broker to every WSC instance):
 
 | Event | Emitted when | Audience |
 |---|---|---|
