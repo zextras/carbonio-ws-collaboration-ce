@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,7 +19,6 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.BrokerExceptionHandler;
 import java.io.IOException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -68,12 +66,9 @@ class MessagingModuleTest {
     when(appConfig.get(eq(String.class), any(ConfigName.class))).thenReturn(Optional.of("value"));
     when(appConfig.get(eq(Integer.class), any(ConfigName.class))).thenReturn(Optional.of(1));
 
-    BrokerExceptionHandler exceptionHandler = new BrokerExceptionHandler();
-
-    ConnectionFactory configured = module.getRabbitMqConnectionFactory(appConfig, exceptionHandler);
+    ConnectionFactory configured = module.getRabbitMqConnectionFactory(appConfig);
 
     assertTrue(configured.isAutomaticRecoveryEnabled());
     assertTrue(configured.isTopologyRecoveryEnabled());
-    assertSame(exceptionHandler, configured.getExceptionHandler());
   }
 }
