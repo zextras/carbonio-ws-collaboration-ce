@@ -21,12 +21,9 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/configs/delete-message-time-limit-in-minutes:10"
   "$MAIN_SERVICE_NAME/configs/max-group-members:128"
   "$MAIN_SERVICE_NAME/broker/virtual-host:/"
-  "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:60"
+  "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:10"
   "$MAIN_SERVICE_NAME/broker/connection-timeout-in-milli:60000"
-  "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
-  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
-  "$MAIN_SERVICE_NAME/broker/network-recovery-interval:30000"
-  "$MAIN_SERVICE_NAME/broker/connection-pool-size:10"
+  "$MAIN_SERVICE_NAME/broker/network-recovery-interval-in-milli:10000"
   "$MAIN_SERVICE_NAME/hikari/min-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/max-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/idle-timeout:10000"
@@ -55,3 +52,30 @@ for item in "${CONFIGURATIONS[@]}"; do
     consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "${item##*:}"
   fi
 done
+
+# Defaults older releases wrote: replaced once by the current default, any value an admin chose is kept.
+PREVIOUS_DEFAULTS_MIGRATED="$MAIN_SERVICE_NAME/broker/previous-defaults-migrated"
+PREVIOUS_DEFAULTS=(
+  "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15 60"
+)
+
+current_default() {
+  local item
+  for item in "${CONFIGURATIONS[@]}"; do
+    if [[ "${item%%:*}" == "$1" ]]; then
+      echo "${item##*:}"
+    fi
+  done
+}
+
+get_consul_kv "$PREVIOUS_DEFAULTS_MIGRATED" >/dev/null 2>&1
+if [[ "$CONSUL_VALUE" == "" ]]; then
+  for item in "${PREVIOUS_DEFAULTS[@]}"; do
+    KEY=${item%%:*}
+    get_consul_kv "$KEY" >/dev/null 2>&1
+    if [[ " ${item##*:} " == *" $CONSUL_VALUE "* ]]; then
+      consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "$(current_default "$KEY")"
+    fi
+  done
+  consul kv put -token-file="$CONSUL_TOKEN_PATH" "$PREVIOUS_DEFAULTS_MIGRATED" true
+fi

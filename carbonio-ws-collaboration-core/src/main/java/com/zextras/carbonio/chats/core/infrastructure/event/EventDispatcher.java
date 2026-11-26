@@ -16,6 +16,8 @@ public interface EventDispatcher extends HealthIndicator {
 
   void sendToUserQueue(String userId, String queueId, DomainEvent event);
 
+  void sendVideoServerHeartbeat(String emitter);
+
   /**
    * Serializes a unified WebSocket protocol event (messaging, presence, reactions, typing) once and
    * delivers it to a user's RabbitMQ exchange.

@@ -8,11 +8,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.infrastructure.websocket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.infrastructure.websocket.SessionPingManager;
 import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
@@ -52,8 +50,7 @@ class EventsWebSocketCloseIT {
   private static final String AUTH_TOKEN = "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL";
 
   private final AuthenticationService authenticationService;
-  private final Connection connection;
-  private final RabbitConnectionPoolService rabbitPool;
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator websocketVersionMigrator;
   private final ParticipantService participantService;
@@ -61,13 +58,14 @@ class EventsWebSocketCloseIT {
   private final WsActionRouter wsActionRouter;
   private final WsPresenceManager wsPresenceManager;
   private final WsPresenceRepository wsPresenceRepository;
+  private final EventWebSocketSessions sessions =
+      new EventWebSocketSessions(new SessionPingManager());
 
   private Server jettyServer;
 
   public EventsWebSocketCloseIT(
       AuthenticationService authenticationService,
-      Connection connection,
-      RabbitConnectionPoolService rabbitPool,
+      MessageBrokerVideoserverHealthMonitor healthMonitor,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
@@ -76,8 +74,7 @@ class EventsWebSocketCloseIT {
       WsPresenceManager wsPresenceManager,
       WsPresenceRepository wsPresenceRepository) {
     this.authenticationService = authenticationService;
-    this.connection = connection;
-    this.rabbitPool = rabbitPool;
+    this.healthMonitor = healthMonitor;
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
@@ -100,59 +97,52 @@ class EventsWebSocketCloseIT {
   }
 
   @Test
-  @DisplayName("Broker session is torn down even if the session-disconnected hook fails")
-  void close_disconnectHookFails_stillTearsDownBrokerSession() throws Exception {
+  @DisplayName("Presence is released even if the session-disconnected hook fails")
+  void close_disconnectHookFails_stillReleasesThePresence() throws Exception {
     startServer(
         new FailingDisconnectHookManager(
-            rabbitPool,
             objectMapper,
             websocketVersionMigrator,
             cacheVideoServerSession,
             participantService,
             wsActionRouter,
             wsPresenceManager,
-            new EventWebSocketSessions(new SessionPingManager())));
-    WebSocketClient client = new WebSocketClient();
-    Session session = connect(client);
-    String queueId = awaitQueueId(client);
-    await().atMost(2, SECONDS).until(() -> queueExists(queueId));
-
-    session.close();
-
-    await().atMost(5, SECONDS).until(() -> !queueExists(queueId));
-  }
-
-  @Test
-  @DisplayName("A WebSocket error cleans up the broker session and the presence row")
-  void error_cleansUpBrokerSessionAndPresence() throws Exception {
-    startServer(
-        new EventsWebSocketManagerImpl(
-            rabbitPool,
-            objectMapper,
-            websocketVersionMigrator,
-            cacheVideoServerSession,
-            participantService,
-            wsActionRouter,
-            wsPresenceManager,
-            new EventWebSocketSessions(new SessionPingManager())));
+            sessions,
+            healthMonitor));
     WebSocketClient client = new WebSocketClient();
     Session session = connect(client);
     String queueId = awaitQueueId(client);
     await().atMost(2, SECONDS).until(() -> wsPresenceRepository.countOnlineByUserId(USER_ID) == 1);
 
-    session.getBasicRemote().sendText("x".repeat(200_000));
+    session.close();
 
-    await().atMost(5, SECONDS).until(() -> !queueExists(queueId));
+    await().atMost(5, SECONDS).until(() -> sessions.get(queueId).isEmpty());
     await().atMost(5, SECONDS).until(() -> wsPresenceRepository.countOnlineByUserId(USER_ID) == 0);
   }
 
-  private boolean queueExists(String queueId) {
-    try (Channel channel = connection.createChannel()) {
-      channel.queueDeclarePassive(queueId);
-      return true;
-    } catch (Exception e) {
-      return false;
-    }
+  @Test
+  @DisplayName("A WebSocket error unregisters the session and cleans up the presence row")
+  void error_cleansUpSessionAndPresence() throws Exception {
+    startServer(
+        new EventsWebSocketManagerImpl(
+            objectMapper,
+            websocketVersionMigrator,
+            cacheVideoServerSession,
+            participantService,
+            wsActionRouter,
+            wsPresenceManager,
+            sessions,
+            healthMonitor));
+    WebSocketClient client = new WebSocketClient();
+    Session session = connect(client);
+    String queueId = awaitQueueId(client);
+    await().atMost(2, SECONDS).until(() -> wsPresenceRepository.countOnlineByUserId(USER_ID) == 1);
+    await().atMost(2, SECONDS).until(() -> sessions.get(queueId).isPresent());
+
+    session.getBasicRemote().sendText("x".repeat(200_000));
+
+    await().atMost(5, SECONDS).until(() -> sessions.get(queueId).isEmpty());
+    await().atMost(5, SECONDS).until(() -> wsPresenceRepository.countOnlineByUserId(USER_ID) == 0);
   }
 
   private String awaitQueueId(WebSocketClient client) throws Exception {
@@ -201,23 +191,23 @@ class EventsWebSocketCloseIT {
   public static class FailingDisconnectHookManager extends EventsWebSocketManagerImpl {
 
     public FailingDisconnectHookManager(
-        RabbitConnectionPoolService rabbitPool,
         ObjectMapper objectMapper,
         WebsocketVersionMigrator migrator,
         CacheVideoServerSession cacheVideoServerSession,
         ParticipantService participantService,
         WsActionRouter wsActionRouter,
         WsPresenceManager wsPresenceManager,
-        EventWebSocketSessions sessions) {
+        EventWebSocketSessions sessions,
+        MessageBrokerVideoserverHealthMonitor healthMonitor) {
       super(
-          rabbitPool,
           objectMapper,
           migrator,
           cacheVideoServerSession,
           participantService,
           wsActionRouter,
           wsPresenceManager,
-          sessions);
+          sessions,
+          healthMonitor);
     }
 
     @Override

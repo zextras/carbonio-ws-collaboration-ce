@@ -104,7 +104,7 @@ class MeetingApiIT {
 
   @org.junit.jupiter.api.BeforeEach
   void setupActiveSessions() {
-    healthMonitor.notifyVideoServerReady();
+    healthMonitor.notifyVideoServerReady("janus");
   }
 
   private static UUID user1Id;

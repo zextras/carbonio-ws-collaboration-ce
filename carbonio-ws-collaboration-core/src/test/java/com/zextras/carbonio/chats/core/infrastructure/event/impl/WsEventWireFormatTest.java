@@ -12,7 +12,9 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.RoomCreated;
@@ -41,27 +43,35 @@ class WsEventWireFormatTest {
 
   private final ObjectMapper objectMapper = new JacksonConfig().get();
   private final Channel channel = mock(Channel.class);
-  private final List<String> published = new ArrayList<>();
-  private final EventDispatcherRabbitMq dispatcher =
-      new EventDispatcherRabbitMq(channel, objectMapper);
+  private final List<String> publishedPerRecipient = new ArrayList<>();
+  private final EventDispatcherRabbitMq dispatcher;
   private final SubscriptionRepository subscriptionRepository = mock(SubscriptionRepository.class);
   private final RoomUserSettingsRepository settingsRepository =
       mock(RoomUserSettingsRepository.class);
-  private final MessageReceivedBroadcaster broadcaster =
-      new MessageReceivedBroadcaster(subscriptionRepository, settingsRepository, dispatcher);
+  private final MessageReceivedBroadcaster broadcaster;
 
   WsEventWireFormatTest() throws Exception {
+    Connection connection = mock(Connection.class);
+    when(connection.createChannel()).thenReturn(channel);
     when(channel.isOpen()).thenReturn(true);
     org.mockito.Mockito.doAnswer(
             invocation -> {
-              published.add(
-                  invocation.getArgument(0)
-                      + " <- "
-                      + new String(invocation.<byte[]>getArgument(3), StandardCharsets.UTF_8));
+              BasicProperties properties = invocation.getArgument(2);
+              String body = new String(invocation.<byte[]>getArgument(3), StandardCharsets.UTF_8);
+              ((List<?>) properties.getHeaders().get("users"))
+                  .forEach(user -> publishedPerRecipient.add(user + " <- " + body));
               return null;
             })
         .when(channel)
         .basicPublish(anyString(), anyString(), any(), any(byte[].class));
+    dispatcher = new EventDispatcherRabbitMq(connection, objectMapper);
+    broadcaster =
+        new MessageReceivedBroadcaster(subscriptionRepository, settingsRepository, dispatcher);
+  }
+
+  private List<String> published() {
+    dispatcher.stop();
+    return publishedPerRecipient;
   }
 
   private static TimelineMessageDto message(String id) {
@@ -91,7 +101,7 @@ class WsEventWireFormatTest {
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]},\"tempId\":\"tmp\"}",
             "u2 <-"
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]},\"tempId\":\"tmp\"}"),
-        published);
+        published());
   }
 
   @Test
@@ -104,7 +114,7 @@ class WsEventWireFormatTest {
         List.of(
             "u1 <-"
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]}}"),
-        published);
+        published());
   }
 
   @Test
@@ -120,7 +130,7 @@ class WsEventWireFormatTest {
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"replyToId\":\"orig\",\"reactions\":[],\"repliedMessage\":{\"id\":\"orig\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"quoted\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"reactions\":[]}},\"tempId\":\"tmp\"}",
             "u2 <-"
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"replyToId\":\"orig\",\"reactions\":[],\"repliedMessage\":{\"id\":\"orig\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"quoted\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"reactions\":[]}},\"tempId\":\"tmp\"}"),
-        published);
+        published());
   }
 
   @Test
@@ -136,7 +146,7 @@ class WsEventWireFormatTest {
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"replyToId\":\"orig\",\"reactions\":[],\"repliedMessage\":{\"id\":\"orig\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"quoted\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"reactions\":[]}},\"tempId\":\"tmp\"}",
             "cleared <-"
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]},\"tempId\":\"tmp\"}"),
-        published);
+        published());
   }
 
   @Test
@@ -152,7 +162,7 @@ class WsEventWireFormatTest {
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]}}",
             "u2 <-"
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]}}"),
-        published);
+        published());
   }
 
   @Test
@@ -165,7 +175,7 @@ class WsEventWireFormatTest {
         List.of(
             "u1 <-"
                 + " {\"type\":\"MessageReceived\",\"message\":{\"id\":\"m\",\"roomId\":\"room\",\"senderId\":\"a\",\"text\":\"t\",\"createdAt\":\"2026-01-02T10:00:00Z\",\"reactions\":[]}}"),
-        published);
+        published());
   }
 
   @Test
@@ -186,7 +196,7 @@ class WsEventWireFormatTest {
                 + " {\"type\":\"PresenceChanged\",\"userId\":\"u1\",\"online\":false,\"lastActivity\":\"2026-10-13T10:15:30Z\"}",
             "s1 <- {\"type\":\"PresenceChanged\",\"userId\":\"u1\",\"online\":true}",
             "s2 <- {\"type\":\"PresenceChanged\",\"userId\":\"u1\",\"online\":true}"),
-        published);
+        published());
   }
 
   @Test
@@ -213,7 +223,7 @@ class WsEventWireFormatTest {
                 + " {\"type\":\"Typing\",\"roomId\":\"room\",\"userId\":\"u1\",\"status\":\"started\"}",
             "u3 <-"
                 + " {\"type\":\"Typing\",\"roomId\":\"room\",\"userId\":\"u1\",\"status\":\"started\"}"),
-        published);
+        published());
   }
 
   @Test
@@ -225,7 +235,7 @@ class WsEventWireFormatTest {
     dispatcher.sendToUserExchange("u3", event);
 
     String json = "{\"type\":\"RoomCreated\",\"roomId\":\"00000000-0000-0000-0000-0000000000a1\"}";
-    assertEquals(List.of("u1 <- " + json, "u2 <- " + json, "u3 <- " + json), published);
+    assertEquals(List.of("u1 <- " + json, "u2 <- " + json, "u3 <- " + json), published());
   }
 
   private JsonNode payload(String status) {

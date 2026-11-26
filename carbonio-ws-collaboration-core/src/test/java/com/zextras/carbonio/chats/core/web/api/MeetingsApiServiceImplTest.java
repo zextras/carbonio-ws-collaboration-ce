@@ -42,6 +42,7 @@ import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -165,8 +166,10 @@ class MeetingsApiServiceImplTest {
   void joinMeeting_userWebSocketOnAnotherInstance_isAccepted() throws Exception {
     MessageBrokerVideoserverHealthMonitor realMonitor =
         new MessageBrokerVideoserverHealthMonitor(
-            new EventWebSocketSessions(new SessionPingManager()), new JacksonConfig().get());
-    realMonitor.notifyVideoServerReady();
+            new EventWebSocketSessions(new SessionPingManager()),
+            new JacksonConfig().get(),
+            Clock.systemUTC());
+    realMonitor.notifyVideoServerReady("janus");
     MeetingsApiServiceImpl service =
         new MeetingsApiServiceImpl(
             meetingService,

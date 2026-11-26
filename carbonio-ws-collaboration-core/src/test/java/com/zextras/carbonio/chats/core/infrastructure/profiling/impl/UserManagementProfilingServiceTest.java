@@ -97,6 +97,32 @@ class UserManagementProfilingServiceTest {
     }
 
     @Test
+    @DisplayName("Returns the requested guest user correctly mapped")
+    void getById_testGuestOk() throws ApiException {
+      UUID randomUUID = UUID.randomUUID();
+      UserInfoDto userInfo =
+          buildUserInfoDto(
+              randomUUID.toString(),
+              "guest@test.com",
+              "name guest",
+              "mydomain.com",
+              "active",
+              "GUEST");
+      when(userResourceApi.internalUsersIdUserIdGet(anyString())).thenReturn(userInfo);
+
+      Optional<UserProfile> userProfile =
+          profilingService.getById(
+              UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
+
+      assertTrue(userProfile.isPresent());
+      assertEquals(randomUUID.toString(), userProfile.get().getId());
+      assertEquals("guest@test.com", userProfile.get().getEmail());
+      assertEquals("name guest", userProfile.get().getName());
+      assertEquals("mydomain.com", userProfile.get().getDomain());
+      assertEquals(UserType.GUEST, userProfile.get().getType());
+    }
+
+    @Test
     @DisplayName("Returns an empty optional if the user was not found")
     void getById_testNotFound() throws ApiException {
       UUID randomUUID = UUID.randomUUID();
@@ -132,55 +158,6 @@ class UserManagementProfilingServiceTest {
           () ->
               profilingService.getById(
                   UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID));
-    }
-
-    @Test
-    @DisplayName("Returns the requested guest user correctly mapped")
-    void getById_testGuestOk() throws ApiException {
-      UUID randomUUID = UUID.randomUUID();
-      UserInfoDto userInfo =
-          buildUserInfoDto(
-              randomUUID.toString(),
-              "guest@test.com",
-              "name guest",
-              "mydomain.com",
-              "active",
-              "GUEST");
-      when(userResourceApi.internalUsersIdUserIdGet(anyString())).thenReturn(userInfo);
-
-      Optional<UserProfile> userProfile =
-          profilingService.getById(
-              UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
-
-      assertTrue(userProfile.isPresent());
-      assertEquals(randomUUID.toString(), userProfile.get().getId());
-      assertEquals("guest@test.com", userProfile.get().getEmail());
-      assertEquals("name guest", userProfile.get().getName());
-      assertEquals("mydomain.com", userProfile.get().getDomain());
-      assertEquals(UserType.GUEST, userProfile.get().getType());
-    }
-  }
-
-  @Nested
-  @DisplayName("Is alive tests")
-  class IsAliveTests {
-
-    @Test
-    @DisplayName(
-        "Reports the dependency as unhealthy, without throwing, when User Management is"
-            + " genuinely unreachable (connection refused)")
-    void isAlive_testUnreachable() throws IOException {
-      int closedPort;
-      try (ServerSocket socket = new ServerSocket(0)) {
-        closedPort = socket.getLocalPort();
-      }
-      UserManagementProfilingService serviceWithRealClient =
-          new UserManagementProfilingService(
-              userResourceApi, new HttpClient(), "http://127.0.0.1:" + closedPort);
-
-      boolean isAlive = assertDoesNotThrow(serviceWithRealClient::isAlive);
-
-      assertFalse(isAlive);
     }
   }
 
@@ -245,6 +222,29 @@ class UserManagementProfilingServiceTest {
               profilingService.getByIds(
                   UserPrincipal.create(randomUUID).authToken("cookie"),
                   List.of(randomUUID.toString())));
+    }
+  }
+
+  @Nested
+  @DisplayName("Is alive tests")
+  class IsAliveTests {
+
+    @Test
+    @DisplayName(
+        "Reports the dependency as unhealthy, without throwing, when User Management is"
+            + " genuinely unreachable (connection refused)")
+    void isAlive_testUnreachable() throws IOException {
+      int closedPort;
+      try (ServerSocket socket = new ServerSocket(0)) {
+        closedPort = socket.getLocalPort();
+      }
+      UserManagementProfilingService serviceWithRealClient =
+          new UserManagementProfilingService(
+              userResourceApi, new HttpClient(), "http://127.0.0.1:" + closedPort);
+
+      boolean isAlive = assertDoesNotThrow(serviceWithRealClient::isAlive);
+
+      assertFalse(isAlive);
     }
   }
 }

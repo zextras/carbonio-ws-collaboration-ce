@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.it.extensions.ConsulExtension;
 import com.zextras.carbonio.chats.it.extensions.DatabaseExtension;
 import com.zextras.carbonio.chats.it.extensions.GuiceExtension;
 import com.zextras.carbonio.chats.it.extensions.PreviewerExtension;
+import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
 import com.zextras.carbonio.chats.it.extensions.RestEasyExtension;
 import com.zextras.carbonio.chats.it.extensions.StoragesExtension;
 import com.zextras.carbonio.chats.it.extensions.UserManagementExtension;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(DatabaseExtension.class)
 @ExtendWith(GuiceExtension.class)
 @ExtendWith(RestEasyExtension.class)
+@ExtendWith(RabbitMqExtension.class)
 @ExtendWith(StoragesExtension.class)
 @ExtendWith(PreviewerExtension.class)
 @ExtendWith(UserManagementExtension.class)

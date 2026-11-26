@@ -14,8 +14,6 @@ import static org.mockserver.model.Parameter.param;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
@@ -25,6 +23,7 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -59,7 +58,7 @@ class SystemLineEventsIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final SystemEventRepository systemEventRepository;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
   private final StorageMockServer storageMockServer;
   private final Database database;
 
@@ -82,14 +81,14 @@ class SystemLineEventsIT {
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
       SystemEventRepository systemEventRepository,
-      Channel channel,
+      UserEventQueues userEvents,
       StorageMockServer storageMockServer,
       Database database) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.systemEventRepository = systemEventRepository;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.storageMockServer = storageMockServer;
     this.database = database;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
@@ -118,10 +117,7 @@ class SystemLineEventsIT {
   }
 
   private String bindQueue(UUID user) throws Exception {
-    channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-    String queue = channel.queueDeclare().getQueue();
-    channel.queueBind(queue, user.toString(), "user-events");
-    return queue;
+    return userEvents.queueFor(user.toString());
   }
 
   private JsonNode nextEvent(String queue, String type) throws Exception {
@@ -350,7 +346,7 @@ class SystemLineEventsIT {
   private List<JsonNode> eventsUntil(String queue, String type) throws Exception {
     List<JsonNode> events = new ArrayList<>();
     for (int i = 0; i < 50; i++) {
-      GetResponse response = channel.basicGet(queue, true);
+      GetResponse response = userEvents.basicGet(queue, true);
       if (response != null) {
         JsonNode event =
             objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));

@@ -13,8 +13,6 @@ import static org.mockserver.model.Parameter.param;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
@@ -26,6 +24,7 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -58,7 +57,7 @@ class MessageContractIT {
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
   private final StorageMockServer storageMockServer;
   private final FileMetadataRepository fileMetadataRepository;
   private final MessageRepository messageRepository;
@@ -75,14 +74,14 @@ class MessageContractIT {
       ResteasyRequestDispatcher dispatcher,
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
-      Channel channel,
+      UserEventQueues userEvents,
       StorageMockServer storageMockServer,
       FileMetadataRepository fileMetadataRepository,
       MessageRepository messageRepository) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.storageMockServer = storageMockServer;
     this.fileMetadataRepository = fileMetadataRepository;
     this.messageRepository = messageRepository;
@@ -125,10 +124,7 @@ class MessageContractIT {
   }
 
   private String bindQueue(UUID user) throws Exception {
-    channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-    String queue = channel.queueDeclare().getQueue();
-    channel.queueBind(queue, user.toString(), "user-events");
-    return queue;
+    return userEvents.queueFor(user.toString());
   }
 
   private JsonNode nextEvent(String queue, String type) {
@@ -140,7 +136,7 @@ class MessageContractIT {
 
   private JsonNode pollEvent(String queue, String type) throws Exception {
     GetResponse response;
-    while ((response = channel.basicGet(queue, true)) != null) {
+    while ((response = userEvents.basicGet(queue, true)) != null) {
       JsonNode event =
           objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
       if (type.equals(event.get("type").asText())) {

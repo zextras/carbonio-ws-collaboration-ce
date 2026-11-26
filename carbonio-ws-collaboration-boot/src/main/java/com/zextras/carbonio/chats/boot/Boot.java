@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.service.impl.MessageSendDedupPurgeService
 import com.zextras.carbonio.chats.core.service.presence.WsPresenceBootCleaner;
 import com.zextras.carbonio.chats.core.service.presence.WsPresenceJanitorService;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
@@ -47,6 +48,7 @@ public class Boot {
   private final HikariDataSource hikariDataSource;
   private final AuthenticationService authenticationService;
   private final EventsWebSocketManager eventsWebSocketManager;
+  private final EventListener eventListener;
   private final VideoServerEventListener videoServerEventListener;
   private final WsPresenceBootCleaner wsPresenceBootCleaner;
   private final WsPresenceJanitorService wsPresenceJanitorService;
@@ -61,6 +63,7 @@ public class Boot {
       HikariDataSource hikariDataSource,
       AuthenticationService authenticationService,
       EventsWebSocketManager eventsWebSocketManager,
+      EventListener eventListener,
       VideoServerEventListener videoServerEventListener,
       WsPresenceBootCleaner wsPresenceBootCleaner,
       WsPresenceJanitorService wsPresenceJanitorService,
@@ -72,6 +75,7 @@ public class Boot {
     this.hikariDataSource = hikariDataSource;
     this.authenticationService = authenticationService;
     this.eventsWebSocketManager = eventsWebSocketManager;
+    this.eventListener = eventListener;
     this.videoServerEventListener = videoServerEventListener;
     this.wsPresenceBootCleaner = wsPresenceBootCleaner;
     this.wsPresenceJanitorService = wsPresenceJanitorService;
@@ -110,7 +114,7 @@ public class Boot {
     JakartaWebSocketServletContainerInitializer.configure(
         context,
         (servletContext, wsContainer) -> {
-          wsContainer.setDefaultMaxSessionIdleTimeout(30_000L);
+          wsContainer.setDefaultMaxSessionIdleTimeout(90_000L);
           wsContainer.setDefaultMaxTextMessageBufferSize(65536);
           wsContainer.setDefaultMaxBinaryMessageBufferSize(65536);
 
@@ -134,6 +138,7 @@ public class Boot {
     context.addEventListener(resteasyListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
+    eventListener.start();
     videoServerEventListener.start();
     wsPresenceJanitorService.start();
     messageSendDedupPurgeService.start();
@@ -149,6 +154,7 @@ public class Boot {
                     hikariDataSource.close();
                     ChatsLogger.info("Shutting down server...");
                     server.stop();
+                    eventListener.stop();
                   } catch (Exception e) {
                     throw new InternalErrorException(e);
                   }

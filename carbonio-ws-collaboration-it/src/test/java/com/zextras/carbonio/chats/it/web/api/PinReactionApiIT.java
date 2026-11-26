@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.SystemEvent;
@@ -18,6 +16,7 @@ import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.core.service.ChatMessageService;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -46,7 +45,7 @@ class PinReactionApiIT {
   private final IntegrationTestUtils integrationTestUtils;
   private final SystemEventRepository systemEventRepository;
   private final ChatMessageService chatMessageService;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
 
   private static UUID aUserId;
   private static String aToken;
@@ -65,13 +64,13 @@ class PinReactionApiIT {
       IntegrationTestUtils integrationTestUtils,
       SystemEventRepository systemEventRepository,
       ChatMessageService chatMessageService,
-      Channel channel) {
+      UserEventQueues userEvents) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.systemEventRepository = systemEventRepository;
     this.chatMessageService = chatMessageService;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
 
@@ -100,16 +99,13 @@ class PinReactionApiIT {
   }
 
   private String bindQueue(UUID user) throws Exception {
-    channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-    String queue = channel.queueDeclare().getQueue();
-    channel.queueBind(queue, user.toString(), "user-events");
-    return queue;
+    return userEvents.queueFor(user.toString());
   }
 
   private JsonNode next(String queue) throws Exception {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
     while (System.nanoTime() < deadline) {
-      GetResponse response = channel.basicGet(queue, true);
+      GetResponse response = userEvents.basicGet(queue, true);
       if (response != null) {
         return objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
       }

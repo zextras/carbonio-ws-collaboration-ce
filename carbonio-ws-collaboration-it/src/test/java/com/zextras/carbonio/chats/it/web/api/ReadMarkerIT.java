@@ -11,8 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.InboxApi;
 import com.zextras.carbonio.chats.api.RoomsApi;
@@ -23,6 +21,7 @@ import com.zextras.carbonio.chats.core.repository.ReadMarkerRepository;
 import com.zextras.carbonio.chats.core.repository.SystemEventRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -52,7 +51,7 @@ class ReadMarkerIT {
   private final SystemEventRepository systemEventRepository;
   private final ReadMarkerRepository readRepository;
   private final Database database;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
 
   private static UUID senderUserId;
   private static UUID readerUserId;
@@ -69,7 +68,7 @@ class ReadMarkerIT {
       SystemEventRepository systemEventRepository,
       ReadMarkerRepository readRepository,
       Database database,
-      Channel channel) {
+      UserEventQueues userEvents) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
@@ -77,7 +76,7 @@ class ReadMarkerIT {
     this.systemEventRepository = systemEventRepository;
     this.readRepository = readRepository;
     this.database = database;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.dispatcher.getRegistry().addSingletonResource(inboxApi);
   }
@@ -389,7 +388,7 @@ class ReadMarkerIT {
 
     private void assertNoEvent(String queue) throws Exception {
       for (int i = 0; i < 10; i++) {
-        GetResponse response = channel.basicGet(queue, true);
+        GetResponse response = userEvents.basicGet(queue, true);
         if (response != null) {
           throw new AssertionError(
               "unexpected WS event on "
@@ -402,15 +401,12 @@ class ReadMarkerIT {
     }
 
     private String bindQueue(UUID user) throws Exception {
-      channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-      String queue = channel.queueDeclare().getQueue();
-      channel.queueBind(queue, user.toString(), "user-events");
-      return queue;
+      return userEvents.queueFor(user.toString());
     }
 
     private JsonNode nextEvent(String queue) throws Exception {
       for (int i = 0; i < 50; i++) {
-        GetResponse response = channel.basicGet(queue, true);
+        GetResponse response = userEvents.basicGet(queue, true);
         if (response != null) {
           return objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
         }

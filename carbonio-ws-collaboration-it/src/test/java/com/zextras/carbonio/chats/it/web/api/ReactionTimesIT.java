@@ -10,12 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -43,7 +42,7 @@ class ReactionTimesIT {
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
   private final Database database;
 
   private static UUID aUserId;
@@ -61,12 +60,12 @@ class ReactionTimesIT {
       ResteasyRequestDispatcher dispatcher,
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
-      Channel channel,
+      UserEventQueues userEvents,
       Database database) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.database = database;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
@@ -87,9 +86,7 @@ class ReactionTimesIT {
         roomId, RoomTypeDto.GROUP, "reaction-times-room", List.of(aUserId, bUserId));
     messageId = UUID.randomUUID().toString();
     integrationTestUtils.generateAndSaveMessage(messageId, roomId, aUserId, "react to me");
-    channel.exchangeDeclare(bUserId.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-    queueB = channel.queueDeclare().getQueue();
-    channel.queueBind(queueB, bUserId.toString(), "user-events");
+    queueB = userEvents.queueFor(bUserId.toString());
   }
 
   private String path(String message) {
@@ -109,7 +106,7 @@ class ReactionTimesIT {
   private JsonNode nextEvent() throws Exception {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     while (System.nanoTime() < deadline) {
-      GetResponse response = channel.basicGet(queueB, true);
+      GetResponse response = userEvents.basicGet(queueB, true);
       if (response != null) {
         JsonNode event =
             objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));

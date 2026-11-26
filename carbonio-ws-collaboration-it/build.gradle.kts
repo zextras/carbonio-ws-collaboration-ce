@@ -19,7 +19,6 @@ dependencies {
     testImplementation(libs.testcontainers.postgres)
     testImplementation(libs.mockserver.netty)
     testImplementation(libs.mockito.core)
-    testImplementation(libs.rabbitmq.mock)
     testImplementation(libs.awaitility)
 
     testImplementation(libs.flyway.postgres)

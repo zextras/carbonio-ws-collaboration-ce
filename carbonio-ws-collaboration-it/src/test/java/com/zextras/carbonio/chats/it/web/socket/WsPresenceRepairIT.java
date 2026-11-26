@@ -15,10 +15,13 @@ import com.zextras.carbonio.chats.core.repository.WsPresenceRepository;
 import com.zextras.carbonio.chats.core.service.presence.WsPresenceManager;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ConsulMockServer;
+import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
-import jakarta.websocket.Session;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.eclipse.jetty.ee10.websocket.jakarta.common.JakartaWebSocketSession;
+import org.eclipse.jetty.websocket.core.CoreSession;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -57,11 +60,17 @@ class WsPresenceRepairIT {
   }
 
   private void registerOpenSession() {
-    Session session = mock(Session.class);
+    JakartaWebSocketSession session = mock(JakartaWebSocketSession.class);
+    HttpSession httpSession = mock(HttpSession.class);
+    when(httpSession.getAttribute("userId")).thenReturn(userId);
+    Map<String, Object> userProperties = new HashMap<>();
+    userProperties.put(HttpSession.class.getName(), httpSession);
+    when(session.getUserProperties()).thenReturn(userProperties);
+    when(session.getCoreSession()).thenReturn(mock(CoreSession.class));
     when(session.getId()).thenReturn(sessionId);
     when(session.isOpen()).thenReturn(true);
     when(session.getAsyncRemote()).thenReturn(mock(RemoteEndpoint.Async.class));
-    sessions.add(session, userId);
+    sessions.add(session);
   }
 
   @Test

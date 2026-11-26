@@ -1,0 +1,722 @@
+// SPDX-FileCopyrightText: 2025 Zextras <https://www.zextras.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+package com.zextras.carbonio.chats.core.infrastructure.websocket;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.ConnectionFactory;
+import com.vdurmont.semver4j.Semver;
+import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.async.model.MeetingCreated;
+import com.zextras.carbonio.async.model.Ping;
+import com.zextras.carbonio.async.model.Pong;
+import com.zextras.carbonio.async.model.WebsocketConnected;
+import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.service.presence.WsPresenceManager;
+import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
+import com.zextras.carbonio.chats.core.web.api.versioning.ChangeSet;
+import com.zextras.carbonio.chats.core.web.api.versioning.VersionMigrationsRegistry;
+import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.EventListener;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
+import com.zextras.carbonio.chats.core.web.socket.action.WsActionRouter;
+import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
+import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
+import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
+import com.zextras.carbonio.chats.it.tools.ConsulMockServer;
+import com.zextras.carbonio.chats.it.web.socket.WebSocketClient;
+import jakarta.servlet.DispatcherType;
+import jakarta.websocket.ClientEndpointConfig;
+import jakarta.websocket.ClientEndpointConfig.Builder;
+import jakarta.websocket.ClientEndpointConfig.Configurator;
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.DeploymentException;
+import jakarta.websocket.EncodeException;
+import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
+import jakarta.websocket.server.ServerEndpointConfig;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.URI;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Stream;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.websocket.core.exception.UpgradeException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+@ApiIntegrationTest
+class EventsWebSocketIT {
+
+  public static final String LATEST = "1.6.2";
+  public static final String OLDEST = "1.6.0";
+  public static final String DEFAULT_USER_ID = "332a9527-3388-4207-be77-6d7e2978a723";
+  public static final String AUTH_TOKEN = "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL";
+
+  private Server jettyServer;
+  private EventsWebSocketManager eventsWebSocketManager;
+  private final AuthenticationService authenticationService;
+  private final EventDispatcher eventDispatcher;
+  private final EventWebSocketSessions sessions;
+  private final ObjectMapper objectMapper;
+  private final WebsocketVersionMigrator websocketVersionMigrator;
+  private final ParticipantService participantService;
+  private final CacheVideoServerSession cacheVideoServerSession;
+  private final WsActionRouter wsActionRouter;
+  private final WsPresenceManager wsPresenceManager;
+  private final SessionPingManager pingManager =
+      new SessionPingManager(mock(ScheduledExecutorService.class));
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final ConnectionFactory connectionFactory;
+  private EventListener eventListener;
+
+  public EventsWebSocketIT(
+      AuthenticationService authenticationService,
+      EventDispatcher eventDispatcher,
+      EventWebSocketSessions sessions,
+      ObjectMapper objectMapper,
+      WebsocketVersionMigrator websocketVersionMigrator,
+      ParticipantService participantService,
+      CacheVideoServerSession cacheVideoServerSession,
+      WsActionRouter wsActionRouter,
+      WsPresenceManager wsPresenceManager,
+      ConnectionFactory connectionFactory) {
+    this.authenticationService = authenticationService;
+    this.eventDispatcher = eventDispatcher;
+    this.sessions = sessions;
+    this.objectMapper = objectMapper;
+    this.websocketVersionMigrator = websocketVersionMigrator;
+    this.participantService = participantService;
+    this.cacheVideoServerSession = cacheVideoServerSession;
+    this.wsActionRouter = wsActionRouter;
+    this.wsPresenceManager = wsPresenceManager;
+    this.connectionFactory = connectionFactory;
+    this.healthMonitor =
+        new MessageBrokerVideoserverHealthMonitor(sessions, objectMapper, Clock.systemUTC());
+  }
+
+  @BeforeAll
+  static void setUpConsul(ConsulMockServer consulMockServer) {
+    // WsPresenceManager (a constructor dependency of this test) transitively requires
+    // WsInstanceRegistry, whose constructor resolves this instance's service_id from the Consul
+    // agent service catalog. This runs before the first test instance is provisioned, and the
+    // resolved value is cached for the singleton's lifetime.
+    consulMockServer.mockServiceIdResponse(UUID.randomUUID());
+  }
+
+  @BeforeEach
+  void setUp() throws Exception {
+    await().atMost(Duration.ofSeconds(5)).until(eventDispatcher::isAlive);
+    healthMonitor.notifyVideoServerReady("janus");
+    eventListener =
+        new EventListener(
+            connectionFactory.newConnection(), sessions, websocketVersionMigrator, healthMonitor);
+    eventListener.start();
+  }
+
+  @AfterEach
+  void init() {
+    eventListener.stop();
+    VersionMigrationsRegistry.REGISTRY.clear();
+  }
+
+  @Nested
+  class MeetingMediaStatus {
+
+    @BeforeEach
+    void startServer() throws Exception {
+      startWebSocketServer(List.of(), sessions);
+    }
+
+    @AfterEach
+    void stopServer() throws Exception {
+      stopWebSocketServer();
+    }
+
+    @Test
+    void sessionOpenedWhileMeetingMediaIsRefused_isToldTheBrokerIsDisconnected() {
+      healthMonitor.notifyBrokerDown();
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session ignored = createSession(clientContext)) {
+        awaitDomainEventReceived(client, 2);
+
+        assertTrue(client.getMessages().get(0).contains("WebsocketConnected"));
+        assertTrue(client.getMessages().get(1).contains("MessageBrokerDisconnected"));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } finally {
+        tryDisconnect(client);
+      }
+    }
+
+    @Test
+    void sessionOpenedWhileMeetingMediaIsAllowed_isToldNothingMore() throws Exception {
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session ignored = createSession(clientContext)) {
+        awaitFirstMessage(client);
+        roundTrip(client);
+
+        assertTrue(client.getMessages().stream().noneMatch(m -> m.contains("MessageBroker")));
+      } finally {
+        tryDisconnect(client);
+      }
+    }
+  }
+
+  @Nested
+  class Versioning {
+
+    @Test
+    void meetingCreatedEventDowngraded() throws Exception {
+      withWebSocketServer(
+          List.of(LATEST, OLDEST),
+          () -> {
+            var clientContextWithVersion = new ClientContextWithVersion(List.of(OLDEST));
+            var client = clientContextWithVersion.client();
+            VersionMigrationsRegistry registry = VersionMigrationsRegistry.REGISTRY;
+            registry.register(
+                new ChangeSet(
+                    new Semver(LATEST),
+                    MeetingCreated.class,
+                    List.of(new ChangeEventTypeNameMigration())));
+
+            try (Session ignored = createSession(clientContextWithVersion)) {
+              awaitFirstMessage(client);
+              dispatchEvent(
+                  MeetingCreated.create()
+                      .meetingId(UUID.randomUUID())
+                      .roomId(UUID.randomUUID())
+                      .type(EventType.MEETING_CREATED));
+
+              shouldReceiveEventWithType(client, "MEETING_CREATED", 2);
+
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            } finally {
+              tryDisconnect(client);
+            }
+          });
+    }
+
+    @Test
+    void pongEventMessageDowngraded() throws Exception {
+      withWebSocketServer(
+          List.of(LATEST, OLDEST),
+          () -> {
+            var clientContext = new ClientContextWithVersion(List.of(OLDEST));
+            var client = clientContext.client();
+            VersionMigrationsRegistry registry = VersionMigrationsRegistry.REGISTRY;
+            registry.register(
+                new ChangeSet(
+                    new Semver(LATEST), Pong.class, List.of(new ChangeEventTypeNameMigration())));
+
+            try (Session ignored = createSession(clientContext)) {
+
+              awaitFirstMessage(client);
+              client.sendMessage(Ping.create().type(EventType.PING));
+
+              shouldReceiveEventWithType(client, "pong", 2);
+
+            } catch (IOException | EncodeException e) {
+              throw new RuntimeException(e);
+            } finally {
+              tryDisconnect(client);
+            }
+          });
+    }
+
+    @Test
+    void websocketConnectedEventDowngraded() throws Exception {
+      withWebSocketServer(
+          List.of(LATEST, OLDEST),
+          () -> {
+            var clientContext = new ClientContextWithVersion(List.of(OLDEST));
+            VersionMigrationsRegistry registry = VersionMigrationsRegistry.REGISTRY;
+            registry.register(
+                new ChangeSet(
+                    new Semver(LATEST),
+                    WebsocketConnected.class,
+                    List.of(new ChangeEventTypeNameMigration())));
+
+            try (Session ignored = createSession(clientContext)) {
+
+              shouldReceiveEventWithType(clientContext.client(), "websocketConnected", 1);
+
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            } finally {
+              tryDisconnect(clientContext.client());
+            }
+          });
+    }
+
+    /**
+     * This test checks our fallback sub-protocol/version ("" -> 1.6.0) in case an old client tries
+     * to connect without sub-protocol negotiation.
+     *
+     * <p>Search also 'OLD_CLIENT_FALLBACK' in the code base
+     */
+    @Test
+    void applyMigrationsWithFallbackNegotiation() throws Exception {
+      withWebSocketServer(
+          List.of(LATEST, OLDEST),
+          () -> {
+            var clientContextWithoutVersion = new ClientContextWithoutVersion();
+            var client = clientContextWithoutVersion.client();
+            VersionMigrationsRegistry registry = VersionMigrationsRegistry.REGISTRY;
+            registry.register(
+                new ChangeSet(
+                    new Semver(LATEST),
+                    WebsocketConnected.class,
+                    List.of(new ChangeEventTypeNameMigration())));
+
+            try (Session ignored = createSession(clientContextWithoutVersion)) {
+
+              shouldReceiveEventWithType(client, "websocketConnected", 1);
+
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            } finally {
+              tryDisconnect(client);
+            }
+          });
+    }
+
+    private static Stream<Arguments> validNegotiationScenarios() {
+      return Stream.of(
+          Arguments.of(new LatestVersion()),
+          Arguments.of(new LatestValidVersion()),
+          Arguments.of(new EmptyVersionFallback()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("validNegotiationScenarios")
+    void validNegotiationScenarios(VersionNegotiationScenario scenario) throws Exception {
+      withWebSocketServer(
+          scenario.serverStatus().supportedVersions(),
+          () -> {
+            List<String> previous = scenario.clientStatus().clientVersions();
+            var clientContext =
+                previous != null
+                    ? new ClientContextWithVersion(previous)
+                    : new ClientContextWithoutVersion();
+            try (Session session = createSession(clientContext)) {
+
+              awaitFirstMessage(clientContext.client());
+              String negotiatedSubprotocol = session.getNegotiatedSubprotocol();
+              assertEquals(scenario.expectedResponseVersion(), negotiatedSubprotocol);
+
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            } finally {
+              tryDisconnect(clientContext.client());
+            }
+          });
+    }
+
+    private static Stream<Arguments> failureNegotiationScenarios() {
+      return Stream.of(
+          Arguments.of(new ServerWithoutSupportedVersions()),
+          Arguments.of(new NoMatchingVersions()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("failureNegotiationScenarios")
+    void failureNegotiationScenarios(VersionNegotiationScenario scenario) throws Exception {
+      withWebSocketServer(
+          scenario.serverStatus().supportedVersions(),
+          () -> {
+            List<String> previous = scenario.clientStatus().clientVersions();
+            var clientContext =
+                previous != null
+                    ? new ClientContextWithVersion(previous)
+                    : new ClientContextWithoutVersion();
+            try {
+              IllegalStateException exception =
+                  assertThrows(IllegalStateException.class, () -> createSession(clientContext));
+              // Assert on the root cause to make the test more specific
+              assertInstanceOf(UpgradeException.class, getRootCause(exception));
+
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            } finally {
+              tryDisconnect(clientContext.client());
+            }
+          });
+    }
+  }
+
+  @Nested
+  class Liveness {
+
+    private final EventWebSocketSessions liveSessions = new EventWebSocketSessions(pingManager);
+
+    @BeforeEach
+    void startServer() throws Exception {
+      startWebSocketServer(List.of(), liveSessions);
+    }
+
+    @AfterEach
+    void stopServer() throws Exception {
+      stopWebSocketServer();
+    }
+
+    @Test
+    void abortsClientThatNeverAnswersPings_andForgetsItsSession() throws Exception {
+      try (Socket socket = new Socket("localhost", jettyServer.getURI().getPort())) {
+        DataInputStream in = new DataInputStream(socket.getInputStream());
+        String queueId = upgradeWithoutAnsweringPings(socket, in);
+        await().atMost(5, SECONDS).until(() -> liveSessions.get(queueId).isPresent());
+
+        for (int i = 0; i <= SessionPingManager.MAX_MISSED_PONGS; i++) pingManager.tick();
+
+        socket.setSoTimeout(5_000);
+        in.readAllBytes();
+        await().atMost(5, SECONDS).until(() -> liveSessions.get(queueId).isEmpty());
+      }
+    }
+
+    @Test
+    void keepsClientThatAnswersPings() throws Exception {
+      var clientContext = new ClientContextWithoutVersion();
+      var client = clientContext.client();
+      try (Session session = createSession(clientContext)) {
+        awaitFirstMessage(client);
+
+        for (int i = 0; i <= SessionPingManager.MAX_MISSED_PONGS; i++) {
+          pingManager.tick();
+          // 1st: client got the ping; 2nd: server got the pong
+          roundTrip(client);
+          roundTrip(client);
+        }
+
+        assertTrue(session.isOpen());
+      }
+    }
+  }
+
+  /****************************************
+   * Header Version Scenarios
+   ****************************************/
+
+  private interface VersionNegotiationScenario {
+    ServerStatus serverStatus();
+
+    ClientStatus clientStatus();
+
+    String expectedResponseVersion();
+  }
+
+  private record ServerStatus(List<String> supportedVersions) {}
+
+  private record ClientStatus(List<String> clientVersions) {}
+
+  private record LatestVersion(
+      ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
+      implements VersionNegotiationScenario {
+    public LatestVersion() {
+      this(
+          new ServerStatus(List.of("1.6.2", "1.6.1", "1.6.0")),
+          new ClientStatus(List.of("1.6.2", "1.6.1", "1.6.0")),
+          "1.6.2");
+    }
+  }
+
+  private record LatestValidVersion(
+      ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
+      implements VersionNegotiationScenario {
+    public LatestValidVersion() {
+      this(
+          new ServerStatus(List.of("1.6.2", "1.6.1", "1.6.0")),
+          new ClientStatus(List.of("1.6.1", "1.6.2", "34.5", "1.6.0", "not_valid")),
+          "1.6.2");
+    }
+  }
+
+  private record EmptyVersionFallback(
+      ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
+      implements VersionNegotiationScenario {
+    public EmptyVersionFallback() {
+      this(new ServerStatus(List.of("1.6.2", "1.6.1", "1.6.0")), new ClientStatus(null), "");
+    }
+  }
+
+  private record ServerWithoutSupportedVersions(
+      ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
+      implements VersionNegotiationScenario {
+    public ServerWithoutSupportedVersions() {
+      this(new ServerStatus(null), new ClientStatus(List.of("1.6.2", "1.6.1", "1.6.0")), "");
+    }
+  }
+
+  private record NoMatchingVersions(
+      ServerStatus serverStatus, ClientStatus clientStatus, String expectedResponseVersion)
+      implements VersionNegotiationScenario {
+    public NoMatchingVersions() {
+      this(
+          new ServerStatus(List.of("1.6.2", "1.6.1", "1.6.0")),
+          new ClientStatus(List.of("7.1.0", "8.0.0")),
+          "");
+    }
+  }
+
+  /****************************************
+   * Object Helpers
+   ****************************************/
+
+  interface ClientContext {
+    WebSocketContainer container();
+
+    ClientEndpointConfig endpointConfig();
+
+    WebSocketClient client();
+  }
+
+  record ClientContextWithVersion(
+      WebSocketContainer container, ClientEndpointConfig endpointConfig, WebSocketClient client)
+      implements ClientContext {
+    ClientContextWithVersion(List<String> previous) {
+      this(
+          ContainerProvider.getWebSocketContainer(),
+          buildEndpointWith(previous),
+          new WebSocketClient());
+    }
+  }
+
+  record ClientContextWithoutVersion(
+      WebSocketContainer container, ClientEndpointConfig endpointConfig, WebSocketClient client)
+      implements ClientContext {
+    ClientContextWithoutVersion() {
+      this(
+          ContainerProvider.getWebSocketContainer(),
+          Builder.create().configurator(buildConfig()).build(),
+          new WebSocketClient());
+    }
+  }
+
+  /****************************************
+   * Utility Functions
+   ****************************************/
+
+  private Session createSession(ClientContext clientContext) {
+    try {
+      Session session =
+          clientContext
+              .container()
+              .connectToServer(
+                  clientContext.client(), clientContext.endpointConfig(), URI.create(eventsUrl()));
+      Assertions.assertNotNull(session);
+      return session;
+    } catch (DeploymentException | IOException e) {
+      ChatsLogger.error("Error connecting to WebSocket server", e);
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static void tryDisconnect(WebSocketClient client) {
+    if (client.isConnected()) {
+      try {
+        client.disconnect();
+      } catch (IOException e) {
+        ChatsLogger.error("Disconnect failed", e);
+      }
+    }
+  }
+
+  private void dispatchEvent(DomainEvent domainEvent) {
+    eventDispatcher.sendToUserExchange(DEFAULT_USER_ID, domainEvent);
+  }
+
+  private static ClientEndpointConfig buildEndpointWith(List<String> requestedVersions) {
+    return Builder.create()
+        .configurator(buildConfig())
+        .preferredSubprotocols(requestedVersions)
+        .build();
+  }
+
+  private static ClientEndpointConfig.Configurator buildConfig() {
+    return new Configurator() {
+      @Override
+      public void beforeRequest(Map<String, List<String>> headers) {
+        headers.put("Cookie", List.of(String.format("ZM_AUTH_TOKEN=%s;", AUTH_TOKEN)));
+      }
+    };
+  }
+
+  private void awaitFirstMessage(WebSocketClient client) {
+    await().atMost(1, SECONDS).until(firstMessageReceived(client));
+  }
+
+  private void awaitDomainEventReceived(WebSocketClient client, int atEventNumber) {
+    await().atMost(1, SECONDS).until(messagesReceived(client, atEventNumber));
+  }
+
+  private Callable<Boolean> firstMessageReceived(WebSocketClient client) {
+    return messagesReceived(client, 1);
+  }
+
+  private Callable<Boolean> messagesReceived(WebSocketClient client, int eventNumber) {
+    return () -> client.getMessages().size() == eventNumber;
+  }
+
+  private void shouldReceiveEventWithType(
+      WebSocketClient client, String eventType, int atEventNumber) {
+    awaitDomainEventReceived(client, atEventNumber);
+    assertTrue(client.getMessages().stream().anyMatch(m -> m.contains(eventType)));
+  }
+
+  private String eventsUrl() {
+    return "ws://localhost:" + jettyServer.getURI().getPort() + "/events";
+  }
+
+  private void startWebSocketServer(
+      List<String> serverSupportedVersions, EventWebSocketSessions serverSessions)
+      throws Exception {
+    jettyServer = new Server(0);
+    eventsWebSocketManager =
+        new EventsWebSocketManagerImpl(
+            objectMapper,
+            websocketVersionMigrator,
+            cacheVideoServerSession,
+            participantService,
+            wsActionRouter,
+            wsPresenceManager,
+            serverSessions,
+            healthMonitor);
+
+    ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+    context.setContextPath("/");
+    jettyServer.setHandler(context);
+
+    JakartaWebSocketServletContainerInitializer.configure(
+        context,
+        (servletContext, wsContainer) -> {
+          wsContainer.addEndpoint(
+              ServerEndpointConfig.Builder.create(EventsWebSocketManagerImpl.class, "/events")
+                  .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketManager))
+                  .subprotocols(serverSupportedVersions)
+                  .build());
+          servletContext
+              .addFilter(
+                  "eventsWebSocketAuthenticationFilter",
+                  EventsWebSocketAuthenticationFilter.create(
+                      authenticationService, serverSupportedVersions))
+              .addMappingForUrlPatterns(
+                  EnumSet.of(DispatcherType.REQUEST),
+                  false /* It's applied before other filters */,
+                  "/events");
+        });
+
+    jettyServer.start();
+  }
+
+  private void stopWebSocketServer() throws Exception {
+    if (jettyServer != null) {
+      jettyServer.stop();
+      ChatsLogger.info("Test server stopped");
+    }
+  }
+
+  private void withWebSocketServer(List<String> supportedVersions, Runnable runnable)
+      throws Exception {
+    try {
+      startWebSocketServer(supportedVersions, sessions);
+      runnable.run();
+    } finally {
+      stopWebSocketServer();
+    }
+  }
+
+  private void roundTrip(WebSocketClient client) throws Exception {
+    long pongs = countPongs(client);
+    client.sendMessage(Ping.create().type(EventType.PING));
+    await()
+        .pollInterval(Duration.ofMillis(10))
+        .atMost(2, SECONDS)
+        .until(() -> countPongs(client) == pongs + 1);
+  }
+
+  private static long countPongs(WebSocketClient client) {
+    return client.getMessages().stream().filter(m -> m.toLowerCase().contains("\"pong\"")).count();
+  }
+
+  private String upgradeWithoutAnsweringPings(Socket socket, DataInputStream in)
+      throws IOException {
+    socket
+        .getOutputStream()
+        .write(
+            ("GET /events HTTP/1.1\r\n"
+                    + "Host: localhost\r\n"
+                    + "Upgrade: websocket\r\n"
+                    + "Connection: Upgrade\r\n"
+                    + "Sec-WebSocket-Version: 13\r\n"
+                    + "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+                    + "Cookie: ZM_AUTH_TOKEN="
+                    + AUTH_TOKEN
+                    + "\r\n\r\n")
+                .getBytes(US_ASCII));
+    skipUpgradeResponse(in);
+    return objectMapper.readTree(readTextFrame(in)).get("queueId").asText();
+  }
+
+  private static void skipUpgradeResponse(DataInputStream in) throws IOException {
+    byte[] status = new byte[12];
+    in.readFully(status);
+    assertArrayEquals("HTTP/1.1 101".getBytes(US_ASCII), status);
+    int matched = 0;
+    while (matched < 4) {
+      int b = in.readUnsignedByte();
+      matched = b == "\r\n\r\n".charAt(matched) ? matched + 1 : (b == '\r' ? 1 : 0);
+    }
+  }
+
+  private static byte[] readTextFrame(DataInputStream in) throws IOException {
+    in.readUnsignedByte();
+    int length = in.readUnsignedByte();
+    if (length == 126) length = in.readUnsignedShort();
+    byte[] payload = new byte[length];
+    in.readFully(payload);
+    return payload;
+  }
+
+  private static Throwable getRootCause(IllegalStateException exception) {
+    return exception.getCause().getCause();
+  }
+}

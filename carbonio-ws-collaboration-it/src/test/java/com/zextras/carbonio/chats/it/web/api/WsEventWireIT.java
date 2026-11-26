@@ -7,12 +7,11 @@ package com.zextras.carbonio.chats.it.web.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -43,7 +42,7 @@ class WsEventWireIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils utils;
   private final Database database;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
 
   private final UUID snoopy = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
   private final String snoopyToken = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
@@ -62,12 +61,12 @@ class WsEventWireIT {
       ObjectMapper objectMapper,
       IntegrationTestUtils utils,
       Database database,
-      Channel channel) {
+      UserEventQueues userEvents) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.utils = utils;
     this.database = database;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
 
@@ -181,10 +180,7 @@ class WsEventWireIT {
   }
 
   private String bindQueue(UUID user) throws Exception {
-    channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-    String queue = channel.queueDeclare().getQueue();
-    channel.queueBind(queue, user.toString(), "user-events");
-    return queue;
+    return userEvents.queueFor(user.toString());
   }
 
   private void capture(String step) throws Exception {
@@ -203,7 +199,7 @@ class WsEventWireIT {
 
   private GetResponse poll(String queue) throws Exception {
     for (int i = 0; i < 4; i++) {
-      GetResponse response = channel.basicGet(queue, true);
+      GetResponse response = userEvents.basicGet(queue, true);
       if (response != null) {
         return response;
       }

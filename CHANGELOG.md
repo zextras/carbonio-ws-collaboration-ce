@@ -1,3 +1,23 @@
+## [1.15.6](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.5...v1.15.6) (2026-11-19)
+
+### Bug Fixes
+
+* **events:** deliver user events through one broker queue per instance ([#323](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/323)) ([233fc89](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/233fc898fbdea885fcc55314d5435a429a619c1c))
+
+## [1.15.5](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.4...v1.15.5) (2026-11-17)
+
+## [1.15.4](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.3...v1.15.4) (2026-11-10)
+
+### Bug Fixes
+
+* **docker:** create WSC sidecar system user ([#322](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/322)) ([9b08f47](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/9b08f47a624edf0850c6d04d595f291ccd3e2ff0))
+
+## [1.15.3](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.2...v1.15.3) (2026-11-06)
+
+### Bug Fixes
+
+* detect dead websocket sessions from missing pongs ([#315](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/315)) ([ae42aea](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/ae42aea72374523f9c44246f007c12e0daa92eaa))
+
 ## [1.15.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.15.1...v1.15.2) (2026-11-03)
 
 ### Bug Fixes

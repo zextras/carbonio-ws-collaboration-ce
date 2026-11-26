@@ -11,8 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.InboxApi;
@@ -33,6 +31,7 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -73,7 +72,7 @@ class VisibilityIT {
   private final MessagePinRepository pinRepository;
   private final MessageReactionRepository reactionRepository;
   private final ReadMarkerRepository readRepository;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
   private final StorageMockServer storageMockServer;
   private final FileMetadataRepository fileMetadataRepository;
 
@@ -118,7 +117,7 @@ class VisibilityIT {
       MessagePinRepository pinRepository,
       MessageReactionRepository reactionRepository,
       ReadMarkerRepository readRepository,
-      Channel channel,
+      UserEventQueues userEvents,
       StorageMockServer storageMockServer,
       FileMetadataRepository fileMetadataRepository) {
     this.dispatcher = dispatcher;
@@ -130,7 +129,7 @@ class VisibilityIT {
     this.pinRepository = pinRepository;
     this.reactionRepository = reactionRepository;
     this.readRepository = readRepository;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.storageMockServer = storageMockServer;
     this.fileMetadataRepository = fileMetadataRepository;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
@@ -733,15 +732,12 @@ class VisibilityIT {
   class WsEvents {
 
     private String bindQueue(UUID user) throws Exception {
-      channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-      String queue = channel.queueDeclare().getQueue();
-      channel.queueBind(queue, user.toString(), "user-events");
-      return queue;
+      return userEvents.queueFor(user.toString());
     }
 
     private JsonNode nextEvent(String queue) throws Exception {
       for (int i = 0; i < 50; i++) {
-        GetResponse response = channel.basicGet(queue, true);
+        GetResponse response = userEvents.basicGet(queue, true);
         if (response != null) {
           return objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
         }

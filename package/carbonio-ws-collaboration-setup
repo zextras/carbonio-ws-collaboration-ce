@@ -81,6 +81,7 @@ export -n LOCAL_IP
 consul reload
 
 carbonio-ws-collaboration-configs
+carbonio-ws-collaboration-configs-cleanup
 
 systemctl restart carbonio-ws-collaboration-sidecar.service
 # Do not wait for the boot migration: systemd follows the start and restarts the service if it fails.

@@ -1,5 +1,5 @@
 pkgname="carbonio-ws-collaboration-ce"
-pkgver="1.15.2"
+pkgver="1.15.6"
 pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 maintainer="Zextras <packages@zextras.com>"
@@ -22,6 +22,7 @@ source=(
   "611-carbonio-ws-collaboration.sh"
   "carbonio-ws-collaboration-ce.jar"
   "carbonio-ws-collaboration-configs"
+  "carbonio-ws-collaboration-configs-cleanup"
   "carbonio-ws-collaboration-setup"
   "carbonio-ws-collaboration-template.hcl"
   "carbonio-ws-collaboration.service"
@@ -36,8 +37,9 @@ source=(
 sha256sums=(
   'e9f6604fd073a5cf3cf9b448d6f9f372a64e23f84fc26d7a0fac6d55b11f0c6a'
   'SKIP'
-  '285bb99f62719c4f00bcd0df5199aecb8fce8a1675849063f861f87cda33d51a'
-  '3527b3f19b03e91a36ffff91248dc3b45b2de4fee3317a9ab0d6017fb76ab9a4'
+  '289e7c2c572949e93388812d912231914d85c604331172cfd8e3fe666bfd04b1'
+  '007fcbd0b55a0d2caf6394cb1f22d88ba204d3a65fb4a6e236a0884e95a4f53a'
+  'df933738bfa782037a117c751272006d0818e43bd36470f6735eec285b1c47ca'
   '647b3696dbe3d10456252eff3e265a8c27d140c11794057136a212fa5d225570'
   '12857b5797c233deb7188d79facbee18bbb3ed09f5d6f634ce823ee05b0495e4'
   '6c6b7ee8a6d5768fe528cea3e72e76c11e725e4b9156670294b21097d673b4f9'
@@ -54,6 +56,8 @@ _package_common() {
     "${pkgdir}/usr/share/carbonio/carbonio-ws-collaboration.jar"
   install -Dm755 "${srcdir}/carbonio-ws-collaboration-configs" \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
+  install -Dm755 "${srcdir}/carbonio-ws-collaboration-configs-cleanup" \
+    "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs-cleanup"
   install -Dm755 "${srcdir}/carbonio-ws-collaboration-setup" \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration-setup"
   install -Dm644 "${srcdir}/611-carbonio-ws-collaboration.sh" \

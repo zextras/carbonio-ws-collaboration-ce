@@ -8,20 +8,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
 class EventWebSocketSessionsTest {
+
+  private static final String USER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  private static final String USER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
   private SessionPingManager pingManager;
   private EventWebSocketSessions sessions;
@@ -33,8 +41,17 @@ class EventWebSocketSessionsTest {
   }
 
   private Session newOpenSession(String id) {
+    return newOpenSession(id, USER_A);
+  }
+
+  private Session newOpenSession(String id, String userId) {
     Session s = mock(Session.class);
     RemoteEndpoint.Async async = mock(RemoteEndpoint.Async.class);
+    HttpSession httpSession = mock(HttpSession.class);
+    Map<String, Object> userProps = new HashMap<>();
+    userProps.put(HttpSession.class.getName(), httpSession);
+    when(httpSession.getAttribute("userId")).thenReturn(userId);
+    when(s.getUserProperties()).thenReturn(userProps);
     when(s.getId()).thenReturn(id);
     when(s.isOpen()).thenReturn(true);
     when(s.getAsyncRemote()).thenReturn(async);
@@ -45,16 +62,29 @@ class EventWebSocketSessionsTest {
   void add_storesSession_andStartsPing() {
     Session s = newOpenSession("sid-1");
 
-    sessions.add(s, "user-1");
+    sessions.add(s);
 
     assertTrue(sessions.isOpen("sid-1"));
     verify(pingManager).start(s);
   }
 
   @Test
+  void aSessionWithoutUser_isStoredAndRemovedWithoutAUserIndex() {
+    Session s = mock(Session.class);
+    when(s.getUserProperties()).thenReturn(new HashMap<>());
+    when(s.getId()).thenReturn("anonymous");
+    when(s.isOpen()).thenReturn(true);
+
+    sessions.add(s);
+
+    assertTrue(sessions.get("anonymous").isPresent());
+    assertTrue(sessions.remove("anonymous"));
+  }
+
+  @Test
   void remove_removesSession_andStopsPing() {
     Session s = newOpenSession("sid-2");
-    sessions.add(s, "user-2");
+    sessions.add(s);
 
     assertTrue(sessions.remove("sid-2"));
 
@@ -66,8 +96,8 @@ class EventWebSocketSessionsTest {
   void broadcast_sendsToOpenSessions() {
     Session a = newOpenSession("a");
     Session b = newOpenSession("b");
-    sessions.add(a, "ua");
-    sessions.add(b, "ub");
+    sessions.add(a);
+    sessions.add(b);
 
     sessions.broadcast("hello");
 
@@ -76,11 +106,28 @@ class EventWebSocketSessionsTest {
   }
 
   @Test
+  void broadcast_triesEverySession_evenWhenSendingFails() {
+    Session a = newOpenSession("a");
+    Session b = newOpenSession("b");
+    sessions.add(a);
+    sessions.add(b);
+    RemoteEndpoint.Async toA = a.getAsyncRemote();
+    RemoteEndpoint.Async toB = b.getAsyncRemote();
+    doThrow(new IllegalStateException("closing")).when(toA).sendText("hello");
+    doThrow(new IllegalStateException("closing")).when(toB).sendText("hello");
+
+    sessions.broadcast("hello");
+
+    verify(toA).sendText("hello");
+    verify(toB).sendText("hello");
+  }
+
+  @Test
   void broadcast_skipsClosedSessions() {
     Session a = newOpenSession("a");
     Session b = newOpenSession("b");
-    sessions.add(a, "ua");
-    sessions.add(b, "ub");
+    sessions.add(a);
+    sessions.add(b);
     when(b.isOpen()).thenReturn(false);
 
     sessions.broadcast("hello");
@@ -91,19 +138,19 @@ class EventWebSocketSessionsTest {
 
   @Test
   void broadcast_keepsClosedSessionsRegisteredUntilTheirCleanup() {
-    Session b = newOpenSession("b");
-    sessions.add(b, "ub");
-    when(b.isOpen()).thenReturn(false);
+    Session closed = newOpenSession("b");
+    sessions.add(closed);
+    when(closed.isOpen()).thenReturn(false);
 
     sessions.broadcast("hello");
 
+    verify(pingManager, never()).stop("b");
     assertTrue(sessions.remove("b"));
   }
 
   @Test
   void isOpen_trueForAddedOpenSession_falseAfterRemove() {
-    Session s = newOpenSession("sid-4");
-    sessions.add(s, "user-4");
+    sessions.add(newOpenSession("sid-4"));
 
     assertTrue(sessions.isOpen("sid-4"));
 
@@ -115,7 +162,7 @@ class EventWebSocketSessionsTest {
   @Test
   void isOpen_falseForClosedOrUnknownSession() {
     Session s = newOpenSession("sid-5");
-    sessions.add(s, "user-5");
+    sessions.add(s);
     when(s.isOpen()).thenReturn(false);
 
     assertFalse(sessions.isOpen("sid-5"));
@@ -124,14 +171,76 @@ class EventWebSocketSessionsTest {
 
   @Test
   void openSessionUserIds_mapsOnlyOpenSessionsToTheirUsers() {
-    Session a = newOpenSession("a");
-    Session b = newOpenSession("b");
-    Session c = newOpenSession("c");
-    sessions.add(a, "ua");
-    sessions.add(b, "ub");
-    sessions.add(c, "ua");
+    Session a = newOpenSession("a", USER_A);
+    Session b = newOpenSession("b", USER_B);
+    Session c = newOpenSession("c", USER_A);
+    sessions.add(a);
+    sessions.add(b);
+    sessions.add(c);
     when(b.isOpen()).thenReturn(false);
 
-    assertEquals(Map.of("a", "ua", "c", "ua"), sessions.openSessionUserIds());
+    assertEquals(Map.of("a", USER_A, "c", USER_A), sessions.openSessionUserIds());
+  }
+
+  @Test
+  void sessionsOf_returnsOnlyThatUsersSessions() {
+    Session a1 = newOpenSession("a1", USER_A);
+    Session a2 = newOpenSession("a2", USER_A);
+    Session b1 = newOpenSession("b1", USER_B);
+    sessions.add(a1);
+    sessions.add(a2);
+    sessions.add(b1);
+
+    assertEquals(Set.of(a1, a2), Set.copyOf(sessions.sessionsOf(USER_A)));
+  }
+
+  @Test
+  void sessionsOf_excludesRemovedSessions() {
+    Session a1 = newOpenSession("a1", USER_A);
+    Session a2 = newOpenSession("a2", USER_A);
+    sessions.add(a1);
+    sessions.add(a2);
+
+    sessions.remove("a1");
+
+    assertEquals(Set.of(a2), Set.copyOf(sessions.sessionsOf(USER_A)));
+  }
+
+  @Test
+  void sessionsOf_excludesClosedSessions() {
+    Session a1 = newOpenSession("a1", USER_A);
+    Session a2 = newOpenSession("a2", USER_A);
+    sessions.add(a1);
+    sessions.add(a2);
+    when(a1.isOpen()).thenReturn(false);
+
+    assertEquals(Set.of(a2), Set.copyOf(sessions.sessionsOf(USER_A)));
+  }
+
+  @Test
+  void sessionsOf_userWithoutSessions_isEmpty() {
+    sessions.add(newOpenSession("a1", USER_A));
+    sessions.remove("a1");
+
+    assertTrue(sessions.sessionsOf(USER_A).isEmpty());
+    assertTrue(sessions.sessionsOf(USER_B).isEmpty());
+  }
+
+  @Test
+  void get_returnsOpenSessionById() {
+    Session a1 = newOpenSession("a1", USER_A);
+    sessions.add(a1);
+
+    assertEquals(Optional.of(a1), sessions.get("a1"));
+    assertTrue(sessions.get("unknown").isEmpty());
+  }
+
+  @Test
+  void get_closedSession_isEmpty() {
+    Session a1 = newOpenSession("a1", USER_A);
+    sessions.add(a1);
+    when(a1.isOpen()).thenReturn(false);
+
+    assertTrue(sessions.get("a1").isEmpty());
   }
 }

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.config.module;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -15,9 +16,11 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.MessageBrokerVideoserverHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.TimeoutException;
 
 public class MessagingModule extends AbstractModule {
@@ -25,11 +28,13 @@ public class MessagingModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
+    bind(EventListener.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
   }
 
+  @Singleton
   @Provides
-  private Connection getRabbitMqConnection(AppConfig appConfig) {
+  ConnectionFactory getRabbitMqConnectionFactory(AppConfig appConfig) {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
     factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
@@ -39,50 +44,57 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
     factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
     factory.setRequestedHeartbeat(
-        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
+        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(10));
     factory.setNetworkRecoveryInterval(
-        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(30000));
+        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(10000));
     factory.setConnectionTimeout(
         appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
-    factory.setAutomaticRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
-    factory.setTopologyRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
+    factory.setAutomaticRecoveryEnabled(true);
+    factory.setTopologyRecoveryEnabled(true);
+    return factory;
+  }
+
+  @Singleton
+  @Provides
+  @Named("publisher")
+  Connection getPublisherConnection(ConnectionFactory factory) {
+    return connect(factory, "publisher");
+  }
+
+  @Singleton
+  @Provides
+  @Named("consumer")
+  Connection getConsumerConnection(ConnectionFactory factory) {
+    return connect(factory, "consumer");
+  }
+
+  @Singleton
+  @Provides
+  @Named("videoserver")
+  Connection getVideoServerConnection(ConnectionFactory factory) {
+    return connect(factory, "videoserver");
+  }
+
+  private static Connection connect(ConnectionFactory factory, String role) {
     try {
-      return factory.newConnection();
+      return factory.newConnection(connectionName(role));
     } catch (IOException | TimeoutException e) {
-      throw new EventDispatcherException("Could not create connection with message broker", e);
+      throw new EventDispatcherException("Could not connect to the message broker as " + role, e);
+    }
+  }
+
+  private static String connectionName(String role) {
+    try {
+      return "carbonio-ws-collaboration-" + role + "@" + InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException e) {
+      return "carbonio-ws-collaboration-" + role;
     }
   }
 
   @Singleton
   @Provides
-  private RabbitConnectionPoolService getRabbitConnectionPoolFactory(
-      AppConfig appConfig, MessageBrokerVideoserverHealthMonitor healthMonitor) {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
-    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
-    factory.setUsername(
-        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
-    factory.setPassword(
-        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
-    factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
-    factory.setRequestedHeartbeat(
-        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
-    factory.setNetworkRecoveryInterval(
-        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(30000));
-    factory.setConnectionTimeout(
-        appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
-    factory.setAutomaticRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
-    factory.setTopologyRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
-    int poolSize = appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_POOL_SIZE).orElse(10);
-    return new RabbitConnectionPoolService(factory, poolSize, healthMonitor);
-  }
-
-  @Provides
-  private Channel getRabbitMqChannel(Connection connection) {
+  @Named("videoserver")
+  private Channel getVideoServerChannel(@Named("videoserver") Connection connection) {
     if (connection == null || !connection.isOpen()) {
       throw new EventDispatcherException("Message broker connection is not up!");
     }

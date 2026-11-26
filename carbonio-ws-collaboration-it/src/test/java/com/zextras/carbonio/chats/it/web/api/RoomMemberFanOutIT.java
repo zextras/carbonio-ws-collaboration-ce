@@ -14,8 +14,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -24,6 +22,7 @@ import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.web.socket.action.impl.TypingHandler;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.UserEventQueues;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
@@ -50,7 +49,7 @@ class RoomMemberFanOutIT {
   private final IntegrationTestUtils integrationTestUtils;
   private final SubscriptionRepository subscriptionRepository;
   private final TypingHandler typingHandler;
-  private final Channel channel;
+  private final UserEventQueues userEvents;
 
   private final UUID sender = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
   private final String senderToken = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
@@ -66,13 +65,13 @@ class RoomMemberFanOutIT {
       IntegrationTestUtils integrationTestUtils,
       SubscriptionRepository subscriptionRepository,
       TypingHandler typingHandler,
-      Channel channel) {
+      UserEventQueues userEvents) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.subscriptionRepository = subscriptionRepository;
     this.typingHandler = typingHandler;
-    this.channel = channel;
+    this.userEvents = userEvents;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
   }
 
@@ -156,15 +155,12 @@ class RoomMemberFanOutIT {
   }
 
   private String bindQueue(UUID user) throws Exception {
-    channel.exchangeDeclare(user.toString(), BuiltinExchangeType.DIRECT, false, false, null);
-    String queue = channel.queueDeclare().getQueue();
-    channel.queueBind(queue, user.toString(), "user-events");
-    return queue;
+    return userEvents.queueFor(user.toString());
   }
 
   private JsonNode nextEvent(String queue) throws Exception {
     for (int i = 0; i < 50; i++) {
-      GetResponse response = channel.basicGet(queue, true);
+      GetResponse response = userEvents.basicGet(queue, true);
       if (response != null) {
         return objectMapper.readTree(new String(response.getBody(), StandardCharsets.UTF_8));
       }
@@ -175,6 +171,6 @@ class RoomMemberFanOutIT {
 
   private void assertNoEvent(String queue) throws Exception {
     Thread.sleep(500);
-    assertNull(channel.basicGet(queue, true));
+    assertNull(userEvents.basicGet(queue, true));
   }
 }
