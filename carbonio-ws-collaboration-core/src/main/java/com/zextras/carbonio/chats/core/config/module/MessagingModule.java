@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.BrokerExceptionHandler;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
@@ -41,6 +42,7 @@ public class MessagingModule extends AbstractModule {
     bind(EventListener.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
     bind(VideoServerMonitor.class);
+    bind(BrokerExceptionHandler.class);
   }
 
   @Singleton
@@ -76,7 +78,8 @@ public class MessagingModule extends AbstractModule {
 
   @Singleton
   @Provides
-  ConnectionFactory getRabbitMqConnectionFactory(AppConfig appConfig) {
+  ConnectionFactory getRabbitMqConnectionFactory(
+      AppConfig appConfig, BrokerExceptionHandler exceptionHandler) {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
     factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
@@ -93,6 +96,7 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
     factory.setAutomaticRecoveryEnabled(true);
     factory.setTopologyRecoveryEnabled(true);
+    factory.setExceptionHandler(exceptionHandler);
     return factory;
   }
 
