@@ -50,6 +50,7 @@ class ParticipantRepositoryIT {
   void seedOneStaleAndOneActiveParticipant() {
     UUID roomId = UUID.randomUUID();
     UUID activeUserId = UUID.randomUUID();
+    String activeQueueId = UUID.randomUUID().toString();
     integrationTestUtils.generateAndSaveRoom(
         roomId, RoomTypeDto.GROUP, "room", List.of(staleUserId, activeUserId));
     meetingId =
@@ -57,12 +58,14 @@ class ParticipantRepositoryIT {
             roomId,
             List.of(
                 ParticipantBuilder.create(staleUserId, staleQueueId),
-                ParticipantBuilder.create(activeUserId, UUID.randomUUID().toString())));
+                ParticipantBuilder.create(activeUserId, activeQueueId)));
     database
         .sqlUpdate(
-            "UPDATE CHATS.PARTICIPANT SET UPDATED_AT = now() - interval '13 hours'"
-                + " WHERE QUEUE_ID = :queueId")
-        .setParameter("queueId", staleQueueId)
+            "UPDATE CHATS.PARTICIPANT SET UPDATED_AT = now() - CASE WHEN QUEUE_ID = :staleQueueId"
+                + " THEN interval '13 hours' ELSE interval '11 hours' END"
+                + " WHERE QUEUE_ID IN (:staleQueueId, :activeQueueId)")
+        .setParameter("staleQueueId", staleQueueId)
+        .setParameter("activeQueueId", activeQueueId)
         .execute();
   }
 

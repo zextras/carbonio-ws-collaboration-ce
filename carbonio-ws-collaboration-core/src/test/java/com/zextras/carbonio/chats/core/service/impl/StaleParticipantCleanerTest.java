@@ -14,6 +14,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.config.impl.MockAppConfig;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
@@ -41,7 +44,12 @@ class StaleParticipantCleanerTest {
     scheduler = mock(ScheduledExecutorService.class);
     participantRepository = mock(ParticipantRepository.class);
     participantService = mock(ParticipantService.class);
-    cleaner = new StaleParticipantCleaner(participantRepository, participantService, scheduler);
+    cleaner = cleanerWith(MockAppConfig.create());
+  }
+
+  private StaleParticipantCleaner cleanerWith(AppConfig appConfig) {
+    return new StaleParticipantCleaner(
+        participantRepository, participantService, appConfig, scheduler);
   }
 
   private static StaleParticipant staleParticipant() {
@@ -54,15 +62,49 @@ class StaleParticipantCleanerTest {
   }
 
   @Test
-  void runsOneMinuteAfterStartThenEveryTwelveHours() {
+  void runsOneMinuteAfterStartThenEveryTwelveHoursByDefault() {
     cleaner.start();
 
+    verifySchedule(Duration.ofHours(12));
+  }
+
+  @Test
+  void usesConfiguredThresholdAndIntervalIndependently() {
+    cleaner =
+        cleanerWith(
+            MockAppConfig.create()
+                .set(ConfigName.STALE_PARTICIPANT_THRESHOLD_IN_HOURS, "0.02")
+                .set(ConfigName.STALE_PARTICIPANT_CLEANUP_INTERVAL_IN_HOURS, "0.005"));
+
+    cleaner.start();
+    cleaner.run();
+
+    verifySchedule(Duration.ofSeconds(18));
+    verify(participantRepository).claimStale(Duration.ofSeconds(72));
+  }
+
+  @Test
+  void fallsBackToDefaultsForInvalidValues() {
+    cleaner =
+        cleanerWith(
+            MockAppConfig.create()
+                .set(ConfigName.STALE_PARTICIPANT_THRESHOLD_IN_HOURS, "invalid")
+                .set(ConfigName.STALE_PARTICIPANT_CLEANUP_INTERVAL_IN_HOURS, "0"));
+
+    cleaner.start();
+    cleaner.run();
+
+    verifySchedule(Duration.ofHours(12));
+    verify(participantRepository).claimStale(Duration.ofHours(12));
+  }
+
+  private void verifySchedule(Duration interval) {
     verify(scheduler)
         .scheduleWithFixedDelay(
             any(Runnable.class),
-            eq(Duration.ofMinutes(1).toMillis()),
-            eq(Duration.ofHours(12).toMillis()),
-            eq(TimeUnit.MILLISECONDS));
+            eq(Duration.ofMinutes(1).toSeconds()),
+            eq(interval.toSeconds()),
+            eq(TimeUnit.SECONDS));
   }
 
   @Test
@@ -84,7 +126,7 @@ class StaleParticipantCleanerTest {
 
     String expected =
         String.format(
-            "Removed participant '%s' from meeting '%s': inactive for 12 hours",
+            "Removed stale participant '%s' from meeting '%s'",
             participant.userId(), participant.meetingId());
 
     try (MockedStatic<ChatsLogger> logger = mockStatic(ChatsLogger.class)) {
@@ -106,8 +148,7 @@ class StaleParticipantCleanerTest {
 
     String expected =
         String.format(
-            "Unable to remove inactive participant '%s' from meeting '%s', retrying in 12 hours:"
-                + " %s",
+            "Unable to remove inactive participant '%s' from meeting '%s': %s",
             failing.userId(), failing.meetingId(), failure.getMessage());
 
     try (MockedStatic<ChatsLogger> logger = mockStatic(ChatsLogger.class)) {

@@ -103,6 +103,12 @@ public class CoreConfigContribution implements ConfigContribution {
     mappings.put(
         ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT,
         "carbonio-ws-collaboration/meeting/simulcast-low-height");
+    mappings.put(
+        ConfigName.STALE_PARTICIPANT_THRESHOLD_IN_HOURS,
+        "carbonio-ws-collaboration/meeting/stale-participant-threshold-in-hours");
+    mappings.put(
+        ConfigName.STALE_PARTICIPANT_CLEANUP_INTERVAL_IN_HOURS,
+        "carbonio-ws-collaboration/meeting/stale-participant-cleanup-interval-in-hours");
     return toNames(mappings);
   }
 
@@ -139,7 +145,9 @@ public class CoreConfigContribution implements ConfigContribution {
             ConfigName.MAX_QUEUE_REQUESTS,
             ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT,
             ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT,
-            ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT));
+            ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT,
+            ConfigName.STALE_PARTICIPANT_THRESHOLD_IN_HOURS,
+            ConfigName.STALE_PARTICIPANT_CLEANUP_INTERVAL_IN_HOURS));
   }
 
   @Override

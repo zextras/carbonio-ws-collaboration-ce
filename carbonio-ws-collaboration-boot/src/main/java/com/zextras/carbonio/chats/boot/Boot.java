@@ -118,9 +118,9 @@ public class Boot {
 
     eventListener.start();
     videoServerEventListener.start();
-    staleParticipantCleaner.start();
 
     server.start();
+    staleParticipantCleaner.start();
     SystemdNotify.ready("ws-collaboration ready");
 
     Runtime.getRuntime()

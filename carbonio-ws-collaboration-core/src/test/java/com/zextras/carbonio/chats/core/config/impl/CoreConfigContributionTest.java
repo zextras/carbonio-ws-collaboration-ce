@@ -19,6 +19,21 @@ class CoreConfigContributionTest {
   private final CoreConfigContribution contribution = new CoreConfigContribution();
 
   @Test
+  void staleParticipantSettingsAreAvailableInConsulAndDocker() {
+    Map<String, String> mappings = contribution.consulKvMappings();
+    String threshold = "STALE_PARTICIPANT_THRESHOLD_IN_HOURS";
+    String interval = "STALE_PARTICIPANT_CLEANUP_INTERVAL_IN_HOURS";
+
+    assertEquals(
+        "carbonio-ws-collaboration/meeting/stale-participant-threshold-in-hours",
+        mappings.get(threshold));
+    assertEquals(
+        "carbonio-ws-collaboration/meeting/stale-participant-cleanup-interval-in-hours",
+        mappings.get(interval));
+    assertTrue(contribution.environmentKeys().containsAll(Set.of(threshold, interval)));
+  }
+
+  @Test
   @DisplayName("Simulcast tier heights are read from their Consul KV keys")
   void simulcastHeightsHaveConsulKeys() {
     Map<String, String> mappings = contribution.consulKvMappings();

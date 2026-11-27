@@ -6,10 +6,13 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository.StaleParticipant;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -20,19 +23,23 @@ import java.util.concurrent.TimeUnit;
 public class StaleParticipantCleaner {
 
   private static final Duration FIRST_RUN_DELAY = Duration.ofMinutes(1);
-  private static final Duration RUN_INTERVAL = Duration.ofHours(12);
-  private static final Duration STALE_AFTER = Duration.ofHours(12);
+  private static final Duration DEFAULT_DURATION = Duration.ofHours(12);
 
   private final ParticipantRepository participantRepository;
   private final ParticipantService participantService;
   private final ScheduledExecutorService scheduler;
+  private final Duration staleAfter;
+  private final Duration runInterval;
 
   @Inject
   public StaleParticipantCleaner(
-      ParticipantRepository participantRepository, ParticipantService participantService) {
+      ParticipantRepository participantRepository,
+      ParticipantService participantService,
+      AppConfig appConfig) {
     this(
         participantRepository,
         participantService,
+        appConfig,
         Executors.newSingleThreadScheduledExecutor(
             Thread.ofPlatform().name("StaleParticipantCleaner").daemon().factory()));
   }
@@ -40,21 +47,50 @@ public class StaleParticipantCleaner {
   StaleParticipantCleaner(
       ParticipantRepository participantRepository,
       ParticipantService participantService,
+      AppConfig appConfig,
       ScheduledExecutorService scheduler) {
     this.participantRepository = participantRepository;
     this.participantService = participantService;
     this.scheduler = scheduler;
+    staleAfter = configuredDuration(appConfig, ConfigName.STALE_PARTICIPANT_THRESHOLD_IN_HOURS);
+    runInterval =
+        configuredDuration(appConfig, ConfigName.STALE_PARTICIPANT_CLEANUP_INTERVAL_IN_HOURS);
+  }
+
+  private static Duration configuredDuration(AppConfig appConfig, ConfigName key) {
+    try {
+      return appConfig
+          .get(String.class, key)
+          .map(StaleParticipantCleaner::parseHours)
+          .orElse(DEFAULT_DURATION);
+    } catch (IllegalArgumentException | ArithmeticException e) {
+      ChatsLogger.warn(
+          "Invalid hours for " + key + "; using " + DEFAULT_DURATION.toHours() + " hours");
+      return DEFAULT_DURATION;
+    }
+  }
+
+  private static Duration parseHours(String value) {
+    long seconds = new BigDecimal(value.trim()).multiply(BigDecimal.valueOf(3600)).longValueExact();
+    if (seconds <= 0) {
+      throw new IllegalArgumentException("Expected positive hours");
+    }
+    return Duration.ofSeconds(seconds);
   }
 
   public void start() {
     scheduler.scheduleWithFixedDelay(
-        this::run, FIRST_RUN_DELAY.toMillis(), RUN_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
+        this::run, FIRST_RUN_DELAY.toSeconds(), runInterval.toSeconds(), TimeUnit.SECONDS);
+    ChatsLogger.info(
+        String.format(
+            "Stale participant cleanup scheduled: threshold %ds, interval %ds",
+            staleAfter.toSeconds(), runInterval.toSeconds()));
   }
 
   // An escaping exception would cancel every later run.
   void run() {
     try {
-      participantRepository.claimStale(STALE_AFTER).forEach(this::remove);
+      participantRepository.claimStale(staleAfter).forEach(this::remove);
     } catch (Exception e) {
       ChatsLogger.error("Stale meeting participant cleanup failed", e);
     }
@@ -65,17 +101,13 @@ public class StaleParticipantCleaner {
       participantService.removeMeetingParticipant(UUID.fromString(participant.queueId()));
       ChatsLogger.info(
           String.format(
-              "Removed participant '%s' from meeting '%s': inactive for %d hours",
-              participant.userId(), participant.meetingId(), STALE_AFTER.toHours()));
+              "Removed stale participant '%s' from meeting '%s'",
+              participant.userId(), participant.meetingId()));
     } catch (Exception e) {
       ChatsLogger.warn(
           String.format(
-              "Unable to remove inactive participant '%s' from meeting '%s', retrying in %d"
-                  + " hours: %s",
-              participant.userId(),
-              participant.meetingId(),
-              RUN_INTERVAL.toHours(),
-              e.getMessage()));
+              "Unable to remove inactive participant '%s' from meeting '%s': %s",
+              participant.userId(), participant.meetingId(), e.getMessage()));
     }
   }
 }

@@ -34,6 +34,8 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/server/max-queue-requests:2048"
   "$MAIN_SERVICE_NAME/meeting/videoroom-bitrate:8000000"
   "$MAIN_SERVICE_NAME/meeting/videoroom-bitrate-cap:true"
+  "$MAIN_SERVICE_NAME/meeting/stale-participant-threshold-in-hours:12"
+  "$MAIN_SERVICE_NAME/meeting/stale-participant-cleanup-interval-in-hours:12"
   "$MAIN_SERVICE_NAME/preview/max-video-size-preview-in-mb:128"
 )
 
