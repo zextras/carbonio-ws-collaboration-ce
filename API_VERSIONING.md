@@ -64,7 +64,7 @@ what breaks for a 1.6.x client. It is the change log of 2.0.0 until the first re
 - `MeetingDeclined` in ONE_TO_ONE rooms, where it writes the `MEETING_DECLINED` line, also reaches all room
   members, so a caller who already left receives it.
 - Validation: blank `text` answers `400`; `text` at most 8192 characters; `tempId` at most 64;
-  `limit` of timeline and search 1 to 200 (search defaults to 50); `reaction` 1 to 32 UTF-16 code units.
+  `limit` of timeline and search 1 to 200 (search defaults to 50); `limit` of the room attachments list 1 to 100 (default 10); `reaction` 1 to 32 UTF-16 code units.
 - Deleting the pinned message also unpins it (`MessageUnpinned` after `MessageDeleted`); unpinning a message
   that is not pinned is a `204` no-op; pinning or reacting to a deleted message answers `404`; `DELETE` of a
   reaction answers `404` when the message is not in the room.

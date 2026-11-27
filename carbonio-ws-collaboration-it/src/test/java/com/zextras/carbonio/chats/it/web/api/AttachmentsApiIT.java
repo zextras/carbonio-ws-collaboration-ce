@@ -323,6 +323,43 @@ public class AttachmentsApiIT {
   }
 
   @Nested
+  @DisplayName("Lists room attachments tests")
+  class ListsRoomAttachmentsTests {
+
+    private String url(String query) {
+      return String.format("/rooms/%s/attachments?%s", roomId, query);
+    }
+
+    @Test
+    @DisplayName("A limit of 0 or below the minimum is a 400")
+    void listAttachments_limitBelowMinimum() throws Exception {
+      assertEquals(
+          Status.BAD_REQUEST.getStatusCode(),
+          dispatcher.get(url("limit=0"), user1Token).getStatus());
+      assertEquals(
+          Status.BAD_REQUEST.getStatusCode(),
+          dispatcher.get(url("limit=-1"), user1Token).getStatus());
+    }
+
+    @Test
+    @DisplayName("A limit above 100 is a 400")
+    void listAttachments_limitAboveMaximum() throws Exception {
+      assertEquals(
+          Status.BAD_REQUEST.getStatusCode(),
+          dispatcher.get(url("limit=101"), user1Token).getStatus());
+    }
+
+    @Test
+    @DisplayName("A limit between 1 and 100 is accepted")
+    void listAttachments_limitWithinBounds() throws Exception {
+      assertEquals(
+          Status.OK.getStatusCode(), dispatcher.get(url("limit=1"), user1Token).getStatus());
+      assertEquals(
+          Status.OK.getStatusCode(), dispatcher.get(url("limit=100"), user1Token).getStatus());
+    }
+  }
+
+  @Nested
   @DisplayName("Deletes attachment tests")
   class DeletesAttachmentTests {
 

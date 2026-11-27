@@ -462,6 +462,7 @@ The authoritative bounds are in `api.yaml`; a request outside them answers `400`
 | `text` of `POST /rooms/{roomId}/messages` | Required and not blank (only spaces or control characters answers `400`); at most 8192 characters (UTF-16 code units) |
 | `tempId` of the send and of the attachment upload | Optional; at most 64 characters |
 | `limit` of `GET /rooms/{roomId}/timeline` and `GET /rooms/{roomId}/messages/search` | 1 to 200; search defaults to 50 |
+| `limit` of `GET /rooms/{roomId}/attachments` | 1 to 100; defaults to 10 |
 | `reaction` of `PUT /rooms/{roomId}/messages/{messageId}/reaction` | 1 to 32 UTF-16 code units; blank answers `400` |
 | `POST /rooms/{roomId}/members` body | At least one member (`[]` answers `400`); a repeated user id is added once |
 | `POST /presence/batch` | At most 100 user ids |
