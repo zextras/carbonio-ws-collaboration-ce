@@ -13,7 +13,6 @@ if [[ $(id -u) -ne 0 ]]; then
 fi
 
 if command -v carbonio-ws-collaboration-hcl > /dev/null; then
-  carbonio-ws-collaboration-hcl migrate || :
   if ! carbonio-ws-collaboration-hcl render; then
     echo "Cannot render /etc/zextras/service-discover/carbonio-ws-collaboration.hcl; leaving pending-setup to be retried."
     exit 1
