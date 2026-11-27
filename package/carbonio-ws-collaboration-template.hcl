@@ -1,10 +1,16 @@
+// Generated from the packaged template on every upgrade and setup:
+// local edits to this file are overwritten.
+// To change the values, set them in /etc/zextras/service-discover/carbonio-ws-collaboration.env
+// (KEY=value lines; keys and defaults are printed at the end of carbonio-ws-collaboration-setup),
+// then run carbonio-ws-collaboration-setup.
+
 services {
   checks = [
     {
       http     = "http://127.78.0.4:10000/health/live"
       method   = "GET"
-      timeout  = "1s"
-      interval = "5s"
+      timeout  = "{{ or (env "CHECK_TIMEOUT") "1s" }}"
+      interval = "{{ or (env "CHECK_INTERVAL") "5s" }}"
     }
   ]
 
