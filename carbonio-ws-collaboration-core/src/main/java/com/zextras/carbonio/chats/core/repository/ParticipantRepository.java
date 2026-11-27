@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Participant;
+import com.zextras.carbonio.chats.core.data.model.StaleParticipant;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +31,4 @@ public interface ParticipantRepository {
   void clear(String meetingId);
 
   List<StaleParticipant> claimStale(Duration staleAfter);
-
-  record StaleParticipant(String meetingId, String userId, String queueId) {}
 }

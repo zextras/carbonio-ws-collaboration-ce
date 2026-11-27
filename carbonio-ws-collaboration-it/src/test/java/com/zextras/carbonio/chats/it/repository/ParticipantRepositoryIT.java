@@ -7,8 +7,8 @@ package com.zextras.carbonio.chats.it.repository;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.zextras.carbonio.chats.core.data.model.StaleParticipant;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.repository.ParticipantRepository.StaleParticipant;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
