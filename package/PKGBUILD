@@ -106,26 +106,10 @@ postinst() {
     systemctl enable carbonio-ws-collaboration-sidecar.service >/dev/null 2>&1 || :
   fi
 
-  if [ "$1" = "configure" ]; then
-    env -i PATH=/usr/bin:/bin bash -c 'set -a; [ -r "$1" ] && . "$1"; exec consul-template -once -template "$2:$3"' _ \
-      /etc/zextras/service-discover/carbonio-ws-collaboration.env \
-      /etc/zextras/service-discover/templates/carbonio-ws-collaboration-template.hcl \
-      /etc/zextras/service-discover/carbonio-ws-collaboration.hcl > /dev/null \
-      || echo "WARNING: cannot render /etc/zextras/service-discover/carbonio-ws-collaboration.hcl, run carbonio-ws-collaboration-setup"
-  fi
-
   echo "========================================================="
   echo "Carbonio Workstream Collaboration installed successfully!"
   echo "You must run pending-setups to configure it correctly.   "
   echo "========================================================="
-}
-
-posttrans() {
-  env -i PATH=/usr/bin:/bin bash -c 'set -a; [ -r "$1" ] && . "$1"; exec consul-template -once -template "$2:$3"' _ \
-    /etc/zextras/service-discover/carbonio-ws-collaboration.env \
-    /etc/zextras/service-discover/templates/carbonio-ws-collaboration-template.hcl \
-    /etc/zextras/service-discover/carbonio-ws-collaboration.hcl > /dev/null \
-    || echo "WARNING: cannot render /etc/zextras/service-discover/carbonio-ws-collaboration.hcl, run carbonio-ws-collaboration-setup"
 }
 
 prerm() {
