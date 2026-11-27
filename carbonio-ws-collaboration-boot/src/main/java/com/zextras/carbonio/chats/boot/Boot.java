@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.security.UserAccessPolicy;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
@@ -47,6 +48,7 @@ public class Boot {
   private final EventListener eventListener;
   private final VideoServerEventListener videoServerEventListener;
   private final AppConfig appConfig;
+  private final UserAccessPolicy userAccessPolicy;
 
   @Inject
   public Boot(
@@ -58,7 +60,8 @@ public class Boot {
       EventsWebSocketManager eventsWebSocketManager,
       EventListener eventListener,
       VideoServerEventListener videoServerEventListener,
-      AppConfig appConfig) {
+      AppConfig appConfig,
+      UserAccessPolicy userAccessPolicy) {
     this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
     this.flyway = flyway;
@@ -68,6 +71,7 @@ public class Boot {
     this.eventListener = eventListener;
     this.videoServerEventListener = videoServerEventListener;
     this.appConfig = appConfig;
+    this.userAccessPolicy = userAccessPolicy;
   }
 
   public void boot() throws Exception {
@@ -102,7 +106,7 @@ public class Boot {
           servletContext
               .addFilter(
                   "eventsWebSocketAuthenticationFilter",
-                  EventsWebSocketAuthenticationFilter.create(authenticationService))
+                  EventsWebSocketAuthenticationFilter.create(authenticationService, userAccessPolicy))
               .addMappingForUrlPatterns(
                   EnumSet.of(DispatcherType.REQUEST),
                   false /* It's applied before other filters */,

@@ -8,7 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +24,7 @@ import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.core.UriInfo;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,10 +38,21 @@ class AuthenticationFilterTest {
 
   private final AuthenticationFilter authenticationFilter;
   private final AuthenticationService authenticationService;
+  private final UserAccessPolicy userAccessPolicy;
 
   public AuthenticationFilterTest() {
     authenticationService = mock(AuthenticationService.class);
-    authenticationFilter = new AuthenticationFilter(authenticationService);
+    userAccessPolicy = mock(UserAccessPolicy.class);
+    when(userAccessPolicy.isAllowed(any(), any(), any())).thenReturn(true);
+    authenticationFilter = new AuthenticationFilter(authenticationService, userAccessPolicy);
+  }
+
+  private ContainerRequestContext requestContextFor(String path) {
+    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+    UriInfo uriInfo = mock(UriInfo.class);
+    when(uriInfo.getPath()).thenReturn(path);
+    when(requestContext.getUriInfo()).thenReturn(uriInfo);
+    return requestContext;
   }
 
   private MyselfDto buildMyselfDto(
@@ -85,7 +99,7 @@ class AuthenticationFilterTest {
               capabilities,
               "carbonioFeatureWscEnabled");
 
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
@@ -121,7 +135,7 @@ class AuthenticationFilterTest {
               capabilities,
               "carbonioFeatureWscEnabled");
 
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
@@ -139,7 +153,7 @@ class AuthenticationFilterTest {
     @Test
     @DisplayName("Creates empty user principal if no token is present")
     void filter_testTokenNotAuthenticated() {
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies()).thenReturn(Map.of());
 
       authenticationFilter.filter(requestContext);
@@ -154,7 +168,7 @@ class AuthenticationFilterTest {
     @Test
     @DisplayName("Throws an unauthorized exception if the token is not valid")
     void filter_testTokenNotValid() {
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.empty());
@@ -178,7 +192,7 @@ class AuthenticationFilterTest {
               capabilities,
               "carbonioFeatureWscEnabled");
 
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
@@ -201,7 +215,7 @@ class AuthenticationFilterTest {
               "active",
               capabilities);
 
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
@@ -224,7 +238,7 @@ class AuthenticationFilterTest {
               "active",
               capabilities);
 
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
@@ -248,12 +262,72 @@ class AuthenticationFilterTest {
               "active",
               capabilities);
 
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+      ContainerRequestContext requestContext = requestContextFor("rooms");
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
       assertThrows(ForbiddenException.class, () -> authenticationFilter.filter(requestContext));
+    }
+
+    @Test
+    @DisplayName("Throws a forbidden exception if the access policy denies the user")
+    void filter_testAccessPolicyDenied() {
+      UUID userId = UUID.randomUUID();
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              "INTERNAL",
+              "active",
+              Map.of("carbonioFeatureWscEnabled", "TRUE"),
+              "carbonioFeatureWscEnabled");
+      ContainerRequestContext requestContext = requestContextFor("rooms");
+      when(requestContext.getCookies())
+          .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
+      when(userAccessPolicy.isAllowed(userId.toString(), UserType.INTERNAL, "rooms"))
+          .thenReturn(false);
+
+      assertThrows(ForbiddenException.class, () -> authenticationFilter.filter(requestContext));
+      verify(requestContext, never()).setSecurityContext(any());
+    }
+
+    @Test
+    @DisplayName("Passes user id, user type and request path to the access policy")
+    void filter_testAccessPolicyReceivesRequestData() {
+      UUID userId = UUID.randomUUID();
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "guest@example.com",
+              "Guest User",
+              "example.com",
+              "GUEST",
+              "active",
+              Map.of("carbonioFeatureWscEnabled", "TRUE"),
+              "carbonioFeatureWscEnabled");
+      ContainerRequestContext requestContext = requestContextFor("license");
+      when(requestContext.getCookies())
+          .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
+
+      authenticationFilter.filter(requestContext);
+
+      verify(userAccessPolicy).isAllowed(userId.toString(), UserType.GUEST, "license");
+    }
+
+    @Test
+    @DisplayName("Does not consult the access policy for anonymous requests")
+    void filter_testAnonymousSkipsAccessPolicy() {
+      ContainerRequestContext requestContext = requestContextFor("health/live");
+      when(requestContext.getCookies()).thenReturn(Map.of());
+
+      authenticationFilter.filter(requestContext);
+
+      verify(userAccessPolicy, never()).isAllowed(any(), any(), any());
     }
   }
 }

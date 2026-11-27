@@ -31,6 +31,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeEventTypeNameMigration;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeSet;
 import com.zextras.carbonio.chats.core.web.api.versioning.VersionMigrationsRegistry;
+import com.zextras.carbonio.chats.core.web.security.AllowAllUserAccessPolicy;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -614,7 +615,8 @@ class EventsWebSocketIT {
           servletContext
               .addFilter(
                   "eventsWebSocketAuthenticationFilter",
-                  EventsWebSocketAuthenticationFilter.create(authenticationService))
+                  EventsWebSocketAuthenticationFilter.create(
+                      authenticationService, new AllowAllUserAccessPolicy()))
               .addMappingForUrlPatterns(
                   EnumSet.of(DispatcherType.REQUEST),
                   false /* It's applied before other filters */,

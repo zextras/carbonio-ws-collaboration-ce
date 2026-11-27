@@ -27,10 +27,13 @@ import java.util.UUID;
 public class AuthenticationFilter implements ContainerRequestFilter {
 
   private final AuthenticationService authenticationService;
+  private final UserAccessPolicy userAccessPolicy;
 
   @Inject
-  public AuthenticationFilter(AuthenticationService authenticationService) {
+  public AuthenticationFilter(
+      AuthenticationService authenticationService, UserAccessPolicy userAccessPolicy) {
     this.authenticationService = authenticationService;
+    this.userAccessPolicy = userAccessPolicy;
   }
 
   @Override
@@ -66,6 +69,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                       .contains(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
               if (!wscEnabled) {
                 throw new ForbiddenException("WSC feature not enabled for user");
+              }
+
+              if (!userAccessPolicy.isAllowed(
+                  userMyself.getInfo().getUserId(),
+                  UserType.from(userMyself.getInfo().getType()),
+                  requestContext.getUriInfo().getPath())) {
+                throw new ForbiddenException("Access not allowed for user");
               }
               Map<String, String> capabilities = userMyself.getCapabilities();
               requestContext.setSecurityContext(

@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
@@ -19,20 +20,24 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
 
 public class EventsWebSocketAuthenticationFilter implements Filter {
 
-  private final AuthenticationService authenticationService;
+  private static final String EVENTS_PATH = "/events";
 
-  public EventsWebSocketAuthenticationFilter(AuthenticationService authenticationService) {
+  private final AuthenticationService authenticationService;
+  private final UserAccessPolicy userAccessPolicy;
+
+  public EventsWebSocketAuthenticationFilter(
+      AuthenticationService authenticationService, UserAccessPolicy userAccessPolicy) {
     this.authenticationService = authenticationService;
+    this.userAccessPolicy = userAccessPolicy;
   }
 
   public static EventsWebSocketAuthenticationFilter create(
-      AuthenticationService authenticationService) {
-    return new EventsWebSocketAuthenticationFilter(authenticationService);
+      AuthenticationService authenticationService, UserAccessPolicy userAccessPolicy) {
+    return new EventsWebSocketAuthenticationFilter(authenticationService, userAccessPolicy);
   }
 
   @Override
@@ -78,9 +83,14 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
     }
-    Map<String, String> capabilities = userMyself.getCapabilities();
 
     String userId = userMyself.getInfo().getUserId();
+    if (!userAccessPolicy.isAllowed(
+        userId, UserType.from(userMyself.getInfo().getType()), EVENTS_PATH)) {
+      ChatsLogger.warn("Websocket authentication failed: access not allowed for user " + userId);
+      httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
+      return;
+    }
     httpRequest.getSession().setAttribute("userId", userId);
     chain.doFilter(request, response);
   }

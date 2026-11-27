@@ -14,5 +14,6 @@ public class ExtensionModule extends AbstractModule {
     install(new AttachmentModule());
     install(new MeetingModule());
     install(new WebSocketModule());
+    install(new AccessPolicyModule());
   }
 }
