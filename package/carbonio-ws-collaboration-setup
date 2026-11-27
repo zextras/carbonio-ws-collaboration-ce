@@ -12,6 +12,12 @@ if [[ $(id -u) -ne 0 ]]; then
   exit 1
 fi
 
+carbonio-ws-collaboration-hcl migrate || :
+if ! carbonio-ws-collaboration-hcl render; then
+  echo "Cannot render /etc/zextras/service-discover/carbonio-ws-collaboration.hcl; leaving pending-setup to be retried."
+  exit 1
+fi
+
 # Decrypt the bootstrap token, asking the password to the sys admin
 # --setup check for SETUP_CONSUL_TOKEN env. variable and uses it
 # to avoid re-asking for the password
@@ -74,3 +80,6 @@ service-discover service-token prune-legacy --service carbonio-ws-collaboration 
 # Limit token visibility as much as possible
 export -n CONSUL_HTTP_TOKEN
 trap - EXIT
+rc=$?
+carbonio-ws-collaboration-hcl show || :
+exit "${rc}"

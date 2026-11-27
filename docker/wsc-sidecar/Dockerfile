@@ -1,10 +1,16 @@
 ARG SIDECAR_IMAGE=registry.dev.zextras.com/dev/carbonio-sidecar:main
+FROM --platform=$BUILDPLATFORM docker.io/library/alpine:3.20 AS hcl
+COPY package/carbonio-ws-collaboration-template.hcl /carbonio-ws-collaboration-template.hcl
+RUN sed -E 's/\{\{ or \(env "[A-Z0-9_]+"\) "([^"]*)" \}\}/\1/g' \
+    /carbonio-ws-collaboration-template.hcl > /carbonio-ws-collaboration.hcl \
+    && ! grep -q '{{' /carbonio-ws-collaboration.hcl
+
 FROM ${SIDECAR_IMAGE}
 
 RUN useradd -r -U carbonio-ws-collaboration
 
 # Service registration
-COPY package/carbonio-ws-collaboration.hcl /consul/config/
+COPY --from=hcl /carbonio-ws-collaboration.hcl /consul/config/
 
 # Setup files
 COPY package/service-protocol.json /etc/carbonio/ws-collaboration/service-discover/
