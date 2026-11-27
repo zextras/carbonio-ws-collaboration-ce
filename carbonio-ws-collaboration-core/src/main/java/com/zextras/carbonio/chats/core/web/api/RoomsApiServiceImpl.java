@@ -816,12 +816,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     OffsetDateTime beforeTs = before != null ? parseTimestamp(before) : null;
     MessageSearchPage page =
         chatMessageService.searchVisibleMessages(
-            roomId.toString(),
-            currentUser.getId(),
-            q,
-            beforeTs,
-            nullIfBlank(beforeId),
-            limit != null ? limit : 50);
+            roomId.toString(), currentUser.getId(), q, beforeTs, nullIfBlank(beforeId), limit);
     List<MessageDto> messages =
         page.messages().stream().map(m -> toMessageDto(m, page.visibleReplyIds())).toList();
     return Response.status(Status.OK)

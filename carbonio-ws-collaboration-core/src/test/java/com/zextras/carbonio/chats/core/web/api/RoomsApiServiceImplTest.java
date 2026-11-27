@@ -3194,7 +3194,7 @@ class RoomsApiServiceImplTest {
                   Set.of(visibleReply.toString())));
 
       Response response =
-          roomsApiService.searchMessages(roomId, "hello", null, null, null, securityContext);
+          roomsApiService.searchMessages(roomId, "hello", 50, null, null, securityContext);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
       assertEquals(

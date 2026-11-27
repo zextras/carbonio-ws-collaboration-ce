@@ -221,6 +221,22 @@ class SearchIT {
     return ids;
   }
 
+  @Test
+  @DisplayName("Search without a limit returns 50 results and reports there are more")
+  void defaultLimitIsFifty() throws Exception {
+    for (int i = 0; i < 51; i++) {
+      messageAt("needle " + i, T0.plusSeconds(i));
+    }
+
+    MockHttpResponse response =
+        dispatcher.get(String.format("/rooms/%s/messages/search?q=needle", roomId), meToken);
+
+    assertEquals(200, response.getStatus());
+    JsonNode body = objectMapper.readTree(response.getContentAsString());
+    assertEquals(50, body.get("messages").size());
+    assertEquals(true, body.get("hasMore").asBoolean());
+  }
+
   private String messageAt(String text, OffsetDateTime at) {
     String id = UUID.randomUUID().toString();
     messageRepository.insert(
