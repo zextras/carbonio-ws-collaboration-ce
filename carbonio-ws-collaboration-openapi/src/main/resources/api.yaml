@@ -879,7 +879,7 @@ paths:
     get:
       tags:
         - Rooms
-      summary: Retrieves read markers for all room members
+      summary: Retrieves read markers for all current room members
       operationId: getRoomReadMarkers
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
@@ -3047,7 +3047,7 @@ components:
           description: indicates whether the current user has muted this room
         markers:
           type: array
-          description: read markers of every member of this room
+          description: read markers of the current members of this room
           items:
             $ref: '#/components/schemas/ReadMarker'
       required: [ roomId, room, unreadCount, muted, markers ]

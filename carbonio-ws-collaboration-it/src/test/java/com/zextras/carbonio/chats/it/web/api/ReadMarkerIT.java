@@ -30,9 +30,11 @@ import io.ebean.Database;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
@@ -565,6 +567,67 @@ class ReadMarkerIT {
         assertNotEquals(readerUserId.toString(), marker.get("userId").asText());
       }
       assertEquals(1, conversation.get("markers").size());
+    }
+
+    @Test
+    @DisplayName("Markers of former members are hidden everywhere and come back when re-added")
+    void formerMember_markerHiddenUntilReAdded() throws Exception {
+      markRead(roomId, msgId, senderToken);
+      markRead(roomId, msgId, readerToken);
+      assertEquals(Set.of(senderUserId.toString(), readerUserId.toString()), markerUsers());
+
+      database
+          .sqlUpdate("DELETE FROM chats.subscription WHERE room_id = :r AND user_id = :u")
+          .setParameter("r", roomId)
+          .setParameter("u", readerUserId.toString())
+          .execute();
+
+      assertEquals(Set.of(senderUserId.toString()), markerUsers());
+      assertTrue(readRepository.get(readerUserId.toString(), roomId).isPresent());
+
+      database
+          .sqlUpdate(
+              "INSERT INTO chats.subscription (user_id, room_id, owner, joined_at)"
+                  + " VALUES (:u, :r, false, :j)")
+          .setParameter("r", roomId)
+          .setParameter("u", readerUserId.toString())
+          .setParameter("j", T1.minusDays(1))
+          .execute();
+
+      assertEquals(Set.of(senderUserId.toString(), readerUserId.toString()), markerUsers());
+    }
+
+    private Set<String> markerUsers() throws Exception {
+      Set<String> read = new HashSet<>();
+      Set<String> timeline = new HashSet<>();
+      Set<String> inbox = new HashSet<>();
+      collect(dispatcher.get(url(roomId), senderToken), read, "");
+      collect(
+          dispatcher.get(String.format("/rooms/%s/timeline", roomId), senderToken),
+          timeline,
+          "markers");
+      MockHttpResponse inboxResponse = dispatcher.get("/inbox", senderToken);
+      for (JsonNode c :
+          objectMapper.readTree(inboxResponse.getContentAsString()).get("conversations")) {
+        if (roomId.equals(c.get("room").get("id").asText())) {
+          for (JsonNode m : c.get("markers")) {
+            inbox.add(m.get("userId").asText());
+          }
+        }
+      }
+      assertEquals(read, timeline);
+      assertEquals(read, inbox);
+      return read;
+    }
+
+    private void collect(MockHttpResponse response, Set<String> into, String field)
+        throws Exception {
+      assertEquals(200, response.getStatus());
+      JsonNode root = objectMapper.readTree(response.getContentAsString());
+      JsonNode markers = field.isEmpty() ? root : root.get(field);
+      for (JsonNode m : markers) {
+        into.add(m.get("userId").asText());
+      }
     }
   }
 }

@@ -27,6 +27,10 @@ public class EbeanReadMarkerRepository implements ReadMarkerRepository {
       RETURNING item_created_at
       """;
 
+  private static final String CURRENT_MEMBER =
+      "exists (select 1 from chats.subscription s"
+          + " where s.user_id = t0.user_id and s.room_id = t0.room_id)";
+
   private final Database db;
 
   @Inject
@@ -42,13 +46,17 @@ public class EbeanReadMarkerRepository implements ReadMarkerRepository {
 
   @Override
   public List<ReadMarker> getByRoomId(String roomId) {
-    return db.find(ReadMarker.class).where().eq("id.roomId", roomId).findList();
+    return db.find(ReadMarker.class).where().eq("id.roomId", roomId).raw(CURRENT_MEMBER).findList();
   }
 
   @Override
   public List<ReadMarker> getByRoomIds(List<String> roomIds) {
     if (roomIds == null || roomIds.isEmpty()) return List.of();
-    return db.find(ReadMarker.class).where().in("id.roomId", roomIds).findList();
+    return db.find(ReadMarker.class)
+        .where()
+        .in("id.roomId", roomIds)
+        .raw(CURRENT_MEMBER)
+        .findList();
   }
 
   @Override

@@ -435,7 +435,8 @@ Each member has a visibility floor, `clearedAt`: the instant of their last per-u
 - Cursor ids (`beforeId`, `afterId`, `aroundId` of the timeline, `beforeId` of the search) at or below your
   floor are treated exactly like unknown ids.
 - Read markers of other users (timeline `markers`, `/inbox` `markers`, `GET /rooms/{roomId}/read`) are
-  clamped to your `clearedAt`. The schema is unchanged.
+  clamped to your `clearedAt`. Only current members have a marker in these responses: the marker of a user who left or was
+  removed is hidden, and it comes back if the user is added again. The schema is unchanged.
 - WebSocket events that concern one existing item are sent only to the members who can see it:
   `MessageEdited`, `MessageDeleted`, `ReactionChanged` and `ReadUpdated`. The exception is the current room
   pin: its edits go to all members, like `MessagePinned` and `MessageUnpinned`.
