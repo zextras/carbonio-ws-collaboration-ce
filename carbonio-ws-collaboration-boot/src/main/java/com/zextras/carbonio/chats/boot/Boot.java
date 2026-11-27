@@ -106,7 +106,8 @@ public class Boot {
           servletContext
               .addFilter(
                   "eventsWebSocketAuthenticationFilter",
-                  EventsWebSocketAuthenticationFilter.create(authenticationService, userAccessPolicy))
+                  EventsWebSocketAuthenticationFilter.create(
+                      authenticationService, userAccessPolicy))
               .addMappingForUrlPatterns(
                   EnumSet.of(DispatcherType.REQUEST),
                   false /* It's applied before other filters */,
