@@ -21,10 +21,10 @@ import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
@@ -44,7 +44,7 @@ class MeetingsApiServiceImplTest {
   private final MeetingService meetingService;
   private final ParticipantService participantService;
   private final SecurityContext securityContext;
-  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final VideoServerMonitor videoServerMonitor;
   private UUID user1Id;
   private UUID roomId;
   private UUID meetingId;
@@ -55,10 +55,10 @@ class MeetingsApiServiceImplTest {
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
     CacheVideoServerSession cacheVideoServerSession = mock(CacheVideoServerSession.class);
-    this.healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
+    this.videoServerMonitor = mock(VideoServerMonitor.class);
     this.meetingsApiService =
         new MeetingsApiServiceImpl(
-            meetingService, participantService, cacheVideoServerSession, healthMonitor);
+            meetingService, participantService, cacheVideoServerSession, videoServerMonitor);
   }
 
   @BeforeEach
@@ -81,7 +81,7 @@ class MeetingsApiServiceImplTest {
 
   @AfterEach
   void afterEach() {
-    reset(meetingService, participantService, securityContext, healthMonitor);
+    reset(meetingService, participantService, securityContext, videoServerMonitor);
   }
 
   @Test
@@ -167,8 +167,8 @@ class MeetingsApiServiceImplTest {
   @Test
   void messageBrokerDownBlocksJoinMeeting() {
     doThrow(new EventDispatcherException("Message broker is down"))
-        .when(healthMonitor)
-        .checkStatus();
+        .when(videoServerMonitor)
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -179,8 +179,8 @@ class MeetingsApiServiceImplTest {
   @Test
   void messageBrokerDownBlocksStartMeeting() {
     doThrow(new EventDispatcherException("Message broker is down"))
-        .when(healthMonitor)
-        .checkStatus();
+        .when(videoServerMonitor)
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -191,8 +191,8 @@ class MeetingsApiServiceImplTest {
   @Test
   void messageBrokerDownBlocksUpdateMediaStream() {
     doThrow(new EventDispatcherException("Message broker is down"))
-        .when(healthMonitor)
-        .checkStatus();
+        .when(videoServerMonitor)
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -209,8 +209,8 @@ class MeetingsApiServiceImplTest {
   @Test
   void messageBrokerDownBlocksUpdateAudioStream() {
     doThrow(new EventDispatcherException("Message broker is down"))
-        .when(healthMonitor)
-        .checkStatus();
+        .when(videoServerMonitor)
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -225,8 +225,8 @@ class MeetingsApiServiceImplTest {
   @Test
   void messageBrokerDownBlocksUpdateHandStatus() {
     doThrow(new EventDispatcherException("Message broker is down"))
-        .when(healthMonitor)
-        .checkStatus();
+        .when(videoServerMonitor)
+        .checkAvailability();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(

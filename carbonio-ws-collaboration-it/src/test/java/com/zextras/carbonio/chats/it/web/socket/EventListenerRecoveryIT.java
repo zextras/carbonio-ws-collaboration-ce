@@ -19,9 +19,9 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
@@ -46,8 +46,7 @@ class EventListenerRecoveryIT {
   private static final DomainEvent EVENT = DomainEvent.create().type(EventType.PONG);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final MessageBrokerVideoserverHealthMonitor healthMonitor =
-      mock(MessageBrokerVideoserverHealthMonitor.class);
+  private final VideoServerMonitor videoServerMonitor = mock(VideoServerMonitor.class);
   private final RabbitMqBroker broker;
   private final ConnectionFactory factory;
   private String json;
@@ -76,8 +75,14 @@ class EventListenerRecoveryIT {
     return async;
   }
 
-  private List<String> userEventQueues() throws Exception {
-    return broker.queues().stream().filter(name -> name.startsWith("amq.gen-")).toList();
+  private List<String> consumedUserEventQueues() throws Exception {
+    return broker
+        .rabbitmqctl("list_queues", "--quiet", "--no-table-headers", "name", "consumers")
+        .lines()
+        .map(line -> line.strip().split("\\s+"))
+        .filter(queue -> queue[0].startsWith("amq.gen-") && !"0".equals(queue[1]))
+        .map(queue -> queue[0])
+        .toList();
   }
 
   @BeforeEach
@@ -90,7 +95,7 @@ class EventListenerRecoveryIT {
             factory.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),
-            healthMonitor);
+            videoServerMonitor);
     listener.start();
     dispatcher = new EventDispatcherRabbitMq(factory.newConnection(), objectMapper);
   }
@@ -102,9 +107,14 @@ class EventListenerRecoveryIT {
   }
 
   private void reconnectEverything() throws Exception {
+    String beforeTheDrop = consumedUserEventQueues().getFirst();
     broker.rabbitmqctl("close_all_connections", "test");
-    verify(healthMonitor, timeout(5000)).notifyBrokerDown();
-    verify(healthMonitor, timeout(10000)).notifyBrokerRecovered();
+    verify(videoServerMonitor, timeout(5000)).onBrokerLost();
+    await()
+        .atMost(Duration.ofSeconds(10))
+        .until(
+            this::consumedUserEventQueues,
+            queues -> queues.size() == 1 && !queues.contains(beforeTheDrop));
     await().atMost(Duration.ofSeconds(10)).until(dispatcher::isAlive);
   }
 
@@ -140,13 +150,15 @@ class EventListenerRecoveryIT {
   @Test
   void afterTheBrokerDeletesTheQueue_eachEventFlowsOnceAgain_evenAfterAReconnect()
       throws Exception {
-    String deleted = userEventQueues().getFirst();
+    String deleted = consumedUserEventQueues().getFirst();
 
     broker.rabbitmqctl("delete_queue", deleted);
 
     await()
         .atMost(Duration.ofSeconds(10))
-        .until(this::userEventQueues, queues -> queues.size() == 1 && !queues.contains(deleted));
+        .until(
+            this::consumedUserEventQueues,
+            queues -> queues.size() == 1 && !queues.contains(deleted));
     dispatcher.sendToUserExchange(USER_A, EVENT);
     verify(remote, timeout(5000)).sendText(json);
 

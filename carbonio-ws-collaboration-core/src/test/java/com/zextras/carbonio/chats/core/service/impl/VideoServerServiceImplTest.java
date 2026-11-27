@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
@@ -49,6 +50,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -56,6 +58,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 
 @UnitTest
@@ -68,6 +71,7 @@ class VideoServerServiceImplTest {
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final VideoServerService videoServerService;
   private final VideoServerConfig videoServerConfig;
+  private final VideoServerMonitor videoServerMonitor;
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
@@ -81,6 +85,7 @@ class VideoServerServiceImplTest {
     when(videoServerConfig.getApiSecret()).thenReturn("token");
     when(videoServerConfig.getBitrate()).thenReturn(8000000);
     when(videoServerConfig.getBitrateCap()).thenReturn(true);
+    videoServerMonitor = mock(VideoServerMonitor.class);
 
     this.videoServerService =
         new VideoServerServiceImpl(
@@ -88,6 +93,7 @@ class VideoServerServiceImplTest {
             injectedVideoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
+            videoServerMonitor,
             clock) {
           @Override
           protected VideoServerClient clientFor(VideoServerMeeting videoServerMeeting) {
@@ -3012,6 +3018,155 @@ class VideoServerServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Video server down tests")
+  class VideoServerDownTests {
+
+    private VideoServerSession joinUser1(VideoServerMeeting videoServerMeeting) {
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .audioHandleId(user1AudioHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+      return videoServerSession;
+    }
+
+    @Test
+    void everyMediaCall_isRefusedWithoutCallingTheVideoServer() {
+      joinUser1(createVideoServerMeeting(meeting1Id));
+      when(videoServerMonitor.isDown()).thenReturn(true);
+      String user = user1Id.toString();
+      String meeting = meeting1Id.toString();
+      Map<String, Executable> calls =
+          Map.ofEntries(
+              Map.entry(
+                  "join",
+                  () ->
+                      videoServerService.addMeetingParticipant(
+                          user2Id.toString(), queue2Id.toString(), meeting, false, true)),
+              Map.entry(
+                  "media",
+                  () ->
+                      videoServerService.updateMediaStream(
+                          user,
+                          meeting,
+                          MediaStreamSettingsDto.create()
+                              .type(TypeEnum.VIDEO)
+                              .enabled(true)
+                              .sdp("sdp"))),
+              Map.entry("audio", () -> videoServerService.updateAudioStream(user, meeting, true)),
+              Map.entry(
+                  "answer", () -> videoServerService.answerRtcMediaStream(user, meeting, "sdp")),
+              Map.entry(
+                  "configure",
+                  () ->
+                      videoServerService.configureSubscribedStream(user, meeting, "mid", 0, null)),
+              Map.entry(
+                  "subscriptions",
+                  () ->
+                      videoServerService.updateSubscriptionsMediaStream(
+                          user, meeting, SubscriptionUpdatesDto.create())),
+              Map.entry(
+                  "offer", () -> videoServerService.offerRtcAudioStream(user, meeting, "sdp")),
+              Map.entry(
+                  "audio ice restart",
+                  () -> videoServerService.iceRestartAudio(user, meeting, "sdp")),
+              Map.entry(
+                  "video ice restart",
+                  () -> videoServerService.iceRestartVideo(user, meeting, "sdp")),
+              Map.entry(
+                  "screen ice restart",
+                  () -> videoServerService.iceRestartScreen(user, meeting, "sdp")));
+
+      assertAll(
+          calls.entrySet().stream()
+              .map(
+                  call ->
+                      () ->
+                          assertThrows(
+                              VideoServerException.class, call.getValue(), call.getKey())));
+
+      verify(videoServerMeetingRepository, times(calls.size())).getById(meeting);
+    }
+
+    @Test
+    void leave_afterTheVideoServerShutDown_forgetsTheSessionWithoutCallingTheVideoServer() {
+      VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
+      when(videoServerMonitor.isShutDown()).thenReturn(true);
+
+      videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerSessionRepository).remove(videoServerSession);
+    }
+
+    @Test
+    void leave_fromASilentVideoServer_stillDestroysTheSessionOnIt() {
+      VideoServerSession videoServerSession = joinUser1(createVideoServerMeeting(meeting1Id));
+      when(videoServerMonitor.isDown()).thenReturn(true);
+      VideoServerResponse destroyed = VideoServerResponse.create().status("success");
+      when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
+          .thenReturn(destroyed);
+      when(videoServerClient.sendConnectionVideoServerRequest(any(), any())).thenReturn(destroyed);
+
+      videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerClient, times(4))
+          .sendHandleVideoServerRequest(eq(user1SessionId.toString()), any(), any());
+      verify(videoServerClient)
+          .sendConnectionVideoServerRequest(eq(user1SessionId.toString()), any());
+      verify(videoServerSessionRepository).remove(videoServerSession);
+    }
+
+    @Test
+    void leave_fromASilentVideoServerThatDoesNotAnswer_keepsTheSession() {
+      joinUser1(createVideoServerMeeting(meeting1Id));
+      when(videoServerMonitor.isDown()).thenReturn(true);
+      when(videoServerClient.sendHandleVideoServerRequest(any(), any(), any()))
+          .thenThrow(new VideoServerException("Something went wrong executing request"));
+
+      String user = user1Id.toString();
+      String meeting = meeting1Id.toString();
+
+      assertThrows(
+          VideoServerException.class,
+          () -> videoServerService.destroyMeetingParticipant(user, meeting));
+
+      verify(videoServerMeetingRepository).getById(meeting);
+      verify(videoServerClient).sendHandleVideoServerRequest(any(), any(), any());
+    }
+
+    @Test
+    void stop_onASilentVideoServerThatDoesNotAnswer_keepsTheMeeting() {
+      createVideoServerMeeting(meeting1Id);
+      when(videoServerMonitor.isDown()).thenReturn(true);
+      when(videoServerClient.sendAudioBridgeRequest(any(), any(), any()))
+          .thenThrow(new VideoServerException("Something went wrong executing request"));
+
+      String meeting = meeting1Id.toString();
+
+      assertThrows(VideoServerException.class, () -> videoServerService.stopMeeting(meeting));
+
+      verify(videoServerMeetingRepository).getById(meeting);
+      verify(videoServerClient).sendAudioBridgeRequest(any(), any(), any());
+    }
+
+    @Test
+    void stop_afterTheVideoServerShutDown_forgetsTheMeetingWithoutCallingTheVideoServer() {
+      createVideoServerMeeting(meeting1Id);
+      when(videoServerMonitor.isShutDown()).thenReturn(true);
+
+      videoServerService.stopMeeting(meeting1Id.toString());
+
+      verify(videoServerMeetingRepository).getById(meeting1Id.toString());
+      verify(videoServerMeetingRepository).deleteById(meeting1Id.toString());
+    }
+  }
+
+  @Nested
   @DisplayName("Health check tests")
   class HealthCheckTests {
 
@@ -3021,6 +3176,7 @@ class VideoServerServiceImplTest {
             videoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
+            videoServerMonitor,
             clock);
 
     @Test

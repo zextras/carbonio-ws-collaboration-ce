@@ -14,6 +14,9 @@ import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ExceptionHandler;
+import com.rabbitmq.client.TopologyRecoveryException;
+import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
@@ -24,8 +27,9 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -40,7 +44,7 @@ public class MessagingModule extends AbstractModule {
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(EventListener.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
-    bind(MessageBrokerVideoserverHealthMonitor.class);
+    bind(VideoServerMonitor.class);
   }
 
   @Singleton
@@ -93,7 +97,22 @@ public class MessagingModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
     factory.setAutomaticRecoveryEnabled(true);
     factory.setTopologyRecoveryEnabled(true);
+    factory.setExceptionHandler(exitOnFailedTopologyRecovery());
     return factory;
+  }
+
+  private static ExceptionHandler exitOnFailedTopologyRecovery() {
+    return new DefaultExceptionHandler() {
+      @Override
+      public void handleTopologyRecoveryException(
+          Connection connection, Channel channel, TopologyRecoveryException exception) {
+        ChatsLogger.error(
+            "Could not declare the queues and consumers again after a broker outage, exiting",
+            exception);
+        // on another thread: System.exit waits for the shutdown hooks that close the connections
+        Thread.ofPlatform().name("Exit after a failed broker recovery").start(() -> System.exit(1));
+      }
+    };
   }
 
   @Singleton

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -33,6 +34,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.impl.LongStringHelper;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.RemoteEndpoint;
@@ -58,7 +60,8 @@ class EventListenerTest {
   private Channel channel;
   private EventWebSocketSessions sessions;
   private WebsocketVersionMigrator migrator;
-  private MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private VideoServerMonitor videoServerMonitor;
+  private final Runnable exit = mock(Runnable.class);
   private EventListener listener;
 
   @BeforeEach
@@ -72,8 +75,8 @@ class EventListenerTest {
     migrator = mock(WebsocketVersionMigrator.class);
     when(migrator.downgradeIfNeeded(anyString(), anyString()))
         .thenAnswer(invocation -> invocation.getArgument(0));
-    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
-    listener = new EventListener(connection, sessions, migrator, healthMonitor);
+    videoServerMonitor = mock(VideoServerMonitor.class);
+    listener = new EventListener(connection, sessions, migrator, videoServerMonitor, exit);
     listener.start();
   }
 
@@ -127,7 +130,7 @@ class EventListenerTest {
   void construction_subscribesNothing_untilStarted() throws Exception {
     Connection idle = mock(Connection.class);
 
-    new EventListener(idle, sessions, migrator, healthMonitor);
+    new EventListener(idle, sessions, migrator, videoServerMonitor);
 
     verify(idle, never()).createChannel();
   }
@@ -159,8 +162,41 @@ class EventListenerTest {
     consumerCallback()
         .handle("tag", delivery(Map.of("videoserver", LongStringHelper.asLongString("vs-1"))));
 
-    verify(healthMonitor).notifyVideoServerReady("vs-1");
+    verify(videoServerMonitor).onHeartbeat("vs-1", 0);
     verify(a1.getAsyncRemote(), never()).sendText(anyString());
+  }
+
+  @Test
+  void videoServerHeartbeatWithItsJanusTimestamp_reachesTheHealthMonitorWithIt() throws Exception {
+    consumerCallback()
+        .handle(
+            "tag",
+            delivery(
+                Map.of(
+                    "videoserver",
+                    LongStringHelper.asLongString("vs-1"),
+                    "videoserver-sent-at",
+                    1_700L)));
+
+    verify(videoServerMonitor).onHeartbeat("vs-1", 1_700L);
+  }
+
+  @Test
+  void videoServerShutdown_marksItDownInTheHealthMonitor() throws Exception {
+    consumerCallback()
+        .handle(
+            "tag",
+            delivery(
+                Map.of(
+                    "videoserver",
+                    LongStringHelper.asLongString("vs-1"),
+                    "videoserver-sent-at",
+                    1_700L,
+                    "videoserver-shutdown",
+                    true)));
+
+    verify(videoServerMonitor).onShutdown("vs-1", 1_700L);
+    verify(videoServerMonitor, never()).onHeartbeat(anyString(), anyLong());
   }
 
   @Test
@@ -265,10 +301,12 @@ class EventListenerTest {
     verify(fresh)
         .basicConsume(
             eq("amq.gen-2"), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+    verify(exit, never()).run();
   }
 
   @Test
-  void subscribingAgainFailsHalfway_abortsTheFreshChannelWithoutThrowing() throws Exception {
+  void subscribingAgainFails_abortsTheFreshChannelAndExitsSoTheServiceManagerRestartsIt()
+      throws Exception {
     when(connection.isOpen()).thenReturn(true);
     Channel fresh = mock(Channel.class);
     when(connection.createChannel()).thenReturn(fresh);
@@ -278,6 +316,7 @@ class EventListenerTest {
     assertDoesNotThrow(() -> cancelCallback().handle("tag"));
 
     verify(fresh).abort();
+    verify(exit).run();
   }
 
   @Test
@@ -286,7 +325,7 @@ class EventListenerTest {
     when(connection.createChannel()).thenReturn(failing);
     when(failing.queueDeclare(eq(""), eq(false), eq(true), eq(true), any()))
         .thenThrow(new IOException("broker gone"));
-    EventListener starting = new EventListener(connection, sessions, migrator, healthMonitor);
+    EventListener starting = new EventListener(connection, sessions, migrator, videoServerMonitor);
 
     assertThrows(EventDispatcherException.class, starting::start);
 
@@ -300,7 +339,7 @@ class EventListenerTest {
 
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, false, null, null));
 
-    verify(healthMonitor).notifyBrokerDown();
+    verify(videoServerMonitor).onBrokerLost();
   }
 
   @Test
@@ -310,16 +349,16 @@ class EventListenerTest {
 
     shutdown.getValue().shutdownCompleted(new ShutdownSignalException(true, true, null, null));
 
-    verify(healthMonitor, never()).notifyBrokerDown();
+    verify(videoServerMonitor, never()).onBrokerLost();
   }
 
   @Test
-  void connectionRecovered_notifiesBrokerRecovered() {
+  void brokerConnectionRecovered_notifiesBrokerRecovered() {
     ArgumentCaptor<RecoveryListener> recovery = ArgumentCaptor.forClass(RecoveryListener.class);
     verify((Recoverable) connection).addRecoveryListener(recovery.capture());
 
     recovery.getValue().handleRecovery((Recoverable) connection);
 
-    verify(healthMonitor).notifyBrokerRecovered();
+    verify(videoServerMonitor).onBrokerRecovered();
   }
 }

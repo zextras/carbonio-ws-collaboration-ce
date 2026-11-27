@@ -20,6 +20,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -126,10 +127,22 @@ class EventDispatcherRabbitMqTest {
   }
 
   @Test
-  void sendVideoServerHeartbeat_publishesOneMessageNamingTheVideoServer() throws Exception {
-    dispatcher.sendVideoServerHeartbeat("vs-1");
+  void sendVideoServerHeartbeat_publishesOneMessageNamingTheVideoServerAndItsJanusTimestamp()
+      throws Exception {
+    dispatcher.sendVideoServerHeartbeat("vs-1", 1_700L);
 
-    assertEquals(Map.of("videoserver", "vs-1"), published(1).getFirst().getHeaders());
+    assertEquals(
+        Map.of("videoserver", "vs-1", "videoserver-sent-at", 1_700L),
+        published(1).getFirst().getHeaders());
+  }
+
+  @Test
+  void sendVideoServerShutdown_publishesOneMessageMarkingTheVideoServerShutDown() throws Exception {
+    dispatcher.sendVideoServerShutdown("vs-1", 1_700L);
+
+    assertEquals(
+        Map.of("videoserver", "vs-1", "videoserver-sent-at", 1_700L, "videoserver-shutdown", true),
+        published(1).getFirst().getHeaders());
   }
 
   @Test
@@ -179,7 +192,8 @@ class EventDispatcherRabbitMqTest {
       slowBroker.countDown();
     }
 
-    published(1 + 10_000);
+    dispatcher.stop();
+    verify(channel, times(1 + 10_000)).basicPublish(eq("wsc.events"), eq(""), any(), any());
     verify(channel, never())
         .basicPublish(
             anyString(),

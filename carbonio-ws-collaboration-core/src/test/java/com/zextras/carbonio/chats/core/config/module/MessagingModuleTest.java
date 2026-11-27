@@ -4,8 +4,10 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -16,6 +18,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
+import java.io.IOException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +48,16 @@ class MessagingModuleTest {
     module.getConsumerConnection(factory);
 
     verify(factory).newConnection(startsWith("carbonio-ws-collaboration-consumer@"));
+  }
+
+  @Test
+  void connection_failsAtOnceWhenTheBrokerIsDown_soTheServiceManagerRetriesTheStart()
+      throws Exception {
+    when(factory.newConnection(anyString())).thenThrow(new IOException("down"));
+
+    assertThrows(EventDispatcherException.class, () -> module.getPublisherConnection(factory));
+
+    verify(factory).newConnection(anyString());
   }
 
   @Test

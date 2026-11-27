@@ -65,8 +65,8 @@ class MeetingApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final VideoServerMockServer videoServerMockServer;
-  private final com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
-      healthMonitor;
+  private final com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor
+      videoServerMonitor;
 
   public MeetingApiIT(
       MeetingsApi meetingsApi,
@@ -76,21 +76,21 @@ class MeetingApiIT {
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
       VideoServerMockServer videoServerMockServer,
-      com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
-          healthMonitor) {
+      com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor
+          videoServerMonitor) {
     this.dispatcher = dispatcher;
     this.participantRepository = participantRepository;
     this.meetingTestUtils = meetingTestUtils;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.videoServerMockServer = videoServerMockServer;
-    this.healthMonitor = healthMonitor;
+    this.videoServerMonitor = videoServerMonitor;
     this.dispatcher.getRegistry().addSingletonResource(meetingsApi);
   }
 
   @org.junit.jupiter.api.BeforeEach
   void setupActiveSessions() {
-    healthMonitor.notifyVideoServerReady("janus");
+    videoServerMonitor.onHeartbeat("janus", 0);
   }
 
   private static UUID user1Id;

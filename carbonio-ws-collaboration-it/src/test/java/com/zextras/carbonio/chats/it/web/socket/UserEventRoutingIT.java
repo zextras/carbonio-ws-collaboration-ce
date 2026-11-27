@@ -17,9 +17,9 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.web.socket.EventListener;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.extensions.RabbitMqExtension;
@@ -56,7 +56,7 @@ class UserEventRoutingIT {
   private record Instance(
       EventWebSocketSessions sessions,
       EventListener listener,
-      MessageBrokerVideoserverHealthMonitor healthMonitor) {}
+      VideoServerMonitor videoServerMonitor) {}
 
   UserEventRoutingIT(RabbitMqBroker broker) {
     this.broker = broker.connectionFactory();
@@ -79,16 +79,15 @@ class UserEventRoutingIT {
 
   private Instance startInstance() throws Exception {
     EventWebSocketSessions sessions = new EventWebSocketSessions(mock(SessionPingManager.class));
-    MessageBrokerVideoserverHealthMonitor healthMonitor =
-        mock(MessageBrokerVideoserverHealthMonitor.class);
+    VideoServerMonitor videoServerMonitor = mock(VideoServerMonitor.class);
     EventListener listener =
         new EventListener(
             broker.newConnection(),
             sessions,
             new WebsocketVersionMigrator(objectMapper),
-            healthMonitor);
+            videoServerMonitor);
     listener.start();
-    return new Instance(sessions, listener, healthMonitor);
+    return new Instance(sessions, listener, videoServerMonitor);
   }
 
   private static RemoteEndpoint.Async connect(Instance instance, String sessionId, String userId) {
@@ -122,10 +121,18 @@ class UserEventRoutingIT {
 
   @Test
   void aVideoServerHeartbeat_reachesTheHealthMonitorOfEveryInstance() {
-    dispatcher.sendVideoServerHeartbeat("vs-1");
+    dispatcher.sendVideoServerHeartbeat("vs-1", 1_700L);
 
-    verify(first.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1");
-    verify(second.healthMonitor(), timeout(2000)).notifyVideoServerReady("vs-1");
+    verify(first.videoServerMonitor(), timeout(2000)).onHeartbeat("vs-1", 1_700L);
+    verify(second.videoServerMonitor(), timeout(2000)).onHeartbeat("vs-1", 1_700L);
+  }
+
+  @Test
+  void aVideoServerShutdown_reachesTheHealthMonitorOfEveryInstance() {
+    dispatcher.sendVideoServerShutdown("vs-1", 1_700L);
+
+    verify(first.videoServerMonitor(), timeout(2000)).onShutdown("vs-1", 1_700L);
+    verify(second.videoServerMonitor(), timeout(2000)).onShutdown("vs-1", 1_700L);
   }
 
   @Test

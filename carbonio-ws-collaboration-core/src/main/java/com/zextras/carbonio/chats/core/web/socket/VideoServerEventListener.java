@@ -61,6 +61,7 @@ public class VideoServerEventListener {
   private static final String SUBSCRIBING = "subscribing";
   private static final String UPDATED = "updated";
   private static final String PUBLISHED = "published";
+  private static final String SHUTDOWN = "shutdown";
 
   private static final int JSEP_TYPE = 8;
   private static final int PLUGIN_TYPE = 64;
@@ -72,6 +73,7 @@ public class VideoServerEventListener {
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
+  private final Runnable exit;
 
   @Inject
   public VideoServerEventListener(
@@ -79,10 +81,29 @@ public class VideoServerEventListener {
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
       VideoServerService videoServerService) {
+    // on another thread: System.exit waits for the shutdown hook that closes this channel
+    this(
+        channel,
+        eventDispatcher,
+        objectMapper,
+        videoServerService,
+        () ->
+            Thread.ofPlatform()
+                .name("Exit after losing the event queue")
+                .start(() -> System.exit(1)));
+  }
+
+  VideoServerEventListener(
+      Channel channel,
+      EventDispatcher eventDispatcher,
+      ObjectMapper objectMapper,
+      VideoServerService videoServerService,
+      Runnable exit) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
+    this.exit = exit;
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
@@ -125,8 +146,8 @@ public class VideoServerEventListener {
       channel.queueDelete(LEGACY_QUEUE);
       DeliverCallback deliverCallback = createDeliveryCallBack();
       consumerTag = channel.basicConsume(QUEUE, true, deliverCallback, this::resubscribe);
-    } catch (Exception e) {
-      ChatsLogger.error("Error starting video server events processing", e);
+    } catch (IOException e) {
+      throw new EventDispatcherException("Could not start the video server event listener", e);
     }
   }
 
@@ -153,7 +174,12 @@ public class VideoServerEventListener {
     } catch (IOException alreadyCancelled) {
       ChatsLogger.debug("Video server event listener dropped its cancelled consumer");
     }
-    start();
+    try {
+      start();
+    } catch (RuntimeException e) {
+      ChatsLogger.error("Video server event listener could not consume again, exiting", e);
+      exit.run();
+    }
   }
 
   private @NotNull DeliverCallback createDeliveryCallBack() {
@@ -171,12 +197,20 @@ public class VideoServerEventListener {
     switch (event.getType()) {
       case JSEP_TYPE -> handleJsepTypeEvent(event);
       case PLUGIN_TYPE -> handlePluginTypeEvent(event);
-      case HEARTBEAT_TYPE ->
-          eventDispatcher.sendVideoServerHeartbeat(
-              Objects.requireNonNullElse(event.getEmitter(), ""));
+      case HEARTBEAT_TYPE -> relayStatus(event);
       default -> {
         /* just ignore other events */
       }
+    }
+  }
+
+  private void relayStatus(VideoServerEvent event) {
+    String emitter = Objects.requireNonNullElse(event.getEmitter(), "");
+    long sentAt = Objects.requireNonNullElse(event.getTimestamp(), 0L);
+    String status = event.getEventInfo() == null ? null : event.getEventInfo().getStatus();
+    switch (status) {
+      case SHUTDOWN -> eventDispatcher.sendVideoServerShutdown(emitter, sentAt);
+      case null, default -> eventDispatcher.sendVideoServerHeartbeat(emitter, sentAt);
     }
   }
 

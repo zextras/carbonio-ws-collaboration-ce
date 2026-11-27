@@ -17,11 +17,11 @@ import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
@@ -44,7 +44,7 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
   private final WebsocketVersionMigrator migrator;
   private final CacheVideoServerSession cacheVideoServerSession;
   private final ParticipantService participantService;
-  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final VideoServerMonitor videoServerMonitor;
 
   @Inject
   public EventsWebSocketManagerImpl(
@@ -53,13 +53,13 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
       CacheVideoServerSession cacheVideoServerSession,
       ParticipantService participantService,
       EventWebSocketSessions sessions,
-      MessageBrokerVideoserverHealthMonitor healthMonitor) {
+      VideoServerMonitor videoServerMonitor) {
     this.objectMapper = objectMapper;
     this.migrator = migrator;
     this.cacheVideoServerSession = cacheVideoServerSession;
     this.participantService = participantService;
     this.sessions = sessions;
-    this.healthMonitor = healthMonitor;
+    this.videoServerMonitor = videoServerMonitor;
   }
 
   @Override
@@ -74,7 +74,7 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
     session
         .getAsyncRemote()
         .sendObject(migrator.downgradeIfNeeded(wsConnected, versionOf(session)));
-    healthMonitor.notifyIfUnavailable(session);
+    videoServerMonitor.notifyIfUnavailable(session);
   }
 
   @Override

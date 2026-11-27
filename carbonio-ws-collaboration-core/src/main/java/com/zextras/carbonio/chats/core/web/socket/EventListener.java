@@ -18,6 +18,7 @@ import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.websocket.Session;
@@ -36,23 +37,45 @@ public class EventListener {
   private static final String USERS_HEADER = "users";
   private static final String QUEUE_ID_HEADER = "queueId";
   private static final String VIDEO_SERVER_HEADER = "videoserver";
+  private static final String VIDEO_SERVER_SENT_AT_HEADER = "videoserver-sent-at";
+  private static final String VIDEO_SERVER_SHUTDOWN_HEADER = "videoserver-shutdown";
   private static final int MAX_QUEUE_LENGTH = 10_000;
 
   private final Connection connection;
   private final EventWebSocketSessions sessions;
   private final WebsocketVersionMigrator migrator;
-  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
+  private final VideoServerMonitor videoServerMonitor;
+  private final Runnable exit;
 
   @Inject
   public EventListener(
       @Named("consumer") Connection connection,
       EventWebSocketSessions sessions,
       WebsocketVersionMigrator migrator,
-      MessageBrokerVideoserverHealthMonitor healthMonitor) {
+      VideoServerMonitor videoServerMonitor) {
+    // on another thread: System.exit waits for the shutdown that closes this consumer's channel
+    this(
+        connection,
+        sessions,
+        migrator,
+        videoServerMonitor,
+        () ->
+            Thread.ofPlatform()
+                .name("Exit after losing the event queue")
+                .start(() -> System.exit(1)));
+  }
+
+  EventListener(
+      Connection connection,
+      EventWebSocketSessions sessions,
+      WebsocketVersionMigrator migrator,
+      VideoServerMonitor videoServerMonitor,
+      Runnable exit) {
     this.connection = connection;
     this.sessions = sessions;
     this.migrator = migrator;
-    this.healthMonitor = healthMonitor;
+    this.videoServerMonitor = videoServerMonitor;
+    this.exit = exit;
   }
 
   public void start() {
@@ -89,7 +112,8 @@ public class EventListener {
       cancelled.close();
       subscribe(connection.createChannel());
     } catch (IOException | TimeoutException | RuntimeException e) {
-      ChatsLogger.error("Event listener could not subscribe again", e);
+      ChatsLogger.error("Event listener could not subscribe again, exiting", e);
+      exit.run();
     }
   }
 
@@ -105,10 +129,19 @@ public class EventListener {
     try {
       Map<String, Object> headers = delivery.getProperties().getHeaders();
       Object videoServer = headers == null ? null : headers.get(VIDEO_SERVER_HEADER);
-      if (videoServer != null) healthMonitor.notifyVideoServerReady(videoServer.toString());
+      if (videoServer != null) notifyVideoServerStatus(videoServer.toString(), headers);
       else send(recipientsOf(headers), delivery.getBody());
     } catch (RuntimeException e) {
       ChatsLogger.warn("Event listener skipped an event it could not read", e);
+    }
+  }
+
+  private void notifyVideoServerStatus(String videoServer, Map<String, Object> headers) {
+    switch (headers.get(VIDEO_SERVER_SENT_AT_HEADER)) {
+      case Long sentAt when Boolean.TRUE.equals(headers.get(VIDEO_SERVER_SHUTDOWN_HEADER)) ->
+          videoServerMonitor.onShutdown(videoServer, sentAt);
+      case Long sentAt -> videoServerMonitor.onHeartbeat(videoServer, sentAt);
+      case null, default -> videoServerMonitor.onHeartbeat(videoServer, 0);
     }
   }
 
@@ -153,7 +186,7 @@ public class EventListener {
         cause -> {
           if (!cause.isInitiatedByApplication()) {
             ChatsLogger.warn("Event listener lost the message broker connection");
-            healthMonitor.notifyBrokerDown();
+            videoServerMonitor.onBrokerLost();
           }
         });
     if (!(connection instanceof Recoverable recoverable)) return;
@@ -162,7 +195,7 @@ public class EventListener {
           @Override
           public void handleRecovery(Recoverable recoverable) {
             ChatsLogger.info("Event listener recovered the message broker connection");
-            healthMonitor.notifyBrokerRecovered();
+            videoServerMonitor.onBrokerRecovered();
           }
 
           @Override

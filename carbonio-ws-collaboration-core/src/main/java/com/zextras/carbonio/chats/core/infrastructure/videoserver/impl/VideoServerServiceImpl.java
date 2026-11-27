@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerMonitor;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.codec.VideoCodec;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
@@ -68,6 +69,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   private final VideoServerClient videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
+  private final VideoServerMonitor videoServerMonitor;
   private final Clock clock;
 
   private final VideoServerConfig videoServerConfig;
@@ -78,10 +80,12 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerClient videoServerClient,
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository,
+      VideoServerMonitor videoServerMonitor,
       Clock clock) {
     this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
+    this.videoServerMonitor = videoServerMonitor;
     this.clock = clock;
     this.videoServerConfig = videoServerConfig;
   }
@@ -141,7 +145,25 @@ public class VideoServerServiceImpl implements VideoServerService {
     return videoServerClient;
   }
 
+  private VideoServerClient liveClientFor(VideoServerMeeting videoServerMeeting) {
+    if (isVideoServerDown(videoServerMeeting)) {
+      throw new VideoServerException(
+          "The video server of the meeting " + videoServerMeeting.getMeetingId() + " is down");
+    }
+    return clientFor(videoServerMeeting);
+  }
+
   protected void afterMeetingStarted(String meetingId, VideoServerClient client) {}
+
+  // refuse media calls at once instead of waiting for the HTTP timeout
+  protected boolean isVideoServerDown(VideoServerMeeting videoServerMeeting) {
+    return videoServerMonitor.isDown();
+  }
+
+  // skip Janus on leave and stop only once it confirmed its rooms and sessions are gone
+  protected boolean isVideoServerShutDown(VideoServerMeeting videoServerMeeting) {
+    return videoServerMonitor.isShutDown();
+  }
 
   private VideoServerResponse createMeetingConnection(VideoServerClient client) {
     VideoServerResponse response = createConnection(client);
@@ -230,33 +252,35 @@ public class VideoServerServiceImpl implements VideoServerService {
         .getById(meetingId)
         .ifPresent(
             videoServerMeeting -> {
-              VideoServerClient client = clientFor(videoServerMeeting);
+              if (!isVideoServerShutDown(videoServerMeeting)) {
+                VideoServerClient client = clientFor(videoServerMeeting);
 
-              destroyAudioBridgeRoom(
-                  client,
-                  meetingId,
-                  videoServerMeeting.getConnectionId(),
-                  videoServerMeeting.getAudioHandleId(),
-                  videoServerMeeting.getAudioRoomId());
-              destroyVideoRoom(
-                  client,
-                  meetingId,
-                  videoServerMeeting.getConnectionId(),
-                  videoServerMeeting.getVideoHandleId(),
-                  videoServerMeeting.getVideoRoomId());
+                destroyAudioBridgeRoom(
+                    client,
+                    meetingId,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getAudioHandleId(),
+                    videoServerMeeting.getAudioRoomId());
+                destroyVideoRoom(
+                    client,
+                    meetingId,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getVideoHandleId(),
+                    videoServerMeeting.getVideoRoomId());
 
-              destroyPluginHandle(
-                  client,
-                  videoServerMeeting.getConnectionId(),
-                  videoServerMeeting.getAudioHandleId(),
-                  meetingId);
-              destroyPluginHandle(
-                  client,
-                  videoServerMeeting.getConnectionId(),
-                  videoServerMeeting.getVideoHandleId(),
-                  meetingId);
+                destroyPluginHandle(
+                    client,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getAudioHandleId(),
+                    meetingId);
+                destroyPluginHandle(
+                    client,
+                    videoServerMeeting.getConnectionId(),
+                    videoServerMeeting.getVideoHandleId(),
+                    meetingId);
 
-              destroyConnection(client, videoServerMeeting.getConnectionId(), meetingId);
+                destroyConnection(client, videoServerMeeting.getConnectionId(), meetingId);
+              }
               videoServerMeetingRepository.deleteById(meetingId);
             });
   }
@@ -345,7 +369,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       boolean audioStreamOn) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
 
-    VideoServerClient client = clientFor(videoServerMeeting);
+    VideoServerClient client = liveClientFor(videoServerMeeting);
 
     Optional<VideoServerSession> videoServerSession =
         videoServerMeeting.getVideoServerSessions().stream()
@@ -464,17 +488,18 @@ public class VideoServerServiceImpl implements VideoServerService {
     videoServerMeetingRepository
         .getById(meetingId)
         .ifPresent(
-            videoServerMeeting -> {
-              VideoServerClient client = clientFor(videoServerMeeting);
-              videoServerMeeting.getVideoServerSessions().stream()
-                  .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-                  .findFirst()
-                  .ifPresent(
-                      videoServerSession -> {
-                        destroyParticipantSession(client, meetingId, videoServerSession);
-                        videoServerSessionRepository.remove(videoServerSession);
-                      });
-            });
+            videoServerMeeting ->
+                videoServerMeeting.getVideoServerSessions().stream()
+                    .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+                    .findFirst()
+                    .ifPresent(
+                        videoServerSession -> {
+                          if (!isVideoServerShutDown(videoServerMeeting)) {
+                            destroyParticipantSession(
+                                clientFor(videoServerMeeting), meetingId, videoServerSession);
+                          }
+                          videoServerSessionRepository.remove(videoServerSession);
+                        }));
   }
 
   private void destroyParticipantSession(
@@ -514,7 +539,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
-    VideoServerClient client = clientFor(videoServerMeeting);
+    VideoServerClient client = liveClientFor(videoServerMeeting);
 
     try {
       switch (mediaStreamSettingsDto.getType()) {
@@ -649,7 +674,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
 
     muteAudioStream(
-        clientFor(videoServerMeeting),
+        liveClientFor(videoServerMeeting),
         videoServerMeeting.getConnectionId(),
         videoServerSession.getConnectionId(),
         userId,
@@ -695,7 +720,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     startVideoIn(
-        clientFor(videoServerMeeting),
+        liveClientFor(videoServerMeeting),
         videoServerSession.getConnectionId(),
         videoServerSession.getVideoInHandleId(),
         sdp);
@@ -729,7 +754,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     if (temporal != null) stream.temporal(temporal);
     VideoRoomResponse response =
         sendVideoRoomPluginMessage(
-            clientFor(videoServerMeeting),
+            liveClientFor(videoServerMeeting),
             session.getConnectionId(),
             session.getVideoInHandleId(),
             VideoRoomConfigureRequest.create()
@@ -746,7 +771,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
-    VideoServerClient client = clientFor(videoServerMeeting);
+    VideoServerClient client = liveClientFor(videoServerMeeting);
     ChatsLogger.debug(
         String.format(
             "Subscriptions: user=%s meeting=%s subscribe=%d unsubscribe=%d",
@@ -886,7 +911,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     joinAudioBridgeRoom(
-        clientFor(videoServerMeeting),
+        liveClientFor(videoServerMeeting),
         userId,
         videoServerSession.getConnectionId(),
         videoServerSession.getAudioHandleId(),
@@ -937,7 +962,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     iceRestartAudioWithSdp(
-        clientFor(videoServerMeeting),
+        liveClientFor(videoServerMeeting),
         videoServerSession.getConnectionId(),
         videoServerSession.getAudioHandleId(),
         sdp);
@@ -966,7 +991,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   public void iceRestartVideo(String userId, String meetingId, @Nullable String sdp) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
-    VideoServerClient client = clientFor(videoServerMeeting);
+    VideoServerClient client = liveClientFor(videoServerMeeting);
 
     if (sdp == null) {
       iceRestartVideoIn(
@@ -1026,7 +1051,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     iceRestartScreenWithSdp(
-        clientFor(videoServerMeeting),
+        liveClientFor(videoServerMeeting),
         videoServerSession.getConnectionId(),
         videoServerSession.getScreenHandleId(),
         sdp);

@@ -33,6 +33,8 @@ public class EventInfo {
   @JsonProperty("jsep")
   private RtcSessionDescription rtcSessionDescription;
 
+  private String status;
+
   public String getName() {
     return name;
   }
@@ -75,6 +77,15 @@ public class EventInfo {
 
   public EventInfo rtcSessionDescription(RtcSessionDescription rtcSessionDescription) {
     this.rtcSessionDescription = rtcSessionDescription;
+    return this;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public EventInfo status(String status) {
+    this.status = status;
     return this;
   }
 }

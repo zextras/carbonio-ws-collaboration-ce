@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.Str
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcType;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,6 +64,7 @@ class VideoServerEventListenerTest {
   private Connection connection;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
+  private final Runnable exit = mock(Runnable.class);
   private ArgumentCaptor<DeliverCallback> deliverCallbackCaptor;
   private ObjectMapper objectMapper;
   private VideoServerEventListener listener;
@@ -83,7 +85,8 @@ class VideoServerEventListenerTest {
         .thenReturn(CONSUMER_TAG);
 
     listener =
-        new VideoServerEventListener(channel, eventDispatcher, objectMapper, videoServerService);
+        new VideoServerEventListener(
+            channel, eventDispatcher, objectMapper, videoServerService, exit);
   }
 
   @Test
@@ -156,17 +159,36 @@ class VideoServerEventListenerTest {
   }
 
   @Test
-  void heartbeat_isRelayedToEveryInstance_namingTheVideoServer() throws Exception {
-    handleEvent(new VideoServerEvent().type(256).emitter("videoserver-1"));
+  void heartbeat_isRelayedToEveryInstance_namingTheVideoServerAndWhenJanusSentIt()
+      throws Exception {
+    handleEvent(
+        new VideoServerEvent()
+            .type(256)
+            .emitter("videoserver-1")
+            .timestamp(1_700L)
+            .eventInfo(new EventInfo().status("update")));
 
-    verify(eventDispatcher).sendVideoServerHeartbeat("videoserver-1");
+    verify(eventDispatcher).sendVideoServerHeartbeat("videoserver-1", 1_700L);
   }
 
   @Test
   void heartbeatOfAVideoServerWithoutAName_isRelayedWithAnEmptyName() throws Exception {
     handleEvent(new VideoServerEvent().type(256));
 
-    verify(eventDispatcher).sendVideoServerHeartbeat("");
+    verify(eventDispatcher).sendVideoServerHeartbeat("", 0L);
+  }
+
+  @Test
+  void shutdown_isRelayedToEveryInstance_asTheVideoServerGoingDown() throws Exception {
+    handleEvent(
+        new VideoServerEvent()
+            .type(256)
+            .emitter("videoserver-1")
+            .timestamp(1_700L)
+            .eventInfo(new EventInfo().status("shutdown")));
+
+    verify(eventDispatcher).sendVideoServerShutdown("videoserver-1", 1_700L);
+    verify(eventDispatcher, never()).sendVideoServerHeartbeat(anyString(), anyLong());
   }
 
   @Test
@@ -205,6 +227,28 @@ class VideoServerEventListenerTest {
     verify(channel, times(2)).queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS);
     verify(channel, times(2))
         .basicConsume(eq(QUEUE), eq(true), any(DeliverCallback.class), any(CancelCallback.class));
+    verify(exit, never()).run();
+  }
+
+  @Test
+  void start_failsWhenTheBrokerRefusesTheQueue_soAFailedBootIsRetried() throws Exception {
+    when(channel.queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS))
+        .thenThrow(new IOException("ACCESS_REFUSED"));
+
+    assertThrows(EventDispatcherException.class, () -> listener.start());
+  }
+
+  @Test
+  void queueDeletedThenRefused_exitsSoTheServiceManagerRestartsTheInstance() throws Exception {
+    ArgumentCaptor<CancelCallback> cancel = ArgumentCaptor.forClass(CancelCallback.class);
+    listener.start();
+    verify(channel)
+        .basicConsume(anyString(), anyBoolean(), any(DeliverCallback.class), cancel.capture());
+    when(channel.queueDeclare(QUEUE, true, false, false, QUEUE_ARGUMENTS))
+        .thenThrow(new IOException("ACCESS_REFUSED"));
+
+    assertDoesNotThrow(() -> cancel.getValue().handle(CONSUMER_TAG));
+    verify(exit).run();
   }
 
   @Test
