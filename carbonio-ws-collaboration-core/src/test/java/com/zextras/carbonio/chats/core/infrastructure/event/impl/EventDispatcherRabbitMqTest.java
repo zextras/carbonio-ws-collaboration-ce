@@ -20,6 +20,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -191,7 +192,8 @@ class EventDispatcherRabbitMqTest {
       slowBroker.countDown();
     }
 
-    published(1 + 10_000);
+    dispatcher.stop();
+    verify(channel, times(1 + 10_000)).basicPublish(eq("wsc.events"), eq(""), any(), any());
     verify(channel, never())
         .basicPublish(
             anyString(),
